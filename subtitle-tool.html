@@ -10,13 +10,20 @@
 </head>
 <body>
   <h1>🎬 Subtitle Paragraph Converter</h1>
-  <p>Paste your SRV/SBV subtitle text below:</p>
-  <textarea id="subtitleInput"></textarea>
+
+  <label>Upload SBV/SRV file:
+    <input type="file" id="fileInput" accept=".sbv,.srv,.txt">
+  </label>
   <br><br>
-  <label>Block size (minutes): <input id="blockMinutes" type="number" value="15" min="1" /></label>
+
+  <label>Block size (minutes):
+    <input id="blockMinutes" type="number" value="15" min="1">
+  </label>
   <br><br>
-  <button onclick="convertSubtitles()">Convert</button>
-  <h2>Output Paragraphs</h2>
+
+  <button onclick="handleFile()">Convert</button>
+
+  <h2>Output</h2>
   <div id="output"></div>
 
 <script>
@@ -52,10 +59,8 @@ function parseSRV(inputText) {
   return blocks;
 }
 
-function convertSubtitles() {
-  const input = document.getElementById('subtitleInput').value;
-  const blockSize = parseInt(document.getElementById('blockMinutes').value) * 60;
-  const blocks = parseSRV(input);
+function convertSubtitles(text, blockMinutes) {
+  const blocks = parseSRV(text);
   const paragraphs = [];
 
   let current = [];
@@ -63,7 +68,7 @@ function convertSubtitles() {
 
   for (const block of blocks) {
     if (paragraphStart === null) paragraphStart = block.start;
-    if ((block.end - paragraphStart) > blockSize) {
+    if ((block.end - paragraphStart) > blockMinutes * 60) {
       paragraphs.push(current.join(' '));
       current = [block.text];
       paragraphStart = block.start;
@@ -73,14 +78,46 @@ function convertSubtitles() {
   }
 
   if (current.length > 0) paragraphs.push(current.join(' '));
+  return paragraphs;
+}
 
+function handleFile() {
+  const fileInput = document.getElementById('fileInput');
+  const blockMinutes = parseInt(document.getElementById('blockMinutes').value);
   const outputDiv = document.getElementById('output');
-  outputDiv.innerHTML = '';
-  paragraphs.forEach((p, idx) => {
-    const pre = document.createElement('pre');
-    pre.textContent = `Paragraph ${idx + 1}\n\n${p}`;
-    outputDiv.appendChild(pre);
-  });
+
+  if (!fileInput.files.length) {
+    alert('Please upload a file.');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const content = e.target.result;
+    const paragraphs = convertSubtitles(content, blockMinutes);
+    outputDiv.innerHTML = '';
+
+    const downloadContent = paragraphs.join('\n\n');
+    const blob = new Blob([downloadContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+
+    const downloadLink = document.createElement('a');
+    downloadLink.href = url;
+    downloadLink.download = "converted_paragraphs.txt";
+    downloadLink.textContent = "📥 Download Result";
+    downloadLink.style.display = "block";
+    downloadLink.style.margin = "1rem 0";
+
+    outputDiv.appendChild(downloadLink);
+
+    paragraphs.forEach((p, i) => {
+      const pre = document.createElement('pre');
+      pre.textContent = `Paragraph ${i + 1}\n\n${p}`;
+      outputDiv.appendChild(pre);
+    });
+  };
+
+  reader.readAsText(fileInput.files[0]);
 }
 </script>
 </body>
