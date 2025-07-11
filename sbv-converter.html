@@ -1,422 +1,124 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SBV to Plain Text Converter</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .container {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            padding: 40px;
-            max-width: 800px;
-            width: 100%;
-            transition: transform 0.3s ease;
-        }
-
-        .container:hover {
-            transform: translateY(-5px);
-        }
-
-        h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 30px;
-            font-size: 2.5em;
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .upload-area {
-            border: 3px dashed #667eea;
-            border-radius: 15px;
-            padding: 40px;
-            text-align: center;
-            margin-bottom: 30px;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            background: rgba(102, 126, 234, 0.05);
-        }
-
-        .upload-area:hover {
-            border-color: #764ba2;
-            background: rgba(118, 75, 162, 0.1);
-            transform: scale(1.02);
-        }
-
-        .upload-area.dragover {
-            border-color: #764ba2;
-            background: rgba(118, 75, 162, 0.15);
-        }
-
-        .upload-icon {
-            font-size: 3em;
-            margin-bottom: 20px;
-            color: #667eea;
-        }
-
-        .upload-text {
-            font-size: 1.2em;
-            color: #555;
-            margin-bottom: 15px;
-        }
-
-        input[type="file"] {
-            display: none;
-        }
-
-        .file-input-label {
-            display: inline-block;
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 25px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .file-input-label:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-        }
-
-        .result-area {
-            margin-top: 30px;
-            display: none;
-        }
-
-        .result-area.show {
-            display: block;
-            animation: fadeIn 0.5s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        textarea {
-            width: 100%;
-            height: 300px;
-            padding: 20px;
-            border: 2px solid #ddd;
-            border-radius: 15px;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            resize: vertical;
-            background: #f9f9f9;
-            transition: border-color 0.3s ease;
-        }
-
-        textarea:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .buttons {
-            display: flex;
-            gap: 15px;
-            margin-top: 20px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        button {
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-        }
-
-        button:active {
-            transform: translateY(0);
-        }
-
-        .success-message {
-            background: #d4edda;
-            color: #155724;
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 15px;
-            border: 1px solid #c3e6cb;
-            text-align: center;
-            display: none;
-        }
-
-        .success-message.show {
-            display: block;
-            animation: fadeIn 0.3s ease;
-        }
-
-        .file-info {
-            background: #e3f2fd;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            border-left: 4px solid #2196f3;
-        }
-
-        .processing {
-            text-align: center;
-            padding: 20px;
-            color: #667eea;
-        }
-
-        .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        @media (max-width: 600px) {
-            .container {
-                padding: 20px;
-            }
-            
-            h1 {
-                font-size: 2em;
-            }
-            
-            .upload-area {
-                padding: 20px;
-            }
-            
-            .buttons {
-                flex-direction: column;
-                align-items: center;
-            }
-        }
-    </style>
+  <title>Subtitle Paragraph Converter</title>
+  <style>
+    body { font-family: sans-serif; max-width: 700px; margin: auto; padding: 2rem; }
+    textarea { width: 100%; height: 300px; }
+    pre { white-space: pre-wrap; background: #f0f0f0; padding: 1em; border-radius: 5px; }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>SBV to Plain Text Converter</h1>
-        
-        <div class="upload-area" id="uploadArea">
-            <div class="upload-icon">📁</div>
-            <div class="upload-text">Drop your SBV file here or click to browse</div>
-            <label for="fileInput" class="file-input-label">Choose File</label>
-            <input type="file" id="fileInput" accept=".sbv" />
-        </div>
+  <h1>🎬 Subtitle Paragraph Converter</h1>
 
-        <div class="result-area" id="resultArea">
-            <div class="file-info" id="fileInfo"></div>
-            <textarea id="outputText" placeholder="Converted text will appear here..."></textarea>
-            <div class="buttons">
-                <button onclick="copyToClipboard()">Copy to Clipboard</button>
-                <button onclick="downloadText()">Download as TXT</button>
-                <button onclick="reset()">Convert Another File</button>
-            </div>
-            <div class="success-message" id="successMessage"></div>
-        </div>
-    </div>
+  <label>Upload SBV/SRV file:
+    <input type="file" id="fileInput" accept=".sbv,.srv,.txt">
+  </label>
+  <br><br>
 
-    <script>
-        let currentFileName = '';
-        let convertedText = '';
+  <label>Block size (minutes):
+    <input id="blockMinutes" type="number" value="15" min="1">
+  </label>
+  <br><br>
 
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('fileInput');
-        const resultArea = document.getElementById('resultArea');
-        const outputText = document.getElementById('outputText');
-        const fileInfo = document.getElementById('fileInfo');
-        const successMessage = document.getElementById('successMessage');
+  <button onclick="handleFile()">Convert</button>
 
-        // File input change event
-        fileInput.addEventListener('change', handleFileSelect);
+  <h2>Output</h2>
+  <div id="output"></div>
 
-        // Drag and drop events
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
-        });
+<script>
+function timeToSeconds(timeStr) {
+  const [h, m, s] = timeStr.split(':');
+  const [sec, ms] = s.split('.');
+  return parseInt(h) * 3600 + parseInt(m) * 60 + parseInt(sec) + parseFloat('0.' + ms);
+}
 
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('dragover');
-        });
+function parseSRV(inputText) {
+  const lines = inputText.split('\n');
+  const blocks = [];
+  let i = 0;
 
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                handleFile(files[0]);
-            }
-        });
+  while (i < lines.length) {
+    const line = lines[i].trim();
+    const match = line.match(/^(\d+:\d{2}:\d{2}\.\d{3}),(\d+:\d{2}:\d{2}\.\d{3})$/);
+    if (match) {
+      const start = timeToSeconds(match[1]);
+      const end = timeToSeconds(match[2]);
+      let textLines = [];
+      i++;
+      while (i < lines.length && lines[i].trim() !== '' && !lines[i].match(/^\d+:\d{2}:\d{2}\.\d{3},/)) {
+        textLines.push(lines[i].trim());
+        i++;
+      }
+      blocks.push({ start, end, text: textLines.join(' ') });
+    } else {
+      i++;
+    }
+  }
 
-        // Click to browse
-        uploadArea.addEventListener('click', () => {
-            fileInput.click();
-        });
+  return blocks;
+}
 
-        function handleFileSelect(e) {
-            const file = e.target.files[0];
-            if (file) {
-                handleFile(file);
-            }
-        }
+function convertSubtitles(text, blockMinutes) {
+  const blocks = parseSRV(text);
+  const paragraphs = [];
 
-        function handleFile(file) {
-            if (!file.name.toLowerCase().endsWith('.sbv')) {
-                alert('Please select a valid SBV file.');
-                return;
-            }
+  let current = [];
+  let paragraphStart = null;
 
-            currentFileName = file.name.replace('.sbv', '');
-            showProcessing();
+  for (const block of blocks) {
+    if (paragraphStart === null) paragraphStart = block.start;
+    if ((block.end - paragraphStart) > blockMinutes * 60) {
+      paragraphs.push(current.join(' '));
+      current = [block.text];
+      paragraphStart = block.start;
+    } else {
+      current.push(block.text);
+    }
+  }
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const sbvContent = e.target.result;
-                setTimeout(() => {
-                    convertSBVToPlainText(sbvContent);
-                }, 500); // Small delay for better UX
-            };
-            reader.readAsText(file);
-        }
+  if (current.length > 0) paragraphs.push(current.join(' '));
+  return paragraphs;
+}
 
-        function showProcessing() {
-            uploadArea.style.display = 'none';
-            resultArea.classList.add('show');
-            resultArea.innerHTML = `
-                <div class="processing">
-                    <div class="spinner"></div>
-                    <p>Processing your SBV file...</p>
-                </div>
-            `;
-        }
+function handleFile() {
+  const fileInput = document.getElementById('fileInput');
+  const blockMinutes = parseInt(document.getElementById('blockMinutes').value);
+  const outputDiv = document.getElementById('output');
 
-        function convertSBVToPlainText(sbvContent) {
-            // Split by double newlines to separate subtitle blocks
-            const blocks = sbvContent.split(/\n\s*\n/);
-            let plainText = '';
+  if (!fileInput.files.length) {
+    alert('Please upload a file.');
+    return;
+  }
 
-            blocks.forEach(block => {
-                const lines = block.trim().split('\n');
-                
-                // Skip empty blocks
-                if (lines.length === 0 || lines[0].trim() === '') {
-                    return;
-                }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const content = e.target.result;
+    const paragraphs = convertSubtitles(content, blockMinutes);
+    outputDiv.innerHTML = '';
 
-                // The first line should be the timestamp, skip it
-                // All remaining lines are subtitle text
-                for (let i = 1; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if (line) {
-                        // Add space instead of line break to join subtitle lines
-                        if (plainText && !plainText.endsWith(' ')) {
-                            plainText += ' ';
-                        }
-                        plainText += line;
-                    }
-                }
-            });
+    const downloadContent = paragraphs.join('\n\n');
+    const blob = new Blob([downloadContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
 
-            // Clean up extra spaces
-            convertedText = plainText.replace(/\s+/g, ' ').trim();
-            displayResult();
-        }
+    const downloadLink = document.createElement('a');
+    downloadLink.href = url;
+    downloadLink.download = "converted_paragraphs.txt";
+    downloadLink.textContent = "📥 Download Result";
+    downloadLink.style.display = "block";
+    downloadLink.style.margin = "1rem 0";
 
-        function displayResult() {
-            fileInfo.innerHTML = `
-                <strong>File:</strong> ${currentFileName}.sbv<br>
-                <strong>Characters:</strong> ${convertedText.length}<br>
-                <strong>Words:</strong> ${convertedText.split(/\s+/).filter(word => word.length > 0).length}
-            `;
+    outputDiv.appendChild(downloadLink);
 
-            resultArea.innerHTML = `
-                <div class="file-info" id="fileInfo">${fileInfo.innerHTML}</div>
-                <textarea id="outputText" placeholder="Converted text will appear here...">${convertedText}</textarea>
-                <div class="buttons">
-                    <button onclick="copyToClipboard()">Copy to Clipboard</button>
-                    <button onclick="downloadText()">Download as TXT</button>
-                    <button onclick="reset()">Convert Another File</button>
-                </div>
-                <div class="success-message" id="successMessage"></div>
-            `;
-        }
+    paragraphs.forEach((p, i) => {
+      const pre = document.createElement('pre');
+      pre.textContent = `Paragraph ${i + 1}\n\n${p}`;
+      outputDiv.appendChild(pre);
+    });
+  };
 
-        function copyToClipboard() {
-            const textarea = document.getElementById('outputText');
-            textarea.select();
-            document.execCommand('copy');
-            showSuccessMessage('Text copied to clipboard!');
-        }
-
-        function downloadText() {
-            const blob = new Blob([convertedText], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${currentFileName}_converted.txt`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            showSuccessMessage('File downloaded successfully!');
-        }
-
-        function showSuccessMessage(message) {
-            const successMsg = document.getElementById('successMessage');
-            successMsg.textContent = message;
-            successMsg.classList.add('show');
-            setTimeout(() => {
-                successMsg.classList.remove('show');
-            }, 3000);
-        }
-
-        function reset() {
-            uploadArea.style.display = 'block';
-            resultArea.classList.remove('show');
-            fileInput.value = '';
-            currentFileName = '';
-            convertedText = '';
-        }
-    </script>
+  reader.readAsText(fileInput.files[0]);
+}
+</script>
 </body>
 </html>
