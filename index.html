@@ -1,245 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Tools Hub</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        header {
-            text-align: center;
-            margin-bottom: 50px;
-        }
-
-        h1 {
-            color: white;
-            font-size: 3.5em;
-            margin-bottom: 20px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-        }
-
-        .subtitle {
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 1.3em;
-            margin-bottom: 30px;
-        }
-
-        .tools-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
-            margin-bottom: 50px;
-        }
-
-        .tool-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 30px;
-            text-align: center;
-            transition: all 0.3s ease;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        }
-
-        .tool-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-        }
-
-        .tool-icon {
-            font-size: 3em;
-            margin-bottom: 20px;
-            display: block;
-        }
-
-        .tool-title {
-            font-size: 1.5em;
-            color: #333;
-            margin-bottom: 15px;
-            font-weight: 600;
-        }
-
-        .tool-description {
-            color: #666;
-            margin-bottom: 25px;
-            line-height: 1.6;
-        }
-
-        .tool-button {
-            display: inline-block;
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: white;
-            text-decoration: none;
-            padding: 12px 30px;
-            border-radius: 25px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-size: 0.9em;
-        }
-
-        .tool-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-        }
-
-        .coming-soon {
-            opacity: 0.7;
-            position: relative;
-        }
-
-        .coming-soon .tool-button {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-
-        .coming-soon::after {
-            content: "Coming Soon";
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: #ff6b6b;
-            color: white;
-            padding: 5px 15px;
-            border-radius: 15px;
-            font-size: 0.8em;
-            font-weight: 500;
-        }
-
-        footer {
-            text-align: center;
-            color: rgba(255, 255, 255, 0.8);
-            margin-top: 50px;
-            padding: 30px;
-            background: rgba(0, 0, 0, 0.1);
-            border-radius: 15px;
-        }
-
-        .github-link {
-            color: rgba(255, 255, 255, 0.9);
-            text-decoration: none;
-            font-weight: 500;
-            margin-top: 15px;
-            display: inline-block;
-            transition: color 0.3s ease;
-        }
-
-        .github-link:hover {
-            color: white;
-        }
-
-        @media (max-width: 768px) {
-            h1 {
-                font-size: 2.5em;
-            }
-            
-            .tools-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .tool-card {
-                padding: 20px;
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Text & Law Tools by Kornrawee</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
-<body>
-    <div class="container">
-        <header>
-            <h1>🛠️ Web Tools Hub</h1>
-            <p class="subtitle">A collection of useful web-based tools for everyday tasks</p>
-        </header>
+<body class="bg-gray-100 text-gray-800 font-sans">
 
-        <div class="tools-grid">
-            <div class="tool-card">
-                <span class="tool-icon">📝</span>
-                <h2 class="tool-title">SBV to Plain Text Converter</h2>
-                <p class="tool-description">Convert SBV subtitle files to clean plain text by removing timestamps and line breaks</p>
-                <a href="sbv-converter.html" class="tool-button">Launch Tool</a>
-            </div>
+  <header class="bg-white shadow p-4">
+    <h1 class="text-2xl font-bold text-center">🧰 Text & Law Tools</h1>
+    <p class="text-center text-gray-600">By Kornrawee Chanchom</p>
+  </header>
 
-            <div class="tool-card coming-soon">
-                <span class="tool-icon">🔗</span>
-                <h2 class="tool-title">URL Shortener</h2>
-                <p class="tool-description">Create short, memorable links from long URLs with click tracking</p>
-                <a href="#" class="tool-button">Launch Tool</a>
-            </div>
+  <main class="max-w-4xl mx-auto mt-8 p-4 bg-white shadow rounded">
+    <section class="mb-6">
+      <h2 class="text-xl font-semibold">🔍 About This Site</h2>
+      <p>This is a personal collection of tools to help myself and my friends work with text, legal documents, court judgments, and language-related tasks.</p>
+    </section>
 
-            <div class="tool-card coming-soon">
-                <span class="tool-icon">🖼️</span>
-                <h2 class="tool-title">Image Converter</h2>
-                <p class="tool-description">Convert images between different formats (PNG, JPG, WebP, etc.)</p>
-                <a href="#" class="tool-button">Launch Tool</a>
-            </div>
+    <section class="mb-6">
+      <h2 class="text-xl font-semibold">🧪 Available Tools</h2>
+      <ul class="list-disc ml-6">
+        <li><a href="#" class="text-blue-600 hover:underline">Legal Term Extractor</a> – Extract law terms from Thai legal texts</li>
+        <li><a href="#" class="text-blue-600 hover:underline">PDF Concordance Generator</a> – Generate keyword concordances</li>
+        <li><a href="#" class="text-blue-600 hover:underline">Thai-English Sentence Aligner</a> – Help align translations</li>
+        <!-- Add more tools -->
+      </ul>
+    </section>
 
-            <div class="tool-card coming-soon">
-                <span class="tool-icon">🎨</span>
-                <h2 class="tool-title">Color Palette Generator</h2>
-                <p class="tool-description">Generate beautiful color palettes for your design projects</p>
-                <a href="#" class="tool-button">Launch Tool</a>
-            </div>
+    <section class="mb-6">
+      <h2 class="text-xl font-semibold">📝 Guides & How-To</h2>
+      <p>Each tool has its own usage notes. Click on the tool name to go to its page.</p>
+    </section>
 
-            <div class="tool-card coming-soon">
-                <span class="tool-icon">📊</span>
-                <h2 class="tool-title">QR Code Generator</h2>
-                <p class="tool-description">Create QR codes for URLs, text, or contact information</p>
-                <a href="#" class="tool-button">Launch Tool</a>
-            </div>
+    <section class="mb-6">
+      <h2 class="text-xl font-semibold">📫 Contact & Updates</h2>
+      <p>Find more on <a href="https://github.com/yourusername" class="text-blue-600 hover:underline">GitHub</a>. Feedback and contributions welcome.</p>
+    </section>
+  </main>
 
-            <div class="tool-card coming-soon">
-                <span class="tool-icon">🔐</span>
-                <h2 class="tool-title">Password Generator</h2>
-                <p class="tool-description">Generate secure passwords with customizable length and character sets</p>
-                <a href="#" class="tool-button">Launch Tool</a>
-            </div>
-        </div>
+  <footer class="text-center text-sm text-gray-500 p-4 mt-8">
+    &copy; 2025 Kornrawee Chanchom
+  </footer>
 
-        <footer>
-            <p>&copy; 2025 Web Tools Hub. All tools are free to use.</p>
-            <p>Built with ❤️ using vanilla HTML, CSS, and JavaScript</p>
-            <a href="https://github.com/yourusername/your-repo-name" class="github-link" target="_blank">
-                View on GitHub →
-            </a>
-        </footer>
-    </div>
-
-    <script>
-        // Add some interactive effects
-        document.querySelectorAll('.tool-card:not(.coming-soon)').forEach(card => {
-            card.addEventListener('mouseenter', function() {
-                this.style.transform = 'translateY(-10px) scale(1.02)';
-            });
-            
-            card.addEventListener('mouseleave', function() {
-                this.style.transform = 'translateY(0) scale(1)';
-            });
-        });
-
-        // Prevent clicks on coming soon tools
-        document.querySelectorAll('.coming-soon .tool-button').forEach(button => {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                alert('This tool is coming soon! Stay tuned for updates.');
-            });
-        });
-    </script>
 </body>
 </html>
