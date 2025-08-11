@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Clear-Days Calculator & Visualizer</title>
+  <meta name="description" content="Clear-days calculator (backward/forward) with candidate checker and calendar view. You decide weekend/holiday adjustments." />
+  <style>
+    :root{
+      --bg:#0f172a; --card:#111827; --muted:#94a3b8; --text:#e5e7eb;
+      --accent:#22c55e; --accent2:#38bdf8; --danger:#ef4444; --warn:#eab308; --ring:#22c55e55;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --cell:#0b1220; --grid:#1f2937;
+      --start:#a78bfa; /* for Forward/Checker 'Start' marker */
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      *{animation:none!important;transition:none!important;scroll-behavior:auto!important;}
+    }
+
+    html{scroll-behavior:smooth;}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans";
+      background:
+        radial-gradient(1200px 800px at 15% -10%, #1e293b, transparent),
+        radial-gradient(900px 600px at 110% -20%, #0ea5e9, transparent),
+        var(--bg);
+      color:var(--text);
+      min-height:100svh; /* normal flow so page scrolls */
+      padding:24px;
+    }
+    .wrap{max-width:1100px; margin:0 auto;}
+    .card{
+      width:100%;
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.08);
+      box-shadow:var(--shadow); border-radius:22px; padding:22px 22px 18px;
+      backdrop-filter: blur(8px);
+    }
+
+    h1{font-size: clamp(20px, 2.8vw, 30px); line-height:1.2; margin:0 0 8px}
+    .sub{color:var(--muted); font-size:14px; margin-bottom:18px}
+
+    .seg{ display:flex; gap:8px; background:#0b1220; border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:6px; overflow:auto; }
+    .seg button{ flex:1 1 auto; min-width: 190px; border:0; border-radius:12px; padding:10px 12px; cursor:pointer; font:600 14px/1.1 inherit; background:transparent; color:var(--text); }
+    .seg button[aria-pressed="true"]{ background: linear-gradient(180deg, var(--accent2), #0284c7); color:#fff; }
+
+    .grid{display:grid; grid-template-columns: 1fr; gap:14px; margin-top:12px}
+    @media (min-width:900px){ .grid{ grid-template-columns: 1fr 1fr 1fr; } }
+
+    label{display:block; font-size:14px; color:var(--muted); margin:2px 0 6px}
+    input[type="date"], input[type="number"]{
+      width:100%; box-sizing:border-box; font:inherit; color:var(--text);
+      background:#0b1220; border:1px solid rgba(255,255,255,.1); border-radius:14px; padding:12px 14px;
+      outline:none; transition:.2s;
+    }
+    input:focus{ border-color:var(--accent); box-shadow: 0 0 0 6px var(--ring); }
+
+    .row{display:flex; gap:12px; align-items:center; flex-wrap:wrap}
+    .btn{
+      appearance:none; border:0; border-radius:14px; padding:12px 16px; cursor:pointer; font:inherit;
+      background:linear-gradient(180deg, var(--accent), #16a34a); color:#052e10; font-weight:700;
+      box-shadow: 0 8px 20px rgba(34,197,94,.35);
+    }
+    .btn.secondary{ background:#0b1220; color:var(--text); border:1px solid rgba(255,255,255,.14)}
+    .btn.ghost{ background:transparent; color:var(--text); border:1px dashed rgba(255,255,255,.25)}
+    .btn:active{ transform: translateY(1px)}
+    .mini{padding:8px 10px; border-radius:10px; font-size:12px; font-weight:700}
+
+    .result{margin-top:16px; border-top:1px dashed rgba(255,255,255,.2); padding-top:16px}
+    .out{font-size: clamp(18px, 2.4vw, 24px); font-weight:800}
+    .muted{color:var(--muted)}
+    .pill{border:1px solid rgba(255,255,255,.15); border-radius:999px; padding:8px 12px; font-size:12px}
+    .good{border-color:var(--accent2); color:var(--accent2)}
+    .warn{border-color:var(--warn); color:var(--warn)}
+    .danger{border-color:var(--danger); color:var(--danger)}
+
+    /* Calendar */
+    .cal-wrap{margin-top:14px; display:grid; gap:16px}
+    @media (min-width:900px){ .cal-wrap{ grid-template-columns: repeat( auto-fit, minmax(280px, 1fr) ); } }
+    .cal{
+      background:#0b1220; border:1px solid rgba(255,255,255,.08); border-radius:16px; overflow:hidden;
+    }
+    .cal-head{
+      display:flex; justify-content:space-between; align-items:center; padding:10px 12px; background:#0e1626; border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .cal-title{font-weight:700}
+    .legend{display:flex; gap:10px; flex-wrap:wrap; font-size:12px; color:var(--muted)}
+    .legend .key{display:inline-flex; align-items:center; gap:6px}
+    .legend .dot{width:10px; height:10px; border-radius:50%}
+    .dot.event{background:var(--danger)}
+    .dot.deadline{background:var(--accent)}
+    .dot.raw{background:var(--warn)}
+    .dot.clear{background:var(--accent2)}
+    .dot.start{background:var(--start)}
+
+    .cal-grid{
+      display:grid; grid-template-columns: repeat(7, 1fr);
+      border-top:1px solid var(--grid);
+    }
+    .dow{font-size:12px; color:var(--muted); text-align:center; padding:8px 0; background:#101827; border-bottom:1px solid var(--grid)}
+    .cell{
+      min-height:42px; padding:6px 8px; border-right:1px solid var(--grid); border-bottom:1px solid var(--grid);
+      background:var(--cell); position:relative;
+    }
+    .cell:last-child{border-right:none}
+    .num{font-size:12px; color:var(--muted)}
+    .badge{
+      position:absolute; right:6px; top:6px; padding:3px 8px; border-radius:999px; font-size:10px; font-weight:700;
+      border:1px solid rgba(255,255,255,.18); color:#fff; background:transparent;
+    }
+    .b-event{background:var(--danger); border-color:transparent}
+    .b-deadline{background:var(--accent); border-color:transparent; color:#052e10}
+    .b-raw{background:var(--warn); border-color:transparent; color:#111}
+    .b-start{background:var(--start); border-color:transparent}
+    .inrange{outline:2px solid rgba(56,189,248,.35); outline-offset:-2px}
+    .first-clear::after, .last-clear::after{
+      content: attr(data-role);
+      position:absolute; left:6px; bottom:6px; font-size:10px; color:var(--accent2);
+    }
+
+    footer{margin-top:16px; font-size:12px; color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <main class="card" role="main">
+      <h1>Clear-Days Calculator & Visualizer</h1>
+      <div class="sub">
+        Uses the <strong>clear-days</strong> method (exclude the <em>starting day</em> and the <em>event day</em>).
+        For <em>N</em> clear days:
+        <span class="pill">Backward: last day = event − (N + 1)</span>
+        <span class="pill">Forward: earliest event = start + (N + 1)</span>
+        · You decide if a date is acceptable (no weekend/holiday auto-logic).
+      </div>
+
+      <!-- Mode switch -->
+      <nav class="seg" role="tablist" aria-label="Mode">
+        <button id="tab-backward" role="tab" aria-selected="true" aria-controls="panel-backward" aria-pressed="true">Backward (deadline before event)</button>
+        <button id="tab-forward" role="tab" aria-selected="false" aria-controls="panel-forward" aria-pressed="false">Forward (event after start)</button>
+        <button id="tab-check" role="tab" aria-selected="false" aria-controls="panel-check" aria-pressed="false">Candidate check</button>
+      </nav>
+
+      <!-- BACKWARD MODE -->
+      <section id="panel-backward" role="tabpanel" aria-labelledby="tab-backward">
+        <div class="grid" aria-label="inputs backward">
+          <div>
+            <label for="bw-event">Event date (excluded)</label>
+            <input id="bw-event" type="date" required />
+          </div>
+          <div>
+            <label for="bw-days">Required clear days (≥)</label>
+            <input id="bw-days" type="number" min="1" step="1" value="7" />
+          </div>
+          <div>
+            <label for="bw-move">Manual move-back (days)</label>
+            <div class="row">
+              <input id="bw-move" type="number" min="0" step="1" value="0" inputmode="numeric" />
+              <button class="btn mini ghost" id="bw-step1" type="button">−1 day</button>
+              <button class="btn mini ghost" id="bw-step7" type="button">−7 days</button>
+              <button class="btn secondary mini" id="bw-useRaw" type="button">Use raw</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:12px">
+          <button class="btn" id="bw-calc" type="button">Calculate</button>
+          <button class="btn secondary" id="bw-reset" type="button">Reset</button>
+        </div>
+
+        <section id="bw-result" class="result" hidden aria-live="polite">
+          <div style="display:flex; flex-direction:column; gap:8px">
+            <div class="out">Raw last permissible date: <span id="bw-raw-long"></span> <span class="muted">(<span id="bw-raw-iso"></span>)</span></div>
+            <div class="row"><span class="muted">Your decision:</span><span class="pill" id="bw-decision">No move (0 days)</span></div>
+            <div class="out">Final last day: <span id="bw-final-long"></span> <span class="muted">(<span id="bw-final-iso"></span>)</span></div>
+            <div class="muted">Actual clear days (final last day → event): <strong><span id="bw-actual">0</span></strong> (required ≥ <span id="bw-req">7</span>) <span id="bw-passfail" class="pill" style="margin-left:8px"></span></div>
+            <div class="muted">Computation: <span id="bw-comp" class="pill">—</span></div>
+          </div>
+          <div class="cal-wrap" id="bw-cal"></div>
+          <div style="margin-top:10px">
+            <div class="muted">“Clear days” (strictly between final last day and event)</div>
+            <div id="bw-timeline" class="row" style="gap:8px; flex-wrap:wrap"></div>
+          </div>
+        </section>
+      </section>
+
+      <!-- FORWARD MODE -->
+      <section id="panel-forward" role="tabpanel" aria-labelledby="tab-forward" hidden>
+        <div class="grid" aria-label="inputs forward">
+          <div>
+            <label for="fw-start">Start date (excluded)</label>
+            <input id="fw-start" type="date" required />
+          </div>
+          <div>
+            <label for="fw-days">Required clear days (≥)</label>
+            <input id="fw-days" type="number" min="1" step="1" value="7" />
+          </div>
+          <div>
+            <label for="fw-move">Manual move-forward (days)</label>
+            <div class="row">
+              <input id="fw-move" type="number" min="0" step="1" value="0" inputmode="numeric" />
+              <button class="btn mini ghost" id="fw-step1" type="button">+1 day</button>
+              <button class="btn mini ghost" id="fw-step7" type="button">+7 days</button>
+              <button class="btn secondary mini" id="fw-useRaw" type="button">Use raw</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:12px">
+          <button class="btn" id="fw-calc" type="button">Calculate</button>
+          <button class="btn secondary" id="fw-reset" type="button">Reset</button>
+        </div>
+
+        <section id="fw-result" class="result" hidden aria-live="polite">
+          <div style="display:flex; flex-direction:column; gap:8px">
+            <div class="out">Raw earliest event date: <span id="fw-raw-long"></span> <span class="muted">(<span id="fw-raw-iso"></span>)</span></div>
+            <div class="row"><span class="muted">Your decision:</span><span class="pill" id="fw-decision">No move (0 days)</span></div>
+            <div class="out">Final event date: <span id="fw-final-long"></span> <span class="muted">(<span id="fw-final-iso"></span>)</span></div>
+            <div class="muted">Actual clear days (start → final event): <strong><span id="fw-actual">0</span></strong> (required ≥ <span id="fw-req">7</span>) <span id="fw-passfail" class="pill" style="margin-left:8px"></span></div>
+            <div class="muted">Computation: <span id="fw-comp" class="pill">—</span></div>
+          </div>
+          <div class="cal-wrap" id="fw-cal"></div>
+          <div style="margin-top:10px">
+            <div class="muted">“Clear days” (strictly between start and final event)</div>
+            <div id="fw-timeline" class="row" style="gap:8px; flex-wrap:wrap"></div>
+          </div>
+        </section>
+      </section>
+
+      <!-- CANDIDATE CHECKER MODE -->
+      <section id="panel-check" role="tabpanel" aria-labelledby="tab-check" hidden>
+        <div class="grid" aria-label="inputs check">
+          <div>
+            <label for="ck-early">Earlier date (excluded)</label>
+            <input id="ck-early" type="date" required />
+          </div>
+          <div>
+            <label for="ck-late">Later date (excluded)</label>
+            <input id="ck-late" type="date" required />
+          </div>
+          <div>
+            <label for="ck-days">Required clear days (≥)</label>
+            <div class="row">
+              <input id="ck-days" type="number" min="1" step="1" value="7" />
+              <button class="btn secondary mini" id="ck-swap" type="button">Swap</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:12px">
+          <button class="btn" id="ck-calc" type="button">Check</button>
+          <button class="btn secondary" id="ck-reset" type="button">Reset</button>
+        </div>
+
+        <section id="ck-result" class="result" hidden aria-live="polite">
+          <div style="display:flex; flex-direction:column; gap:8px">
+            <div class="out">Clear days between the two dates: <strong><span id="ck-actual">0</span></strong></div>
+            <div class="muted">Requirement: ≥ <span id="ck-req">7</span> <span id="ck-passfail" class="pill" style="margin-left:8px"></span></div>
+            <div class="muted">Both endpoints are excluded under the clear-days rule.</div>
+          </div>
+          <div class="cal-wrap" id="ck-cal"></div>
+          <div style="margin-top:10px">
+            <div class="muted">“Clear days” (strictly between the two dates)</div>
+            <div id="ck-timeline" class="row" style="gap:8px; flex-wrap:wrap"></div>
+          </div>
+        </section>
+      </section>
+
+      <footer>
+        <p>Tip: tap “−/+1 day” for fine control on phones. No auto weekend/holiday logic—your call.</p>
+      </footer>
+    </main>
+  </div>
+
+<script>
+(function(){
+  /* ===== Utils ===== */
+  const $ = (id)=>document.getElementById(id);
+  const byISO = (d)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const parseLocal = (s)=>{ const [y,m,d]=(s||'').split('-').map(Number); if(!y||!m||!d) return null; return new Date(y,m-1,d,0,0,0,0); };
+  const dlong = (d)=> { try{ return d.toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'});}catch(e){ return d.toDateString(); } };
+  const addDays = (date,n)=>{ const d=new Date(date.getFullYear(),date.getMonth(),date.getDate()); d.setDate(d.getDate()+n); return d; };
+  const diffDaysExclusive = (startInclusive, endExclusive)=>{
+    const ms = Date.UTC(endExclusive.getFullYear(),endExclusive.getMonth(),endExclusive.getDate())
+             - Date.UTC(startInclusive.getFullYear(),startInclusive.getMonth(),startInclusive.getDate());
+    return Math.round(ms/86400000);
+  };
+  const monStart = (jsDay)=> (jsDay+6)%7;
+  const daysInMonth = (y,m)=> new Date(y,m+1,0).getDate();
+
+  /* ===== Tabs ===== */
+  const tabs = [
+    {btn:'tab-backward', panel:'panel-backward'},
+    {btn:'tab-forward',  panel:'panel-forward'},
+    {btn:'tab-check',    panel:'panel-check'}
+  ];
+  tabs.forEach(({btn,panel})=>{
+    $(btn).addEventListener('click', ()=>{
+      tabs.forEach(({btn: b, panel: p})=>{
+        const on = (b===btn);
+        $(b).setAttribute('aria-pressed', on?'true':'false');
+        $(b).setAttribute('aria-selected', on?'true':'false');
+        $(p).hidden = !on;
+      });
+    });
+  });
+
+  /* ===== BACKWARD MODE ===== */
+  const bw = {
+    event: $('bw-event'), days: $('bw-days'), move: $('bw-move'),
+    step1: $('bw-step1'), step7: $('bw-step7'), useRaw: $('bw-useRaw'),
+    calc: $('bw-calc'), reset: $('bw-reset'),
+    res: $('bw-result'), rawLong: $('bw-raw-long'), rawIso: $('bw-raw-iso'),
+    finalLong: $('bw-final-long'), finalIso: $('bw-final-iso'),
+    decision: $('bw-decision'), actual: $('bw-actual'), req: $('bw-req'), pass: $('bw-passfail'),
+    comp: $('bw-comp'), timeline: $('bw-timeline'), cal: $('bw-cal')
+  };
+  let bwRaw = null, bwFinal = null;
+
+  bw.calc.addEventListener('click', ()=>{
+    const ev = parseLocal(bw.event.value);
+    const n = Math.max(1, Math.floor(Number(bw.days.value||7)));
+    if(!ev){ alert('Please enter the event date.'); return; }
+    bw.req.textContent = n;
+
+    // Raw last permissible = event - (n+1)
+    bwRaw = addDays(ev, -(n+1));
+    bwFinal = new Date(bwRaw);
+    bw.move.value = 0;
+
+    bw.res.hidden = false;
+    bw.rawLong.textContent = dlong(bwRaw);
+    bw.rawIso.textContent  = byISO(bwRaw);
+    updateBackward(ev, n);
+  });
+  bw.reset.addEventListener('click', ()=>{
+    bw.event.value=''; bw.days.value=7; bw.move.value=0; bw.res.hidden=true; bw.timeline.innerHTML=''; bw.cal.innerHTML='';
+    bwRaw=null; bwFinal=null;
+  });
+  bw.move.addEventListener('input', ()=> {
+    if(!bwRaw) return;
+    const ev = parseLocal(bw.event.value); const n = Math.max(1, Math.floor(Number(bw.days.value||7)));
+    bwFinal = addDays(bwRaw, -Math.max(0, Math.floor(Number(bw.move.value||0))));
+    updateBackward(ev, n);
+  });
+  bw.step1.addEventListener('click', ()=>{ stepBack(bw.move,1); triggerBW(); });
+  bw.step7.addEventListener('click', ()=>{ stepBack(bw.move,7); triggerBW(); });
+  bw.useRaw.addEventListener('click', ()=>{ bw.move.value=0; triggerBW(); });
+
+  function triggerBW(){
+    if(!bwRaw) return;
+    const ev = parseLocal(bw.event.value); const n = Math.max(1, Math.floor(Number(bw.days.value||7)));
+    bwFinal = addDays(bwRaw, -Math.max(0, Math.floor(Number(bw.move.value||0))));
+    updateBackward(ev, n);
+  }
+  function stepBack(inp, n){
+    const cur = Math.max(0, Math.floor(Number(inp.value||0)));
+    inp.value = cur + n;
+  }
+  function updateBackward(ev, n){
+    const back = Math.max(0, Math.floor(Number(bw.move.value||0)));
+    bw.decision.textContent = back===0 ? 'No move (0 days)' : `Move back by ${back} day${back>1?'s':''}`;
+
+    bw.finalLong.textContent = dlong(bwFinal);
+    bw.finalIso.textContent  = byISO(bwFinal);
+
+    const actual = diffDaysExclusive(addDays(bwFinal,1), ev);
+    bw.actual.textContent = actual;
+    bw.pass.textContent = actual >= n ? 'Pass' : 'Fail';
+    bw.pass.className = 'pill ' + (actual >= n ? 'good' : 'danger');
+
+    bw.comp.textContent = `Raw = event (${byISO(ev)}) − (${n} + 1) = ${byISO(bwRaw)}. Final = Raw − ${back} = ${byISO(bwFinal)}.`;
+
+    renderChipline(bw.timeline, addDays(bwFinal,1), addDays(ev,-1));
+    renderCalendars(bw.cal, [
+      {date: bwFinal, label:'Final last day', badge:'b-deadline'},
+      {date: ev,      label:'Event',          badge:'b-event'},
+      {date: bwRaw,   label:'Raw',            badge:'b-raw'}
+    ], addDays(bwFinal,1), addDays(ev,-1));
+  }
+
+  /* ===== FORWARD MODE ===== */
+  const fw = {
+    start: $('fw-start'), days: $('fw-days'), move: $('fw-move'),
+    step1: $('fw-step1'), step7: $('fw-step7'), useRaw: $('fw-useRaw'),
+    calc: $('fw-calc'), reset: $('fw-reset'),
+    res: $('fw-result'), rawLong: $('fw-raw-long'), rawIso: $('fw-raw-iso'),
+    finalLong: $('fw-final-long'), finalIso: $('fw-final-iso'),
+    decision: $('fw-decision'), actual: $('fw-actual'), req: $('fw-req'), pass: $('fw-passfail'),
+    comp: $('fw-comp'), timeline: $('fw-timeline'), cal: $('fw-cal')
+  };
+  let fwRaw = null, fwFinal = null;
+
+  fw.calc.addEventListener('click', ()=>{
+    const st = parseLocal(fw.start.value);
+    const n = Math.max(1, Math.floor(Number(fw.days.value||7)));
+    if(!st){ alert('Please enter the start date.'); return; }
+    fw.req.textContent = n;
+
+    // Raw earliest event = start + (n+1)
+    fwRaw = addDays(st, (n+1));
+    fwFinal = new Date(fwRaw);
+    fw.move.value = 0;
+
+    fw.res.hidden = false;
+    fw.rawLong.textContent = dlong(fwRaw);
+    fw.rawIso.textContent  = byISO(fwRaw);
+    updateForward(st, n);
+  });
+  fw.reset.addEventListener('click', ()=>{
+    fw.start.value=''; fw.days.value=7; fw.move.value=0; fw.res.hidden=true; fw.timeline.innerHTML=''; fw.cal.innerHTML='';
+    fwRaw=null; fwFinal=null;
+  });
+  fw.move.addEventListener('input', ()=> {
+    if(!fwRaw) return;
+    const st = parseLocal(fw.start.value); const n = Math.max(1, Math.floor(Number(fw.days.value||7)));
+    fwFinal = addDays(fwRaw, Math.max(0, Math.floor(Number(fw.move.value||0))));
+    updateForward(st, n);
+  });
+  fw.step1.addEventListener('click', ()=>{ stepFwd(fw.move,1); triggerFW(); });
+  fw.step7.addEventListener('click', ()=>{ stepFwd(fw.move,7); triggerFW(); });
+  fw.useRaw.addEventListener('click', ()=>{ fw.move.value=0; triggerFW(); });
+
+  function triggerFW(){
+    if(!fwRaw) return;
+    const st = parseLocal(fw.start.value); const n = Math.max(1, Math.floor(Number(fw.days.value||7)));
+    fwFinal = addDays(fwRaw, Math.max(0, Math.floor(Number(fw.move.value||0))));
+    updateForward(st, n);
+  }
+  function stepFwd(inp, n){
+    const cur = Math.max(0, Math.floor(Number(inp.value||0)));
+    inp.value = cur + n;
+  }
+  function updateForward(st, n){
+    const move = Math.max(0, Math.floor(Number(fw.move.value||0)));
+    fw.decision.textContent = move===0 ? 'No move (0 days)' : `Move forward by ${move} day${move>1?'s':''}`;
+
+    fw.finalLong.textContent = dlong(fwFinal);
+    fw.finalIso.textContent  = byISO(fwFinal);
+
+    const actual = diffDaysExclusive(addDays(st,1), fwFinal);
+    fw.actual.textContent = actual;
+    fw.pass.textContent = actual >= n ? 'Pass' : 'Fail';
+    fw.pass.className = 'pill ' + (actual >= n ? 'good' : 'danger');
+
+    fw.comp.textContent = `Raw = start (${byISO(st)}) + (${n} + 1) = ${byISO(fwRaw)}. Final = Raw + ${move} = ${byISO(fwFinal)}.`;
+
+    renderChipline(fw.timeline, addDays(st,1), addDays(fwFinal,-1));
+    renderCalendars(fw.cal, [
+      {date: st,      label:'Start',          badge:'b-start'},
+      {date: fwFinal, label:'Final event',    badge:'b-event'},
+      {date: fwRaw,   label:'Raw',            badge:'b-raw'}
+    ], addDays(st,1), addDays(fwFinal,-1));
+  }
+
+  /* ===== CANDIDATE CHECKER ===== */
+  const ck = {
+    early: $('ck-early'), late: $('ck-late'), days: $('ck-days'),
+    swap: $('ck-swap'), calc: $('ck-calc'), reset: $('ck-reset'),
+    res: $('ck-result'), actual: $('ck-actual'), req: $('ck-req'), pass: $('ck-passfail'),
+    timeline: $('ck-timeline'), cal: $('ck-cal')
+  };
+  ck.swap.addEventListener('click', ()=>{
+    const a = ck.early.value, b = ck.late.value;
+    ck.early.value = b; ck.late.value = a;
+  });
+  ck.calc.addEventListener('click', ()=>{
+    let a = parseLocal(ck.early.value);
+    let b = parseLocal(ck.late.value);
+    const n = Math.max(1, Math.floor(Number(ck.days.value||7)));
+    if(!a || !b){ alert('Please enter both dates.'); return; }
+    ck.req.textContent = n;
+
+    if(a > b){ const t=a; a=b; b=t; }
+
+    const actual = diffDaysExclusive(addDays(a,1), b);
+    ck.actual.textContent = actual;
+    ck.pass.textContent = actual >= n ? 'Pass' : 'Fail';
+    ck.pass.className = 'pill ' + (actual >= n ? 'good' : 'danger');
+
+    ck.res.hidden = false;
+
+    renderChipline(ck.timeline, addDays(a,1), addDays(b,-1));
+    renderCalendars(ck.cal, [
+      {date: a, label:'Earlier date', badge:'b-start'},
+      {date: b, label:'Later date',   badge:'b-event'}
+    ], addDays(a,1), addDays(b,-1));
+  });
+  ck.reset.addEventListener('click', ()=>{
+    ck.early.value=''; ck.late.value=''; ck.days.value=7; ck.res.hidden=true; ck.timeline.innerHTML=''; ck.cal.innerHTML='';
+  });
+
+  /* ===== Shared rendering ===== */
+  function renderChipline(container, startDay, endDay){
+    container.innerHTML = '';
+    if(startDay > endDay){
+      container.innerHTML = '<span class="pill warn">No intervening clear days (check inputs).</span>';
+      return;
+    }
+    const items = [];
+    let d = new Date(startDay);
+    while(d <= endDay){
+      items.push(`<span class="pill good" title="${byISO(d)}">${d.toLocaleDateString('en-GB',{weekday:'short', day:'numeric', month:'short'})}</span>`);
+      d = addDays(d, 1);
+    }
+    container.innerHTML = items.join('');
+  }
+
+  function renderCalendars(container, marks, clearStart, clearEnd){
+    container.innerHTML = '';
+    // decide months from min->max of all involved dates
+    const all = marks.map(m=>m.date).concat([clearStart, clearEnd]).filter(Boolean).sort((a,b)=>a-b);
+    const from = new Date(all[0].getFullYear(), all[0].getMonth(), 1);
+    const to   = new Date(all[all.length-1].getFullYear(), all[all.length-1].getMonth(), 1);
+
+    const months = [];
+    let cur = new Date(from);
+    while(cur <= to){
+      months.push(new Date(cur));
+      cur.setMonth(cur.getMonth()+1);
+    }
+    months.forEach(monthDate=>{
+      container.appendChild(buildMonth(monthDate, marks, clearStart, clearEnd));
+    });
+  }
+
+  // Monday-start calendar
+  function buildMonth(monthDate, marks, clearStart, clearEnd){
+    const y = monthDate.getFullYear(), m = monthDate.getMonth();
+    const first = new Date(y, m, 1);
+    const total = new Date(y, m+1, 0).getDate();
+    const startOffset = monStart(first.getDay());
+
+    const cal = document.createElement('section');
+    cal.className = 'cal';
+
+    const head = document.createElement('div');
+    head.className = 'cal-head';
+    const title = document.createElement('div');
+    title.className = 'cal-title';
+    title.textContent = first.toLocaleDateString('en-GB', {month:'long', year:'numeric'});
+    const legend = document.createElement('div');
+    legend.className = 'legend';
+
+    const kinds = {deadline:'Final last day', event:'Event', raw:'Raw', clear:'Clear days', start:'Start/Earlier'};
+    const usedKinds = new Set(['clear']);
+    marks.forEach(m=> usedKinds.add(classToKind(m.badge)));
+    legend.innerHTML = Array.from(usedKinds).map(k=>{
+      const dotClass = `dot ${k==='deadline'?'deadline':k==='event'?'event':k==='raw'?'raw':k==='start'?'start':'clear'}`;
+      return `<span class="key"><span class="${dotClass}"></span> ${kinds[k]}</span>`;
+    }).join('');
+    head.appendChild(title); head.appendChild(legend); cal.appendChild(head);
+
+    const grid = document.createElement('div'); grid.className = 'cal-grid';
+    ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(dow=>{
+      const el = document.createElement('div'); el.className='dow'; el.textContent=dow; grid.appendChild(el);
+    });
+
+    for(let i=0;i<startOffset;i++){ grid.appendChild(blankCell()); }
+
+    for(let day=1; day<=total; day++){
+      const d = new Date(y, m, day);
+      const iso = byISO(d);
+      const cell = document.createElement('div'); cell.className='cell'; cell.title=iso;
+
+      const num = document.createElement('div'); num.className='num'; num.textContent=day; cell.appendChild(num);
+
+      marks.forEach(mark=>{
+        if(byISO(mark.date)===iso){
+          const b = document.createElement('div');
+          b.className = `badge ${mark.badge}`;
+          b.textContent = mark.label;
+          cell.appendChild(b);
+        }
+      });
+
+      if(clearStart && clearEnd && d >= clearStart && d <= clearEnd){
+        cell.classList.add('inrange');
+        if(byISO(d)===byISO(clearStart)){ cell.classList.add('first-clear'); cell.setAttribute('data-role','First clear day'); }
+        if(byISO(d)===byISO(clearEnd)){ cell.classList.add('last-clear'); cell.setAttribute('data-role','Last clear day'); }
+      }
+
+      grid.appendChild(cell);
+    }
+
+    const filled = startOffset + total;
+    const trailing = (7 - (filled % 7)) % 7;
+    for(let i=0;i<trailing;i++){ grid.appendChild(blankCell()); }
+
+    cal.appendChild(grid);
+    return cal;
+  }
+
+  function classToKind(cls){
+    if(cls==='b-deadline') return 'deadline';
+    if(cls==='b-event') return 'event';
+    if(cls==='b-raw') return 'raw';
+    if(cls==='b-start') return 'start';
+    return 'clear';
+  }
+  function blankCell(){ const c=document.createElement('div'); c.className='cell'; return c; }
+
+  /* Prefill for quick testing */
+  (function prefill(){
+    const today = new Date();
+    const plus14 = addDays(today,14);
+    $('bw-event').value = byISO(plus14);
+    $('fw-start').value = byISO(today);
+    $('ck-early').value = byISO(today);
+    $('ck-late').value  = byISO(plus14);
+  })();
+
+})();
+</script>
+</body>
+</html>
