@@ -1,51 +1,210 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>JuraTools: Personal Legal & Text Utilities</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>JuraTools — Legal & Text Utilities</title>
+  <meta name="description" content="Personal tools for legal deadlines, clear-days counting, and text utilities by Kornrawee Chanchom." />
+  <style>
+    :root{
+      --bg:#0f172a; --panel:#111827; --muted:#94a3b8; --text:#e5e7eb;
+      --accent:#22c55e; --accent2:#38bdf8; --danger:#ef4444; --ring:#22c55e55;
+      --border:#1f2937; --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --chip:#0b1220;
+    }
+    html,body{height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system,"Segoe UI",Roboto,Arial;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 600px at 20% -10%, #1f2937 0%, transparent 50%),
+        var(--bg);
+    }
+    a{color:inherit}
+    .wrap{max-width:1100px; margin:0 auto; padding:32px 18px 80px}
+    header{display:flex; align-items:center; gap:12px; margin-bottom:16px}
+    .logo{width:38px; height:38px; border-radius:10px; background:#0b1220; display:grid; place-items:center; border:1px solid var(--border)}
+    .title h1{margin:0; font-size:clamp(24px,2.4vw,34px)}
+    .title p{margin:2px 0 0; color:var(--muted); font-size:14px}
+    .panel{background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0)), var(--panel); border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow); padding:16px}
+    .grid{display:grid; gap:16px}
+    @media(min-width:900px){ .grid-2{grid-template-columns:1fr 1fr} .grid-3{grid-template-columns:repeat(3,1fr)} }
+    .hero{margin:10px 0 22px}
+    .hero .search{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    input[type="search"]{flex:1; min-width:220px; background:#0b1220; color:var(--text); border:1px solid #263143; border-radius:12px; padding:12px 14px; outline:none}
+    input[type="search"]:focus{border-color:var(--accent); box-shadow:0 0 0 4px var(--ring)}
+    .btn{background:linear-gradient(180deg,#16a34a,#15803d); color:white; border:none; border-radius:12px; padding:10px 14px; cursor:pointer; box-shadow:var(--shadow)}
+    .btn.ghost{background:#0b1220; color:var(--text); border:1px solid #334155}
+    .btn.blue{background:linear-gradient(180deg,#0284c7,#0369a1)}
+    .section h2{margin:0 0 10px; font-size:18px}
+    .muted{color:var(--muted)} .small{font-size:12px}
+    .chips{display:flex; gap:8px; flex-wrap:wrap}
+    .chip{background:var(--chip); border:1px solid #334155; border-radius:999px; padding:4px 10px; font-size:12px}
+    .status{border-color:#14532d; background:#052e16}
+    .status.new{border-color:#0c4a6e; background:#082f49}
+    .status.upd{border-color:#3730a3; background:#1e1b4b}
+    .tools{display:grid; gap:16px}
+    @media(min-width:900px){ .tools{grid-template-columns:repeat(3,1fr)} }
+    .card{display:flex; flex-direction:column; gap:10px}
+    .card h3{margin:0; font-size:16px}
+    .card p{margin:0; color:var(--muted); font-size:14px; min-height:40px}
+    .card .actions{display:flex; gap:8px; flex-wrap:wrap; margin-top:auto}
+    .hr{height:1px; background:#223047; margin:12px 0}
+    footer{color:var(--muted); font-size:12px; margin-top:18px}
+    .hidden{display:none}
+  </style>
 </head>
-<body class="bg-gray-100 text-gray-800 font-sans">
-  <header class="bg-white p-6 shadow">
-    <h1 class="text-3xl font-bold text-center">⚖️ JuraTools</h1>
-    <p class="text-center text-gray-600">Personal tools for text and legal work by Kornrawee Chanchom</p>
-  </header>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">⚖️</div>
+      <div class="title">
+        <h1>JuraTools</h1>
+        <p>Personal legal & text utilities by Kornrawee Chanchom</p>
+      </div>
+    </header>
 
-  <main class="max-w-3xl mx-auto mt-10 p-4 bg-white shadow rounded">
-    <section class="mb-8">
-      <h2 class="text-xl font-semibold">📘 About This Site</h2>
-      <p>This site collects tools that I’ve created to help myself and my friends work with legal texts, academic documents, and translation-related tasks.</p>
+    <section class="panel hero">
+      <div class="grid grid-2">
+        <div>
+          <div class="chips" style="margin-bottom:8px">
+            <span class="chip status new">New</span>
+            <span class="chip">Clear-days</span>
+            <span class="chip">CCC</span>
+            <span class="chip">Browser-only</span>
+          </div>
+          <div class="muted small">Tip: type “clear”, “GM”, “subtitle”, or “CCC” to filter tools.</div>
+        </div>
+        <div class="search">
+          <input id="filter" type="search" placeholder="Search tools…" aria-label="Search tools" />
+          <button class="btn ghost" id="reset">Reset</button>
+        </div>
+      </div>
     </section>
 
-    <section class="mb-8">
-      <h2 class="text-xl font-semibold">🛠 Tools</h2>
-      <ul class="list-disc ml-6">
-        <li><strong>Thai Legal Term Extractor</strong> — Coming soon</li>
-        <li><strong>PDF Concordance Viewer</strong> — Coming soon</li>
-        <li><strong>Thai-English Sentence Aligner</strong> — Coming soon</li>
-        <li><strong>Statute Cross-Referencer</strong> — Coming soon</li>
-        <li>
-  <a href="subtitle-tool.html" class="text-blue-600 hover:underline">
-    🎬 Subtitle Paragraph Converter (Browser-based)
-  </a>
-</li>
+    <section class="section">
+      <h2>Tools</h2>
+      <div id="tools" class="tools">
+        <!-- 1. GM NOTICE -->
+        <article class="panel card" data-tags="gm notice registration ccc clear-days shareholders meeting s.1175 corporate">
+          <div class="chips">
+            <span class="chip status new">New</span>
+            <span class="chip">Legal / Dates</span>
+          </div>
+          <h3>GM Notice & Registration (CCC s.1175)</h3>
+          <p>Compute earliest GM or latest notice using <strong>7/14 clear-days</strong>, enforce BOD → notice ordering, and get the <strong>14-day registration</strong> deadline. Includes manual adjustments, printable timeline, and <code>.ics</code> export.</p>
+          <div class="actions">
+            <a class="btn" href="gm-ccc.html">Open</a>
+            <a class="btn ghost" href="https://github.com/ninenine007/JuraTools/blob/main/gm-ccc.html" target="_blank" rel="noopener">View source</a>
+            <button class="btn blue" data-copy="gm-ccc.html">Copy link</button>
+          </div>
+        </article>
+
+        <!-- 2. CCC DATETIME -->
+        <article class="panel card" data-tags="ccc civil commercial code date calculator days months years forward backward thailand">
+          <div class="chips">
+            <span class="chip status upd">Updated</span>
+            <span class="chip">Legal / Dates</span>
+          </div>
+          <h3>CCC Date & Time Calculator</h3>
+          <p>General CCC-style date math: forward/backward counting in calendar days with options for ordinary vs special rules. Good for quick deadline simulations.</p>
+          <div class="actions">
+            <a class="btn" href="CCC-datetime-calculator.html">Open</a>
+            <a class="btn ghost" href="https://github.com/ninenine007/JuraTools/blob/main/CCC-datetime-calculator.html" target="_blank" rel="noopener">View source</a>
+            <button class="btn blue" data-copy="CCC-datetime-calculator.html">Copy link</button>
+          </div>
+        </article>
+
+        <!-- 3. CLEAR-DAYS -->
+        <article class="panel card" data-tags="clear-days deadline calculator cpr 2.8 litigation manual move back">
+          <div class="chips">
+            <span class="chip">Legal / Dates</span>
+          </div>
+          <h3>Clear-Days Deadline Calculator</h3>
+          <p>Counts <em>clear days</em> (exclude start and event day). Shows earliest/latest anchors and supports manual “move-back” adjustments with a calendar view.</p>
+          <div class="actions">
+            <a class="btn" href="clear-days.html">Open</a>
+            <a class="btn ghost" href="https://github.com/ninenine007/JuraTools/blob/main/clear-days.html" target="_blank" rel="noopener">View source</a>
+            <button class="btn blue" data-copy="clear-days.html">Copy link</button>
+          </div>
+        </article>
+
+        <!-- 4. SUBTITLE TOOL -->
+        <article class="panel card" data-tags="subtitle paragraphs text convert srt vtt captions">
+          <div class="chips">
+            <span class="chip">Text Utility</span>
+          </div>
+          <h3>Subtitle Paragraph Converter</h3>
+          <p>Browser-based tool to convert subtitle blocks into readable paragraphs for drafting and review workflows.</p>
+          <div class="actions">
+            <a class="btn" href="subtitle-tool.html">Open</a>
+            <a class="btn ghost" href="https://github.com/ninenine007/JuraTools/blob/main/subtitle-tool.html" target="_blank" rel="noopener">View source</a>
+            <button class="btn blue" data-copy="subtitle-tool.html">Copy link</button>
+          </div>
+        </article>
+
+        <!-- 5. PYTHON SCRIPT LINK -->
+        <article class="panel card" data-tags="python script research paragraphs srv">
+          <div class="chips">
+            <span class="chip">Script</span>
+          </div>
+          <h3>srv-to-paragraphs (Python)</h3>
+          <p>Small helper script for turning SRV content into paragraph form. Run locally in your own environment.</p>
+          <div class="actions">
+            <a class="btn ghost" href="https://github.com/ninenine007/JuraTools/tree/main/tools/srv-to-paragraphs" target="_blank" rel="noopener">View on GitHub</a>
+            <button class="btn blue" data-copy="https://github.com/ninenine007/JuraTools/tree/main/tools/srv-to-paragraphs">Copy link</button>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <div class="hr"></div>
+
+    <section class="panel">
+      <h2>Changelog</h2>
+      <ul class="small muted">
+        <li><strong>Aug 2025</strong> — Added <em>GM Notice & Registration (CCC s.1175)</em> with BOD ordering checks and conflict banner.</li>
+        <li><strong>Aug 2025</strong> — Published <em>CCC Date & Time Calculator</em>.</li>
+        <li><strong>Aug 2025</strong> — Refined <em>Clear-Days Deadline Calculator</em> with manual move-back and calendar view.</li>
+        <li><strong>Jul 2025</strong> — Subtitle Paragraph Converter released.</li>
       </ul>
     </section>
 
-    <section class="mb-8">
-      <h2 class="text-xl font-semibold">🚧 Work In Progress</h2>
-      <p>All tools are under development. I will link them here as they become usable.</p>
-    </section>
+    <footer>
+      <div class="grid grid-2" style="margin-top:10px">
+        <div>© 2025 Kornrawee Chanchom — JuraTools</div>
+        <div class="small muted" style="text-align:right">
+          Built for browser use. No data leaves your device. Hosted on GitHub Pages.
+        </div>
+      </div>
+    </footer>
+  </div>
 
-    <section class="mb-8">
-      <h2 class="text-xl font-semibold">📬 Contact</h2>
-      <p>Check out my GitHub: <a href="https://github.com/ninenine007" class="text-blue-600 hover:underline">ninenine007</a></p>
-    </section>
-  </main>
+  <script>
+    // Simple filter + copy-link
+    const filter = document.getElementById('filter');
+    const reset = document.getElementById('reset');
+    const cards = [...document.querySelectorAll('#tools .card')];
 
-  <footer class="text-center text-sm text-gray-500 p-4 mt-10">
-    &copy; 2025 Kornrawee Chanchom — JuraTools
-  </footer>
+    function applyFilter() {
+      const q = filter.value.trim().toLowerCase();
+      cards.forEach(card => {
+        const hay = (card.innerText + ' ' + (card.dataset.tags||'')).toLowerCase();
+        card.parentElement.classList.toggle('hidden', q && !hay.includes(q));
+      });
+    }
+    filter.addEventListener('input', applyFilter);
+    reset.addEventListener('click', () => { filter.value=''; applyFilter(); });
+
+    document.querySelectorAll('[data-copy]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const url = new URL(btn.getAttribute('data-copy'), location.href).href;
+        navigator.clipboard.writeText(url).then(()=>{
+          btn.textContent = 'Copied!';
+          setTimeout(()=>btn.textContent='Copy link', 1200);
+        });
+      });
+    });
+  </script>
 </body>
 </html>
