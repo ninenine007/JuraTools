@@ -1,0 +1,775 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Thai GM Notice & Registration Calculator (CCC s.1175)</title>
+  <meta name="description" content="Calculator for Thai CCC s.1175 clear-days notice to shareholders, board timeline, and 14-day registration deadline." />
+  <style>
+    :root{
+      --bg:#0f172a; --card:#111827; --muted:#94a3b8; --text:#e5e7eb;
+      --accent:#22c55e; --accent2:#38bdf8; --danger:#ef4444; --warn:#eab308; --ring:#22c55e55;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --cell:#0b1220; --grid:#1f2937;
+    }
+    html,body{height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Liberation Sans", "Helvetica Neue", Helvetica;
+      color:var(--text);
+      background: radial-gradient(1200px 600px at 20% -10%, #1f2937 0%, transparent 50%), var(--bg)
+    }
+    .wrap{max-width:1100px; margin:0 auto; padding:28px 18px 80px}
+    h1{font-size: clamp(22px, 2.2vw, 34px); margin:0 0 8px}
+    .sub{color:var(--muted); font-size:14px; margin-bottom:22px}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0)), var(--card); border:1px solid #1f2937; border-radius:16px; box-shadow:var(--shadow); padding:16px;}
+    .grid{display:grid; gap:16px}
+    @media(min-width:900px){.grid-2{grid-template-columns:1fr 1fr}.grid-3{grid-template-columns:repeat(3,1fr)}}
+    label{font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); display:block; margin-bottom:6px}
+    input[type="date"], select, input[type="text"], input[type="number"]{width:100%; box-sizing:border-box; background:#0b1220; color:var(--text); border:1px solid #263143; border-radius:10px; padding:10px 12px; outline:none}
+    input[type="date"]:focus, select:focus, input[type="text"]:focus, input[type="number"]:focus{border-color:var(--accent); box-shadow: 0 0 0 4px var(--ring)}
+    .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+    .btn{background:linear-gradient(180deg, #16a34a, #15803d); border:none; color:white; padding:10px 14px; border-radius:12px; cursor:pointer; box-shadow: var(--shadow)}
+    .btn.secondary{background:linear-gradient(180deg, #0284c7, #0369a1)}
+    .btn.ghost{background:#0b1220; border:1px solid #334155; color:var(--text)}
+    .btn.warn{background:linear-gradient(180deg, #eab308, #a16207)}
+    .btn.danger{background:linear-gradient(180deg, #ef4444, #b91c1c)}
+    .pill{display:inline-flex; align-items:center; gap:8px; font-size:12px; padding:4px 10px; border-radius:999px; border:1px solid #334155; background:#0b1220; color:var(--text)}
+    .pill.good{border-color:#14532d; background:#052e16}
+    .pill.bad{border-color:#7f1d1d; background:#450a0a}
+    .muted{color:var(--muted)}
+    .small{font-size:12px}
+    .section-title{font-weight:700; margin:8px 0 10px}
+    .kpi{display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; background:#0b1220; border:1px dashed #334155}
+    .kpi strong{font-size:18px}
+    .timeline{display:grid; gap:10px}
+    .titem{display:grid; grid-template-columns: 20px 1fr; gap:10px; align-items:start}
+    .dot{width:12px; height:12px; border-radius:999px; background:var(--accent2); margin-top:6px}
+    .tcard{background:#0b1220; border:1px solid #334155; border-radius:12px; padding:10px 12px}
+    .out{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background:#00000040; border:1px solid #334155; padding:12px; border-radius:10px; white-space:pre-wrap}
+    .tabbar{display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap}
+    .tab{padding:8px 12px; border-radius:999px; border:1px solid #334155; background:#0b1220; color:var(--text); cursor:pointer}
+    .tab.active{background:#1f2937}
+    .hidden{display:none}
+    .hr{height:1px; background:#223047; margin:12px 0}
+    .foot{color:var(--muted); font-size:12px}
+    .list{display:flex; flex-wrap:wrap; gap:8px}
+    .chip{background:#0b1220; border:1px solid #334155; border-radius:999px; padding:6px 10px; font-size:12px; cursor:pointer}
+    .right{margin-left:auto}
+    .warnbox{border:1px solid #7c2d12; background:#3f1d0f; padding:10px 12px; border-radius:10px}
+
+    .banner{border:1px solid #b45309; background:#451a03; padding:12px 14px; border-radius:12px; display:none; margin-bottom:12px}
+    .banner strong{color:#fbbf24}
+    .banner .actions{margin-top:8px; display:flex; gap:8px; flex-wrap:wrap}
+
+    @media print{
+      body{background:white; color:black}
+      .no-print{display:none !important}
+      .card, .tcard{box-shadow:none; background:white; border:1px solid #ddd; color:black}
+      .pill, .chip{border-color:#bbb; background:white; color:black}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Thai GM Notice & Registration Calculator <span class="muted" style="font-weight:400">(CCC s.1175)</span></h1>
+    <div class="sub">Clear-days engine for shareholder notices (7/14 clear days), full board → GM timeline, and 14-day registration deadline. Pure calendar-day counting, with optional manual adjustments. Timezone: Asia/Bangkok (no hours/minutes).</div>
+
+    <div class="tabbar no-print">
+      <button class="tab active" data-tab="quick">Quick Notice ⇄ GM</button>
+      <button class="tab" data-tab="timeline">Full Timeline (4 Dates)</button>
+      <button class="tab" data-tab="register">Registration Deadline</button>
+      <button class="tab" data-tab="settings">Settings & Export</button>
+    </div>
+
+    <!-- QUICK CALC -->
+    <section id="tab-quick" class="card">
+      <div class="grid grid-3">
+        <div>
+          <label>Mode</label>
+          <select id="quick-mode">
+            <option value="forward">Forward: Notice → Earliest GM</option>
+            <option value="backward">Backward: GM → Latest Notice</option>
+          </select>
+        </div>
+        <div>
+          <label>Business Type</label>
+          <select id="quick-gap">
+            <option value="7">Ordinary (7 clear days)</option>
+            <option value="14">Special Resolution (14 clear days)</option>
+          </select>
+        </div>
+        <div class="row" style="align-items:flex-end">
+          <div class="right">
+            <button class="btn" id="quick-calc">Calculate</button>
+            <button class="btn ghost" id="quick-reset">Reset</button>
+          </div>
+        </div>
+      </div>
+      <div class="grid grid-2" style="margin-top:10px">
+        <div>
+          <label id="label-A">Notice Dispatch Date</label>
+          <input type="date" id="quick-dateA" />
+        </div>
+        <div>
+          <label id="label-B">Meeting Date</label>
+          <input type="date" id="quick-dateB" />
+        </div>
+      </div>
+      <div class="hr"></div>
+      <div class="grid grid-2">
+        <div class="kpi">
+          <div>
+            <div class="small muted">Primary result</div>
+            <strong id="quick-primary">—</strong>
+          </div>
+          <span id="quick-valid" class="pill">—</span>
+        </div>
+        <div class="kpi">
+          <div>
+            <div class="small muted">Clear-day interval</div>
+            <strong id="quick-interval">—</strong>
+          </div>
+          <div class="right row">
+            <button class="btn ghost small" id="quick-minus">−1 day</button>
+            <button class="btn ghost small" id="quick-plus">+1 day</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+      <div class="grid grid-2">
+        <div>
+          <div class="section-title">Other valid choices</div>
+          <div class="small muted" id="quick-explain">—</div>
+          <div id="quick-list" class="list" style="margin-top:8px"></div>
+        </div>
+        <div>
+          <div class="section-title">Details</div>
+          <div class="out" id="quick-detail">—</div>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+      <div class="foot">Rules: clear-days exclude both the notice day and the meeting day; no automatic roll-forward. Use manual ± buttons to adjust as needed.</div>
+    </section>
+
+    <!-- FULL TIMELINE -->
+    <section id="tab-timeline" class="card hidden">
+      <div id="conflict-banner" class="banner">
+        <div><strong>Ordering conflict</strong></div>
+        <div class="small" id="conflict-text">—</div>
+        <div class="actions" id="conflict-actions"></div>
+      </div>
+
+      <div class="grid grid-3">
+        <div>
+          <label>BOD Notice Date <span class="muted">(optional)</span></label>
+          <input type="date" id="bod-notice" />
+        </div>
+        <div>
+          <label>BOD Meeting / Resolution Date</label>
+          <input type="date" id="bod-meet" />
+        </div>
+        <div>
+          <label>Shareholder Notice Dispatch Date</label>
+          <input type="date" id="sh-notice" />
+        </div>
+      </div>
+      <div class="grid grid-3" style="margin-top:10px">
+        <div>
+          <label>GM Date / Resolution</label>
+          <input type="date" id="gm-date" />
+        </div>
+        <div>
+          <label>Business Type</label>
+          <select id="tl-gap">
+            <option value="7">Ordinary (7 clear days)</option>
+            <option value="14">Special Resolution (14 clear days)</option>
+          </select>
+        </div>
+        <div>
+          <label>Pin By</label>
+          <select id="pin-by">
+            <option value="notice">Notice date (compute earliest GM)</option>
+            <option value="gm">GM date (compute latest notice)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-3" style="margin-top:10px">
+        <div>
+          <label>BOD Meeting Constraint</label>
+          <select id="bod-rule">
+            <option value="next">Enforce at least next day after BOD notice</option>
+            <option value="same">Allow same-day meeting</option>
+          </select>
+        </div>
+        <div>
+          <label>Registration: Roll-forward</label>
+          <select id="reg-roll">
+            <option value="none">No roll-forward</option>
+            <option value="weekend">Roll if weekend only</option>
+            <option value="weekend_unavail">Roll if weekend or marked unavailable</option>
+          </select>
+        </div>
+        <div class="row" style="align-items:flex-end">
+          <div class="right">
+            <button class="btn" id="tl-calc">Build Timeline</button>
+            <button class="btn ghost" id="tl-reset">Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+      <div class="timeline" id="timeline">
+        <!-- dynamically injected timeline cards -->
+      </div>
+
+      <div class="hr"></div>
+      <div class="grid grid-2">
+        <div>
+          <div class="section-title">Unavailable Days (manual)</div>
+          <div class="small muted">Mark any dates you cannot use. Registration roll-forward can skip these if enabled.</div>
+          <div class="row" style="margin-top:8px">
+            <input type="date" id="uv-date"/>
+            <button class="btn ghost" id="uv-add">Add</button>
+            <button class="btn ghost" id="uv-clear">Clear</button>
+          </div>
+          <div id="uv-list" class="list" style="margin-top:10px"></div>
+        </div>
+        <div>
+          <div class="section-title">Printable Summary</div>
+          <div class="out" id="tl-summary">—</div>
+          <div class="row" style="margin-top:8px">
+            <button class="btn secondary" id="btn-print">Print Timeline</button>
+            <button class="btn" id="btn-ics">Download .ics</button>
+            <button class="btn ghost" id="btn-copy">Copy Summary</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- REGISTRATION DEADLINE -->
+    <section id="tab-register" class="card hidden">
+      <div class="grid grid-3">
+        <div>
+          <label>GM Resolution Date</label>
+          <input type="date" id="reg-meet" />
+        </div>
+        <div>
+          <label>Roll-forward</label>
+          <select id="reg-only-roll">
+            <option value="none">No roll-forward</option>
+            <option value="weekend">If weekend</option>
+            <option value="weekend_unavail">If weekend or unavailable</option>
+          </select>
+        </div>
+        <div class="row" style="align-items:flex-end">
+          <div class="right">
+            <button class="btn" id="reg-calc">Calculate</button>
+            <button class="btn ghost" id="reg-reset">Reset</button>
+          </div>
+        </div>
+      </div>
+      <div class="hr"></div>
+      <div class="grid grid-2">
+        <div class="kpi">
+          <div>
+            <div class="small muted">Last day to register (TCCC counting)</div>
+            <strong id="reg-out">—</strong>
+          </div>
+        </div>
+        <div class="kpi">
+          <div>
+            <div class="small muted">Rule</div>
+            <strong id="reg-rule">Exclude resolution date; include last day; +14 days</strong>
+          </div>
+        </div>
+      </div>
+      <div class="hr"></div>
+      <div class="foot">TCCC-style: last day = resolution + 14 calendar days (exclude start). Optional roll-forward per your choice.</div>
+    </section>
+
+    <!-- SETTINGS / EXPORT -->
+    <section id="tab-settings" class="card hidden">
+      <div class="section-title">Shareable URL</div>
+      <div class="small muted">State is encoded in the URL. Use “Copy URL” after you set inputs.</div>
+      <div class="row" style="margin:8px 0">
+        <button class="btn ghost" id="btn-save-url">Copy URL</button>
+        <button class="btn ghost" id="btn-clear-url">Clear State</button>
+      </div>
+      <div class="hr"></div>
+      <div class="section-title">Legal Notes</div>
+      <div class="out small">Shareholder notice counting uses <strong>clear-days</strong>: exclude both notice day and GM day; no automatic roll-forward. Registration window uses <strong>TCCC counting</strong>: exclude resolution day, include last day. This tool provides earliest/latest anchors and also lists alternative valid choices. Always confirm specific corporate articles or special rules manually.</div>
+    </section>
+
+    <div class="hr"></div>
+    <div class="foot">Built for internal use. No data leaves your browser. © 2025</div>
+  </div>
+
+<script>
+(function(){
+  // ===== Date helpers (UTC-based, day-accurate) =====
+  const MS=86400000;
+  const pad=n=>String(n).padStart(2,'0');
+  function toEpochDay(y,m,d){return Math.floor(Date.UTC(y,m-1,d)/MS)}
+  function fromEpochDay(ed){const dt=new Date(ed*MS); return {y:dt.getUTCFullYear(), m:dt.getUTCMonth()+1, d:dt.getUTCDate()}}
+  function parseISO(iso){if(!iso) return null; const [y,m,d]=iso.split('-').map(Number); if(!y||!m||!d) return null; return toEpochDay(y,m,d)}
+  function formatISO(ed){if(ed==null) return ''; const {y,m,d}=fromEpochDay(ed); return `${y}-${pad(m)}-${pad(d)}`}
+  function fmtLong(ed){if(ed==null) return '—'; const dt=new Date(ed*MS); return dt.toLocaleDateString('en-GB',{weekday:'short', day:'2-digit', month:'short', year:'numeric'})}
+  function addDays(ed, n){return ed==null?null:ed + n}
+  function diffDays(a,b){return b - a} // in epoch-days
+  function isWeekend(ed){const dt=new Date(ed*MS); const w=dt.getUTCDay(); return w===0 || w===6}
+
+  // ===== Clear-days math =====
+  function earliestMeetingFromNotice(noticeED, gap){ // exclude notice + meeting, need >= gap full days between
+    if(noticeED==null) return null; return addDays(noticeED, gap + 1)
+  }
+  function latestNoticeFromMeeting(meetED, gap){
+    if(meetED==null) return null; return addDays(meetED, - (gap + 1))
+  }
+  function clearDayInterval(noticeED, meetED){ // number of clear days strictly between
+    if(noticeED==null || meetED==null) return null; return Math.max(0, diffDays(noticeED, meetED) - 1)
+  }
+
+  // ===== TCCC registration counting =====
+  function registrationLastDay(resED){ // exclude start; +14 days
+    if(resED==null) return null; return addDays(resED, 14)
+  }
+  function rollForward(ed, mode, unavailableSet){
+    if(ed==null) return null;
+    if(mode==='none') return ed;
+    let cur=ed;
+    const needSkip = (d)=>{
+      if(mode==='weekend') return isWeekend(d);
+      if(mode==='weekend_unavail') return isWeekend(d) || unavailableSet.has(d);
+      return false;
+    };
+    while(needSkip(cur)) cur = addDays(cur,1);
+    return cur;
+  }
+
+  // ===== Unavailable days store =====
+  const unavailable = new Set();
+  function addUnavailable(ed){if(ed!=null) unavailable.add(ed)}
+  function removeUnavailable(ed){unavailable.delete(ed)}
+  function clearUnavailable(){unavailable.clear()}
+
+  function renderUnavailable(){
+    const box = document.getElementById('uv-list');
+    box.innerHTML='';
+    const arr=[...unavailable].sort((a,b)=>a-b);
+    if(arr.length===0){box.innerHTML='<span class="muted small">(none)</span>'; return}
+    arr.forEach(d=>{
+      const chip=document.createElement('span');
+      chip.className='chip';
+      chip.textContent = fmtLong(d);
+      chip.title = 'Click to remove';
+      chip.onclick=()=>{removeUnavailable(d); renderUnavailable(); buildTimeline();}
+      box.appendChild(chip);
+    })
+  }
+
+  // ===== Tabs =====
+  document.querySelectorAll('.tab').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const tab = btn.dataset.tab;
+      document.querySelectorAll('section[id^="tab-"]').forEach(sec=>sec.classList.add('hidden'));
+      document.getElementById('tab-'+tab).classList.remove('hidden');
+    })
+  })
+
+  // ===== QUICK =====
+  const qMode = document.getElementById('quick-mode');
+  const qGap = document.getElementById('quick-gap');
+  const qA = document.getElementById('quick-dateA');
+  const qB = document.getElementById('quick-dateB');
+  const qPrimary = document.getElementById('quick-primary');
+  const qValid = document.getElementById('quick-valid');
+  const qInterval = document.getElementById('quick-interval');
+  const qExplain = document.getElementById('quick-explain');
+  const qList = document.getElementById('quick-list');
+  const qDetail = document.getElementById('quick-detail');
+
+  function syncQuickLabels(){
+    const a=document.getElementById('label-A');
+    const b=document.getElementById('label-B');
+    if(qMode.value==='forward'){a.textContent='Notice Dispatch Date'; b.textContent='Meeting Date (computed)'}
+    else {a.textContent='Meeting Date'; b.textContent='Notice Dispatch Date (computed)'}
+  }
+  syncQuickLabels();
+  qMode.addEventListener('change', syncQuickLabels);
+
+  function setValidityBadge(valid, msg){
+    qValid.className = 'pill ' + (valid? 'good':'bad');
+    qValid.textContent = valid? ('Valid ✔ ' + (msg||'')) : ('Invalid ✖ ' + (msg||''));
+  }
+
+  function renderQuick(){
+    const gap = Number(qGap.value);
+    const mode = qMode.value;
+    const A = parseISO(qA.value);
+    const B = parseISO(qB.value);
+    qList.innerHTML='';
+
+    if(mode==='forward'){
+      const notice=A; if(notice==null){qPrimary.textContent='—'; qInterval.textContent='—'; qDetail.textContent='—'; setValidityBadge(false,'awaiting date'); return}
+      const earliest = earliestMeetingFromNotice(notice, gap);
+      qB.value = formatISO(earliest);
+      qPrimary.textContent = fmtLong(earliest) + ' (Earliest valid GM)';
+      const iv = clearDayInterval(notice, earliest);
+      qInterval.textContent = iv + ' clear days';
+      setValidityBadge(true, iv+ ' ≥ '+gap);
+      qExplain.textContent = 'Any meeting date on or after the earliest date below is valid:';
+      for(let i=0;i<12;i++){
+        const d = addDays(earliest,i);
+        const chip=document.createElement('span'); chip.className='chip'; chip.textContent=fmtLong(d);
+        chip.onclick=()=>{qB.value=formatISO(d); qPrimary.textContent=fmtLong(d)+' (Chosen GM)'; const iv2=clearDayInterval(notice,d); qInterval.textContent=iv2+' clear days'; setValidityBadge(iv2>=gap, (iv2>=gap? (iv2+' ≥ '+gap):(iv2+' < '+gap))); renderQuickDetail(mode, gap, notice, d)}
+        qList.appendChild(chip);
+      }
+      renderQuickDetail(mode,gap,notice,earliest);
+    } else {
+      const meet=A; if(meet==null){qPrimary.textContent='—'; qInterval.textContent='—'; qDetail.textContent='—'; setValidityBadge(false,'awaiting date'); return}
+      const latest = latestNoticeFromMeeting(meet, gap);
+      qB.value = formatISO(latest);
+      qPrimary.textContent = fmtLong(latest) + ' (Latest valid notice)';
+      const iv = clearDayInterval(latest, meet);
+      qInterval.textContent = iv + ' clear days';
+      setValidityBadge(true, iv+ ' ≥ '+gap);
+      qExplain.textContent = 'Any notice date on or before the latest date below is valid:';
+      for(let i=9;i>=0;i--){
+        const d = addDays(latest,-i);
+        const chip=document.createElement('span'); chip.className='chip'; chip.textContent=fmtLong(d);
+        chip.onclick=()=>{qB.value=formatISO(d); qPrimary.textContent=fmtLong(d)+' (Chosen notice)'; const iv2=clearDayInterval(d,meet); qInterval.textContent=iv2+' clear days'; setValidityBadge(iv2>=gap, (iv2>=gap? (iv2+' ≥ '+gap):(iv2+' < '+gap))); renderQuickDetail(mode, gap, d, meet)}
+        qList.appendChild(chip);
+      }
+      renderQuickDetail(mode,gap,latest,meet);
+    }
+    saveStateToURL();
+  }
+
+  function renderQuickDetail(mode,gap,notice,meet){
+    const iv = clearDayInterval(notice,meet);
+    const txt = [
+      `Mode: ${mode==='forward'?'Notice → GM (earliest)':'GM → Notice (latest)'}`,
+      `Business: ${gap===7?'Ordinary (7 clear days)':'Special (14 clear days)'}`,
+      `Notice: ${fmtLong(notice)}`,
+      `GM: ${fmtLong(meet)}`,
+      `Interval: ${iv} clear days (exclude both ends)`
+    ].join('\\n');
+    qDetail.textContent = txt;
+    qInterval.textContent = iv + ' clear days';
+  }
+
+  document.getElementById('quick-calc').onclick=renderQuick;
+  document.getElementById('quick-minus').onclick=()=>{const b=parseISO(qB.value); if(b!=null){qB.value=formatISO(addDays(b,-1)); renderQuick()}};
+  document.getElementById('quick-plus').onclick =()=>{const b=parseISO(qB.value); if(b!=null){qB.value=formatISO(addDays(b,1)); renderQuick()}};
+  document.getElementById('quick-reset').onclick=()=>{qA.value=''; qB.value=''; qPrimary.textContent='—'; qInterval.textContent='—'; qDetail.textContent='—'; qList.innerHTML=''; setValidityBadge(false,''); saveStateToURL();}
+
+  // ===== TIMELINE =====
+  const tl = {
+    bodNotice: document.getElementById('bod-notice'),
+    bodMeet: document.getElementById('bod-meet'),
+    shNotice: document.getElementById('sh-notice'),
+    gm: document.getElementById('gm-date'),
+    gap: document.getElementById('tl-gap'),
+    pin: document.getElementById('pin-by'),
+    bodRule: document.getElementById('bod-rule'),
+    regRoll: document.getElementById('reg-roll'),
+    timelineBox: document.getElementById('timeline'),
+    summary: document.getElementById('tl-summary'),
+  };
+
+  const banner = {
+    el: document.getElementById('conflict-banner'),
+    text: document.getElementById('conflict-text'),
+    actions: document.getElementById('conflict-actions'),
+    show(msg, buttons){
+      this.text.textContent = msg;
+      this.actions.innerHTML='';
+      (buttons||[]).forEach(btn=>{
+        const b=document.createElement('button');
+        b.className = 'btn warn small';
+        b.textContent = btn.label;
+        b.onclick = btn.onClick;
+        this.actions.appendChild(b);
+      });
+      this.el.style.display='block';
+    },
+    hide(){ this.el.style.display='none'; this.text.textContent=''; this.actions.innerHTML=''; }
+  };
+
+  function validityBadge(it, items, gap){
+    const sh = items.find(x=>x.id==='shN').date;
+    const gm = items.find(x=>x.id==='gm').date;
+    const bodM = items.find(x=>x.id==='bodM').date;
+    if(it.id==='shN' || it.id==='gm'){
+      if(sh==null || gm==null) return 'Awaiting notice & GM';
+      const cd = clearDayInterval(sh, gm);
+      if(bodM!=null && sh<bodM) return 'Invalid (notice before BOD meeting)';
+      return (cd>=gap? 'Valid (clear-days '+cd+' ≥ '+gap+')' : 'Not valid (clear-days '+cd+' < '+gap+')');
+    }
+    return '—';
+  }
+
+  function updateDateById(id, delta){
+    if(id==='bodN'){const v=parseISO(tl.bodNotice.value); if(v!=null){tl.bodNotice.value=formatISO(addDays(v,delta))}}
+    if(id==='bodM'){const v=parseISO(tl.bodMeet.value); if(v!=null){tl.bodMeet.value=formatISO(addDays(v,delta))}}
+    if(id==='shN'){const v=parseISO(tl.shNotice.value); if(v!=null){tl.shNotice.value=formatISO(addDays(v,delta))}}
+    if(id==='gm'){const v=parseISO(tl.gm.value); if(v!=null){tl.gm.value=formatISO(addDays(v,delta))}}
+    buildTimeline();
+  }
+
+  function enumerateOtherNotices(latestNotice, bodM, limit=60){
+    const out=[];
+    if(latestNotice==null) return out;
+    let cur=latestNotice;
+    let count=0;
+    while(count<limit){
+      if(bodM==null || cur>=bodM){ out.push(cur); }
+      cur = addDays(cur, -1);
+      count++;
+    }
+    return out;
+  }
+
+  function enumerateOtherGMs(earliestGM, limit=30){
+    const out=[];
+    if(earliestGM==null) return out;
+    for(let i=0;i<limit;i++){ out.push(addDays(earliestGM,i)); }
+    return out;
+  }
+
+  function buildTimeline(){
+    banner.hide();
+
+    const bodN = parseISO(tl.bodNotice.value);
+    let bodM = parseISO(tl.bodMeet.value);
+    let shN = parseISO(tl.shNotice.value);
+    let gm = parseISO(tl.gm.value);
+    const gap = Number(tl.gap.value);
+
+    // Enforce BOD rule
+    if(bodN!=null){
+      const minBodM = tl.bodRule.value==='next' ? addDays(bodN,1) : bodN;
+      if(bodM==null || bodM < minBodM) bodM = minBodM;
+      tl.bodMeet.value = formatISO(bodM);
+    }
+
+    // Compute based on pin
+    if(tl.pin.value==='notice'){
+      if(shN!=null){
+        // If notice before BOD meeting -> conflict (do not auto-fix; offer fix)
+        if(bodM!=null && shN<bodM){
+          const suggestedNotice = bodM;
+          const suggestedGM = earliestMeetingFromNotice(suggestedNotice, gap);
+          banner.show(
+            `Shareholder notice (${fmtLong(shN)}) cannot be before BOD meeting (${fmtLong(bodM)}).`,
+            [
+              {label:`Set notice to ${fmtLong(suggestedNotice)} & GM to ${fmtLong(suggestedGM)}`, onClick:()=>{tl.shNotice.value=formatISO(suggestedNotice); tl.gm.value=formatISO(suggestedGM); buildTimeline();}},
+              {label:'Move BOD meeting earlier (manual)', onClick:()=>{}}
+            ]
+          );
+          // Compute GM from current (invalid) notice just to show cards, but badges will show invalid
+          gm = earliestMeetingFromNotice(shN, gap);
+        } else {
+          gm = earliestMeetingFromNotice(shN, gap);
+          tl.gm.value = formatISO(gm);
+        }
+      }
+    } else { // pin by GM
+      if(gm!=null){
+        const latestCandidate = latestNoticeFromMeeting(gm, gap);
+        if(bodM!=null && latestCandidate < bodM){
+          const earliestGMThatWorks = earliestMeetingFromNotice(bodM, gap);
+          banner.show(
+            `With BOD meeting on ${fmtLong(bodM)}, a GM on ${fmtLong(gm)} cannot meet ${gap} clear days because notice cannot be sent before the BOD meeting.`,
+            [
+              {label:`Move GM to ${fmtLong(earliestGMThatWorks)}`, onClick:()=>{tl.gm.value=formatISO(earliestGMThatWorks); buildTimeline();}},
+              {label:'Move BOD meeting earlier (manual)', onClick:()=>{}}
+            ]
+          );
+          shN = latestCandidate; // will display but flagged invalid by badge
+        } else {
+          // choose the latest that is >= bodM
+          shN = (bodM!=null && latestCandidate<bodM) ? bodM : latestCandidate;
+          tl.shNotice.value = formatISO(shN);
+        }
+      }
+    }
+
+    // Registration last day (TCCC + optional roll)
+    const rawReg = registrationLastDay(gm);
+    const reg = rollForward(rawReg, tl.regRoll.value, unavailable);
+
+    // Render
+    const items = [
+      {title:'BOD Notice', date: bodN, id:'bodN'},
+      {title:'BOD Meeting / Resolution', date: bodM, id:'bodM', note: tl.bodRule.value==='next' && bodN!=null ? '≥ next day after BOD notice' : 'same-day allowed'},
+      {title:'Shareholder Notice Dispatch', date: shN, id:'shN', note:'Clear-days start (exclude this day and GM day)'},
+      {title:'General Meeting (GM) / Resolution', date: gm, id:'gm', note: `${gap} clear days between notice and GM`},
+      {title:'Last day to register resolution', date: reg, id:'reg', note: `TCCC: +14 days (exclude start) ${tl.regRoll.value!=='none'?'with roll-forward':''}`}
+    ];
+
+    tl.timelineBox.innerHTML = '';
+    items.forEach((it, idx)=>{
+      const wrap=document.createElement('div'); wrap.className='titem';
+      const dot=document.createElement('div'); dot.className='dot'; wrap.appendChild(dot);
+      const card=document.createElement('div'); card.className='tcard';
+      const h=document.createElement('div'); h.innerHTML=`<strong>${idx+1}. ${it.title}</strong>`; card.appendChild(h);
+      const d=document.createElement('div'); d.className='small muted'; d.textContent= it.date!=null? fmtLong(it.date) : '(not set)'; card.appendChild(d);
+      if(it.note){const n=document.createElement('div'); n.className='small'; n.style.marginTop='6px'; n.textContent=it.note; card.appendChild(n)}
+
+      if(it.date!=null){
+        const row=document.createElement('div'); row.className='row'; row.style.marginTop='8px';
+        const minus=document.createElement('button'); minus.className='btn ghost small'; minus.textContent='−1 day'; minus.onclick=()=>{updateDateById(it.id,-1)};
+        const plus=document.createElement('button'); plus.className='btn ghost small'; plus.textContent='+1 day'; plus.onclick=()=>{updateDateById(it.id,1)};
+        row.appendChild(minus); row.appendChild(plus);
+        const badge=document.createElement('span'); badge.className='pill right'; badge.textContent= validityBadge(it, items, gap); row.appendChild(badge);
+        card.appendChild(row);
+
+        // Unavailable toggle (only for GM & Reg)
+        if(it.id==='gm' || it.id==='reg'){
+          const uvRow=document.createElement('div'); uvRow.className='row'; uvRow.style.marginTop='8px';
+          const btn=document.createElement('button'); btn.className='btn warn small';
+          const isU = unavailable.has(it.date);
+          btn.textContent = (isU? 'Mark as available (remove from unavailable)' : 'Mark date unavailable');
+          btn.onclick=()=>{ if(isU) removeUnavailable(it.date); else addUnavailable(it.date); renderUnavailable(); buildTimeline(); };
+          uvRow.appendChild(btn);
+          card.appendChild(uvRow);
+        }
+      }
+      wrap.appendChild(card); tl.timelineBox.appendChild(wrap);
+    })
+
+    // Summary
+    const cd = clearDayInterval(shN, gm);
+    tl.summary.textContent = [
+      `1) BOD Notice: ${bodN!=null?fmtLong(bodN):'(—)'}\n`+
+      `2) BOD Meeting/Resolution: ${bodM!=null?fmtLong(bodM):'(—)'}\n`+
+      `3) Shareholder Notice Dispatch: ${shN!=null?fmtLong(shN):'(—)'}\n`+
+      `   → Clear-day interval: ${cd!=null?cd+' days (must be ≥ '+gap+')':'—'}\n`+
+      `4) GM / Resolution: ${gm!=null?fmtLong(gm):'(—)'}\n`+
+      `5) Last day to register: ${reg!=null?fmtLong(reg):'(—)'}${tl.regRoll.value!=='none'?' (roll-forward applied)':''}`
+    ].join('');
+
+    // Other valid choices list (respect BOD ordering)
+    const holder = document.getElementById('quick-list');
+    const explain = document.getElementById('quick-explain');
+    if(!document.getElementById('tab-quick').classList.contains('hidden')){
+      // handled by quick tab functions
+    } else {
+      holder.innerHTML='';
+      if(tl.pin.value==='gm'){
+        const latest = latestNoticeFromMeeting(gm, gap);
+        explain.textContent = 'Valid notice dates (from latest backwards), limited list:';
+        enumerateOtherNotices(latest, bodM, 30).forEach(d=>{
+          const chip=document.createElement('span'); chip.className='chip'; chip.textContent=fmtLong(d);
+          chip.onclick=()=>{tl.shNotice.value=formatISO(d); buildTimeline();}
+          holder.appendChild(chip);
+        });
+      } else {
+        const earliest = earliestMeetingFromNotice(shN, gap);
+        explain.textContent = 'Valid GM dates (from earliest onwards), limited list:';
+        enumerateOtherGMs(earliest, 30).forEach(d=>{
+          const chip=document.createElement('span'); chip.className='chip'; chip.textContent=fmtLong(d);
+          chip.onclick=()=>{tl.gm.value=formatISO(d); buildTimeline();}
+          holder.appendChild(chip);
+        });
+      }
+    }
+
+    saveStateToURL();
+  }
+
+  document.getElementById('tl-calc').onclick=buildTimeline;
+  document.getElementById('tl-reset').onclick=()=>{
+    tl.bodNotice.value=''; tl.bodMeet.value=''; tl.shNotice.value=''; tl.gm.value=''; tl.gap.value='7'; tl.pin.value='notice'; tl.bodRule.value='next'; tl.regRoll.value='none'; tl.timelineBox.innerHTML=''; tl.summary.textContent='—'; banner.hide(); saveStateToURL(); }
+
+  // Unavailable controls
+  document.getElementById('uv-add').onclick=()=>{const d=parseISO(document.getElementById('uv-date').value); if(d!=null){addUnavailable(d); renderUnavailable(); buildTimeline();}}
+  document.getElementById('uv-clear').onclick=()=>{clearUnavailable(); renderUnavailable(); buildTimeline();}
+  renderUnavailable();
+
+  // Print & copy & ICS
+  document.getElementById('btn-print').onclick=()=>window.print();
+  document.getElementById('btn-copy').onclick=()=>{navigator.clipboard.writeText(tl.summary.textContent)}
+  document.getElementById('btn-ics').onclick=()=>{
+    const bodN=parseISO(tl.bodNotice.value), bodM=parseISO(tl.bodMeet.value), shN=parseISO(tl.shNotice.value), gm=parseISO(tl.gm.value);
+    const rawReg = registrationLastDay(gm); const reg = rollForward(rawReg, tl.regRoll.value, unavailable);
+    const evs=[
+      {t:'BOD Notice', d:bodN},
+      {t:'BOD Meeting / Resolution', d:bodM},
+      {t:'Shareholder Notice Dispatch', d:shN},
+      {t:'General Meeting / Resolution', d:gm},
+      {t:'Last day to register resolution', d:reg},
+    ].filter(x=>x.d!=null);
+    if(evs.length===0) return;
+    const uid = Math.random().toString(36).slice(2);
+    const lines=[
+      'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//GM-CCC//EN'
+    ];
+    evs.forEach((e,i)=>{
+      const iso=formatISO(e.d).replaceAll('-','');
+      lines.push('BEGIN:VEVENT');
+      lines.push('UID:'+uid+'-'+i+'@gmccc');
+      lines.push('DTSTAMP:'+iso+'T000000Z');
+      lines.push('DTSTART;VALUE=DATE:'+iso);
+      lines.push('SUMMARY:'+e.t);
+      lines.push('END:VEVENT');
+    })
+    lines.push('END:VCALENDAR');
+    const blob=new Blob([lines.join('\\n')],{type:'text/calendar'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='gm-ccc.ics'; a.click(); URL.revokeObjectURL(a.href);
+  }
+
+  // ===== Registration-only tab =====
+  document.getElementById('reg-calc').onclick=()=>{
+    const m=parseISO(document.getElementById('reg-meet').value);
+    if(m==null){document.getElementById('reg-out').textContent='—'; return}
+    const raw=registrationLastDay(m);
+    const rollMode=document.getElementById('reg-only-roll').value;
+    const out=rollForward(raw, rollMode, unavailable);
+    document.getElementById('reg-out').textContent = fmtLong(out);
+  }
+  document.getElementById('reg-reset').onclick=()=>{document.getElementById('reg-meet').value=''; document.getElementById('reg-out').textContent='—'; document.getElementById('reg-only-roll').value='none'}
+
+  // ===== Shareable URL state =====
+  function saveStateToURL(){
+    const p=new URLSearchParams();
+    // quick
+    p.set('qm', qMode.value); p.set('qg', qGap.value); if(qA.value) p.set('qa', qA.value); if(qB.value) p.set('qb', qB.value);
+    // timeline
+    if(tl.bodNotice.value) p.set('bn', tl.bodNotice.value);
+    if(tl.bodMeet.value) p.set('bm', tl.bodMeet.value);
+    if(tl.shNotice.value) p.set('sn', tl.shNotice.value);
+    if(tl.gm.value) p.set('gm', tl.gm.value);
+    p.set('gap', tl.gap.value); p.set('pin', tl.pin.value); p.set('br', tl.bodRule.value); p.set('rr', tl.regRoll.value);
+    // unavailable
+    if(unavailable.size>0){p.set('uv', [...unavailable].join(','))}
+    const url = location.origin + location.pathname + '?' + p.toString();
+    history.replaceState(null,'',url);
+  }
+  function loadStateFromURL(){
+    const p=new URLSearchParams(location.search);
+    if(p.get('qm')) qMode.value=p.get('qm'); if(p.get('qg')) qGap.value=p.get('qg'); if(p.get('qa')) qA.value=p.get('qa'); if(p.get('qb')) qB.value=p.get('qb');
+    if(p.get('bn')) tl.bodNotice.value=p.get('bn'); if(p.get('bm')) tl.bodMeet.value=p.get('bm'); if(p.get('sn')) tl.shNotice.value=p.get('sn'); if(p.get('gm')) tl.gm.value=p.get('gm');
+    if(p.get('gap')) tl.gap.value=p.get('gap'); if(p.get('pin')) tl.pin.value=p.get('pin'); if(p.get('br')) tl.bodRule.value=p.get('br'); if(p.get('rr')) tl.regRoll.value=p.get('rr');
+    if(p.get('uv')){p.get('uv').split(',').forEach(s=>{const d=parseISO(s); if(d!=null) unavailable.add(d)}); renderUnavailable();}
+    syncQuickLabels();
+  }
+  loadStateFromURL();
+
+  document.getElementById('btn-save-url').onclick=()=>{navigator.clipboard.writeText(location.href)}
+  document.getElementById('btn-clear-url').onclick=()=>{history.replaceState(null,'',location.pathname); location.reload()}
+
+  // Auto-calc on input changes
+  document.querySelectorAll('#tab-quick input, #tab-quick select').forEach(el=>el.addEventListener('change', ()=>{ if(el.id==='quick-dateA' || el.id==='quick-mode' || el.id==='quick-gap') renderQuick(); saveStateToURL(); }))
+  document.querySelectorAll('#tab-timeline input, #tab-timeline select').forEach(el=>el.addEventListener('change', ()=>{ buildTimeline(); }))
+
+})();
+</script>
+</body>
+</html>
