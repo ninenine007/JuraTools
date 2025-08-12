@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CCC §§193/2–193/8 Time Calculator</title>
+  <meta name="description" content="Simulate Thai CCC time-calculation: §193/3 exclude first day; §193/5 calendar months/years + missing-day rule; §193/6 month+day & part-of-year; §193/7 extensions; §193/8 last-day holiday shift; PLUS durations (CCC vs clear days) and sub-day time patterns like 09:56-10:30.">
+  <style>
+    :root{--bg:#0f172a;--card:#111827;--muted:#94a3b8;--text:#e5e7eb;--ring:#22c55e55;--shadow:0 10px 30px rgba(0,0,0,.35)}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial;background:radial-gradient(1200px 1200px at 80% -10%,#1f2937 0%,var(--bg) 40%);color:var(--text)}
+    .wrap{max-width:1100px;margin:40px auto;padding:0 16px}
+    h1{margin:6px 0 10px;font-size:26px;font-weight:700;letter-spacing:.2px}
+    .sub{color:var(--muted);font-size:14px;margin-bottom:18px}
+    .grid{display:grid;gap:12px}
+    @media(min-width:950px){.grid-2{grid-template-columns:1.1fr .9fr}}
+    .card{background:linear-gradient(180deg,#111827,#0b1220);border:1px solid #1f2937;border-radius:18px;box-shadow:var(--shadow)}
+    .card .head{padding:14px 16px;border-bottom:1px solid #1f2937;background:#0b1220d0;border-radius:18px 18px 0 0}
+    .card .body{padding:16px}
+    .card h3{margin:0 0 6px;font-size:16px;font-weight:700}
+    label{display:block;font-size:13px;color:var(--muted);margin:10px 0 6px}
+    input,select,textarea{width:100%;background:#0b1220;color:var(--text);border:1px solid #233146;border-radius:12px;padding:10px 12px;outline:none}
+    input[type="checkbox"]{width:auto;transform:translateY(2px);margin-right:8px}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .row .col{flex:1 1 140px}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:12px 14px;border-radius:12px;border:1px solid #1f2937;background:linear-gradient(180deg,#1b3a28,#0c2a19);color:var(--text);cursor:pointer;box-shadow:var(--shadow)}
+    .btn:focus{outline:2px solid var(--ring)}
+    .btn-ghost{background:transparent}
+    .mini{font-size:12px;color:var(--muted)}
+    .out{border-top:1px dashed #2b3b4f;padding-top:14px;margin-top:8px;font-size:15px}
+    .ok{color:#7bf9a9}
+    .bad{color:#ff8b8b}
+    .badge{display:inline-block;padding:3px 8px;border-radius:999px;font-size:12px;background:#173d2a;color:#9af6bb;border:1px solid #296d4c}
+    .list{padding-left:18px;margin:6px 0}
+    .list li{margin:6px 0}
+    code{background:#0b1220;border:1px solid #1f2937;padding:2px 6px;border-radius:6px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>CCC §§193/2–193/8 Time Calculator</h1>
+    <div class="sub">
+      Implements: §193/3 (exclude the first day; exception if starting at business opening), §193/5 (calendar weeks/months/years + missing-day rule),
+      §193/6 (month+day; part of year → months then days with 30-day months), §193/7 (extensions), §193/8 (last day falls on a holiday → next working day).
+      Also: **Duration between dates** (CCC vs clear days) and **sub-day time patterns** like <code>09:56-10:30</code> (§193/2).
+    </div>
+
+    <!-- BASE PERIOD CALCULATOR -->
+    <div class="grid grid-2">
+      <div class="card">
+        <div class="head"><h3>Base period</h3></div>
+        <div class="body">
+          <div class="row">
+            <div class="col">
+              <label>Start date & time</label>
+              <input id="startDT" type="datetime-local">
+            </div>
+            <div class="col">
+              <label>Business opening time (for §193/3 exception)</label>
+              <input id="bizStart" type="time" value="08:30">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col">
+              <label><input id="includeFirst" type="checkbox"> Start “at or after” opening time → count the first day</label>
+            </div>
+          </div>
+
+          <label>Add period (applies in this order)</label>
+          <div class="row">
+            <div class="col"><label>Years</label><input id="yrs" type="number" min="0" step="1" value="0"></div>
+            <div class="col"><label>Months</label><input id="mos" type="number" min="0" step="1" value="0"></div>
+            <div class="col"><label>Weeks</label><input id="wks" type="number" min="0" step="1" value="0"></div>
+            <div class="col"><label>Days</label><input id="days" type="number" min="0" step="1" value="0"></div>
+          </div>
+          <div class="row">
+            <div class="col"><label>Hours</label><input id="hrs" type="number" min="0" step="1" value="0"></div>
+            <div class="col"><label>Minutes</label><input id="mins" type="number" min="0" step="1" value="0"></div>
+            <div class="col"><label>Seconds</label><input id="secs" type="number" min="0" step="1" value="0"></div>
+          </div>
+
+          <details style="margin-top:8px">
+            <summary class="mini">Advanced • Part of year / part of month (§193/6)</summary>
+            <div class="row" style="margin-top:8px">
+              <div class="col"><label>Fraction of a year (e.g., 0.4 = 2/5 of a year)</label><input id="yrsFrac" type="number" min="0" step="0.01" value="0"></div>
+              <div class="col">
+                <label>Rounding for “30 days per month”</label>
+                <select id="roundMode">
+                  <option value="ceil">Ceil</option>
+                  <option value="floor">Floor</option>
+                  <option value="round">Nearest</option>
+                </select>
+              </div>
+            </div>
+            <div class="mini">Rule: convert year-fraction → months first, then leftover month-fraction → days with 30 days = 1 month.</div>
+          </details>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="head"><h3>Extension (§193/7) & Holidays (§193/8)</h3></div>
+        <div class="body">
+          <details open>
+            <summary>Extension (§193/7)</summary>
+            <div class="row" style="margin-top:8px">
+              <div class="col">
+                <label>How to start the extension</label>
+                <select id="extStartMode" onchange="toggleExtStart()">
+                  <option value="auto1937">Day after the original last day (§193/7)</option>
+                  <option value="explicit">Use an explicit start</option>
+                </select>
+              </div>
+              <div class="col">
+                <label>Explicit extension start (if used)</label>
+                <input id="extStartDT" type="datetime-local" disabled>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col"><label>+ Years</label><input id="extYears" type="number" min="0" step="1" value="0"></div>
+              <div class="col"><label>+ Months</label><input id="extMonths" type="number" min="0" step="1" value="0"></div>
+              <div class="col"><label>+ Days</label><input id="extDays" type="number" min="0" step="1" value="0"></div>
+            </div>
+            <div class="row">
+              <div class="col">
+                <label><input id="extIncludeFirst" type="checkbox" checked> Count the first day of the extension</label>
+              </div>
+            </div>
+            <div class="mini">No explicit start → extension begins the day after the original last day (pre-§193/8) and counts that day.</div>
+          </details>
+
+          <details style="margin-top:8px" open>
+            <summary>Holidays / non-working days (§193/8)</summary>
+            <div class="row" style="margin-top:8px">
+              <div class="col">
+                <label><input id="apply193_8" type="checkbox" checked> Shift the **final** day to the next working day</label>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col">
+                <label>Weekly days off</label>
+                <div class="row">
+                  <label><input id="offSat" type="checkbox" checked> Saturday</label>
+                  <label><input id="offSun" type="checkbox" checked> Sunday</label>
+                </div>
+              </div>
+              <div class="col">
+                <label>Official/customary holidays (YYYY-MM-DD, one per line)</label>
+                <textarea id="holidays" placeholder="2025-01-01&#10;2025-04-13"></textarea>
+              </div>
+            </div>
+            <div class="mini">Weeks assume Sunday as the first day (per the commentary under §193/5).</div>
+          </details>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="head"><h3>Result</h3></div>
+      <div class="body">
+        <button class="btn" onclick="compute()">Compute base/extension</button>
+        <div class="out" id="result">No result yet</div>
+        <div class="out mini" id="explain"></div>
+      </div>
+    </div>
+
+    <!-- DURATION (DATES) -->
+    <div class="card" style="margin-top:22px">
+      <div class="head"><h3>Duration between two dates (CCC vs Clear days)</h3></div>
+      <div class="body">
+        <div class="row">
+          <div class="col">
+            <label>Start date</label>
+            <input id="durStart" type="date">
+          </div>
+          <div class="col">
+            <label>End date</label>
+            <input id="durEnd" type="date">
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            <label>Method</label>
+            <select id="durMethod" onchange="toggleDurMethod()">
+              <option value="ccc">CCC (standard)</option>
+              <option value="clear">Clear days</option>
+            </select>
+          </div>
+          <div class="col">
+            <label><input id="durIncludeFirst" type="checkbox"> CCC: count first day</label>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:8px">
+          <button class="btn" onclick="computeDuration()">Compute duration</button>
+          <button class="btn btn-ghost" onclick="computeDurationPatterns()">Compute Y:M:D / patterns</button>
+        </div>
+
+        <div class="out" id="durOutMain">No duration computed yet</div>
+        <div class="out mini" id="durOutExplain"></div>
+
+        <details style="margin-top:10px">
+          <summary class="mini">Pattern functions demo (Y:M:D, Y:M, M:D, Y:D)</summary>
+          <div class="row" style="margin-top:8px">
+            <div class="col">
+              <label>Pattern</label>
+              <select id="durPattern">
+                <option value="Y:M:D">Y:M:D (years, months, days)</option>
+                <option value="Y:M">Y:M (years, months)</option>
+                <option value="M:D">M:D (months, days)</option>
+                <option value="Y:D">Y:D (years, days)</option>
+              </select>
+            </div>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button class="btn" onclick="computePattern()">Run pattern function</button>
+          </div>
+          <div class="out mini" id="durOutPattern"></div>
+        </details>
+      </div>
+    </div>
+
+    <!-- NEW: SUB-DAY TIME DURATION (§193/2) -->
+    <div class="card" style="margin-top:22px">
+      <div class="head"><h3>Sub-day time duration (§193/2)</h3></div>
+      <div class="body">
+        <label>Time pattern(s)</label>
+        <input id="timePattern" placeholder="e.g., 09:56-10:30 or 09:00-12:00, 13:00-17:30" />
+        <div class="row">
+          <div class="col">
+            <label><input id="timeAllowMidnight" type="checkbox"> Allow crossing midnight (e.g., 23:15-01:00)</label>
+          </div>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn" onclick="computeTimePattern()">Compute time duration</button>
+        </div>
+        <div class="out" id="timeOutMain">No time duration computed yet</div>
+        <div class="out mini" id="timeOutExplain"></div>
+      </div>
+    </div>
+
+    <div class="mini" style="margin-top:14px">
+      Note: This tool simulates the general counting rules under CCC §§193/2–193/8; it’s not legal advice.
+    </div>
+  </div>
+
+  <script>
+    // ---------- helpers ----------
+    const el = id => document.getElementById(id);
+    const pad = n => String(n).padStart(2,'0');
+    const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const toDateOnly = d => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0,0,0,0);
+    function parseLocalDateTime(s){ if(!s) return null; const [d,t='00:00']=s.split('T'); const [y,m,da]=d.split('-').map(Number); const [hh,mm]=t.split(':').map(Number); return new Date(y,m-1,da,hh||0,mm||0,0,0); }
+    function parseLocalDate(s){ if(!s) return null; const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d,0,0,0,0); }
+    function fmtDate(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} (${dayNames[d.getDay()]})`; }
+    function fmtDateTime(d){ return `${fmtDate(d)} ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+    function clone(d){ return new Date(d.getTime()); }
+    function startOfDay(d){ const x=clone(d); x.setHours(0,0,0,0); return x; }
+    function addDays(d,n){ const x=clone(d); x.setDate(x.getDate()+n); return x; }
+    function addSeconds(d,s){ const x=clone(d); x.setSeconds(x.getSeconds()+s); return x; }
+    function ymd(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+
+    // ---------- holidays ----------
+    function parseHolidayList(txt){ const set=new Set(); (txt||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean).forEach(s=>set.add(s)); return set; }
+    function isNonWorkingDay(d, cfg){ const dow=d.getDay(); if(cfg.offSat && dow===6) return true; if(cfg.offSun && dow===0) return true; if(cfg.holidays.has(ymd(d))) return true; return false; }
+    function moveToNextWorkingDay(d, cfg, apply){
+      if(!apply) return d;
+      let x=startOfDay(d);
+      if(!isNonWorkingDay(x,cfg)) return d;
+      let guard=0;
+      while(isNonWorkingDay(x,cfg) && guard<500){ x=addDays(x,1); guard++; }
+      return x;
+    }
+
+    // ---------- calendar math per §§193/5, 193/6 ----------
+    function addMonthsExact(d, months){
+      const y=d.getFullYear(), m=d.getMonth(), day=d.getDate();
+      const target=m+months, ty=y+Math.floor(target/12), tm=((target%12)+12)%12;
+      const last=new Date(ty, tm+1, 0).getDate();
+      const matched=day<=last; const rd=matched?day:last;
+      return { date:new Date(ty,tm,rd,d.getHours(),d.getMinutes(),d.getSeconds(),d.getMilliseconds()), matched };
+    }
+    // months/years end = (countBase + N months) - 1 day; unless no matching day -> end = last day (no -1)
+    function endAfterMonths(countBase, months){
+      if(months===0) return clone(countBase);
+      const {date:anniv, matched}=addMonthsExact(countBase, months);
+      return matched ? addDays(anniv,-1) : anniv;
+    }
+    function endAfterYears(countBase, years){ return endAfterMonths(countBase, years*12); }
+    // weeks end = countBase + 7*N - 1
+    function endAfterWeeks(countBase, weeks){
+      if(weeks===0) return clone(countBase);
+      return addDays(countBase, weeks*7 - 1);
+    }
+    // days end = countBase + N - 1
+    function endAfterDays(countBase, days){
+      if(days===0) return clone(countBase);
+      return addDays(countBase, days - 1);
+    }
+    // §193/6: fraction of year -> (months, days with 30-day month)
+    function convertYearFractionToMonthsDays(yearsFrac, roundMode='ceil'){
+      const totalMonths=yearsFrac*12; const mInt=Math.floor(totalMonths); const mFrac=totalMonths-mInt;
+      let days=mFrac*30; if(roundMode==='ceil') days=Math.ceil(days); else if(roundMode==='floor') days=Math.floor(days); else days=Math.round(days);
+      return { addMonths:mInt, addDays:days };
+    }
+
+    function toggleExtStart(){ el('extStartDT').disabled = (el('extStartMode').value!=='explicit'); }
+    function toggleDurMethod(){ el('durIncludeFirst').disabled = (el('durMethod').value!=='ccc'); }
+
+    // ---------- BASE/EXTENSION COMPUTE ----------
+    function compute(){
+      const startDT = parseLocalDateTime(el('startDT').value);
+      if(!startDT){ showErr('Please provide a start date/time.'); return; }
+
+      const yrs=+el('yrs').value||0, mos=+el('mos').value||0, wks=+el('wks').value||0, days=+el('days').value||0;
+      const hrs=+el('hrs').value||0, mins=+el('mins').value||0, secs=+el('secs').value||0;
+
+      const yrsFrac=parseFloat(el('yrsFrac').value||'0'); const roundMode=el('roundMode').value;
+      const includeFirst = el('includeFirst').checked;
+      const [bH,bM] = (el('bizStart').value||'08:30').split(':').map(Number);
+      let includeFirstDay = includeFirst;
+      if(includeFirst){
+        const h=startDT.getHours(), m=startDT.getMinutes();
+        includeFirstDay = (h>bH || (h===bH && m>=bM));
+      }
+
+      const apply193_8 = el('apply193_8').checked;
+      const cfgNW = { offSat: el('offSat').checked, offSun: el('offSun').checked, holidays: parseHolidayList(el('holidays').value) };
+
+      const extYears=+el('extYears').value||0, extMonths=+el('extMonths').value||0, extDays=+el('extDays').value||0;
+      const extStartMode = el('extStartMode').value;
+      const extStartDT = parseLocalDateTime(el('extStartDT').value);
+      let extIncludeFirst = el('extIncludeFirst').checked;
+
+      let steps=[];
+      let cur = clone(startDT);
+
+      function countBaseForFirstStage(){ return includeFirstDay ? startOfDay(startDT) : addDays(startOfDay(startDT), 1); }
+      function nextStageBaseFrom(prevEnd){ return addDays(startOfDay(prevEnd), 1); }
+
+      if(yrs>0){ const base = countBaseForFirstStage(); const endY = endAfterYears(base, yrs); steps.push(`Years: start ${fmtDate(base)} → end ${fmtDate(endY)} (§193/5, §193/3)`); cur = endY; }
+      if(mos>0){ const base = (yrs>0) ? nextStageBaseFrom(cur) : countBaseForFirstStage(); const endM = endAfterMonths(base, mos); steps.push(`Months: start ${fmtDate(base)} → end ${fmtDate(endM)} (§193/5, §193/3)`); cur = endM; }
+      if(yrsFrac>0){
+        const conv = convertYearFractionToMonthsDays(yrsFrac, roundMode);
+        if(conv.addMonths){ const baseM = ((yrs>0)||(mos>0)) ? nextStageBaseFrom(cur) : countBaseForFirstStage(); const m2 = endAfterMonths(baseM, conv.addMonths); steps.push(`Year fraction → ${conv.addMonths} month(s): start ${fmtDate(baseM)} → end ${fmtDate(m2)} (§193/6→§193/5)`); cur = m2; }
+        if(conv.addDays){ const baseD = nextStageBaseFrom(cur); const d2 = endAfterDays(baseD, conv.addDays); steps.push(`…then ${conv.addDays} day(s): start ${fmtDate(baseD)} → end ${fmtDate(d2)} (§193/6→§193/3)`); cur = d2; }
+      }
+      if(wks>0){ const base = ((yrs>0)||(mos>0)||(yrsFrac>0)) ? nextStageBaseFrom(cur) : countBaseForFirstStage(); const wEnd = endAfterWeeks(base, wks); steps.push(`Weeks: start ${fmtDate(base)} → end ${fmtDate(wEnd)} (§193/5, §193/3)`); cur = wEnd; }
+      if(days>0){ const base = ((yrs>0)||(mos>0)||(yrsFrac>0)||(wks>0)) ? nextStageBaseFrom(cur) : countBaseForFirstStage(); const dEnd = endAfterDays(base, days); steps.push(`Days: start ${fmtDate(base)} → end ${fmtDate(dEnd)} (§193/3)`); cur = dEnd; }
+      const usedSubDay = (hrs||mins||secs)>0;
+      if(usedSubDay){ const tEnd = addSeconds(cur, hrs*3600 + mins*60 + secs); steps.push(`Sub-day: +${hrs}h ${mins}m ${secs}s → ${fmtDateTime(tEnd)} (§193/2)`); cur = tEnd; }
+
+      const baseEndPreShift = clone(cur);
+      steps.push(`Original last day before §193/8: ${usedSubDay?fmtDateTime(baseEndPreShift):fmtDate(baseEndPreShift)}`);
+
+      const hasExt = (extYears||extMonths||extDays)>0;
+      if(!hasExt){
+        if(apply193_8 && !usedSubDay){
+          const shifted = moveToNextWorkingDay(baseEndPreShift, cfgNW, true);
+          if(ymd(shifted)!==ymd(baseEndPreShift)){ steps.push(`Final day holiday → shift: ${fmtDate(shifted)} (§193/8)`); cur = shifted; }
+        }
+        const disp = usedSubDay ? fmtDateTime(cur) : fmtDate(cur);
+        el('result').innerHTML = `Final legal last day: <span class="ok" style="font-weight:700">${disp}</span>`;
+        el('explain').innerHTML = `<div class="badge">Why</div><ol class="list">${steps.map(s=>`<li>${s}</li>`).join('')}</ol>`;
+        return;
+      }
+
+      let extStart;
+      if(extStartMode==='explicit'){
+        if(!extStartDT){ showErr('You selected an explicit extension start but did not provide a date/time.'); return; }
+        extStart = startOfDay(extStartDT);
+        steps.push(`Extension: explicit start = ${fmtDate(extStart)}`);
+      }else{
+        extStart = addDays(startOfDay(baseEndPreShift), 1);
+        el('extIncludeFirst').checked = true;
+        extIncludeFirst = true;
+        steps.push(`Extension: start = day after original last day → ${fmtDate(extStart)} (§193/7)`);
+      }
+
+      let curExt = clone(extStart);
+      const extBaseFirst = extIncludeFirst ? startOfDay(extStart) : addDays(startOfDay(extStart),1);
+
+      if(extYears>0){ const y2 = endAfterYears(extBaseFirst, extYears); steps.push(`Extension years: start ${fmtDate(extBaseFirst)} → end ${fmtDate(y2)} (§193/5, §193/3)`); curExt = y2; }
+      if(extMonths>0){ const baseM = (extYears>0) ? addDays(startOfDay(curExt),1) : extBaseFirst; const m3 = endAfterMonths(baseM, extMonths); steps.push(`Extension months: start ${fmtDate(baseM)} → end ${fmtDate(m3)} (§193/5, §193/3)`); curExt = m3; }
+      if(extDays>0){ const baseD = (extYears>0 || extMonths>0) ? addDays(startOfDay(curExt),1) : extBaseFirst; const d3 = endAfterDays(baseD, extDays); steps.push(`Extension days: start ${fmtDate(baseD)} → end ${fmtDate(d3)} (§193/3)`); curExt = d3; }
+
+      if(apply193_8){ const shiftedExt = moveToNextWorkingDay(curExt, cfgNW, true); if(ymd(shiftedExt)!==ymd(curExt)){ steps.push(`Extension last day holiday → shift: ${fmtDate(shiftedExt)} (§193/8)`); curExt = shiftedExt; } }
+
+      el('result').innerHTML = `Final legal last day: <span class="ok" style="font-weight:700">${fmtDate(curExt)}</span>`;
+      el('explain').innerHTML = `<div class="badge">Why</div><ol class="list">${steps.map(s=>`<li>${s}</li>`).join('')}</ol>`;
+    }
+    function showErr(msg){ el('result').innerHTML = `<span class="bad">${msg}</span>`; el('explain').innerHTML=''; }
+
+    // ---------- DURATION (DATES) ----------
+    function baseFromStart_CCC(startDate, includeFirst){
+      const s = toDateOnly(startDate);
+      return includeFirst ? s : addDays(s,1); // §193/3
+    }
+    function stageNextBase(prevEnd){ return addDays(toDateOnly(prevEnd), 1); } // next stage after previous end (§193/3)
+
+    function maxYearsCCC(base, end){
+      let y=0; while(true){ const test=endAfterYears(base, y+1); if(test.getTime()<=end.getTime()) y++; else break; }
+      return y;
+    }
+    function maxMonthsCCC(base, end){
+      let m=0; while(true){ const test=endAfterMonths(base, m+1); if(test.getTime()<=end.getTime()) m++; else break; }
+      return m;
+    }
+    function maxDaysCCC(base, end){
+      let d=0; while(true){ const test=endAfterDays(base, d+1); if(test.getTime()<=end.getTime()) d++; else break; }
+      return d;
+    }
+
+    function durationCCC_YM(start, end, includeFirst=false){
+      const s = baseFromStart_CCC(start, includeFirst);
+      if(end < s) return {years:0, months:0};
+      const years = maxYearsCCC(s, end);
+      const base2 = years>0 ? stageNextBase(endAfterYears(s, years)) : s;
+      const months = maxMonthsCCC(base2, end);
+      return {years, months};
+    }
+    function durationCCC_MD(start, end, includeFirst=false){
+      const s = baseFromStart_CCC(start, includeFirst);
+      if(end < s) return {months:0, days:0};
+      const months = maxMonthsCCC(s, end);
+      const base2 = months>0 ? stageNextBase(endAfterMonths(s, months)) : s;
+      const days = maxDaysCCC(base2, end);
+      return {months, days};
+    }
+    function durationCCC_YD(start, end, includeFirst=false){
+      const s = baseFromStart_CCC(start, includeFirst);
+      if(end < s) return {years:0, days:0};
+      const years = maxYearsCCC(s, end);
+      const base2 = years>0 ? stageNextBase(endAfterYears(s, years)) : s;
+      const days = maxDaysCCC(base2, end);
+      return {years, days};
+    }
+    function durationCCC_YMD(start, end, includeFirst=false){
+      const s = baseFromStart_CCC(start, includeFirst);
+      if(end < s) return {years:0, months:0, days:0, exact:(end.getTime()===s.getTime())};
+      const years = maxYearsCCC(s, end);
+      const endY = years>0 ? endAfterYears(s, years) : s;
+      const base2 = years>0 ? stageNextBase(endY) : s;
+
+      const months = maxMonthsCCC(base2, end);
+      const endM = months>0 ? endAfterMonths(base2, months) : base2;
+      const base3 = months>0 ? stageNextBase(endM) : base2;
+
+      const days = maxDaysCCC(base3, end);
+      const endD = days>0 ? endAfterDays(base3, days) : base3;
+
+      return {years, months, days, exact: endD.getTime()===end.getTime()};
+    }
+    function durationCCC_bestUnit(start, end, includeFirst=false){
+      const s = baseFromStart_CCC(start, includeFirst);
+      if(end < s) return {unit:'days', value:0};
+      let y=0; while(true){ const t=endAfterYears(s, y+1); if(t<=end){ y++; } else break; }
+      if(y>0 && endAfterYears(s,y).getTime()===end.getTime()) return {unit:'years', value:y};
+      let m=0; while(true){ const t=endAfterMonths(s, m+1); if(t<=end){ m++; } else break; }
+      if(m>0 && endAfterMonths(s,m).getTime()===end.getTime()) return {unit:'months', value:m};
+      const diffDays = Math.round((toDateOnly(end)-toDateOnly(s))/(24*3600*1000));
+      return {unit:'days', value: diffDays+1};
+    }
+    function durationClearDays(start, end){
+      const s = toDateOnly(start), e = toDateOnly(end);
+      const diffDays = Math.round((e - s)/(24*3600*1000));
+      return Math.max(0, diffDays - 1); // exclude both
+    }
+
+    function computeDuration(){
+      const s = parseLocalDate(el('durStart').value);
+      const e = parseLocalDate(el('durEnd').value);
+      if(!s || !e){ el('durOutMain').innerHTML = '<span class="bad">Please provide both start and end dates.</span>'; el('durOutExplain').innerHTML=''; return; }
+      if(e < s){ el('durOutMain').innerHTML = '<span class="bad">End date must be the same or after start date.</span>'; el('durOutExplain').innerHTML=''; return; }
+
+      const method = el('durMethod').value;
+      if(method==='clear'){
+        const days = durationClearDays(s,e);
+        el('durOutMain').innerHTML = `Clear days between: <span class="ok" style="font-weight:700">${days} day(s)</span>`;
+        el('durOutExplain').innerHTML = `<div class="badge">Method</div><ol class="list"><li>Excludes both the start and the end day.</li></ol>`;
+        return;
+      }
+
+      const includeFirst = el('durIncludeFirst').checked;
+      const best = durationCCC_bestUnit(s,e,includeFirst);
+      const ymd = durationCCC_YMD(s,e,includeFirst);
+
+      el('durOutMain').innerHTML = `
+        CCC duration (best unit): <span class="ok" style="font-weight:700">${best.value} ${best.unit}</span><br>
+        CCC decomposition (Y:M:D): <span class="ok" style="font-weight:700">${ymd.years}y ${ymd.months}m ${ymd.days}d</span> ${ymd.exact?'<span class="mini">(exact)</span>':''}
+      `;
+      el('durOutExplain').innerHTML = `
+        <div class="badge">Why</div>
+        <ol class="list">
+          <li>§193/3: counting starts ${el('durIncludeFirst').checked?'<b>on</b> the start day (allowed)':'the <b>day after</b> the start day'}.</li>
+          <li>§193/5: months/years are calendar-based; if no matching day → last day of that month.</li>
+          <li>§193/6: month fraction = 30-day month; months then days.</li>
+        </ol>`;
+    }
+
+    function computeDurationPatterns(){
+      const s = parseLocalDate(el('durStart').value);
+      const e = parseLocalDate(el('durEnd').value);
+      if(!s || !e){ el('durOutMain').innerHTML = '<span class="bad">Please provide both start and end dates.</span>'; el('durOutExplain').innerHTML=''; return; }
+      const includeFirst = el('durIncludeFirst').checked;
+      const ym = durationCCC_YM(s,e,includeFirst);
+      const md = durationCCC_MD(s,e,includeFirst);
+      const yd = durationCCC_YD(s,e,includeFirst);
+      const ymd = durationCCC_YMD(s,e,includeFirst);
+      el('durOutMain').innerHTML = `
+        Patterns summary (CCC):
+        <div>Y:M → <span class="ok">${ym.years}y ${ym.months}m</span></div>
+        <div>M:D → <span class="ok">${md.months}m ${md.days}d</span></div>
+        <div>Y:D → <span class="ok">${yd.years}y ${yd.days}d</span></div>
+        <div>Y:M:D → <span class="ok">${ymd.years}y ${ymd.months}m ${ymd.days}d</span> ${ymd.exact?'<span class="mini">(exact)</span>':''}</div>
+      `;
+      el('durOutExplain').innerHTML = `<div class="badge">Method</div><ol class="list"><li>All CCC patterns stage units with §193/3 at each stage.</li><li>Months/years per §193/5; 30-day month per §193/6.</li></ol>`;
+    }
+
+    function computePattern(){
+      const s = parseLocalDate(el('durStart').value);
+      const e = parseLocalDate(el('durEnd').value);
+      if(!s || !e){ el('durOutPattern').innerHTML = '<span class="bad">Please provide both start and end dates.</span>'; return; }
+      const includeFirst = el('durIncludeFirst').checked;
+      const pat = el('durPattern').value;
+      let out='';
+      if(pat==='Y:M:D'){ const x=durationCCC_YMD(s,e,includeFirst); out=`Y:M:D = ${x.years}y ${x.months}m ${x.days}d ${x.exact?'(exact)':''}`; }
+      else if(pat==='Y:M'){ const x=durationCCC_YM(s,e,includeFirst); out=`Y:M = ${x.years}y ${x.months}m`; }
+      else if(pat==='M:D'){ const x=durationCCC_MD(s,e,includeFirst); out=`M:D = ${x.months}m ${x.days}d`; }
+      else if(pat==='Y:D'){ const x=durationCCC_YD(s,e,includeFirst); out=`Y:D = ${x.years}y ${x.days}d`; }
+      el('durOutPattern').innerHTML = `<span class="ok">${out}</span>`;
+    }
+
+    // ---------- NEW: SUB-DAY TIME DURATION (§193/2) ----------
+    function parseHHMM(s){
+      const m = /^(\d{1,2}):(\d{2})$/.exec(s.trim());
+      if(!m) return null;
+      const hh = +m[1], mm = +m[2];
+      if(hh<0 || hh>23 || mm<0 || mm>59) return null;
+      return hh*60 + mm; // minutes since 00:00
+    }
+    function minutesToHM(mins){
+      const h = Math.floor(mins/60);
+      const m = mins%60;
+      return `${h}:${pad(m)}`;
+    }
+    // single interval like "09:56-10:30"
+    function durationTime_HHmm(startStr, endStr, allowMidnight=false){
+      const s = parseHHMM(startStr), e = parseHHMM(endStr);
+      if(s===null || e===null) throw new Error('Invalid HH:MM in time interval.');
+      if(e < s){
+        if(!allowMidnight) throw new Error('End time is earlier than start; enable crossing midnight to allow this.');
+        return (24*60 - s) + e; // wrap over midnight
+      }
+      return e - s;
+    }
+    // pattern: "09:00-12:00, 13:00-17:30"
+    function durationTimePattern(patternStr, allowMidnight=false){
+      const parts = (patternStr||'').split(',').map(x=>x.trim()).filter(Boolean);
+      if(parts.length===0) throw new Error('Please enter at least one HH:MM-HH:MM interval.');
+      let total=0, segments=[];
+      for(const p of parts){
+        const [a,b] = p.split('-').map(x=>x.trim());
+        if(!a || !b) throw new Error(`Invalid segment: "${p}"`);
+        const mins = durationTime_HHmm(a,b,allowMidnight);
+        segments.push({segment:p, minutes:mins, hm:minutesToHM(mins)});
+        total += mins;
+      }
+      return { totalMinutes: total, segments };
+    }
+
+    function computeTimePattern(){
+      const pat = el('timePattern').value;
+      const allow = el('timeAllowMidnight').checked;
+      try{
+        const res = durationTimePattern(pat, allow);
+        const totalHM = minutesToHM(res.totalMinutes);
+        const segLines = res.segments.map(s=>`<li><code>${s.segment}</code> → <b>${s.minutes} min</b> (${s.hm} h:mm)</li>`).join('');
+        el('timeOutMain').innerHTML = `Total: <span class="ok" style="font-weight:700">${res.totalMinutes} minutes</span> (${totalHM} h:mm)`;
+        el('timeOutExplain').innerHTML = `
+          <div class="badge">Why</div>
+          <ol class="list">
+            <li>§193/2: for units shorter than a day, we count in that unit exactly, from the moment the act begins; no “exclude first day”.</li>
+            <li>Optional “crossing midnight” lets an end time earlier than start wrap to the next day.</li>
+          </ol>
+          <div class="mini">Breakdown:</div>
+          <ul class="list">${segLines}</ul>
+        `;
+      }catch(err){
+        el('timeOutMain').innerHTML = `<span class="bad">${err.message}</span>`;
+        el('timeOutExplain').innerHTML = '';
+      }
+    }
+  </script>
+</body>
+</html>
