@@ -67,7 +67,20 @@
       .card, .tcard{box-shadow:none; background:white; border:1px solid #ddd; color:black}
       .pill, .chip{border-color:#bbb; background:white; color:black}
     }
+        /* Calendar picker icon styled like the Calculate button */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #16a34a, #15803d); /* same green as .btn */
+      box-shadow: var(--shadow);
+    }
+    
+    input[type="date"]::-webkit-calendar-picker-indicator:hover {
+      background: linear-gradient(180deg, #22c55e, #16a34a); /* lighter on hover */
+    }
   </style>
+  
 </head>
 <body>
   <div class="wrap">
