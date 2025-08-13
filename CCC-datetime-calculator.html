@@ -34,6 +34,24 @@
     .list{padding-left:18px;margin:6px 0}
     .list li{margin:6px 0}
     code{background:#0b1220;border:1px solid #1f2937;padding:2px 6px;border-radius:6px}
+        /* Gradient button style with visible white calendar icon */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 12px;
+      background:
+        linear-gradient(180deg, #16a34a, #15803d), /* button gradient */
+        url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="white" viewBox="0 0 24 24"><path d="M7 10h5v5H7z"/><path fill="none" d="M0 0h24v24H0z"/><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/></svg>') center/60% no-repeat;
+      box-shadow: var(--shadow);
+      background-blend-mode: overlay;
+    }
+    
+    input[type="date"]::-webkit-calendar-picker-indicator:hover {
+      background:
+        linear-gradient(180deg, #22c55e, #16a34a),
+        url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="white" viewBox="0 0 24 24"><path d="M7 10h5v5H7z"/><path fill="none" d="M0 0h24v24H0z"/><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/></svg>') center/60% no-repeat;
+      background-blend-mode: overlay;
+    }
   </style>
 </head>
 <body>
