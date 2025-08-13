@@ -303,6 +303,56 @@
     <div class="mini" style="margin-top:14px">
       Note: This tool simulates the general counting rules under CCC §§193/2–193/8; it’s not legal advice.
     </div>
+    <!-- NEW: INVERSE CALCULATOR -->
+<div class="card" style="margin-top:22px">
+  <div class="head"><h3>Inverse: find <u>start date</u> from end date + duration</h3></div>
+  <div class="body">
+    <div class="row">
+      <div class="col">
+        <label>End date (known last day)</label>
+        <input id="invEnd" type="date">
+      </div>
+      <div class="col">
+        <label>Method</label>
+        <select id="invMethod" onchange="toggleInvMethod()">
+          <option value="ccc">CCC (standard)</option>
+          <option value="clear">Clear days</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="invCCCFields">
+      <div class="row" style="margin-top:4px">
+        <div class="col"><label>Years</label><input id="invYrs" type="number" min="0" step="1" value="0"></div>
+        <div class="col"><label>Months</label><input id="invMos" type="number" min="0" step="1" value="0"></div>
+        <div class="col"><label>Weeks</label><input id="invWks" type="number" min="0" step="1" value="0"></div>
+        <div class="col"><label>Days</label><input id="invDays" type="number" min="0" step="1" value="0"></div>
+      </div>
+      <div class="row">
+        <div class="col">
+          <label><input id="invIncludeFirst" type="checkbox"> Count the first day (CCC §193/3 exception)</label>
+        </div>
+      </div>
+    </div>
+
+    <div id="invClearFields" style="display:none">
+      <div class="row" style="margin-top:4px">
+        <div class="col"><label>Weeks (optional)</label><input id="invClearWks" type="number" min="0" step="1" value="0"></div>
+        <div class="col"><label>Days</label><input id="invClearDays" type="number" min="0" step="1" value="0"></div>
+      </div>
+      <div class="mini">Clear days = exclude both the start and end dates.</div>
+    </div>
+
+    <div class="row" style="margin-top:10px">
+      <button class="btn" onclick="computeInverse()">Compute start date</button>
+      <button class="btn btn-ghost" onclick="resetInverse()">Reset</button>
+    </div>
+
+    <div class="out" id="invOutMain">No inverse calculation yet</div>
+    <div class="out mini" id="invOutExplain"></div>
+  </div>
+</div>
+
   </div>
 
   <script>
@@ -652,6 +702,142 @@
         el('timeOutExplain').innerHTML = '';
       }
     }
+    // UI toggles for inverse
+    function toggleInvMethod(){
+      const m = el('invMethod').value;
+      el('invCCCFields').style.display = (m==='ccc') ? '' : 'none';
+      el('invClearFields').style.display = (m==='clear') ? '' : 'none';
+    }
+    function resetInverse(){
+      el('invEnd').value='';
+      el('invMethod').value='ccc';
+      toggleInvMethod();
+      ['invYrs','invMos','invWks','invDays','invClearWks','invClearDays'].forEach(id=>{ if(el(id)) el(id).value=0; });
+      el('invIncludeFirst').checked=false;
+      el('invOutMain').innerHTML='No inverse calculation yet';
+      el('invOutExplain').innerHTML='';
+    }
+    
+    // Forward-only (date-level) engine for verification (CCC; no holidays/sub-day)
+    function forwardEndOnly(startDate, dur, includeFirst){
+      let base = includeFirst ? toDateOnly(startDate) : addDays(toDateOnly(startDate),1);
+      let any=false, end=base;
+      if(dur.years>0){ end = endAfterYears(base, dur.years); base = addDays(toDateOnly(end),1); any=true; }
+      if(dur.months>0){ if(!any) base = includeFirst ? toDateOnly(startDate) : addDays(toDateOnly(startDate),1);
+                        end = endAfterMonths(base, dur.months); base = addDays(toDateOnly(end),1); any=true; }
+      if(dur.weeks>0){  if(!any) base = includeFirst ? toDateOnly(startDate) : addDays(toDateOnly(startDate),1);
+                        end = endAfterWeeks(base, dur.weeks); base = addDays(toDateOnly(end),1); any=true; }
+      if(dur.days>0){   if(!any) base = includeFirst ? toDateOnly(startDate) : addDays(toDateOnly(startDate),1);
+                        end = endAfterDays(base, dur.days); any=true; }
+      return any ? toDateOnly(end) : (includeFirst ? toDateOnly(startDate) : addDays(toDateOnly(startDate),1));
+    }
+    
+    // Month/year inversion helpers (reverse of §193/5)
+    function invertMonthsEndToBase(endDate, months){
+      if(months===0) return toDateOnly(endDate);
+      const anniv = addDays(toDateOnly(endDate),1); // E + 1
+      const total = anniv.getFullYear()*12 + anniv.getMonth() - months;
+      const by = Math.floor(total/12), bm = ((total%12)+12)%12;
+      const lastBase = new Date(by, bm+1, 0).getDate();
+      const wantDay = anniv.getDate();
+      const bd = (wantDay <= lastBase) ? wantDay : lastBase; // missing-day → EOM
+      return new Date(by, bm, bd, 0,0,0,0);
+    }
+    function invertYearsEndToBase(endDate, years){
+      return invertMonthsEndToBase(endDate, years*12);
+    }
+    
+    // Main inverse
+    function computeInverse(){
+      const end = el('invEnd').value ? parseLocalDate(el('invEnd').value) : null;
+      if(!end){ el('invOutMain').innerHTML = '<span class="bad">Please provide the end date.</span>'; el('invOutExplain').innerHTML=''; return; }
+      const method = el('invMethod').value;
+    
+      if(method==='clear'){
+        const w = +el('invClearWks').value||0;
+        const d = +el('invClearDays').value||0;
+        const totalDays = w*7 + d;
+        const start = addDays(toDateOnly(end), -(totalDays+1));
+        el('invOutMain').innerHTML = `Start date (Clear days): <span class="ok" style="font-weight:700">${fmtDate(start)}</span>`;
+        el('invOutExplain').innerHTML = `
+          <div class="badge">Why</div>
+          <ol class="list">
+            <li>Clear days exclude both start and end.</li>
+            <li>So <code>end - start = N + 1</code> ⇒ start = end − (N+1) days, where N = ${totalDays}.</li>
+          </ol>`;
+        return;
+      }
+    
+      // CCC
+      const yrs = +el('invYrs').value||0;
+      const mos = +el('invMos').value||0;
+      const wks = +el('invWks').value||0;
+      const dys = +el('invDays').value||0;
+      const includeFirst = el('invIncludeFirst').checked;
+    
+      let steps = [];
+      let prevEnd = toDateOnly(end);
+    
+      let baseD=null; if(dys>0){
+        baseD = addDays(prevEnd, -(dys-1));
+        steps.push(`Days: end ${fmtDate(prevEnd)} ⇒ base ${fmtDate(baseD)} (reverse of §193/3)`);
+        prevEnd = addDays(baseD, -1);
+      }
+      let baseW=null; if(wks>0){
+        baseW = addDays(prevEnd, -(wks*7 - 1));
+        steps.push(`Weeks: end ${fmtDate(prevEnd)} ⇒ base ${fmtDate(baseW)} (reverse of §193/5 weeks)`);
+        prevEnd = addDays(baseW, -1);
+      }
+      let baseM=null; if(mos>0){
+        baseM = invertMonthsEndToBase(prevEnd, mos);
+        const matchedNote = (addMonthsExact(baseM, mos).date.getDate()===addDays(prevEnd,1).getDate()) ? 'matched-day' : 'missing-day→EOM';
+        steps.push(`Months: end ${fmtDate(prevEnd)} ⇒ base ${fmtDate(baseM)} (${matchedNote}, reverse of §193/5)`);
+        prevEnd = addDays(baseM, -1);
+      }
+      let baseY=null; if(yrs>0){
+        baseY = invertYearsEndToBase(prevEnd, yrs);
+        const matchedNote = (addMonthsExact(baseY, yrs*12).date.getDate()===addDays(prevEnd,1).getDate()) ? 'matched-day' : 'missing-day→EOM';
+        steps.push(`Years: end ${fmtDate(prevEnd)} ⇒ base ${fmtDate(baseY)} (${matchedNote}, reverse of §193/5)`);
+        prevEnd = addDays(baseY, -1);
+      }
+    
+      let baseFirst = null;
+      if(yrs>0) baseFirst = baseY;
+      else if(mos>0) baseFirst = baseM;
+      else if(wks>0) baseFirst = baseW;
+      else if(dys>0) baseFirst = baseD;
+    
+      if(!baseFirst){
+        const startZero = includeFirst ? toDateOnly(end) : addDays(toDateOnly(end), -1);
+        const verifyZero = forwardEndOnly(startZero, {years:0,months:0,weeks:0,days:0}, includeFirst);
+        el('invOutMain').innerHTML = `Start date (CCC, zero duration): <span class="ok" style="font-weight:700">${fmtDate(startZero)}</span>`;
+        el('invOutExplain').innerHTML = `
+          <div class="badge">Why</div>
+          <ol class="list">
+            <li>With zero duration, last day equals ${includeFirst?'<b>the start day</b>':'<b>the day after the start day</b>'} (§193/3).</li>
+            <li>Forward verification → ${fmtDate(verifyZero)}.</li>
+          </ol>`;
+        return;
+      }
+    
+      const start = includeFirst ? baseFirst : addDays(baseFirst, -1);
+      const verify = forwardEndOnly(start, {years:yrs, months:mos, weeks:wks, days:dys}, includeFirst);
+    
+      el('invOutMain').innerHTML = `Start date (CCC): <span class="ok" style="font-weight:700">${fmtDate(start)}</span>`;
+      el('invOutExplain').innerHTML = `
+        <div class="badge">Why</div>
+        <ol class="list">
+          ${steps.map(s=>`<li>${s}</li>`).join('')}
+          <li>First-stage base = ${fmtDate(baseFirst)} ⇒ start = ${includeFirst? 'base (count first day)':'base − 1 day (exclude first day)'}.</li>
+          <li>Forward verification: ${fmtDate(start)} + ${yrs}y ${mos}m ${wks}w ${dys}d ⇒ <b>${fmtDate(verify)}</b> (target ${fmtDate(end)}).</li>
+        </ol>`;
+    }
+    
+    // Optional: ensure the right fields are visible on load
+    document.addEventListener('DOMContentLoaded', () => {
+      if (el('invMethod')) toggleInvMethod();
+    });
+
   </script>
 </body>
 </html>
