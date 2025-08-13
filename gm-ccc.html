@@ -79,6 +79,18 @@
     input[type="date"]::-webkit-calendar-picker-indicator:hover {
       background: linear-gradient(180deg, #22c55e, #16a34a); /* lighter on hover */
     }
+      input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    filter: invert(1) brightness(1.2); /* make light on dark */
+    background: none; /* keep original icon */
+    padding: 4px;
+    border-radius: 12px;
+  }
+  
+  input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    filter: invert(1) brightness(1.5); /* brighten more on hover */
+  }
+
   </style>
   
 </head>
