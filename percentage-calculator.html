@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Percentage Calculators</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles to enhance the UI */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom styling for the calculated result input field */
+        .calculated-field {
+            border-color: #10B981; /* Green-500 */
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.5);
+            background-color: #F0FDF4; /* Green-50 */
+        }
+        /* Simple transition for a smoother appearance */
+        .transition-all {
+            transition: all 0.3s ease-in-out;
+        }
+        /* Style for the input boxes to make them larger */
+        .value-input {
+            font-size: 1.25rem; /* Slightly smaller for better layout */
+            text-align: center;
+            padding: 1rem;
+        }
+        .percentage-input {
+             width: 100px;
+             text-align: center;
+        }
+        .text-label {
+            font-size: 1.25rem;
+            color: #4B5563; /* gray-600 */
+            margin: 0 0.5rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+    <div class="w-full max-w-4xl mx-auto p-6 sm:p-8 bg-white rounded-2xl shadow-lg divide-y divide-gray-200">
+        
+        <!-- Calculator 1: Percentage Change -->
+        <div class="py-8">
+            <div class="text-center mb-8">
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Percentage Change Calculator</h1>
+                <p class="mt-2 text-sm sm:text-base text-gray-600">Calculates the result of a percentage increase or decrease.</p>
+            </div>
+
+            <div class="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-0">
+                <div class="flex flex-col items-center p-4 border-2 border-dashed border-gray-300 rounded-xl">
+                    <label for="initialValue" class="block text-sm font-medium text-gray-700 mb-2">Initial Value (Vᵢ)</label>
+                    <input type="number" id="initialValue" placeholder="100" class="transition-all w-40 h-24 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none value-input">
+                </div>
+                <div class="flex-grow flex flex-col items-center px-4">
+                     <label for="percentageChange" class="block text-sm font-medium text-gray-700 mb-1">Change (p)</label>
+                     <div class="relative">
+                        <input type="number" id="percentageChange" placeholder="7" class="transition-all px-2 py-1 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none percentage-input">
+                        <span class="absolute inset-y-0 right-0 flex items-center pr-2 text-gray-500">%</span>
+                     </div>
+                     <svg class="w-full h-8 text-gray-400 mt-2" fill="none" stroke="currentColor" viewBox="0 0 100 20" preserveAspectRatio="none">
+                        <path d="M0 10 L100 10" stroke-width="2" />
+                        <path d="M90 5 L100 10 L90 15" stroke-width="2" />
+                     </svg>
+                </div>
+                <div class="flex flex-col items-center p-4 border-2 border-dashed border-gray-300 rounded-xl">
+                    <label for="finalValue" class="block text-sm font-medium text-gray-700 mb-2">Final Value (Vƒ)</label>
+                    <input type="number" id="finalValue" placeholder="107" class="transition-all w-40 h-24 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none value-input">
+                </div>
+            </div>
+
+            <div class="mt-8 flex justify-center">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-sm">
+                    <button id="calculateBtn1" class="w-full py-3 px-4 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all">Calculate</button>
+                    <button id="resetBtn1" class="w-full py-3 px-4 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-all">Reset</button>
+                </div>
+            </div>
+            <div id="messageArea1" class="mt-4 text-center text-sm font-medium min-h-[20px] transition-all"></div>
+        </div>
+
+        <!-- Calculator 2: Basic Percentage -->
+        <div class="py-8">
+            <div class="text-center mb-8">
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Basic Percentage Calculator</h1>
+                <p class="mt-2 text-sm sm:text-base text-gray-600">Finds the relationship: [Value] is [P]% of [Base].</p>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-center gap-4">
+                <input type="number" id="partValue" placeholder="Value" class="transition-all w-32 h-16 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none value-input">
+                <span class="text-label">is</span>
+                <div class="relative">
+                    <input type="number" id="percentOf" placeholder="Percent" class="transition-all w-32 h-16 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none value-input">
+                     <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-500 text-xl">%</span>
+                </div>
+                <span class="text-label">of</span>
+                <input type="number" id="baseValue" placeholder="Base" class="transition-all w-32 h-16 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none value-input">
+            </div>
+
+            <div class="mt-8 flex justify-center">
+                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-sm">
+                    <button id="calculateBtn2" class="w-full py-3 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all">Calculate</button>
+                    <button id="resetBtn2" class="w-full py-3 px-4 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-all">Reset</button>
+                </div>
+            </div>
+            <div id="messageArea2" class="mt-4 text-center text-sm font-medium min-h-[20px] transition-all"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- Calculator 1: Percentage Change ---
+        const initialValueInput = document.getElementById('initialValue');
+        const percentageChangeInput = document.getElementById('percentageChange');
+        const finalValueInput = document.getElementById('finalValue');
+        const calculateBtn1 = document.getElementById('calculateBtn1');
+        const resetBtn1 = document.getElementById('resetBtn1');
+        const messageArea1 = document.getElementById('messageArea1');
+        const inputs1 = [initialValueInput, percentageChangeInput, finalValueInput];
+
+        const resetCalculator1 = () => {
+            inputs1.forEach(input => {
+                input.value = '';
+                input.classList.remove('calculated-field');
+            });
+            messageArea1.textContent = '';
+        };
+
+        const showMessage1 = (text, isError = false) => {
+            messageArea1.textContent = text;
+            messageArea1.className = `mt-4 text-center text-sm font-medium min-h-[20px] transition-all ${isError ? 'text-red-600' : 'text-green-600'}`;
+        };
+        
+        const calculate1 = () => {
+            inputs1.forEach(input => input.classList.remove('calculated-field'));
+            showMessage1('');
+            const vi = initialValueInput.value, p = percentageChangeInput.value, vf = finalValueInput.value;
+            if ([vi, p, vf].filter(val => val !== '').length !== 2) {
+                showMessage1('Please provide exactly two values to calculate the third.', true);
+                return;
+            }
+            try {
+                if (vi !== '' && p !== '') {
+                    const result = parseFloat(vi) * (1 + parseFloat(p) / 100);
+                    finalValueInput.value = Number(result.toFixed(4));
+                    finalValueInput.classList.add('calculated-field');
+                    showMessage1('Successfully calculated the Final Value.');
+                } else if (vi !== '' && vf !== '') {
+                    const initial = parseFloat(vi);
+                    if (initial === 0) { showMessage1('Initial Value cannot be zero for this calculation.', true); return; }
+                    const result = ((parseFloat(vf) / initial) - 1) * 100;
+                    percentageChangeInput.value = Number(result.toFixed(4));
+                    percentageChangeInput.classList.add('calculated-field');
+                    showMessage1('Successfully calculated the Percentage Change.');
+                } else if (p !== '' && vf !== '') {
+                    const divisor = 1 + parseFloat(p) / 100;
+                    if (divisor === 0) { showMessage1('A -100% change results in zero, cannot calculate initial value.', true); return; }
+                    const result = parseFloat(vf) / divisor;
+                    initialValueInput.value = Number(result.toFixed(4));
+                    initialValueInput.classList.add('calculated-field');
+                    showMessage1('Successfully calculated the Initial Value.');
+                }
+            } catch (e) { showMessage1('Invalid input. Please use numbers.', true); }
+        };
+
+        calculateBtn1.addEventListener('click', calculate1);
+        resetBtn1.addEventListener('click', resetCalculator1);
+
+        // --- Calculator 2: Basic Percentage ---
+        const partValueInput = document.getElementById('partValue');
+        const percentOfInput = document.getElementById('percentOf');
+        const baseValueInput = document.getElementById('baseValue');
+        const calculateBtn2 = document.getElementById('calculateBtn2');
+        const resetBtn2 = document.getElementById('resetBtn2');
+        const messageArea2 = document.getElementById('messageArea2');
+        const inputs2 = [partValueInput, percentOfInput, baseValueInput];
+        
+        const resetCalculator2 = () => {
+            inputs2.forEach(input => {
+                input.value = '';
+                input.classList.remove('calculated-field');
+            });
+            messageArea2.textContent = '';
+        };
+
+        const showMessage2 = (text, isError = false) => {
+            messageArea2.textContent = text;
+            messageArea2.className = `mt-4 text-center text-sm font-medium min-h-[20px] transition-all ${isError ? 'text-red-600' : 'text-green-600'}`;
+        };
+
+        const calculate2 = () => {
+            inputs2.forEach(input => input.classList.remove('calculated-field'));
+            showMessage2('');
+            const part = partValueInput.value, percent = percentOfInput.value, base = baseValueInput.value;
+            if ([part, percent, base].filter(val => val !== '').length !== 2) {
+                showMessage2('Please provide exactly two values to calculate the third.', true);
+                return;
+            }
+             try {
+                if (percent !== '' && base !== '') {
+                    const result = (parseFloat(percent) / 100) * parseFloat(base);
+                    partValueInput.value = Number(result.toFixed(4));
+                    partValueInput.classList.add('calculated-field');
+                    showMessage2('Successfully calculated the Value.');
+                } else if (part !== '' && base !== '') {
+                    const baseNum = parseFloat(base);
+                    if (baseNum === 0) { showMessage2('Base cannot be zero for this calculation.', true); return; }
+                    const result = (parseFloat(part) / baseNum) * 100;
+                    percentOfInput.value = Number(result.toFixed(4));
+                    percentOfInput.classList.add('calculated-field');
+                    showMessage2('Successfully calculated the Percentage.');
+                } else if (part !== '' && percent !== '') {
+                    const percentNum = parseFloat(percent);
+                    if (percentNum === 0) { showMessage2('Percent cannot be zero for this calculation.', true); return; }
+                    const result = parseFloat(part) / (percentNum / 100);
+                    baseValueInput.value = Number(result.toFixed(4));
+                    baseValueInput.classList.add('calculated-field');
+                    showMessage2('Successfully calculated the Base.');
+                }
+            } catch (e) { showMessage2('Invalid input. Please use numbers.', true); }
+        };
+
+        calculateBtn2.addEventListener('click', calculate2);
+        resetBtn2.addEventListener('click', resetCalculator2);
+    </script>
+</body>
+</html>
+
