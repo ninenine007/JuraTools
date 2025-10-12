@@ -49,7 +49,7 @@
         <div class="py-8">
             <div class="text-center mb-8">
                 <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Percentage Change Calculator</h1>
-                <p class="mt-2 text-sm sm:text-base text-gray-600">Calculates the result of a percentage increase or decrease.</p>
+                <p class="mt-2 text-sm sm:text-base text-gray-600">Calculates the result of a single percentage increase or decrease.</p>
             </div>
 
             <div class="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-0">
@@ -109,6 +109,74 @@
             </div>
             <div id="messageArea2" class="mt-4 text-center text-sm font-medium min-h-[20px] transition-all"></div>
         </div>
+
+        <!-- Calculator 3: Chain Percentage -->
+        <div class="py-8">
+            <div class="text-center mb-8">
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Chain Percentage Calculator</h1>
+                <p class="mt-2 text-sm sm:text-base text-gray-600">Calculates the result of multiple sequential percentage changes.</p>
+            </div>
+
+            <div class="space-y-4 max-w-lg mx-auto">
+                <div>
+                    <label for="chainInitialValue" class="block text-sm font-medium text-gray-700 mb-1">Initial Value</label>
+                    <input type="number" id="chainInitialValue" placeholder="e.g., 1000" class="transition-all w-full px-4 py-2 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none">
+                </div>
+                <div>
+                    <label for="chainPercentages" class="block text-sm font-medium text-gray-700 mb-1">Percentage Changes (comma-separated)</label>
+                    <input type="text" id="chainPercentages" placeholder="e.g., +10, -5, 25" class="transition-all w-full px-4 py-2 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none">
+                </div>
+                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
+                    <div>
+                         <label for="chainFinalValue" class="block text-sm font-medium text-gray-700 mb-1">Final Value</label>
+                        <input type="number" id="chainFinalValue" class="transition-all w-full px-4 py-2 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg outline-none calculated-field" readonly>
+                    </div>
+                    <div>
+                        <label for="chainOverallChange" class="block text-sm font-medium text-gray-700 mb-1">Overall Change</label>
+                        <div class="relative">
+                            <input type="number" id="chainOverallChange" class="transition-all w-full px-4 py-2 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg outline-none calculated-field" readonly>
+                            <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500">%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 flex justify-center">
+                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-sm">
+                    <button id="calculateBtn3" class="w-full py-3 px-4 bg-teal-600 text-white font-semibold rounded-lg shadow-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-all">Calculate</button>
+                    <button id="resetBtn3" class="w-full py-3 px-4 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-all">Reset</button>
+                </div>
+            </div>
+            <div id="messageArea3" class="mt-4 text-center text-sm font-medium min-h-[20px] transition-all"></div>
+        </div>
+
+        <!-- Calculator 4: Dynamic Shareholding Chain Calculator -->
+        <div class="py-8">
+            <div class="text-center mb-8">
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Shareholding Chain Calculator</h1>
+                <p class="mt-2 text-sm sm:text-base text-gray-600">Add or remove links to match your chain. Fill all but one field to find the missing value.</p>
+            </div>
+            <div class="flex flex-col items-center justify-center space-y-4">
+                <div id="chain-container" class="flex flex-wrap items-center justify-center gap-x-2 gap-y-4">
+                    <!-- Dynamic inputs will be rendered here -->
+                </div>
+
+                <div class="flex justify-center gap-4 pt-2">
+                    <button id="addLinkBtn" title="Add another link to the chain" class="w-10 h-10 flex items-center justify-center text-xl font-bold bg-green-500 text-white rounded-full hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all">+</button>
+                    <button id="removeLinkBtn" title="Remove the last link from the chain" class="w-10 h-10 flex items-center justify-center text-xl font-bold bg-red-500 text-white rounded-full hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all">-</button>
+                </div>
+
+                <div class="mt-6 flex justify-center w-full">
+                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-sm">
+                        <button id="calculateBtn4" class="w-full py-3 px-4 bg-amber-600 text-white font-semibold rounded-lg shadow-md hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-all">Calculate</button>
+                        <button id="resetBtn4" class="w-full py-3 px-4 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-all">Reset</button>
+                    </div>
+                </div>
+                <div id="messageArea4" class="mt-4 text-center text-sm font-medium min-h-[20px] transition-all"></div>
+            </div>
+        </div>
+
+
     </div>
 
     <script>
@@ -225,6 +293,188 @@
 
         calculateBtn2.addEventListener('click', calculate2);
         resetBtn2.addEventListener('click', resetCalculator2);
+
+        // --- Calculator 3: Chain Percentage ---
+        const chainInitialValueInput = document.getElementById('chainInitialValue');
+        const chainPercentagesInput = document.getElementById('chainPercentages');
+        const chainFinalValueInput = document.getElementById('chainFinalValue');
+        const chainOverallChangeInput = document.getElementById('chainOverallChange');
+        const calculateBtn3 = document.getElementById('calculateBtn3');
+        const resetBtn3 = document.getElementById('resetBtn3');
+        const messageArea3 = document.getElementById('messageArea3');
+
+        const resetCalculator3 = () => {
+            chainInitialValueInput.value = '';
+            chainPercentagesInput.value = '';
+            chainFinalValueInput.value = '';
+            chainOverallChangeInput.value = '';
+            messageArea3.textContent = '';
+        };
+
+        const showMessage3 = (text, isError = false) => {
+            messageArea3.textContent = text;
+            messageArea3.className = `mt-4 text-center text-sm font-medium min-h-[20px] transition-all ${isError ? 'text-red-600' : 'text-green-600'}`;
+        };
+
+        const calculate3 = () => {
+            showMessage3('');
+            const initialValueStr = chainInitialValueInput.value;
+            const percentagesStr = chainPercentagesInput.value;
+
+            if (!initialValueStr || !percentagesStr) {
+                showMessage3('Please provide an initial value and at least one percentage change.', true);
+                return;
+            }
+
+            try {
+                const initialValue = parseFloat(initialValueStr);
+                const percentages = percentagesStr.split(',').map(p => parseFloat(p.trim()));
+                
+                if (percentages.some(isNaN)) {
+                    showMessage3('Invalid percentage format. Please use comma-separated numbers.', true);
+                    return;
+                }
+
+                let currentValue = initialValue;
+                percentages.forEach(p => {
+                    currentValue = currentValue * (1 + p / 100);
+                });
+
+                const finalValue = currentValue;
+                const overallChange = ((finalValue / initialValue) - 1) * 100;
+                
+                chainFinalValueInput.value = Number(finalValue.toFixed(4));
+                chainOverallChangeInput.value = Number(overallChange.toFixed(4));
+                showMessage3('Calculation successful.');
+
+            } catch (e) {
+                showMessage3('Invalid input. Please check your numbers.', true);
+            }
+        };
+
+        calculateBtn3.addEventListener('click', calculate3);
+        resetBtn3.addEventListener('click', resetCalculator3);
+
+        // --- Calculator 4: Dynamic Shareholding Chain Calculator ---
+        const chainContainer = document.getElementById('chain-container');
+        const addLinkBtn = document.getElementById('addLinkBtn');
+        const removeLinkBtn = document.getElementById('removeLinkBtn');
+        const calculateBtn4 = document.getElementById('calculateBtn4');
+        const resetBtn4 = document.getElementById('resetBtn4');
+        const messageArea4 = document.getElementById('messageArea4');
+
+        let linkCount = 2; // Start with 2 links in the chain
+
+        const renderChain = () => {
+            chainContainer.innerHTML = ''; // Clear existing inputs
+            for (let i = 0; i < linkCount; i++) {
+                // Add the input field
+                const inputWrapper = document.createElement('div');
+                inputWrapper.className = 'relative';
+                inputWrapper.innerHTML = `
+                    <input type="number" class="chain-input w-28 text-center p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none" placeholder="Stake ${i + 1}">
+                    <span class="absolute -right-1 top-1/2 -translate-y-1/2 text-gray-500">%</span>
+                `;
+                chainContainer.appendChild(inputWrapper);
+
+                // Add the '×' separator
+                const separator = document.createElement('span');
+                separator.className = 'text-2xl font-bold text-gray-400';
+                separator.textContent = '×';
+                chainContainer.appendChild(separator);
+            }
+
+            // Replace the last '×' with '='
+            chainContainer.lastChild.textContent = '=';
+            
+            // Add the final result input
+            const resultWrapper = document.createElement('div');
+            resultWrapper.className = 'relative';
+            resultWrapper.innerHTML = `
+                <input type="number" class="chain-input w-32 text-center p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none" placeholder="Ultimate Stake">
+                <span class="absolute -right-1 top-1/2 -translate-y-1/2 text-gray-500">%</span>
+            `;
+            chainContainer.appendChild(resultWrapper);
+        };
+        
+        const showMessage4 = (text, isError = false) => {
+            messageArea4.textContent = text;
+            messageArea4.className = `mt-4 text-center text-sm font-medium min-h-[20px] transition-all ${isError ? 'text-red-600' : 'text-green-600'}`;
+        };
+
+        const resetCalculator4 = () => {
+            renderChain(); // Rerender the default chain
+            showMessage4('');
+        };
+
+        addLinkBtn.addEventListener('click', () => {
+            linkCount++;
+            renderChain();
+        });
+
+        removeLinkBtn.addEventListener('click', () => {
+            if (linkCount > 1) { // Must have at least one link
+                linkCount--;
+                renderChain();
+            }
+        });
+
+        const calculate4 = () => {
+            const chainInputs = document.querySelectorAll('.chain-input');
+            chainInputs.forEach(input => input.classList.remove('calculated-field'));
+            showMessage4('');
+
+            const values = Array.from(chainInputs).map(input => input.value);
+            const emptyFields = values.map((v, i) => v === '' ? i : -1).filter(i => i !== -1);
+
+            if (emptyFields.length !== 1) {
+                showMessage4('Please leave exactly one field blank to calculate.', true);
+                return;
+            }
+
+            try {
+                const emptyIndex = emptyFields[0];
+                const nums = values.map(v => parseFloat(v) / 100);
+
+                const resultIndex = chainInputs.length - 1;
+
+                if (emptyIndex === resultIndex) { // Calculate the ultimate stake
+                    let product = 1;
+                    for (let i = 0; i < resultIndex; i++) {
+                        product *= nums[i];
+                    }
+                    chainInputs[resultIndex].value = Number((product * 100).toFixed(4));
+                    showMessage4('Successfully calculated the ultimate stake.');
+                } else { // Calculate a missing link
+                    let productOfOthers = 1;
+                    for (let i = 0; i < resultIndex; i++) {
+                        if (i !== emptyIndex) {
+                            productOfOthers *= nums[i];
+                        }
+                    }
+
+                    if (productOfOthers === 0) {
+                        showMessage4('Cannot calculate missing link when another link is 0%.', true);
+                        return;
+                    }
+                    
+                    const result = nums[resultIndex] / productOfOthers;
+                    chainInputs[emptyIndex].value = Number((result * 100).toFixed(4));
+                    showMessage4(`Successfully calculated the missing stake in Link #${emptyIndex + 1}.`);
+                }
+
+                chainInputs[emptyIndex].classList.add('calculated-field');
+
+            } catch (e) {
+                showMessage4('Invalid input. Please ensure all filled fields are numbers.', true);
+            }
+        };
+
+        calculateBtn4.addEventListener('click', calculate4);
+        resetBtn4.addEventListener('click', resetCalculator4);
+        
+        // Initial render for calculator 4
+        renderChain();
     </script>
 </body>
 </html>
