@@ -45,7 +45,34 @@
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
     <div class="w-full max-w-4xl mx-auto p-6 sm:p-8 bg-white rounded-2xl shadow-lg divide-y divide-gray-200">
         
-        <!-- Calculator 1: Percentage Change -->
+        <!-- Calculator 1: Basic Percentage -->
+        <div class="py-8">
+            <div class="text-center mb-8">
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Basic Percentage Calculator</h1>
+                <p class="mt-2 text-sm sm:text-base text-gray-600">Finds the relationship: [Value] is [P]% of [Base].</p>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-center gap-4">
+                <input type="text" inputmode="decimal" id="partValue" placeholder="Value" class="numeric-input transition-all w-32 h-16 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none value-input">
+                <span class="text-label">is</span>
+                <div class="relative">
+                    <input type="text" inputmode="decimal" id="percentOf" placeholder="Percent" class="numeric-input transition-all w-32 h-16 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none value-input">
+                     <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-500 text-xl">%</span>
+                </div>
+                <span class="text-label">of</span>
+                <input type="text" inputmode="decimal" id="baseValue" placeholder="Base" class="numeric-input transition-all w-32 h-16 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none value-input">
+            </div>
+
+            <div class="mt-8 flex justify-center">
+                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-sm">
+                    <button id="calculateBtn1" class="w-full py-3 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all">Calculate</button>
+                    <button id="resetBtn1" class="w-full py-3 px-4 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-all">Reset</button>
+                </div>
+            </div>
+            <div id="messageArea1" class="mt-4 text-center text-sm font-medium min-h-[20px] transition-all"></div>
+        </div>
+
+        <!-- Calculator 2: Percentage Change -->
         <div class="py-8">
             <div class="text-center mb-8">
                 <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Percentage Change Calculator</h1>
@@ -55,12 +82,12 @@
             <div class="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-0">
                 <div class="flex flex-col items-center p-4 border-2 border-dashed border-gray-300 rounded-xl">
                     <label for="initialValue" class="block text-sm font-medium text-gray-700 mb-2">Initial Value (Vᵢ)</label>
-                    <input type="number" id="initialValue" placeholder="100" class="transition-all w-40 h-24 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none value-input">
+                    <input type="text" inputmode="decimal" id="initialValue" placeholder="100" class="numeric-input transition-all w-40 h-24 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none value-input">
                 </div>
                 <div class="flex-grow flex flex-col items-center px-4">
                      <label for="percentageChange" class="block text-sm font-medium text-gray-700 mb-1">Change (p)</label>
                      <div class="relative">
-                        <input type="number" id="percentageChange" placeholder="7" class="transition-all px-2 py-1 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none percentage-input">
+                        <input type="text" inputmode="decimal" id="percentageChange" placeholder="7" class="numeric-input transition-all px-2 py-1 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none percentage-input">
                         <span class="absolute inset-y-0 right-0 flex items-center pr-2 text-gray-500">%</span>
                      </div>
                      <svg class="w-full h-8 text-gray-400 mt-2" fill="none" stroke="currentColor" viewBox="0 0 100 20" preserveAspectRatio="none">
@@ -70,40 +97,13 @@
                 </div>
                 <div class="flex flex-col items-center p-4 border-2 border-dashed border-gray-300 rounded-xl">
                     <label for="finalValue" class="block text-sm font-medium text-gray-700 mb-2">Final Value (Vƒ)</label>
-                    <input type="number" id="finalValue" placeholder="107" class="transition-all w-40 h-24 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none value-input">
+                    <input type="text" inputmode="decimal" id="finalValue" placeholder="107" class="numeric-input transition-all w-40 h-24 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none value-input">
                 </div>
             </div>
 
             <div class="mt-8 flex justify-center">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-sm">
-                    <button id="calculateBtn1" class="w-full py-3 px-4 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all">Calculate</button>
-                    <button id="resetBtn1" class="w-full py-3 px-4 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-all">Reset</button>
-                </div>
-            </div>
-            <div id="messageArea1" class="mt-4 text-center text-sm font-medium min-h-[20px] transition-all"></div>
-        </div>
-
-        <!-- Calculator 2: Basic Percentage -->
-        <div class="py-8">
-            <div class="text-center mb-8">
-                <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Basic Percentage Calculator</h1>
-                <p class="mt-2 text-sm sm:text-base text-gray-600">Finds the relationship: [Value] is [P]% of [Base].</p>
-            </div>
-
-            <div class="flex flex-wrap items-center justify-center gap-4">
-                <input type="number" id="partValue" placeholder="Value" class="transition-all w-32 h-16 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none value-input">
-                <span class="text-label">is</span>
-                <div class="relative">
-                    <input type="number" id="percentOf" placeholder="Percent" class="transition-all w-32 h-16 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none value-input">
-                     <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-500 text-xl">%</span>
-                </div>
-                <span class="text-label">of</span>
-                <input type="number" id="baseValue" placeholder="Base" class="transition-all w-32 h-16 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none value-input">
-            </div>
-
-            <div class="mt-8 flex justify-center">
-                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-sm">
-                    <button id="calculateBtn2" class="w-full py-3 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all">Calculate</button>
+                    <button id="calculateBtn2" class="w-full py-3 px-4 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all">Calculate</button>
                     <button id="resetBtn2" class="w-full py-3 px-4 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-all">Reset</button>
                 </div>
             </div>
@@ -120,7 +120,7 @@
             <div class="space-y-4 max-w-lg mx-auto">
                 <div>
                     <label for="chainInitialValue" class="block text-sm font-medium text-gray-700 mb-1">Initial Value</label>
-                    <input type="number" id="chainInitialValue" placeholder="e.g., 1000" class="transition-all w-full px-4 py-2 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none">
+                    <input type="text" inputmode="decimal" id="chainInitialValue" placeholder="e.g., 1,000" class="numeric-input transition-all w-full px-4 py-2 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none">
                 </div>
                 <div>
                     <label for="chainPercentages" class="block text-sm font-medium text-gray-700 mb-1">Percentage Changes (comma-separated)</label>
@@ -129,12 +129,12 @@
                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
                     <div>
                          <label for="chainFinalValue" class="block text-sm font-medium text-gray-700 mb-1">Final Value</label>
-                        <input type="number" id="chainFinalValue" class="transition-all w-full px-4 py-2 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg outline-none calculated-field" readonly>
+                        <input type="text" id="chainFinalValue" class="transition-all w-full px-4 py-2 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg outline-none calculated-field" readonly>
                     </div>
                     <div>
                         <label for="chainOverallChange" class="block text-sm font-medium text-gray-700 mb-1">Overall Change</label>
                         <div class="relative">
-                            <input type="number" id="chainOverallChange" class="transition-all w-full px-4 py-2 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg outline-none calculated-field" readonly>
+                            <input type="text" id="chainOverallChange" class="transition-all w-full px-4 py-2 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg outline-none calculated-field" readonly>
                             <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500">%</span>
                         </div>
                     </div>
@@ -149,8 +149,42 @@
             </div>
             <div id="messageArea3" class="mt-4 text-center text-sm font-medium min-h-[20px] transition-all"></div>
         </div>
+        
+        <!-- Calculator 4: Gross-Up Calculator -->
+        <div class="py-8">
+            <div class="text-center mb-8">
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Gross-Up Calculator</h1>
+                <p class="mt-2 text-sm sm:text-base text-gray-600">Solves 'X is R% of (Base + X)'. Fill two of the first three fields.</p>
+            </div>
+            <div class="space-y-4 max-w-lg mx-auto">
+                <div>
+                    <label for="grossUpBase" class="block text-sm font-medium text-gray-700 mb-1">Base Amount (B)</label>
+                    <input type="text" inputmode="decimal" id="grossUpBase" placeholder="e.g., 100" class="numeric-input transition-all w-full px-4 py-2 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none">
+                </div>
+                 <div class="relative">
+                    <label for="grossUpRate" class="block text-sm font-medium text-gray-700 mb-1">Rate (R)</label>
+                    <input type="text" inputmode="decimal" id="grossUpRate" placeholder="e.g., 20" class="numeric-input transition-all w-full px-4 py-2 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none">
+                    <span class="absolute right-3 bottom-2.5 text-gray-500">%</span>
+                </div>
+                <div>
+                    <label for="grossUpValue" class="block text-sm font-medium text-gray-700 mb-1">Gross-Up Value (X)</label>
+                    <input type="text" inputmode="decimal" id="grossUpValue" placeholder="e.g., 25" class="numeric-input transition-all w-full px-4 py-2 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none">
+                </div>
+                 <div class="pt-4">
+                     <label for="grossUpTotal" class="block text-sm font-medium text-gray-700 mb-1">Total (Base + X)</label>
+                    <input type="text" id="grossUpTotal" class="transition-all w-full px-4 py-2 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg outline-none calculated-field" readonly>
+                </div>
+            </div>
+             <div class="mt-8 flex justify-center">
+                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-sm">
+                    <button id="calculateBtn4" class="w-full py-3 px-4 bg-rose-600 text-white font-semibold rounded-lg shadow-md hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500 transition-all">Calculate</button>
+                    <button id="resetBtn4" class="w-full py-3 px-4 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-all">Reset</button>
+                </div>
+            </div>
+            <div id="messageArea4" class="mt-4 text-center text-sm font-medium min-h-[20px] transition-all"></div>
+        </div>
 
-        <!-- Calculator 4: Dynamic Shareholding Chain Calculator -->
+        <!-- Calculator 5: Dynamic Shareholding Chain Calculator -->
         <div class="py-8">
             <div class="text-center mb-8">
                 <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Shareholding Chain Calculator</h1>
@@ -168,11 +202,11 @@
 
                 <div class="mt-6 flex justify-center w-full">
                      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-sm">
-                        <button id="calculateBtn4" class="w-full py-3 px-4 bg-amber-600 text-white font-semibold rounded-lg shadow-md hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-all">Calculate</button>
-                        <button id="resetBtn4" class="w-full py-3 px-4 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-all">Reset</button>
+                        <button id="calculateBtn5" class="w-full py-3 px-4 bg-amber-600 text-white font-semibold rounded-lg shadow-md hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-all">Calculate</button>
+                        <button id="resetBtn5" class="w-full py-3 px-4 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-all">Reset</button>
                     </div>
                 </div>
-                <div id="messageArea4" class="mt-4 text-center text-sm font-medium min-h-[20px] transition-all"></div>
+                <div id="messageArea5" class="mt-4 text-center text-sm font-medium min-h-[20px] transition-all"></div>
             </div>
         </div>
 
@@ -180,15 +214,39 @@
     </div>
 
     <script>
-        // --- Calculator 1: Percentage Change ---
-        const initialValueInput = document.getElementById('initialValue');
-        const percentageChangeInput = document.getElementById('percentageChange');
-        const finalValueInput = document.getElementById('finalValue');
+        // --- Formatting Utilities ---
+        const formatNumber = (num) => {
+            if (num === null || isNaN(num) || num === '') return '';
+            return Number(num).toLocaleString('en-US', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 4 
+            });
+        };
+
+        const parseNumber = (str) => {
+            if (typeof str !== 'string' || str === '') return NaN;
+            return parseFloat(str.replace(/,/g, ''));
+        };
+
+        // --- Auto-formatting for all numeric inputs ---
+        document.body.addEventListener('blur', (event) => {
+            if (event.target && event.target.classList.contains('numeric-input')) {
+                const input = event.target;
+                const value = parseNumber(input.value);
+                input.value = formatNumber(value);
+            }
+        }, true);
+
+
+        // --- Calculator 1: Basic Percentage ---
+        const partValueInput = document.getElementById('partValue');
+        const percentOfInput = document.getElementById('percentOf');
+        const baseValueInput = document.getElementById('baseValue');
         const calculateBtn1 = document.getElementById('calculateBtn1');
         const resetBtn1 = document.getElementById('resetBtn1');
         const messageArea1 = document.getElementById('messageArea1');
-        const inputs1 = [initialValueInput, percentageChangeInput, finalValueInput];
-
+        const inputs1 = [partValueInput, percentOfInput, baseValueInput];
+        
         const resetCalculator1 = () => {
             inputs1.forEach(input => {
                 input.value = '';
@@ -201,35 +259,36 @@
             messageArea1.textContent = text;
             messageArea1.className = `mt-4 text-center text-sm font-medium min-h-[20px] transition-all ${isError ? 'text-red-600' : 'text-green-600'}`;
         };
-        
+
         const calculate1 = () => {
             inputs1.forEach(input => input.classList.remove('calculated-field'));
             showMessage1('');
-            const vi = initialValueInput.value, p = percentageChangeInput.value, vf = finalValueInput.value;
-            if ([vi, p, vf].filter(val => val !== '').length !== 2) {
+            const part = parseNumber(partValueInput.value);
+            const percent = parseNumber(percentOfInput.value);
+            const base = parseNumber(baseValueInput.value);
+
+            if ([part, percent, base].filter(val => !isNaN(val)).length !== 2) {
                 showMessage1('Please provide exactly two values to calculate the third.', true);
                 return;
             }
-            try {
-                if (vi !== '' && p !== '') {
-                    const result = parseFloat(vi) * (1 + parseFloat(p) / 100);
-                    finalValueInput.value = Number(result.toFixed(4));
-                    finalValueInput.classList.add('calculated-field');
-                    showMessage1('Successfully calculated the Final Value.');
-                } else if (vi !== '' && vf !== '') {
-                    const initial = parseFloat(vi);
-                    if (initial === 0) { showMessage1('Initial Value cannot be zero for this calculation.', true); return; }
-                    const result = ((parseFloat(vf) / initial) - 1) * 100;
-                    percentageChangeInput.value = Number(result.toFixed(4));
-                    percentageChangeInput.classList.add('calculated-field');
-                    showMessage1('Successfully calculated the Percentage Change.');
-                } else if (p !== '' && vf !== '') {
-                    const divisor = 1 + parseFloat(p) / 100;
-                    if (divisor === 0) { showMessage1('A -100% change results in zero, cannot calculate initial value.', true); return; }
-                    const result = parseFloat(vf) / divisor;
-                    initialValueInput.value = Number(result.toFixed(4));
-                    initialValueInput.classList.add('calculated-field');
-                    showMessage1('Successfully calculated the Initial Value.');
+             try {
+                if (!isNaN(percent) && !isNaN(base)) {
+                    const result = (percent / 100) * base;
+                    partValueInput.value = formatNumber(result);
+                    partValueInput.classList.add('calculated-field');
+                    showMessage1('Successfully calculated the Value.');
+                } else if (!isNaN(part) && !isNaN(base)) {
+                    if (base === 0) { showMessage1('Base cannot be zero for this calculation.', true); return; }
+                    const result = (part / base) * 100;
+                    percentOfInput.value = formatNumber(result);
+                    percentOfInput.classList.add('calculated-field');
+                    showMessage1('Successfully calculated the Percentage.');
+                } else if (!isNaN(part) && !isNaN(percent)) {
+                    if (percent === 0) { showMessage1('Percent cannot be zero for this calculation.', true); return; }
+                    const result = part / (percent / 100);
+                    baseValueInput.value = formatNumber(result);
+                    baseValueInput.classList.add('calculated-field');
+                    showMessage1('Successfully calculated the Base.');
                 }
             } catch (e) { showMessage1('Invalid input. Please use numbers.', true); }
         };
@@ -237,15 +296,15 @@
         calculateBtn1.addEventListener('click', calculate1);
         resetBtn1.addEventListener('click', resetCalculator1);
 
-        // --- Calculator 2: Basic Percentage ---
-        const partValueInput = document.getElementById('partValue');
-        const percentOfInput = document.getElementById('percentOf');
-        const baseValueInput = document.getElementById('baseValue');
+        // --- Calculator 2: Percentage Change ---
+        const initialValueInput = document.getElementById('initialValue');
+        const percentageChangeInput = document.getElementById('percentageChange');
+        const finalValueInput = document.getElementById('finalValue');
         const calculateBtn2 = document.getElementById('calculateBtn2');
         const resetBtn2 = document.getElementById('resetBtn2');
         const messageArea2 = document.getElementById('messageArea2');
-        const inputs2 = [partValueInput, percentOfInput, baseValueInput];
-        
+        const inputs2 = [initialValueInput, percentageChangeInput, finalValueInput];
+
         const resetCalculator2 = () => {
             inputs2.forEach(input => {
                 input.value = '';
@@ -258,35 +317,37 @@
             messageArea2.textContent = text;
             messageArea2.className = `mt-4 text-center text-sm font-medium min-h-[20px] transition-all ${isError ? 'text-red-600' : 'text-green-600'}`;
         };
-
+        
         const calculate2 = () => {
             inputs2.forEach(input => input.classList.remove('calculated-field'));
             showMessage2('');
-            const part = partValueInput.value, percent = percentOfInput.value, base = baseValueInput.value;
-            if ([part, percent, base].filter(val => val !== '').length !== 2) {
+            const vi = parseNumber(initialValueInput.value);
+            const p = parseNumber(percentageChangeInput.value);
+            const vf = parseNumber(finalValueInput.value);
+
+            if ([vi, p, vf].filter(val => !isNaN(val)).length !== 2) {
                 showMessage2('Please provide exactly two values to calculate the third.', true);
                 return;
             }
-             try {
-                if (percent !== '' && base !== '') {
-                    const result = (parseFloat(percent) / 100) * parseFloat(base);
-                    partValueInput.value = Number(result.toFixed(4));
-                    partValueInput.classList.add('calculated-field');
-                    showMessage2('Successfully calculated the Value.');
-                } else if (part !== '' && base !== '') {
-                    const baseNum = parseFloat(base);
-                    if (baseNum === 0) { showMessage2('Base cannot be zero for this calculation.', true); return; }
-                    const result = (parseFloat(part) / baseNum) * 100;
-                    percentOfInput.value = Number(result.toFixed(4));
-                    percentOfInput.classList.add('calculated-field');
-                    showMessage2('Successfully calculated the Percentage.');
-                } else if (part !== '' && percent !== '') {
-                    const percentNum = parseFloat(percent);
-                    if (percentNum === 0) { showMessage2('Percent cannot be zero for this calculation.', true); return; }
-                    const result = parseFloat(part) / (percentNum / 100);
-                    baseValueInput.value = Number(result.toFixed(4));
-                    baseValueInput.classList.add('calculated-field');
-                    showMessage2('Successfully calculated the Base.');
+            try {
+                if (!isNaN(vi) && !isNaN(p)) {
+                    const result = vi * (1 + p / 100);
+                    finalValueInput.value = formatNumber(result);
+                    finalValueInput.classList.add('calculated-field');
+                    showMessage2('Successfully calculated the Final Value.');
+                } else if (!isNaN(vi) && !isNaN(vf)) {
+                    if (vi === 0) { showMessage2('Initial Value cannot be zero for this calculation.', true); return; }
+                    const result = ((vf / vi) - 1) * 100;
+                    percentageChangeInput.value = formatNumber(result);
+                    percentageChangeInput.classList.add('calculated-field');
+                    showMessage2('Successfully calculated the Percentage Change.');
+                } else if (!isNaN(p) && !isNaN(vf)) {
+                    const divisor = 1 + p / 100;
+                    if (divisor === 0) { showMessage2('A -100% change results in zero, cannot calculate initial value.', true); return; }
+                    const result = vf / divisor;
+                    initialValueInput.value = formatNumber(result);
+                    initialValueInput.classList.add('calculated-field');
+                    showMessage2('Successfully calculated the Initial Value.');
                 }
             } catch (e) { showMessage2('Invalid input. Please use numbers.', true); }
         };
@@ -327,11 +388,11 @@
             }
 
             try {
-                const initialValue = parseFloat(initialValueStr);
+                const initialValue = parseNumber(initialValueStr);
                 const percentages = percentagesStr.split(',').map(p => parseFloat(p.trim()));
                 
-                if (percentages.some(isNaN)) {
-                    showMessage3('Invalid percentage format. Please use comma-separated numbers.', true);
+                if (percentages.some(isNaN) || isNaN(initialValue)) {
+                    showMessage3('Invalid number format. Please check your inputs.', true);
                     return;
                 }
 
@@ -343,8 +404,8 @@
                 const finalValue = currentValue;
                 const overallChange = ((finalValue / initialValue) - 1) * 100;
                 
-                chainFinalValueInput.value = Number(finalValue.toFixed(4));
-                chainOverallChangeInput.value = Number(overallChange.toFixed(4));
+                chainFinalValueInput.value = formatNumber(finalValue);
+                chainOverallChangeInput.value = formatNumber(overallChange);
                 showMessage3('Calculation successful.');
 
             } catch (e) {
@@ -355,46 +416,23 @@
         calculateBtn3.addEventListener('click', calculate3);
         resetBtn3.addEventListener('click', resetCalculator3);
 
-        // --- Calculator 4: Dynamic Shareholding Chain Calculator ---
-        const chainContainer = document.getElementById('chain-container');
-        const addLinkBtn = document.getElementById('addLinkBtn');
-        const removeLinkBtn = document.getElementById('removeLinkBtn');
+        // --- Calculator 4: Gross-Up Calculator ---
+        const grossUpBaseInput = document.getElementById('grossUpBase');
+        const grossUpRateInput = document.getElementById('grossUpRate');
+        const grossUpValueInput = document.getElementById('grossUpValue');
+        const grossUpTotalInput = document.getElementById('grossUpTotal');
         const calculateBtn4 = document.getElementById('calculateBtn4');
         const resetBtn4 = document.getElementById('resetBtn4');
         const messageArea4 = document.getElementById('messageArea4');
+        const inputs4 = [grossUpBaseInput, grossUpRateInput, grossUpValueInput];
 
-        let linkCount = 2; // Start with 2 links in the chain
-
-        const renderChain = () => {
-            chainContainer.innerHTML = ''; // Clear existing inputs
-            for (let i = 0; i < linkCount; i++) {
-                // Add the input field
-                const inputWrapper = document.createElement('div');
-                inputWrapper.className = 'relative';
-                inputWrapper.innerHTML = `
-                    <input type="number" class="chain-input w-28 text-center p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none" placeholder="Stake ${i + 1}">
-                    <span class="absolute -right-1 top-1/2 -translate-y-1/2 text-gray-500">%</span>
-                `;
-                chainContainer.appendChild(inputWrapper);
-
-                // Add the '×' separator
-                const separator = document.createElement('span');
-                separator.className = 'text-2xl font-bold text-gray-400';
-                separator.textContent = '×';
-                chainContainer.appendChild(separator);
-            }
-
-            // Replace the last '×' with '='
-            chainContainer.lastChild.textContent = '=';
-            
-            // Add the final result input
-            const resultWrapper = document.createElement('div');
-            resultWrapper.className = 'relative';
-            resultWrapper.innerHTML = `
-                <input type="number" class="chain-input w-32 text-center p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none" placeholder="Ultimate Stake">
-                <span class="absolute -right-1 top-1/2 -translate-y-1/2 text-gray-500">%</span>
-            `;
-            chainContainer.appendChild(resultWrapper);
+        const resetCalculator4 = () => {
+            inputs4.forEach(input => { 
+                input.value = '';
+                input.classList.remove('calculated-field');
+            });
+            grossUpTotalInput.value = '';
+            showMessage4('');
         };
         
         const showMessage4 = (text, isError = false) => {
@@ -402,9 +440,109 @@
             messageArea4.className = `mt-4 text-center text-sm font-medium min-h-[20px] transition-all ${isError ? 'text-red-600' : 'text-green-600'}`;
         };
 
-        const resetCalculator4 = () => {
-            renderChain(); // Rerender the default chain
+        const calculate4 = () => {
+            inputs4.forEach(input => input.classList.remove('calculated-field'));
             showMessage4('');
+            
+            const B = parseNumber(grossUpBaseInput.value);
+            const r = parseNumber(grossUpRateInput.value);
+            const x = parseNumber(grossUpValueInput.value);
+
+            if ([B, r, x].filter(val => !isNaN(val)).length !== 2) {
+                showMessage4('Please provide exactly two of the first three values.', true);
+                return;
+            }
+
+            try {
+                let finalB, finalR, finalX, finalTotal;
+
+                if (!isNaN(B) && !isNaN(r)) { // Solve for x
+                    finalB = B;
+                    finalR = r;
+                    const r_dec = finalR / 100;
+                    if (r_dec >= 1 || r_dec <= 0) {
+                        showMessage4('Rate must be between 0% and 100%.', true); return;
+                    }
+                    finalX = (r_dec * finalB) / (1 - r_dec);
+                    grossUpValueInput.value = formatNumber(finalX);
+                    grossUpValueInput.classList.add('calculated-field');
+                } else if (!isNaN(B) && !isNaN(x)) { // Solve for r
+                    finalB = B;
+                    finalX = x;
+                    const r_dec = finalX / (finalB + finalX);
+                    finalR = r_dec * 100;
+                    grossUpRateInput.value = formatNumber(finalR);
+                    grossUpRateInput.classList.add('calculated-field');
+                } else if (!isNaN(r) && !isNaN(x)) { // Solve for B
+                    finalR = r;
+                    finalX = x;
+                    const r_dec = finalR / 100;
+                     if (r_dec <= 0 || r_dec >= 1) {
+                        showMessage4('Rate must be between 0% and 100%.', true); return;
+                    }
+                    finalB = finalX * (1 - r_dec) / r_dec;
+                    grossUpBaseInput.value = formatNumber(finalB);
+                    grossUpBaseInput.classList.add('calculated-field');
+                }
+
+                finalTotal = finalB + finalX;
+                grossUpTotalInput.value = formatNumber(finalTotal);
+                showMessage4('Calculation successful.');
+
+            } catch (e) {
+                showMessage4('Invalid input. Please use numbers.', true);
+            }
+        };
+        
+        calculateBtn4.addEventListener('click', calculate4);
+        resetBtn4.addEventListener('click', resetCalculator4);
+        
+        // --- Calculator 5: Dynamic Shareholding Chain Calculator ---
+        const chainContainer = document.getElementById('chain-container');
+        const addLinkBtn = document.getElementById('addLinkBtn');
+        const removeLinkBtn = document.getElementById('removeLinkBtn');
+        const calculateBtn5 = document.getElementById('calculateBtn5');
+        const resetBtn5 = document.getElementById('resetBtn5');
+        const messageArea5 = document.getElementById('messageArea5');
+
+        let linkCount = 2; // Start with 2 links in the chain
+
+        const renderChain = () => {
+            chainContainer.innerHTML = ''; // Clear existing inputs
+            for (let i = 0; i < linkCount; i++) {
+                const inputWrapper = document.createElement('div');
+                inputWrapper.className = 'relative';
+                inputWrapper.innerHTML = `
+                    <input type="text" inputmode="decimal" class="chain-input numeric-input w-28 text-center p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none" placeholder="Stake ${i + 1}">
+                    <span class="absolute -right-1 top-1/2 -translate-y-1/2 text-gray-500">%</span>
+                `;
+                chainContainer.appendChild(inputWrapper);
+
+                const separator = document.createElement('span');
+                separator.className = 'text-2xl font-bold text-gray-400';
+                separator.textContent = '×';
+                chainContainer.appendChild(separator);
+            }
+
+            chainContainer.lastChild.textContent = '=';
+            
+            const resultWrapper = document.createElement('div');
+            resultWrapper.className = 'relative';
+            resultWrapper.innerHTML = `
+                <input type="text" inputmode="decimal" class="chain-input numeric-input w-32 text-center p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none" placeholder="Ultimate Stake">
+                <span class="absolute -right-1 top-1/2 -translate-y-1/2 text-gray-500">%</span>
+            `;
+            chainContainer.appendChild(resultWrapper);
+        };
+        
+        const showMessage5 = (text, isError = false) => {
+            messageArea5.textContent = text;
+            messageArea5.className = `mt-4 text-center text-sm font-medium min-h-[20px] transition-all ${isError ? 'text-red-600' : 'text-green-600'}`;
+        };
+
+        const resetCalculator5 = () => {
+            renderChain();
+            showMessage5('');
         };
 
         addLinkBtn.addEventListener('click', () => {
@@ -413,38 +551,42 @@
         });
 
         removeLinkBtn.addEventListener('click', () => {
-            if (linkCount > 1) { // Must have at least one link
+            if (linkCount > 1) {
                 linkCount--;
                 renderChain();
             }
         });
 
-        const calculate4 = () => {
-            const chainInputs = document.querySelectorAll('.chain-input');
+        const calculate5 = () => {
+            const chainInputs = document.querySelectorAll('#chain-container .chain-input');
             chainInputs.forEach(input => input.classList.remove('calculated-field'));
-            showMessage4('');
+            showMessage5('');
 
             const values = Array.from(chainInputs).map(input => input.value);
             const emptyFields = values.map((v, i) => v === '' ? i : -1).filter(i => i !== -1);
 
             if (emptyFields.length !== 1) {
-                showMessage4('Please leave exactly one field blank to calculate.', true);
+                showMessage5('Please leave exactly one field blank to calculate.', true);
                 return;
             }
 
             try {
                 const emptyIndex = emptyFields[0];
-                const nums = values.map(v => parseFloat(v) / 100);
-
+                const nums = values.map(v => parseNumber(v) / 100);
                 const resultIndex = chainInputs.length - 1;
+
+                if (nums.filter((v, i) => i !== emptyIndex && isNaN(v)).length > 0) {
+                     showMessage5('Invalid input. Please ensure all filled fields are numbers.', true);
+                     return;
+                }
 
                 if (emptyIndex === resultIndex) { // Calculate the ultimate stake
                     let product = 1;
                     for (let i = 0; i < resultIndex; i++) {
                         product *= nums[i];
                     }
-                    chainInputs[resultIndex].value = Number((product * 100).toFixed(4));
-                    showMessage4('Successfully calculated the ultimate stake.');
+                    chainInputs[resultIndex].value = formatNumber(product * 100);
+                    showMessage5('Successfully calculated the ultimate stake.');
                 } else { // Calculate a missing link
                     let productOfOthers = 1;
                     for (let i = 0; i < resultIndex; i++) {
@@ -454,26 +596,26 @@
                     }
 
                     if (productOfOthers === 0) {
-                        showMessage4('Cannot calculate missing link when another link is 0%.', true);
+                        showMessage5('Cannot calculate missing link when another link is 0%.', true);
                         return;
                     }
                     
                     const result = nums[resultIndex] / productOfOthers;
-                    chainInputs[emptyIndex].value = Number((result * 100).toFixed(4));
-                    showMessage4(`Successfully calculated the missing stake in Link #${emptyIndex + 1}.`);
+                    chainInputs[emptyIndex].value = formatNumber(result * 100);
+                    showMessage5(`Successfully calculated the missing stake in Link #${emptyIndex + 1}.`);
                 }
 
                 chainInputs[emptyIndex].classList.add('calculated-field');
 
             } catch (e) {
-                showMessage4('Invalid input. Please ensure all filled fields are numbers.', true);
+                showMessage5('An error occurred. Please check your inputs.', true);
             }
         };
 
-        calculateBtn4.addEventListener('click', calculate4);
-        resetBtn4.addEventListener('click', resetCalculator4);
+        calculateBtn5.addEventListener('click', calculate5);
+        resetBtn5.addEventListener('click', resetCalculator5);
         
-        // Initial render for calculator 4
+        // Initial render for calculator 5
         renderChain();
     </script>
 </body>
