@@ -73,7 +73,7 @@
             <span class="chip">CCC</span>
             <span class="chip">Browser-only</span>
           </div>
-          <div class="muted small">Tip: type “clear”, “GM”, “subtitle”, or “CCC” to filter tools.</div>
+          <div class="muted small">Tip: type “clear”, “GM”, “subtitle”, “Thai”, “vote”, “certificate”, or “CCC” to filter tools.</div>
         </div>
         <div class="search">
           <input id="filter" type="search" placeholder="Search tools…" aria-label="Search tools" />
@@ -85,7 +85,53 @@
     <section class="section">
       <h2>Tools</h2>
       <div id="tools" class="tools">
-        <!-- 6. PERCENTAGE CALCULATORS -->
+
+        <!-- 1) THAI TEXT LINE FORMATTER -->
+        <article class="panel card" data-tags="thai line break formatter legal text word segmentation pythainlp contract regulation drafting wrap reflow paragraphs">
+          <div class="chips">
+            <span class="chip status new">New</span>
+            <span class="chip">Text Utility</span>
+          </div>
+          <h3>Thai Text Line Formatter</h3>
+          <p>Inserts clean line breaks into Thai text using proper Thai word boundaries (no mid-word splits). Useful for legal drafts, contracts, and regulations where controlled line length improves readability.</p>
+          <div class="actions">
+            <a class="btn" href="thai-linebreak.html">Open</a>
+            <a class="btn ghost" href="https://github.com/ninenine007/JuraTools/blob/main/thai-linebreak.html" target="_blank" rel="noopener">View source</a>
+            <button class="btn blue" data-copy="thai-linebreak.html">Copy link</button>
+          </div>
+        </article>
+
+        <!-- 2) SHAREHOLDER VOTING SIMULATOR -->
+        <article class="panel card" data-tags="shareholder voting simulator meeting resolution majority two thirds three quarters 2/3 3/4 company corporate shares vote for against abstain ccc">
+          <div class="chips">
+            <span class="chip status new">New</span>
+            <span class="chip">Corporate / Voting</span>
+          </div>
+          <h3>Shareholder Voting Simulator</h3>
+          <p>Simulate voting outcomes across all allowed vote combinations per shareholder. Calculates “For” votes and checks pass/fail for majority (&gt;50%), 2/3, and 3/4 thresholds.</p>
+          <div class="actions">
+            <a class="btn" href="shareholder-voting-simulator.html">Open</a>
+            <a class="btn ghost" href="https://github.com/ninenine007/JuraTools/blob/main/shareholder-voting-simulator.html" target="_blank" rel="noopener">View source</a>
+            <button class="btn blue" data-copy="shareholder-voting-simulator.html">Copy link</button>
+          </div>
+        </article>
+
+        <!-- 3) SHARE CERTIFICATE CALCULATOR -->
+        <article class="panel card" data-tags="share certificate calculator register numbering start end shareholder shares corporate company cap table allotment cert. cert certificate register">
+          <div class="chips">
+            <span class="chip status new">New</span>
+            <span class="chip">Corporate / Registers</span>
+          </div>
+          <h3>Share Certificate Calculator</h3>
+          <p>Manage shareholders, reorder the list, and generate certificate start/end ranges automatically based on share counts. Includes copy-to-clipboard for the certificate register table.</p>
+          <div class="actions">
+            <a class="btn" href="share-certificate-calculator.html">Open</a>
+            <a class="btn ghost" href="https://github.com/ninenine007/JuraTools/blob/main/share-certificate-calculator.html" target="_blank" rel="noopener">View source</a>
+            <button class="btn blue" data-copy="share-certificate-calculator.html">Copy link</button>
+          </div>
+        </article>
+
+        <!-- 4) PERCENTAGE CALCULATORS -->
         <article class="panel card" data-tags="percentage percent calculator math increase decrease percent-of base value discount markup vat finance utility">
           <div class="chips">
             <span class="chip status new">New</span>
@@ -101,7 +147,8 @@
             <button class="btn blue" data-copy="percentage-calculator.html">Copy link</button>
           </div>
         </article>
-        <!-- 1. GM NOTICE -->
+
+        <!-- 5) GM NOTICE -->
         <article class="panel card" data-tags="gm notice registration ccc clear-days shareholders meeting s.1175 corporate">
           <div class="chips">
             <span class="chip status new">New</span>
@@ -116,7 +163,7 @@
           </div>
         </article>
 
-        <!-- 2. CCC DATETIME -->
+        <!-- 6) CCC DATETIME -->
         <article class="panel card" data-tags="ccc civil commercial code date calculator days months years forward backward thailand">
           <div class="chips">
             <span class="chip status upd">Updated</span>
@@ -131,7 +178,7 @@
           </div>
         </article>
 
-        <!-- 3. CLEAR-DAYS -->
+        <!-- 7) CLEAR-DAYS -->
         <article class="panel card" data-tags="clear-days deadline calculator cpr 2.8 litigation manual move back">
           <div class="chips">
             <span class="chip">Legal / Dates</span>
@@ -145,7 +192,7 @@
           </div>
         </article>
 
-        <!-- 4. SUBTITLE TOOL -->
+        <!-- 8) SUBTITLE TOOL -->
         <article class="panel card" data-tags="subtitle paragraphs text convert srt vtt captions">
           <div class="chips">
             <span class="chip">Text Utility</span>
@@ -159,7 +206,7 @@
           </div>
         </article>
 
-        <!-- 5. PYTHON SCRIPT LINK -->
+        <!-- 9) PYTHON SCRIPT LINK -->
         <article class="panel card" data-tags="python script research paragraphs srv">
           <div class="chips">
             <span class="chip">Script</span>
@@ -171,6 +218,7 @@
             <button class="btn blue" data-copy="https://github.com/ninenine007/JuraTools/tree/main/tools/srv-to-paragraphs">Copy link</button>
           </div>
         </article>
+
       </div>
     </section>
 
@@ -179,6 +227,9 @@
     <section class="panel">
       <h2>Changelog</h2>
       <ul class="small muted">
+        <li><strong>Dec 2025</strong> — Added <em>Thai Legal Text Line Formatter</em> (backend-powered) for word-safe line breaks in Thai drafting.</li>
+        <li><strong>Dec 2025</strong> — Added <em>Shareholder Voting Simulator</em> for majority / 2⁄3 / 3⁄4 scenario testing.</li>
+        <li><strong>Dec 2025</strong> — Added <em>Share Certificate Calculator</em> for generating certificate ranges and register tables.</li>
         <li><strong>Aug 2025</strong> — Added <em>GM Notice & Registration (CCC s.1175)</em> with BOD ordering checks and conflict banner.</li>
         <li><strong>Aug 2025</strong> — Published <em>CCC Date & Time Calculator</em>.</li>
         <li><strong>Aug 2025</strong> — Refined <em>Clear-Days Deadline Calculator</em> with manual move-back and calendar view.</li>
@@ -206,7 +257,7 @@
       const q = filter.value.trim().toLowerCase();
       cards.forEach(card => {
         const hay = (card.innerText + ' ' + (card.dataset.tags||'')).toLowerCase();
-        card.parentElement.classList.toggle('hidden', q && !hay.includes(q));
+        card.classList.toggle('hidden', q && !hay.includes(q));
       });
     }
     filter.addEventListener('input', applyFilter);
