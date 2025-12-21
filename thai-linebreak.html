@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <title>Thai Line Break Tool</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 24px; max-width: 1000px; }
+    textarea { width: 100%; height: 220px; }
+    input { width: 120px; }
+    pre { white-space: pre-wrap; background: #f6f6f6; padding: 12px; }
+    button { padding: 8px 14px; }
+  </style>
+</head>
+<body>
+
+<h1>Thai Line Break Tool</h1>
+
+<label>Thai text</label>
+<textarea id="text"></textarea>
+
+<div style="margin:12px 0">
+  <label>Max characters per line</label>
+  <input id="n" type="number" value="110">
+  <button onclick="formatText()">Format</button>
+</div>
+
+<h2>Output</h2>
+<pre id="output"></pre>
+
+<script>
+const API_BASE = "https://thai-linebreak-api.onrender.com";
+
+async function formatText() {
+  const text = document.getElementById("text").value;
+  const n = parseInt(document.getElementById("n").value, 10) || 110;
+
+  const res = await fetch(`${API_BASE}/format`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, n })
+  });
+
+  if (!res.ok) {
+    alert("API error");
+    return;
+  }
+
+  const data = await res.json();
+  document.getElementById("output").textContent = data.output;
+}
+</script>
+
+</body>
+</html>
