@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shareholder Voting Simulator</title>
+  <style>
+    :root{
+      --primary:#2c3e50; --accent:#2980b9; --light:#ecf0f1;
+      --success:#27ae60; --danger:#c0392b; --warning:#f39c12; --neutral:#95a5a6;
+      --bg:#f8f9fa; --text:#333;
+    }
+
+    body{
+      font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
+      background:var(--bg); color:var(--text);
+      padding:20px; max-width:1400px; margin:0 auto;
+    }
+    h1,h2{ color:var(--primary); margin:0 0 12px; }
+
+    .card{
+      background:#fff; padding:20px; border-radius:10px;
+      box-shadow:0 4px 6px rgba(0,0,0,.08);
+      margin-bottom:25px;
+    }
+
+    .controls-header{
+      display:flex; justify-content:space-between; align-items:center;
+      margin-bottom:15px; border-bottom:2px solid var(--light); padding-bottom:10px;
+      gap:12px;
+    }
+
+    /* Grid Layout */
+    .sh-grid{
+      display:grid;
+      grid-template-columns: 50px 2fr 1.25fr 3fr 50px;
+      gap:15px; align-items:center;
+      padding:10px; border-radius:6px; margin-bottom:8px;
+    }
+
+    .sh-row{ background:#fff; border:1px solid #eee; }
+    .sh-row:nth-child(even){ background:#fafafa; }
+
+    /* Header row visibility fix: ensure all child text is white */
+    .sh-header{
+      background:var(--primary) !important;
+      color:#fff !important;
+      font-weight:700; border:none;
+    }
+    .sh-header > div{ color:#fff !important; }
+
+    input[type="text"], input[type="number"]{
+      padding:8px; border:1px solid #ccc; border-radius:6px;
+      width:100%; box-sizing:border-box;
+    }
+
+    .checkbox-group{
+      display:flex; gap:14px; justify-content:center; flex-wrap:wrap;
+    }
+    .checkbox-group label{
+      display:flex; align-items:center; gap:6px; cursor:pointer; font-size:.9em;
+      user-select:none;
+    }
+
+    .btn{
+      padding:10px 18px; border:none; border-radius:8px;
+      cursor:pointer; font-weight:700; transition:.15s;
+    }
+    .btn-primary{ background:var(--accent); color:#fff; }
+    .btn-primary:hover{ filter:brightness(.9); }
+    .btn-success{ background:var(--success); color:#fff; }
+    .btn-success:hover{ filter:brightness(.92); }
+    .btn-danger{ background:var(--danger); color:#fff; padding:6px 10px; border-radius:8px; }
+    .btn-danger:hover{ filter:brightness(.92); }
+
+    .table-responsive{ overflow-x:auto; }
+    table{ width:100%; border-collapse:collapse; margin-top:10px; font-size:14px; }
+    th, td{ padding:10px; border-bottom:1px solid #ddd; text-align:center; }
+    th{ background:var(--primary); color:#fff; position:sticky; top:0; }
+
+    .status-fail{ color:var(--neutral); opacity:.35; font-weight:700; }
+
+    .badge{
+      padding:3px 10px; border-radius:999px; font-size:.78em; color:#fff;
+      display:inline-block; min-width:62px;
+      font-weight:700;
+    }
+    .b-for{ background:var(--success); }
+    .b-against{ background:var(--danger); }
+    .b-abs{ background:var(--neutral); }
+
+    .summary-bar{
+      display:flex; gap:20px; background:var(--light); padding:14px;
+      border-radius:10px; margin-bottom:12px; font-weight:700; flex-wrap:wrap;
+    }
+
+    .muted{ color:var(--neutral); font-weight:600; }
+
+    @media (max-width: 900px){
+      .sh-grid{ grid-template-columns: 40px 2fr 1fr 1.5fr 44px; gap:10px; }
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Shareholder Voting Simulator</h1>
+
+  <div class="card">
+    <div class="controls-header">
+      <h2>Shareholder Configuration</h2>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <button class="btn btn-success" id="addBtn" type="button">+ Add Shareholder</button>
+      </div>
+    </div>
+
+    <div class="sh-grid sh-header" role="row">
+      <div>ID</div>
+      <div>Name (Optional)</div>
+      <div>Shares</div>
+      <div>Allowed Votes</div>
+      <div>Del</div>
+    </div>
+
+    <div id="shareholderList"></div>
+
+    <div style="margin-top: 18px; display:flex; justify-content:flex-end; gap:10px; align-items:center;">
+      <span class="muted" id="complexityHint"></span>
+      <button class="btn btn-primary" id="runBtn" type="button">Run Simulation</button>
+    </div>
+  </div>
+
+  <div class="card" id="resultsCard" style="display:none;">
+    <h2>Simulation Results</h2>
+    <div class="summary-bar" id="summaryBar"></div>
+
+    <div class="table-responsive">
+      <table id="resultsTable">
+        <thead></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    "use strict";
+
+    // ---------- State ----------
+    let shareholders = [
+      { name: "Shareholder 1", shares: 100, allowed: { for: true, against: true, abs: true } },
+      { name: "Shareholder 2", shares: 50,  allowed: { for: true, against: true, abs: true } },
+      { name: "Shareholder 3", shares: 25,  allowed: { for: true, against: true, abs: true } }
+    ];
+
+    const els = {
+      list: document.getElementById("shareholderList"),
+      resultsCard: document.getElementById("resultsCard"),
+      summaryBar: document.getElementById("summaryBar"),
+      tableHead: document.querySelector("#resultsTable thead"),
+      tableBody: document.querySelector("#resultsTable tbody"),
+      addBtn: document.getElementById("addBtn"),
+      runBtn: document.getElementById("runBtn"),
+      complexityHint: document.getElementById("complexityHint"),
+    };
+
+    // ---------- Helpers ----------
+    function asInt(value) {
+      const n = Number.parseInt(value, 10);
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    function getOptionsList(allowed) {
+      const opts = [];
+      if (allowed.for) opts.push("For");
+      if (allowed.against) opts.push("Against");
+      if (allowed.abs) opts.push("Abstain");
+      return opts;
+    }
+
+    function totalScenariosEstimate() {
+      // product of options per shareholder (minimum 1)
+      return shareholders.reduce((prod, s) => {
+        const k = getOptionsList(s.allowed).length || 1;
+        return prod * k;
+      }, 1);
+    }
+
+    function updateComplexityHint() {
+      const est = totalScenariosEstimate();
+      els.complexityHint.textContent = `Estimated scenarios: ${est.toLocaleString()}`;
+    }
+
+    // ---------- Rendering ----------
+    function renderInputs() {
+      els.list.innerHTML = "";
+
+      shareholders.forEach((sh, index) => {
+        const row = document.createElement("div");
+        row.className = "sh-grid sh-row";
+        row.innerHTML = `
+          <div>${index + 1}</div>
+          <div>
+            <input type="text" value="${escapeHtml(sh.name)}" data-action="name" data-index="${index}" />
+          </div>
+          <div>
+            <input type="number" min="0" value="${sh.shares}" data-action="shares" data-index="${index}" />
+          </div>
+          <div class="checkbox-group">
+            <label>
+              <input type="checkbox" ${sh.allowed.for ? "checked" : ""} data-action="allowed" data-type="for" data-index="${index}" />
+              <span style="color:var(--success)">For</span>
+            </label>
+            <label>
+              <input type="checkbox" ${sh.allowed.against ? "checked" : ""} data-action="allowed" data-type="against" data-index="${index}" />
+              <span style="color:var(--danger)">Against</span>
+            </label>
+            <label>
+              <input type="checkbox" ${sh.allowed.abs ? "checked" : ""} data-action="allowed" data-type="abs" data-index="${index}" />
+              <span style="color:var(--neutral)">Abs</span>
+            </label>
+          </div>
+          <div>
+            ${shareholders.length > 1 ? `<button class="btn btn-danger" type="button" data-action="remove" data-index="${index}">X</button>` : ""}
+          </div>
+        `;
+        els.list.appendChild(row);
+      });
+
+      updateComplexityHint();
+    }
+
+    // Basic HTML escaping for user-edited names to avoid breaking markup
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    // ---------- State updates ----------
+    function addShareholder() {
+      shareholders.push({
+        name: `Shareholder ${shareholders.length + 1}`,
+        shares: 0,
+        allowed: { for: true, against: true, abs: true }
+      });
+      renderInputs();
+    }
+
+    function removeShareholder(index) {
+      shareholders.splice(index, 1);
+      renderInputs();
+    }
+
+    // ---------- Simulation ----------
+    function runSimulation() {
+      const shData = shareholders.map(s => ({
+        name: s.name?.trim() || "Shareholder",
+        shares: Math.max(0, asInt(s.shares)),
+        options: getOptionsList(s.allowed)
+      }));
+
+      const totalShares = shData.reduce((sum, s) => sum + s.shares, 0);
+
+      const results = [];
+
+      function processScenario(votes) {
+        let forVotes = 0;
+        for (let i = 0; i < votes.length; i++) {
+          if (votes[i] === "For") forVotes += shData[i].shares;
+        }
+
+        const passMajority = forVotes > (totalShares / 2);
+        const passTwoThirds = forVotes >= (totalShares * (2 / 3));
+        const passThreeQuarters = forVotes >= (totalShares * 0.75);
+
+        results.push({
+          votes,
+          totalFor: forVotes,
+          percent: totalShares > 0 ? (forVotes / totalShares * 100) : 0,
+          passMajority,
+          passTwoThirds,
+          passThreeQuarters
+        });
+      }
+
+      function generate(index, currentVotes) {
+        if (index === shData.length) {
+          processScenario(currentVotes);
+          return;
+        }
+        const opts = shData[index].options;
+        if (!opts.length) {
+          generate(index + 1, currentVotes.concat("Abstain"));
+          return;
+        }
+        for (const opt of opts) {
+          generate(index + 1, currentVotes.concat(opt));
+        }
+      }
+
+      generate(0, []);
+
+      renderResults(shData, results, totalShares);
+    }
+
+    function renderResults(shData, results, totalShares) {
+      els.summaryBar.innerHTML = `
+        <div>Total Shares: ${totalShares.toLocaleString()}</div>
+        <div>Total Scenarios: ${results.length.toLocaleString()}</div>
+      `;
+
+      let headerHTML = "<tr><th>#</th>";
+      for (const sh of shData) headerHTML += `<th>${escapeHtml(sh.name)}</th>`;
+      headerHTML += `
+        <th>Votes "For"</th>
+        <th>% For</th>
+        <th>Majority (&gt;50%)</th>
+        <th>2/3 Vote (≥66%)</th>
+        <th>3/4 Vote (≥75%)</th>
+      </tr>`;
+      els.tableHead.innerHTML = headerHTML;
+
+      let bodyHTML = "";
+      results.forEach((row, idx) => {
+        bodyHTML += "<tr>";
+        bodyHTML += `<td>${idx + 1}</td>`;
+
+        for (const v of row.votes) {
+          const badgeClass = v === "For" ? "b-for" : (v === "Against" ? "b-against" : "b-abs");
+          bodyHTML += `<td><span class="badge ${badgeClass}">${v}</span></td>`;
+        }
+
+        bodyHTML += `<td>${row.totalFor.toLocaleString()}</td>`;
+        bodyHTML += `<td>${row.percent.toFixed(2)}%</td>`;
+        bodyHTML += `<td>${row.passMajority ? "✅ PASS" : '<span class="status-fail">FAIL</span>'}</td>`;
+        bodyHTML += `<td>${row.passTwoThirds ? "✅ PASS" : '<span class="status-fail">FAIL</span>'}</td>`;
+        bodyHTML += `<td>${row.passThreeQuarters ? "✅ PASS" : '<span class="status-fail">FAIL</span>'}</td>`;
+        bodyHTML += "</tr>";
+      });
+
+      els.tableBody.innerHTML = bodyHTML;
+      els.resultsCard.style.display = "block";
+      els.resultsCard.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    // ---------- Event wiring (no inline onclick/onchange) ----------
+    els.addBtn.addEventListener("click", addShareholder);
+    els.runBtn.addEventListener("click", runSimulation);
+
+    els.list.addEventListener("input", (e) => {
+      const t = e.target;
+      const index = Number(t.dataset.index);
+      const action = t.dataset.action;
+
+      if (!Number.isInteger(index) || index < 0 || index >= shareholders.length) return;
+
+      if (action === "name") {
+        shareholders[index].name = t.value;
+      } else if (action === "shares") {
+        shareholders[index].shares = asInt(t.value);
+      }
+      updateComplexityHint();
+    });
+
+    els.list.addEventListener("change", (e) => {
+      const t = e.target;
+      const index = Number(t.dataset.index);
+      const action = t.dataset.action;
+
+      if (!Number.isInteger(index) || index < 0 || index >= shareholders.length) return;
+
+      if (action === "allowed") {
+        const type = t.dataset.type;
+        if (type === "for" || type === "against" || type === "abs") {
+          shareholders[index].allowed[type] = !!t.checked;
+          updateComplexityHint();
+        }
+      }
+    });
+
+    els.list.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-action]");
+      if (!btn) return;
+      const action = btn.dataset.action;
+      const index = Number(btn.dataset.index);
+
+      if (action === "remove" && Number.isInteger(index)) {
+        removeShareholder(index);
+      }
+    });
+
+    // Initialize
+    renderInputs();
+  </script>
+</body>
+</html>
