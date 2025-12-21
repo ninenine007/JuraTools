@@ -2,30 +2,165 @@
 <html lang="th">
 <head>
   <meta charset="utf-8">
-  <title>Thai Line Break Tool</title>
+  <title>Thai Legal Text Line Formatter</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <style>
-    body { font-family: system-ui, sans-serif; margin: 24px; max-width: 1000px; }
-    textarea { width: 100%; height: 220px; }
-    input { width: 120px; }
-    pre { white-space: pre-wrap; background: #f6f6f6; padding: 12px; }
-    button { padding: 8px 14px; }
+    :root {
+      --bg: #ffffff;
+      --fg: #1f2937;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --accent: #2563eb;
+      --soft: #f9fafb;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.6;
+    }
+
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+
+    h1 {
+      font-size: 1.9rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin-bottom: 1.6rem;
+    }
+
+    section {
+      margin-bottom: 2rem;
+    }
+
+    label {
+      font-weight: 600;
+      display: block;
+      margin-bottom: 0.4rem;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 220px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      resize: vertical;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    input[type="number"] {
+      width: 140px;
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+
+    button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      background: #374151;
+    }
+
+    button:hover {
+      opacity: 0.92;
+    }
+
+    pre {
+      background: var(--soft);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      white-space: pre-wrap;
+      font-size: 0.95rem;
+      min-height: 160px;
+    }
+
+    .note {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-top: 0.6rem;
+    }
+
+    footer {
+      margin-top: 3rem;
+      padding-top: 1.2rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
   </style>
 </head>
 <body>
 
-<h1>Thai Line Break Tool</h1>
+<main>
+  <header>
+    <h1>Thai Legal Text Line Formatter</h1>
+    <p class="subtitle">
+      Automatically inserts line breaks into Thai text using proper Thai word segmentation.
+    </p>
+  </header>
 
-<label>Thai text</label>
-<textarea id="text"></textarea>
+  <section>
+    <p>
+      This tool reformats long Thai text by inserting line breaks at appropriate positions
+      without cutting words incorrectly. It is especially useful for legal drafts,
+      contracts, regulations, and other formal documents that require controlled line length.
+    </p>
+  </section>
 
-<div style="margin:12px 0">
-  <label>Max characters per line</label>
-  <input id="n" type="number" value="110">
-  <button onclick="formatText()">Format</button>
-</div>
+  <section>
+    <label for="text">Input Thai text</label>
+    <textarea id="text" placeholder="Paste Thai text here…"></textarea>
 
-<h2>Output</h2>
-<pre id="output"></pre>
+    <div class="controls">
+      <label for="n">Maximum characters per line</label>
+      <input id="n" type="number" value="110" min="1" max="500">
+      <button onclick="formatText()">Format text</button>
+      <button class="secondary" onclick="copyOutput()">Copy output</button>
+    </div>
+
+    <p class="note">
+      Line breaks are inserted based on Thai word boundaries (not character count alone).
+    </p>
+  </section>
+
+  <section>
+    <label>Formatted output</label>
+    <pre id="output"></pre>
+  </section>
+
+  <footer>
+    Part of <strong>JuraTools</strong> · Formatting powered by PyThaiNLP
+  </footer>
+</main>
 
 <script>
 const API_BASE = "https://thai-linebreak-api.onrender.com";
@@ -33,20 +168,40 @@ const API_BASE = "https://thai-linebreak-api.onrender.com";
 async function formatText() {
   const text = document.getElementById("text").value;
   const n = parseInt(document.getElementById("n").value, 10) || 110;
+  const output = document.getElementById("output");
 
-  const res = await fetch(`${API_BASE}/format`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text, n })
-  });
-
-  if (!res.ok) {
-    alert("API error");
+  if (!text.trim()) {
+    output.textContent = "";
     return;
   }
 
-  const data = await res.json();
-  document.getElementById("output").textContent = data.output;
+  output.textContent = "Formatting…";
+
+  try {
+    const res = await fetch(`${API_BASE}/format`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, n })
+    });
+
+    if (!res.ok) throw new Error("API error");
+
+    const data = await res.json();
+    output.textContent = data.output;
+  } catch {
+    output.textContent = "";
+    alert("Unable to format text. Please try again later.");
+  }
+}
+
+function copyOutput() {
+  const text = document.getElementById("output").textContent;
+  if (!text) return;
+
+  navigator.clipboard.writeText(text).then(
+    () => alert("Copied to clipboard"),
+    () => alert("Copy failed")
+  );
 }
 </script>
 
