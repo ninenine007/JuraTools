@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dividend & Legal Reserve Calculator — JuraTools</title>
+    <meta name="description" content="Calculate corporate dividends and legal reserve requirements under Thai CCC. Supports simple and partially-paid share structures.">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* ── Tokens ─────────────────────────────────── */
+        :root {
+            --blue:        #2979ff;
+            --blue-dark:   #1565c0;
+            --blue-light:  #e0edff;
+            --purple:      #7c3aed;
+            --surface:     rgba(255,255,255,0.88);
+            --bg:          #f2f2f7;
+            --text:        #1c1c1e;
+            --text-2:      #6e6e73;
+            --text-3:      #aeaeb2;
+            --border:      rgba(0,0,0,0.09);
+            --border-solid:#e2e8f0;
+            --radius-lg:   18px;
+            --radius-md:   12px;
+            --radius-sm:   8px;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Inter", "Helvetica Neue", sans-serif;
+            -webkit-font-smoothing: antialiased;
+            color: var(--text);
+            min-height: 100vh;
+            background: var(--bg);
+            background-image:
+                radial-gradient(ellipse 1100px 700px at 10% 0%,   rgba(194,221,255,0.5)   0%, transparent 60%),
+                radial-gradient(ellipse  700px 700px at 95% 10%,  rgba(218,205,255,0.45)  0%, transparent 55%),
+                radial-gradient(ellipse  800px 600px at 0%  90%,  rgba(167,243,208,0.35)  0%, transparent 55%),
+                radial-gradient(ellipse  900px 500px at 100% 95%, rgba(255,220,180,0.3)   0%, transparent 55%);
+        }
+        a { color: inherit; text-decoration: none; }
+
+        /* ── Nav ────────────────────────────────────── */
+        .nav {
+            position: sticky; top: 0; z-index: 200;
+            height: 52px;
+            display: flex; align-items: center; gap: 12px;
+            padding: 0 24px;
+            background: rgba(242,242,247,0.82);
+            backdrop-filter: blur(24px) saturate(200%);
+            -webkit-backdrop-filter: blur(24px) saturate(200%);
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+        }
+        .nav-back {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 13px; font-weight: 500; color: var(--blue);
+            padding: 5px 10px; border-radius: 8px;
+            transition: background .14s;
+        }
+        .nav-back:hover { background: rgba(41,121,255,0.1); }
+        .nav-divider { width: 1px; height: 20px; background: var(--border); }
+        .nav-icon {
+            width: 30px; height: 30px; border-radius: 7px; flex-shrink: 0;
+            background: linear-gradient(145deg, #2979ff, #1565c0);
+            display: grid; place-items: center; font-size: 15px;
+            box-shadow: 0 2px 6px rgba(41,121,255,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+        }
+        .nav-title { font-size: 14px; font-weight: 600; color: var(--text); letter-spacing: -0.2px; }
+
+        /* ── Page layout ────────────────────────────── */
+        .page { max-width: 1060px; margin: 0 auto; padding: 28px 20px 64px; }
+
+        .page-header { margin-bottom: 28px; }
+        .page-header h1 {
+            font-size: clamp(22px, 3vw, 30px);
+            font-weight: 800; letter-spacing: -0.8px;
+            color: var(--text); margin-bottom: 6px;
+        }
+        .page-header p { font-size: 14px; color: var(--text-2); line-height: 1.55; }
+        .page-header .badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.2);
+            border-radius: 999px; padding: 3px 10px;
+            font-size: 11px; font-weight: 600; color: var(--purple);
+            margin-bottom: 10px;
+        }
+
+        /* ── Glass card ─────────────────────────────── */
+        .card {
+            background: var(--surface);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.9);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 1px 1px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.07);
+            padding: 24px;
+            margin-bottom: 16px;
+        }
+        .card-title {
+            font-size: 13px; font-weight: 700; color: var(--text-3);
+            text-transform: uppercase; letter-spacing: 0.7px;
+            margin-bottom: 18px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .card-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+        /* ── Grid helpers ───────────────────────────── */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+        .full { grid-column: 1 / -1; }
+        @media (max-width: 680px) {
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+        }
+
+        /* ── Form controls ──────────────────────────── */
+        .field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 0; }
+        label {
+            font-size: 12px; font-weight: 600; color: var(--text-2);
+            letter-spacing: 0.1px; text-transform: uppercase;
+        }
+        input, select {
+            width: 100%; padding: 9px 12px;
+            border: 1px solid var(--border-solid);
+            border-radius: var(--radius-sm);
+            font-size: 14px; font-family: inherit;
+            color: var(--text);
+            background: rgba(255,255,255,0.8);
+            transition: border-color .14s, box-shadow .14s;
+            -webkit-appearance: none;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--blue);
+            box-shadow: 0 0 0 3px rgba(41,121,255,0.14);
+        }
+        .num-input {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+            font-weight: 600;
+            color: #1a3a6b;
+        }
+        .field-note {
+            font-size: 11px; color: var(--text-3);
+            margin-top: 2px;
+        }
+
+        /* ── Share group rows ───────────────────────── */
+        .group-row {
+            background: rgba(255,255,255,0.7);
+            border: 1px solid var(--border-solid);
+            border-radius: var(--radius-sm);
+            padding: 14px 16px;
+            margin-bottom: 10px;
+        }
+        .group-row-head {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 12px;
+            font-size: 12px; font-weight: 700; color: var(--blue);
+            letter-spacing: 0.2px;
+        }
+        .group-row-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .btn-remove {
+            background: rgba(239,68,68,0.1); color: #dc2626;
+            border: none; padding: 3px 10px; border-radius: 6px;
+            cursor: pointer; font-size: 11px; font-weight: 700;
+            transition: background .12s;
+        }
+        .btn-remove:hover { background: rgba(239,68,68,0.2); }
+        .btn-add {
+            background: rgba(41,121,255,0.08); color: var(--blue);
+            border: 1px dashed rgba(41,121,255,0.4); padding: 9px 14px;
+            border-radius: var(--radius-sm); cursor: pointer;
+            font-weight: 600; font-size: 13px; width: 100%;
+            margin-top: 4px;
+            transition: background .12s;
+        }
+        .btn-add:hover { background: rgba(41,121,255,0.14); }
+        .efps-summary {
+            text-align: right; font-size: 12px; color: var(--text-2);
+            margin-top: 12px; padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+        .efps-summary strong { color: var(--blue); font-size: 14px; }
+
+        /* ── Max limits info box ────────────────────── */
+        .limits-box {
+            background: rgba(41,121,255,0.06);
+            border: 1px solid rgba(41,121,255,0.18);
+            border-radius: var(--radius-sm);
+            padding: 14px 16px;
+            margin-top: 4px;
+        }
+        .limits-box-title { font-size: 11px; font-weight: 700; color: var(--blue); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.4px; }
+        .limits-row {
+            display: flex; justify-content: space-between;
+            font-size: 13px; color: var(--text-2);
+            padding: 4px 0;
+        }
+        .limits-row strong { color: var(--text); font-variant-numeric: tabular-nums; }
+
+        /* ── Result section ─────────────────────────── */
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 4px;
+        }
+        @media (max-width: 680px) { .results-grid { grid-template-columns: 1fr; } }
+
+        .result-card {
+            background: linear-gradient(140deg, #1a4fa0 0%, #0d2b5e 100%);
+            color: #fff;
+            border-radius: var(--radius-lg);
+            padding: 26px;
+            box-shadow: 0 4px 20px rgba(15,60,130,0.28);
+        }
+        .result-card-title {
+            font-size: 11px; font-weight: 700; letter-spacing: 0.8px;
+            text-transform: uppercase; opacity: 0.65; margin-bottom: 16px;
+        }
+        .res-row {
+            display: flex; justify-content: space-between; align-items: baseline;
+            font-size: 13px; padding: 9px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .res-row:last-child { border-bottom: none; }
+        .res-row span:first-child { opacity: 0.75; max-width: 55%; }
+        .res-row span:last-child { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; }
+        .res-row.total {
+            font-size: 15px; font-weight: 700;
+            border-top: 2px solid rgba(255,255,255,0.25);
+            border-bottom: none;
+            padding-top: 14px; margin-top: 6px;
+        }
+        .res-row.remaining {
+            font-size: 13px; font-weight: 600; border: none;
+            padding-top: 10px;
+        }
+        .remaining-positive { color: #6ee7b7; }
+        .remaining-negative { color: #fca5a5; }
+
+        /* Group breakdown box inside result card */
+        .breakdown {
+            background: rgba(0,0,0,0.18);
+            border-radius: 8px; padding: 12px 14px;
+            margin-bottom: 14px;
+        }
+        .breakdown-title {
+            font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+            text-transform: uppercase; opacity: 0.6; margin-bottom: 10px;
+        }
+        .breakdown-row {
+            display: flex; justify-content: space-between;
+            font-size: 12px; padding: 5px 0;
+            border-bottom: 1px dotted rgba(255,255,255,0.1);
+        }
+        .breakdown-row:last-child { border-bottom: none; }
+        .breakdown-row span:first-child { opacity: 0.75; }
+        .breakdown-row strong { color: #93c5fd; font-size: 11px; }
+
+        /* ── Chart wrapper ──────────────────────────── */
+        .chart-card {
+            background: var(--surface);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.9);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 1px 1px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.07);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: 20px;
+        }
+        .chart-card canvas { max-height: 300px; }
+
+        /* ── Warning ────────────────────────────────── */
+        .warning {
+            background: #fef2f2; color: #b91c1c;
+            border: 1px solid #fecaca; border-radius: var(--radius-sm);
+            padding: 14px 18px; margin-bottom: 16px;
+            font-weight: 600; font-size: 13px;
+            display: none;
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<!-- ── Nav ── -->
+<nav class="nav">
+    <a class="nav-back" href="index.html">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="13 4 7 10 13 16"/>
+        </svg>
+        JuraTools
+    </a>
+    <div class="nav-divider"></div>
+    <div class="nav-icon">💰</div>
+    <span class="nav-title">Dividend &amp; Legal Reserve Calculator</span>
+</nav>
+
+<!-- ── Page ── -->
+<div class="page">
+
+    <!-- Header -->
+    <div class="page-header">
+        <div class="badge">💼 Corporate / Finance</div>
+        <h1>Dividend &amp; Legal Reserve Calculator</h1>
+        <p>Calculate corporate dividends and statutory legal reserve requirements.<br>
+           Supports both simple (fully-paid) and partially-paid share structures (CCC §1200).</p>
+    </div>
+
+    <!-- Section 1: Global Parameters -->
+    <div class="card">
+        <div class="card-title">1 · Global Parameters</div>
+        <div class="grid-3">
+            <div class="field">
+                <label>Registered Capital (THB)</label>
+                <input type="text" id="registeredCapital" class="num-input" value="2,000,000">
+            </div>
+            <div class="field">
+                <label>Current Legal Reserve (THB)</label>
+                <input type="text" id="currentReserve" class="num-input" value="0">
+            </div>
+            <div class="field">
+                <label>Withholding Tax Rate (%)</label>
+                <input type="text" id="whtRate" class="num-input" value="10">
+            </div>
+            <div class="field">
+                <label>Legal Reserve Cap (%)</label>
+                <input type="text" id="reserveCapRate" class="num-input" value="10">
+                <span class="field-note">Max required % of Registered Capital</span>
+            </div>
+            <div class="field">
+                <label>Reserve Rate per Payout (%)</label>
+                <input type="text" id="reserveRate" class="num-input" value="5">
+            </div>
+            <div class="field">
+                <label>Legal Interpretation</label>
+                <select id="interpretation">
+                    <option value="1">Interp. 1: Reserve on Total Available Profit</option>
+                    <option value="2">Interp. 2: Reserve on Target Dividend</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 2: Share Structure -->
+    <div class="card">
+        <div class="card-title">2 · Share Structure</div>
+        <div class="field" style="margin-bottom: 16px;">
+            <label>Mode</label>
+            <select id="shareMode">
+                <option value="simple">Simple — All shares 100% fully paid</option>
+                <option value="advanced">Advanced — Partially paid shares (CCC §1200)</option>
+            </select>
+        </div>
+
+        <div id="simpleInput">
+            <div class="field" style="max-width: 280px;">
+                <label>Total Number of Shares</label>
+                <input type="text" id="totalShares" class="num-input" value="10,000">
+            </div>
+        </div>
+
+        <div id="advancedInput" class="hidden">
+            <div id="dynamicGroupsContainer"></div>
+            <button class="btn-add" onclick="addGroup()">+ Add Share Group</button>
+            <div class="efps-summary">
+                Total Actual Shares: <strong id="actualSharesDisplay">0</strong>
+                &nbsp;&nbsp;·&nbsp;&nbsp;
+                Equivalent Fully Paid Shares (EFPS): <strong id="efpsDisplay">0</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 3: Budget & Target (2-col) -->
+    <div class="grid-2" style="margin-bottom: 16px;">
+        <div class="card" style="margin-bottom: 0;">
+            <div class="card-title">3 · Budget Ceiling</div>
+            <div class="field" style="margin-bottom: 14px;">
+                <label>Total Available Profit (THB)</label>
+                <input type="text" id="totalProfit" class="num-input" value="2,643,664">
+            </div>
+            <div class="limits-box">
+                <div class="limits-box-title">Maximum Legal Limits</div>
+                <div class="limits-row"><span>Max Dividend to Declare:</span><strong id="maxDividend">—</strong></div>
+                <div class="limits-row"><span>Max Reserve Required:</span><strong id="maxReserve">—</strong></div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 0;">
+            <div class="card-title">4 · Target Payout</div>
+            <div class="field" style="margin-bottom: 14px;">
+                <label>Set Target Based On</label>
+                <select id="targetType">
+                    <option value="gross_total">Total Gross Dividend Amount</option>
+                    <option value="net_total">Total Net Dividend (After WHT)</option>
+                    <option value="gross_share">Gross Dividend per 100% Paid Share</option>
+                    <option value="net_share">Net Dividend per 100% Paid Share</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Target Value (THB)</label>
+                <input type="text" id="targetValue" class="num-input" value="1,501,000">
+            </div>
+        </div>
+    </div>
+
+    <!-- Warning -->
+    <div id="warningMsg" class="warning">
+        ⚠️ WARNING: Total Profit Utilized exceeds Total Available Profit!
+    </div>
+
+    <!-- Results -->
+    <div class="results-grid">
+        <div class="result-card">
+            <div class="result-card-title">Final Declaration Plan</div>
+
+            <div id="simpleResultView">
+                <div class="res-row">
+                    <span>Gross Dividend per Share</span>
+                    <span id="resGrossShare">— THB</span>
+                </div>
+                <div class="res-row">
+                    <span>Net Dividend per Share (to shareholder)</span>
+                    <span id="resNetShare">— THB</span>
+                </div>
+            </div>
+
+            <div id="advancedResultView" class="hidden">
+                <div class="breakdown">
+                    <div class="breakdown-title">Share Group Breakdown</div>
+                    <div id="dynamicBreakdownList"></div>
+                </div>
+            </div>
+
+            <div class="res-row" style="margin-top: 8px;">
+                <span>Total Gross Dividend (T)</span>
+                <span id="resTotalGross">— THB</span>
+            </div>
+            <div class="res-row">
+                <span>Required Legal Reserve (R)</span>
+                <span id="resReserve">— THB</span>
+            </div>
+            <div class="res-row total">
+                <span>Total Profit Utilized</span>
+                <span id="resTotalUtilized">— THB</span>
+            </div>
+            <div class="res-row remaining">
+                <span>Remaining Available Profit</span>
+                <span id="resRemainingProfit">— THB</span>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <canvas id="profitChart"></canvas>
+        </div>
+    </div>
+
+</div><!-- /page -->
+
+<script>
+    let myChart = null;
+    let groupCount = 0;
+
+    function getNum(val) {
+        if (typeof val === 'string') return parseFloat(val.replace(/,/g, '')) || 0;
+        return parseFloat(val) || 0;
+    }
+
+    function fmt(n) {
+        return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function formatInputEvent(e) {
+        const input = e.target;
+        let caret = input.selectionStart;
+        const origLen = input.value.length;
+        let value = input.value.replace(/[^\d.-]/g, '');
+        let parts = value.split('.');
+        if (parts.length > 2) parts = [parts[0], parts.slice(1).join('')];
+        if (parts[0]) {
+            const neg = parts[0].startsWith('-');
+            let num = neg ? parts[0].slice(1) : parts[0];
+            num = num.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            parts[0] = neg ? '-' + num : num;
+        }
+        input.value = parts.join('.');
+        caret = caret + (input.value.length - origLen);
+        input.setSelectionRange(caret, caret);
+        calculate();
+    }
+
+    function attachFormatters() {
+        document.querySelectorAll('.num-input').forEach(input => {
+            input.removeEventListener('input', formatInputEvent);
+            input.removeEventListener('change', calculate);
+            input.addEventListener('input', formatInputEvent);
+            input.addEventListener('change', calculate);
+        });
+    }
+
+    function addGroup(shares = '1,000', paid = '25') {
+        groupCount++;
+        const container = document.getElementById('dynamicGroupsContainer');
+        const groupId = `group_${Date.now()}_${groupCount}`;
+        const removeBtn = groupCount > 1
+            ? `<button class="btn-remove" onclick="removeGroup('${groupId}')">Remove</button>`
+            : '';
+        container.insertAdjacentHTML('beforeend', `
+            <div class="group-row" id="${groupId}">
+                <div class="group-row-head">
+                    <span>Group ${groupCount}</span>
+                    ${removeBtn}
+                </div>
+                <div class="group-row-fields">
+                    <div class="field">
+                        <label>Number of Shares</label>
+                        <input type="text" class="num-input group-shares" value="${shares}">
+                    </div>
+                    <div class="field">
+                        <label>Paid-up (%)</label>
+                        <input type="text" class="num-input group-paid" value="${paid}">
+                    </div>
+                </div>
+            </div>
+        `);
+        attachFormatters();
+        reindexGroups();
+        calculate();
+    }
+
+    function removeGroup(groupId) {
+        document.getElementById(groupId).remove();
+        reindexGroups();
+        calculate();
+    }
+
+    function reindexGroups() {
+        document.querySelectorAll('.group-row').forEach((row, i) => {
+            row.querySelector('.group-row-head span').innerText = `Group ${i + 1}`;
+        });
+        groupCount = document.querySelectorAll('.group-row').length;
+    }
+
+    document.getElementById('shareMode').addEventListener('change', function () {
+        const adv = this.value === 'advanced';
+        document.getElementById('simpleInput').classList.toggle('hidden', adv);
+        document.getElementById('advancedInput').classList.toggle('hidden', !adv);
+        document.getElementById('simpleResultView').classList.toggle('hidden', adv);
+        document.getElementById('advancedResultView').classList.toggle('hidden', !adv);
+        calculate();
+    });
+
+    function updateChart(dividend, reserve, availableProfit) {
+        const remaining = Math.max(0, availableProfit - dividend - reserve);
+        const ctx = document.getElementById('profitChart').getContext('2d');
+        const data    = [dividend, reserve, remaining];
+        const labels  = ['Total Dividend', 'Legal Reserve', 'Remaining Profit'];
+        const colors  = ['#10b981', '#f59e0b', '#e2e8f0'];
+
+        if (myChart) {
+            myChart.data.datasets[0].data = data;
+            myChart.update();
+        } else {
+            Chart.defaults.font.family = "'Inter', -apple-system, sans-serif";
+            myChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels,
+                    datasets: [{ data, backgroundColor: colors, borderWidth: 0, hoverOffset: 5 }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '68%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { padding: 18, font: { size: 12 }, color: '#3c3c43' }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(26,79,160,0.92)',
+                            padding: 12,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: c => ' ' + fmt(c.raw) + ' THB'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    function calculate() {
+        const C         = getNum(document.getElementById('registeredCapital').value);
+        const R_current = getNum(document.getElementById('currentReserve').value);
+        const capRate   = getNum(document.getElementById('reserveCapRate').value) / 100;
+        const r         = getNum(document.getElementById('reserveRate').value) / 100;
+        const wht       = getNum(document.getElementById('whtRate').value) / 100;
+        const interp    = document.getElementById('interpretation').value;
+        const A         = getNum(document.getElementById('totalProfit').value);
+        const targetType = document.getElementById('targetType').value;
+        const V         = getNum(document.getElementById('targetValue').value);
+        const mode      = document.getElementById('shareMode').value;
+
+        let EFPS = 0, actualShares = 0, groupsData = [];
+
+        if (mode === 'simple') {
+            actualShares = getNum(document.getElementById('totalShares').value);
+            EFPS = actualShares;
+        } else {
+            document.querySelectorAll('.group-row').forEach((row, i) => {
+                const shares  = getNum(row.querySelector('.group-shares').value);
+                const paidPct = getNum(row.querySelector('.group-paid').value) / 100;
+                actualShares += shares;
+                EFPS += shares * paidPct;
+                groupsData.push({ id: i + 1, shares, paidPct });
+            });
+            document.getElementById('actualSharesDisplay').innerText = fmt(actualShares).replace('.00', '');
+            document.getElementById('efpsDisplay').innerText          = fmt(EFPS).replace('.00', '');
+        }
+
+        if (EFPS === 0) return;
+
+        const R_cap = Math.max(0, C * capRate - R_current);
+
+        let T_max, R_max;
+        if (interp === '1') {
+            R_max = Math.min(A * r, R_cap);
+            T_max = A - R_max;
+        } else {
+            const T_theo = A / (1 + r);
+            const R_theo = T_theo * r;
+            if (R_theo > R_cap) { R_max = R_cap; T_max = A - R_cap; }
+            else                { R_max = R_theo; T_max = T_theo; }
+        }
+
+        document.getElementById('maxDividend').innerText = fmt(T_max) + ' THB';
+        document.getElementById('maxReserve').innerText  = fmt(R_max)  + ' THB';
+
+        let T = 0;
+        switch (targetType) {
+            case 'gross_share': T = V * EFPS; break;
+            case 'net_share':   T = (V / (1 - wht)) * EFPS; break;
+            case 'gross_total': T = V; break;
+            case 'net_total':   T = V / (1 - wht); break;
+        }
+
+        const R = Math.min(interp === '1' ? A * r : T * r, R_cap);
+        const totalUtilized = T + R;
+        const remaining     = A - totalUtilized;
+
+        const baseGross = T / EFPS;
+        const baseNet   = baseGross * (1 - wht);
+
+        if (mode === 'simple') {
+            document.getElementById('resGrossShare').innerText = fmt(baseGross) + ' THB';
+            document.getElementById('resNetShare').innerText   = fmt(baseNet)   + ' THB';
+        } else {
+            document.getElementById('dynamicBreakdownList').innerHTML = groupsData.map(g => `
+                <div class="breakdown-row">
+                    <span><strong>Group ${g.id}</strong> (${(g.paidPct * 100).toFixed(0)}% paid)</span>
+                    <span>Gross: ${fmt(baseGross * g.paidPct)} · Net: ${fmt(baseNet * g.paidPct)} THB</span>
+                </div>
+            `).join('');
+        }
+
+        document.getElementById('resTotalGross').innerText    = fmt(T)             + ' THB';
+        document.getElementById('resReserve').innerText       = fmt(R)             + ' THB';
+        document.getElementById('resTotalUtilized').innerText = fmt(totalUtilized) + ' THB';
+
+        const remEl = document.getElementById('resRemainingProfit');
+        remEl.innerText = fmt(remaining) + ' THB';
+        remEl.className = remaining < 0 ? 'remaining-negative' : 'remaining-positive';
+
+        document.getElementById('warningMsg').style.display = totalUtilized > A ? 'block' : 'none';
+
+        updateChart(T, R, A);
+    }
+
+    document.getElementById('interpretation').addEventListener('change', calculate);
+    document.getElementById('targetType').addEventListener('change', calculate);
+
+    // Init advanced mode with two default groups
+    addGroup('5,000', '100');
+    addGroup('5,000', '25');
+    attachFormatters();
+    calculate();
+</script>
+
+</body>
+</html>
