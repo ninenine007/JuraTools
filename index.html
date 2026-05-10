@@ -6,269 +6,591 @@
   <title>JuraTools — Legal & Text Utilities</title>
   <meta name="description" content="Personal tools for legal deadlines, clear-days counting, and text utilities by Kornrawee Chanchom." />
   <style>
-    :root{
-      --bg:#0f172a; --panel:#111827; --muted:#94a3b8; --text:#e5e7eb;
-      --accent:#22c55e; --accent2:#38bdf8; --danger:#ef4444; --ring:#22c55e55;
-      --border:#1f2937; --shadow: 0 10px 30px rgba(0,0,0,.35);
-      --chip:#0b1220;
+    /* ── Reset & Tokens ───────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      color: #1c1c1e;
+      min-height: 100vh;
+      background: #f2f2f7;
+      /* Soft pastel gradient backdrop */
+      background-image:
+        radial-gradient(ellipse 1100px 700px at 10% 0%,   rgba(194,221,255,0.5)   0%, transparent 60%),
+        radial-gradient(ellipse  700px 700px at 95% 10%,  rgba(218,205,255,0.45)  0%, transparent 55%),
+        radial-gradient(ellipse  800px 600px at 0%  90%,  rgba(167,243,208,0.35)  0%, transparent 55%),
+        radial-gradient(ellipse  900px 500px at 100% 95%, rgba(255,220,180,0.3)   0%, transparent 55%);
     }
-    html,body{height:100%}
-    body{
-      margin:0; font-family: ui-sans-serif, system-ui, -apple-system,"Segoe UI",Roboto,Arial;
-      color:var(--text);
-      background:
-        radial-gradient(1200px 600px at 20% -10%, #1f2937 0%, transparent 50%),
-        var(--bg);
+    a { color: inherit; text-decoration: none; }
+
+    /* ── Sticky Nav ───────────────────────────────── */
+    .nav {
+      position: sticky; top: 0; z-index: 200;
+      height: 52px;
+      display: flex; align-items: center; gap: 12px;
+      padding: 0 24px;
+      background: rgba(242,242,247,0.82);
+      backdrop-filter: blur(24px) saturate(200%);
+      -webkit-backdrop-filter: blur(24px) saturate(200%);
+      border-bottom: 1px solid rgba(0,0,0,0.08);
     }
-    a{color:inherit}
-    .wrap{max-width:1100px; margin:0 auto; padding:32px 18px 80px}
-    header{display:flex; align-items:center; gap:12px; margin-bottom:16px}
-    .logo{width:38px; height:38px; border-radius:10px; background:#0b1220; display:grid; place-items:center; border:1px solid var(--border)}
-    .title h1{margin:0; font-size:clamp(24px,2.4vw,34px)}
-    .title p{margin:2px 0 0; color:var(--muted); font-size:14px}
-    .panel{background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0)), var(--panel); border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow); padding:16px}
-    .grid{display:grid; gap:16px}
-    @media(min-width:900px){ .grid-2{grid-template-columns:1fr 1fr} .grid-3{grid-template-columns:repeat(3,1fr)} }
-    .hero{margin:10px 0 22px}
-    .hero .search{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
-    input[type="search"]{flex:1; min-width:220px; background:#0b1220; color:var(--text); border:1px solid #263143; border-radius:12px; padding:12px 14px; outline:none}
-    input[type="search"]:focus{border-color:var(--accent); box-shadow:0 0 0 4px var(--ring)}
-    .btn{background:linear-gradient(180deg,#16a34a,#15803d); color:white; border:none; border-radius:12px; padding:10px 14px; cursor:pointer; box-shadow:var(--shadow)}
-    .btn.ghost{background:#0b1220; color:var(--text); border:1px solid #334155}
-    .btn.blue{background:linear-gradient(180deg,#0284c7,#0369a1)}
-    .section h2{margin:0 0 10px; font-size:18px}
-    .muted{color:var(--muted)} .small{font-size:12px}
-    .chips{display:flex; gap:8px; flex-wrap:wrap}
-    .chip{background:var(--chip); border:1px solid #334155; border-radius:999px; padding:4px 10px; font-size:12px}
-    .status{border-color:#14532d; background:#052e16}
-    .status.new{border-color:#0c4a6e; background:#082f49}
-    .status.upd{border-color:#3730a3; background:#1e1b4b}
-    .tools{display:grid; gap:16px}
-    @media(min-width:900px){ .tools{grid-template-columns:repeat(3,1fr)} }
-    .card{display:flex; flex-direction:column; gap:10px}
-    .card h3{margin:0; font-size:16px}
-    .card p{margin:0; color:var(--muted); font-size:14px; min-height:40px}
-    .card .actions{display:flex; gap:8px; flex-wrap:wrap; margin-top:auto}
-    .hr{height:1px; background:#223047; margin:12px 0}
-    footer{color:var(--muted); font-size:12px; margin-top:18px}
-    .hidden{display:none}
+    .nav-brand {
+      display: flex; align-items: center; gap: 9px;
+      flex-shrink: 0; user-select: none;
+    }
+    .nav-icon {
+      width: 30px; height: 30px; border-radius: 7px; flex-shrink: 0;
+      background: linear-gradient(145deg, #2979ff, #1565c0);
+      display: grid; place-items: center; font-size: 15px;
+      box-shadow: 0 2px 6px rgba(41,121,255,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    .nav-wordmark {
+      font-size: 15px; font-weight: 700; letter-spacing: -0.4px; color: #1c1c1e;
+    }
+
+    .nav-search-wrap {
+      flex: 1; max-width: 320px; margin-left: auto;
+      position: relative;
+    }
+    .nav-search-wrap svg {
+      position: absolute; left: 10px; top: 50%;
+      transform: translateY(-50%); pointer-events: none; color: #aeaeb2;
+    }
+    .nav-search {
+      width: 100%;
+      background: rgba(118,118,128,0.12);
+      border: 1px solid transparent;
+      border-radius: 10px;
+      padding: 7px 10px 7px 30px;
+      font-size: 14px; font-family: inherit;
+      color: #1c1c1e; outline: none;
+      transition: background .15s, border-color .15s, box-shadow .15s;
+      -webkit-appearance: none;
+    }
+    .nav-search::placeholder { color: #aeaeb2; }
+    .nav-search:focus {
+      background: rgba(255,255,255,0.9);
+      border-color: rgba(41,121,255,0.45);
+      box-shadow: 0 0 0 3px rgba(41,121,255,0.14);
+    }
+
+    /* ── Hero ─────────────────────────────────────── */
+    .hero {
+      padding: 56px 24px 36px;
+      text-align: center;
+      max-width: 640px; margin: 0 auto;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(52,199,89,0.12); border: 1px solid rgba(52,199,89,0.25);
+      border-radius: 999px; padding: 4px 12px;
+      font-size: 12px; font-weight: 600; color: #248a3d;
+      margin-bottom: 18px;
+    }
+    .hero-dot { width: 6px; height: 6px; border-radius: 50%; background: #34c759; animation: pulse 2.5s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.55;transform:scale(.8)} }
+    .hero h1 {
+      font-size: clamp(36px, 5vw, 52px);
+      font-weight: 800; letter-spacing: -1.5px;
+      line-height: 1.08;
+      background: linear-gradient(135deg, #1c1c1e 0%, #2979ff 60%, #7c3aed 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px;
+    }
+    .hero p {
+      font-size: 17px; color: #6e6e73;
+      line-height: 1.55; max-width: 400px; margin: 0 auto 20px;
+    }
+    .hero-meta {
+      display: flex; justify-content: center; align-items: center; gap: 16px;
+      font-size: 13px; color: #aeaeb2;
+    }
+    .hero-meta span { display: flex; align-items: center; gap: 5px; }
+
+    /* ── Category Tabs ────────────────────────────── */
+    .tabs-wrap {
+      position: sticky; top: 52px; z-index: 100;
+      background: rgba(242,242,247,0.82);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border-bottom: 1px solid rgba(0,0,0,0.07);
+    }
+    .tabs {
+      display: flex; align-items: center; gap: 4px;
+      padding: 10px 24px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab {
+      display: flex; align-items: center; gap: 5px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 13px; font-weight: 500;
+      color: #6e6e73; cursor: pointer; user-select: none;
+      border: none; background: transparent; font-family: inherit;
+      white-space: nowrap;
+      transition: background .14s, color .14s;
+    }
+    .tab:hover { background: rgba(0,0,0,0.06); color: #1c1c1e; }
+    .tab.active {
+      background: #1c1c1e; color: #fff;
+    }
+    .tab-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .tab-count {
+      font-size: 11px; font-weight: 600; opacity: .65;
+      background: rgba(255,255,255,0.18); border-radius: 999px; padding: 1px 6px;
+    }
+    .tab:not(.active) .tab-count { background: rgba(0,0,0,0.07); color: #6e6e73; }
+
+    /* ── Content ──────────────────────────────────── */
+    .content { max-width: 1120px; margin: 0 auto; padding: 28px 24px 64px; }
+
+    /* ── Tool Cards Grid ──────────────────────────── */
+    .grid {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(3, 1fr);
+    }
+    @media (max-width: 1000px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 620px)  { .grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: rgba(255,255,255,0.82);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.9);
+      border-radius: 18px;
+      padding: 22px;
+      display: flex; flex-direction: column; gap: 10px;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.07);
+      transition: transform .2s ease, box-shadow .2s ease;
+      cursor: default;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 1px 1px rgba(0,0,0,0.04), 0 10px 32px rgba(0,0,0,0.11), var(--glow, none);
+    }
+
+    /* Category accents */
+    .card[data-cat="legal"]     { --glow: 0 6px 24px rgba(41,121,255,0.14); }
+    .card[data-cat="corporate"] { --glow: 0 6px 24px rgba(124,58,237,0.14); }
+    .card[data-cat="text"]      { --glow: 0 6px 24px rgba(13,148,136,0.14); }
+    .card[data-cat="math"]      { --glow: 0 6px 24px rgba(234,88,12,0.14);  }
+    .card[data-cat="script"]    { --glow: 0 6px 24px rgba(22,163,74,0.14);  }
+
+    .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+    .card-icon {
+      width: 48px; height: 48px; border-radius: 12px; flex-shrink: 0;
+      display: grid; place-items: center; font-size: 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.7);
+    }
+    .card[data-cat="legal"]     .card-icon { background: linear-gradient(145deg, #e0edff, #c7dcff); }
+    .card[data-cat="corporate"] .card-icon { background: linear-gradient(145deg, #ede9fe, #ddd6fe); }
+    .card[data-cat="text"]      .card-icon { background: linear-gradient(145deg, #ccfbf1, #a7f3d0); }
+    .card[data-cat="math"]      .card-icon { background: linear-gradient(145deg, #fef3c7, #fed7aa); }
+    .card[data-cat="script"]    .card-icon { background: linear-gradient(145deg, #dcfce7, #bbf7d0); }
+
+    .card-badge {
+      display: inline-flex; align-items: center;
+      padding: 3px 9px; border-radius: 999px;
+      font-size: 11px; font-weight: 600; letter-spacing: .1px;
+    }
+    .badge-new     { background: rgba(52,199,89,0.13);  color: #1a7a35; border: 1px solid rgba(52,199,89,.22); }
+    .badge-updated { background: rgba(99,102,241,0.13); color: #4338ca; border: 1px solid rgba(99,102,241,.22); }
+
+    .card-title {
+      font-size: 15px; font-weight: 700; letter-spacing: -.3px;
+      line-height: 1.25; color: #1c1c1e;
+    }
+    .card-sub {
+      font-size: 12px; color: #aeaeb2; font-weight: 500;
+      letter-spacing: .1px; text-transform: uppercase;
+      margin-top: -4px;
+    }
+    .card-desc {
+      font-size: 13px; color: #6e6e73; line-height: 1.6;
+      flex: 1;
+    }
+
+    .card-actions {
+      display: flex; gap: 7px; flex-wrap: wrap;
+      margin-top: 6px; padding-top: 10px;
+      border-top: 1px solid rgba(0,0,0,0.06);
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 7px 14px; border-radius: 9px;
+      font-size: 13px; font-weight: 500; font-family: inherit;
+      cursor: pointer; border: none;
+      transition: all .14s; white-space: nowrap;
+    }
+    .btn-open {
+      background: #2979ff; color: #fff;
+      box-shadow: 0 1px 4px rgba(41,121,255,.38), inset 0 1px 0 rgba(255,255,255,.18);
+    }
+    .btn-open:hover { background: #1c6ef3; box-shadow: 0 3px 10px rgba(41,121,255,.45); }
+    .btn-source {
+      background: rgba(0,0,0,0.055); color: #3c3c43;
+      border: 1px solid rgba(0,0,0,0.1);
+    }
+    .btn-source:hover { background: rgba(0,0,0,0.09); }
+    .btn-copy { background: transparent; color: #2979ff; padding: 7px 10px; }
+    .btn-copy:hover { background: rgba(41,121,255,0.09); border-radius: 9px; }
+
+    /* ── Empty state ──────────────────────────────── */
+    #empty {
+      display: none; text-align: center; padding: 64px 24px;
+      color: #aeaeb2; font-size: 15px;
+    }
+    #empty .empty-icon { font-size: 40px; margin-bottom: 12px; }
+
+    /* ── Divider ──────────────────────────────────── */
+    .section-head {
+      display: flex; align-items: center; gap: 12px;
+      margin: 40px 0 16px;
+    }
+    .section-head-label {
+      font-size: 12px; font-weight: 700; color: #aeaeb2;
+      text-transform: uppercase; letter-spacing: .8px; white-space: nowrap;
+    }
+    .section-head-line { flex: 1; height: 1px; background: rgba(0,0,0,0.08); }
+
+    /* ── Changelog ────────────────────────────────── */
+    .changelog {
+      background: rgba(255,255,255,0.82);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.9);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06);
+    }
+    .cl-item {
+      display: grid; grid-template-columns: 84px 1fr;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    .cl-item:last-child { border-bottom: none; }
+    .cl-date {
+      padding: 14px 16px;
+      font-size: 12px; font-weight: 700; color: #aeaeb2;
+      letter-spacing: .2px; border-right: 1px solid rgba(0,0,0,0.05);
+      display: flex; align-items: center;
+    }
+    .cl-text {
+      padding: 14px 18px;
+      font-size: 13px; color: #3c3c43; line-height: 1.55;
+      display: flex; align-items: center;
+    }
+
+    /* ── Footer ───────────────────────────────────── */
+    .footer {
+      text-align: center; margin-top: 36px;
+      font-size: 12px; color: #c7c7cc; padding-bottom: 4px;
+    }
+
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <div class="logo">⚖️</div>
-      <div class="title">
-        <h1>JuraTools</h1>
-        <p>Personal legal & text utilities by Kornrawee Chanchom</p>
-      </div>
-    </header>
 
-    <section class="panel hero">
-      <div class="grid grid-2">
-        <div>
-          <div class="chips" style="margin-bottom:8px">
-            <span class="chip status new">New</span>
-            <span class="chip">Clear-days</span>
-            <span class="chip">CCC</span>
-            <span class="chip">Browser-only</span>
-          </div>
-          <div class="muted small">Tip: type “clear”, “GM”, “subtitle”, “Thai”, “vote”, “certificate”, or “CCC” to filter tools.</div>
+  <!-- ── Navigation ── -->
+  <nav class="nav">
+    <div class="nav-brand">
+      <div class="nav-icon">⚖️</div>
+      <span class="nav-wordmark">JuraTools</span>
+    </div>
+    <div class="nav-search-wrap">
+      <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round">
+        <circle cx="9" cy="9" r="6.5"/><line x1="14" y1="14" x2="19" y2="19"/>
+      </svg>
+      <input id="search" class="nav-search" type="search" placeholder="Search tools…" autocomplete="off" spellcheck="false" />
+    </div>
+  </nav>
+
+  <!-- ── Hero ── -->
+  <div class="hero">
+    <div class="hero-badge">
+      <span class="hero-dot"></span> All tools run in your browser
+    </div>
+    <h1>Your legal toolkit,<br>in the browser.</h1>
+    <p>A personal collection of utilities for Thai law practice — deadlines, dates, corporate filings, and more.</p>
+    <div class="hero-meta">
+      <span>⚖️ by Kornrawee Chanchom</span>
+      <span style="color:#d1d1d6">·</span>
+      <span>🔒 No data sent anywhere</span>
+      <span style="color:#d1d1d6">·</span>
+      <span>📦 9 tools</span>
+    </div>
+  </div>
+
+  <!-- ── Category Tabs ── -->
+  <div class="tabs-wrap">
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-filter="" role="tab" aria-selected="true">
+        All <span class="tab-count" id="tab-count">9</span>
+      </button>
+      <button class="tab" data-filter="legal" role="tab">
+        <span class="tab-dot" style="background:linear-gradient(135deg,#2979ff,#64b5f6)"></span>
+        Legal / Dates
+      </button>
+      <button class="tab" data-filter="corporate" role="tab">
+        <span class="tab-dot" style="background:linear-gradient(135deg,#7c3aed,#a78bfa)"></span>
+        Corporate
+      </button>
+      <button class="tab" data-filter="text" role="tab">
+        <span class="tab-dot" style="background:linear-gradient(135deg,#0d9488,#34d399)"></span>
+        Text Utility
+      </button>
+      <button class="tab" data-filter="math" role="tab">
+        <span class="tab-dot" style="background:linear-gradient(135deg,#ea580c,#fbbf24)"></span>
+        Math
+      </button>
+      <button class="tab" data-filter="script" role="tab">
+        <span class="tab-dot" style="background:linear-gradient(135deg,#16a34a,#4ade80)"></span>
+        Scripts
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Main Content ── -->
+  <div class="content">
+    <div id="grid" class="grid">
+
+      <!-- Legal / Dates cards -->
+      <article class="card" data-cat="legal" data-tags="gm notice registration ccc clear-days shareholders meeting s.1175 corporate">
+        <div class="card-head">
+          <div class="card-icon">📣</div>
+          <span class="card-badge badge-new">New</span>
         </div>
-        <div class="search">
-          <input id="filter" type="search" placeholder="Search tools…" aria-label="Search tools" />
-          <button class="btn ghost" id="reset">Reset</button>
+        <div class="card-sub">Legal / Dates</div>
+        <h3 class="card-title">GM Notice & Registration</h3>
+        <p class="card-desc">Compute earliest GM or latest notice using 7/14 clear-days under CCC s.1175. Includes BOD ordering checks, 14-day registration deadline, and <code>.ics</code> export.</p>
+        <div class="card-actions">
+          <a class="btn btn-open" href="gm-ccc.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/gm-ccc.html" target="_blank" rel="noopener">Source</a>
+          <button class="btn btn-copy" data-copy="gm-ccc.html">Copy link</button>
         </div>
-      </div>
-    </section>
+      </article>
 
-    <section class="section">
-      <h2>Tools</h2>
-      <div id="tools" class="tools">
-
-        <!-- 1) THAI TEXT LINE FORMATTER -->
-        <article class="panel card" data-tags="thai line break formatter legal text word segmentation pythainlp contract regulation drafting wrap reflow paragraphs">
-          <div class="chips">
-            <span class="chip status new">New</span>
-            <span class="chip">Text Utility</span>
-          </div>
-          <h3>Thai Text Line Formatter</h3>
-          <p>Inserts clean line breaks into Thai text using proper Thai word boundaries (no mid-word splits). Useful for legal drafts, contracts, and regulations where controlled line length improves readability.</p>
-          <div class="actions">
-            <a class="btn" href="thai-linebreak.html">Open</a>
-            <a class="btn ghost" href="https://github.com/ninenine007/JuraTools/blob/main/thai-linebreak.html" target="_blank" rel="noopener">View source</a>
-            <button class="btn blue" data-copy="thai-linebreak.html">Copy link</button>
-          </div>
-        </article>
-
-        <!-- 2) SHAREHOLDER VOTING SIMULATOR -->
-        <article class="panel card" data-tags="shareholder voting simulator meeting resolution majority two thirds three quarters 2/3 3/4 company corporate shares vote for against abstain ccc">
-          <div class="chips">
-            <span class="chip status new">New</span>
-            <span class="chip">Corporate / Voting</span>
-          </div>
-          <h3>Shareholder Voting Simulator</h3>
-          <p>Simulate voting outcomes across all allowed vote combinations per shareholder. Calculates “For” votes and checks pass/fail for majority (&gt;50%), 2/3, and 3/4 thresholds.</p>
-          <div class="actions">
-            <a class="btn" href="shareholder-voting-simulator.html">Open</a>
-            <a class="btn ghost" href="https://github.com/ninenine007/JuraTools/blob/main/shareholder-voting-simulator.html" target="_blank" rel="noopener">View source</a>
-            <button class="btn blue" data-copy="shareholder-voting-simulator.html">Copy link</button>
-          </div>
-        </article>
-
-        <!-- 3) SHARE CERTIFICATE CALCULATOR -->
-        <article class="panel card" data-tags="share certificate calculator register numbering start end shareholder shares corporate company cap table allotment cert. cert certificate register">
-          <div class="chips">
-            <span class="chip status new">New</span>
-            <span class="chip">Corporate / Registers</span>
-          </div>
-          <h3>Share Certificate Calculator</h3>
-          <p>Manage shareholders, reorder the list, and generate certificate start/end ranges automatically based on share counts. Includes copy-to-clipboard for the certificate register table.</p>
-          <div class="actions">
-            <a class="btn" href="share-certificate-calculator.html">Open</a>
-            <a class="btn ghost" href="https://github.com/ninenine007/JuraTools/blob/main/share-certificate-calculator.html" target="_blank" rel="noopener">View source</a>
-            <button class="btn blue" data-copy="share-certificate-calculator.html">Copy link</button>
-          </div>
-        </article>
-
-        <!-- 4) PERCENTAGE CALCULATORS -->
-        <article class="panel card" data-tags="percentage percent calculator math increase decrease percent-of base value discount markup vat finance utility">
-          <div class="chips">
-            <span class="chip status new">New</span>
-            <span class="chip">Math Utility</span>
-          </div>
-          <h3>Percentage Calculators</h3>
-          <p>Two simple tools for everyday % math. 
-          <strong>Percentage change:</strong> start value ± % = new value (solve any one). 
-          <strong>Basic %:</strong> “X is P% of Y” (solve X, P, or Y). Great for discounts, markups, VAT, and quick comparisons. Highlights the field it calculates.</p>
-          <div class="actions">
-            <a class="btn" href="percentage-calculator.html">Open</a>
-            <a class="btn ghost" href="https://github.com/ninenine007/JuraTools/blob/main/percentage-calculator.html" target="_blank" rel="noopener">View source</a>
-            <button class="btn blue" data-copy="percentage-calculator.html">Copy link</button>
-          </div>
-        </article>
-
-        <!-- 5) GM NOTICE -->
-        <article class="panel card" data-tags="gm notice registration ccc clear-days shareholders meeting s.1175 corporate">
-          <div class="chips">
-            <span class="chip status new">New</span>
-            <span class="chip">Legal / Dates</span>
-          </div>
-          <h3>GM Notice & Registration (CCC s.1175)</h3>
-          <p>Compute earliest GM or latest notice using <strong>7/14 clear-days</strong>, enforce BOD → notice ordering, and get the <strong>14-day registration</strong> deadline. Includes manual adjustments, printable timeline, and <code>.ics</code> export.</p>
-          <div class="actions">
-            <a class="btn" href="gm-ccc.html">Open</a>
-            <a class="btn ghost" href="https://github.com/ninenine007/JuraTools/blob/main/gm-ccc.html" target="_blank" rel="noopener">View source</a>
-            <button class="btn blue" data-copy="gm-ccc.html">Copy link</button>
-          </div>
-        </article>
-
-        <!-- 6) CCC DATETIME -->
-        <article class="panel card" data-tags="ccc civil commercial code date calculator days months years forward backward thailand">
-          <div class="chips">
-            <span class="chip status upd">Updated</span>
-            <span class="chip">Legal / Dates</span>
-          </div>
-          <h3>CCC Date & Time Calculator</h3>
-          <p>General CCC-style date math: forward/backward counting in calendar days with options for ordinary vs special rules. Good for quick deadline simulations.</p>
-          <div class="actions">
-            <a class="btn" href="CCC-datetime-calculator.html">Open</a>
-            <a class="btn ghost" href="https://github.com/ninenine007/JuraTools/blob/main/CCC-datetime-calculator.html" target="_blank" rel="noopener">View source</a>
-            <button class="btn blue" data-copy="CCC-datetime-calculator.html">Copy link</button>
-          </div>
-        </article>
-
-        <!-- 7) CLEAR-DAYS -->
-        <article class="panel card" data-tags="clear-days deadline calculator cpr 2.8 litigation manual move back">
-          <div class="chips">
-            <span class="chip">Legal / Dates</span>
-          </div>
-          <h3>Clear-Days Deadline Calculator</h3>
-          <p>Counts <em>clear days</em> (exclude start and event day). Shows earliest/latest anchors and supports manual “move-back” adjustments with a calendar view.</p>
-          <div class="actions">
-            <a class="btn" href="clear-days.html">Open</a>
-            <a class="btn ghost" href="https://github.com/ninenine007/JuraTools/blob/main/clear-days.html" target="_blank" rel="noopener">View source</a>
-            <button class="btn blue" data-copy="clear-days.html">Copy link</button>
-          </div>
-        </article>
-
-        <!-- 8) SUBTITLE TOOL -->
-        <article class="panel card" data-tags="subtitle paragraphs text convert srt vtt captions">
-          <div class="chips">
-            <span class="chip">Text Utility</span>
-          </div>
-          <h3>Subtitle Paragraph Converter</h3>
-          <p>Browser-based tool to convert subtitle blocks into readable paragraphs for drafting and review workflows.</p>
-          <div class="actions">
-            <a class="btn" href="subtitle-tool.html">Open</a>
-            <a class="btn ghost" href="https://github.com/ninenine007/JuraTools/blob/main/subtitle-tool.html" target="_blank" rel="noopener">View source</a>
-            <button class="btn blue" data-copy="subtitle-tool.html">Copy link</button>
-          </div>
-        </article>
-
-        <!-- 9) PYTHON SCRIPT LINK -->
-        <article class="panel card" data-tags="python script research paragraphs srv">
-          <div class="chips">
-            <span class="chip">Script</span>
-          </div>
-          <h3>srv-to-paragraphs (Python)</h3>
-          <p>Small helper script for turning SRV content into paragraph form. Run locally in your own environment.</p>
-          <div class="actions">
-            <a class="btn ghost" href="https://github.com/ninenine007/JuraTools/tree/main/tools/srv-to-paragraphs" target="_blank" rel="noopener">View on GitHub</a>
-            <button class="btn blue" data-copy="https://github.com/ninenine007/JuraTools/tree/main/tools/srv-to-paragraphs">Copy link</button>
-          </div>
-        </article>
-
-      </div>
-    </section>
-
-    <div class="hr"></div>
-
-    <section class="panel">
-      <h2>Changelog</h2>
-      <ul class="small muted">
-        <li><strong>Dec 2025</strong> — Added <em>Thai Legal Text Line Formatter</em> (backend-powered) for word-safe line breaks in Thai drafting.</li>
-        <li><strong>Dec 2025</strong> — Added <em>Shareholder Voting Simulator</em> for majority / 2⁄3 / 3⁄4 scenario testing.</li>
-        <li><strong>Dec 2025</strong> — Added <em>Share Certificate Calculator</em> for generating certificate ranges and register tables.</li>
-        <li><strong>Aug 2025</strong> — Added <em>GM Notice & Registration (CCC s.1175)</em> with BOD ordering checks and conflict banner.</li>
-        <li><strong>Aug 2025</strong> — Published <em>CCC Date & Time Calculator</em>.</li>
-        <li><strong>Aug 2025</strong> — Refined <em>Clear-Days Deadline Calculator</em> with manual move-back and calendar view.</li>
-        <li><strong>Jul 2025</strong> — Subtitle Paragraph Converter released.</li>
-      </ul>
-    </section>
-
-    <footer>
-      <div class="grid grid-2" style="margin-top:10px">
-        <div>© 2025 Kornrawee Chanchom — JuraTools</div>
-        <div class="small muted" style="text-align:right">
-          Built for browser use. No data leaves your device. Hosted on GitHub Pages.
+      <article class="card" data-cat="legal" data-tags="ccc civil commercial code date calculator days months years forward backward thailand">
+        <div class="card-head">
+          <div class="card-icon">📆</div>
+          <span class="card-badge badge-updated">Updated</span>
         </div>
+        <div class="card-sub">Legal / Dates</div>
+        <h3 class="card-title">CCC Date & Time Calculator</h3>
+        <p class="card-desc">CCC-style date math with forward/backward counting, ordinary vs special rules. Quick deadline simulations under the Civil and Commercial Code.</p>
+        <div class="card-actions">
+          <a class="btn btn-open" href="CCC-datetime-calculator.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/CCC-datetime-calculator.html" target="_blank" rel="noopener">Source</a>
+          <button class="btn btn-copy" data-copy="CCC-datetime-calculator.html">Copy link</button>
+        </div>
+      </article>
+
+      <article class="card" data-cat="legal" data-tags="clear-days deadline calculator cpr 2.8 litigation manual move back">
+        <div class="card-head">
+          <div class="card-icon">🗓️</div>
+        </div>
+        <div class="card-sub">Legal / Dates</div>
+        <h3 class="card-title">Clear-Days Deadline Calculator</h3>
+        <p class="card-desc">Counts clear days (excluding start and event day). Shows earliest/latest anchors with manual move-back adjustments and a visual calendar.</p>
+        <div class="card-actions">
+          <a class="btn btn-open" href="clear-days.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/clear-days.html" target="_blank" rel="noopener">Source</a>
+          <button class="btn btn-copy" data-copy="clear-days.html">Copy link</button>
+        </div>
+      </article>
+
+      <!-- Corporate cards -->
+      <article class="card" data-cat="corporate" data-tags="shareholder voting simulator meeting resolution majority two thirds three quarters 2/3 3/4 company shares vote">
+        <div class="card-head">
+          <div class="card-icon">🗳️</div>
+          <span class="card-badge badge-new">New</span>
+        </div>
+        <div class="card-sub">Corporate / Voting</div>
+        <h3 class="card-title">Shareholder Voting Simulator</h3>
+        <p class="card-desc">Simulate voting outcomes across all combinations per shareholder. Checks pass/fail for majority (&gt;50%), two-thirds, and three-quarters thresholds.</p>
+        <div class="card-actions">
+          <a class="btn btn-open" href="shareholder-voting-simulator.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/shareholder-voting-simulator.html" target="_blank" rel="noopener">Source</a>
+          <button class="btn btn-copy" data-copy="shareholder-voting-simulator.html">Copy link</button>
+        </div>
+      </article>
+
+      <article class="card" data-cat="corporate" data-tags="share certificate calculator register numbering shareholder shares company cap table allotment cert">
+        <div class="card-head">
+          <div class="card-icon">📜</div>
+          <span class="card-badge badge-new">New</span>
+        </div>
+        <div class="card-sub">Corporate / Registers</div>
+        <h3 class="card-title">Share Certificate Calculator</h3>
+        <p class="card-desc">Manage shareholders and auto-generate certificate start/end ranges from share counts. One-click copy of the full register table.</p>
+        <div class="card-actions">
+          <a class="btn btn-open" href="share-certificate-calculator.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/share-certificate-calculator.html" target="_blank" rel="noopener">Source</a>
+          <button class="btn btn-copy" data-copy="share-certificate-calculator.html">Copy link</button>
+        </div>
+      </article>
+
+      <!-- Text cards -->
+      <article class="card" data-cat="text" data-tags="thai line break formatter legal text word segmentation pythainlp contract regulation drafting">
+        <div class="card-head">
+          <div class="card-icon">🇹🇭</div>
+          <span class="card-badge badge-new">New</span>
+        </div>
+        <div class="card-sub">Text Utility</div>
+        <h3 class="card-title">Thai Text Line Formatter</h3>
+        <p class="card-desc">Inserts clean line breaks using proper Thai word boundaries — no mid-word splits. Ideal for legal drafts, contracts, and regulations.</p>
+        <div class="card-actions">
+          <a class="btn btn-open" href="thai-linebreak.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/thai-linebreak.html" target="_blank" rel="noopener">Source</a>
+          <button class="btn btn-copy" data-copy="thai-linebreak.html">Copy link</button>
+        </div>
+      </article>
+
+      <article class="card" data-cat="text" data-tags="subtitle paragraphs text convert srt vtt captions">
+        <div class="card-head">
+          <div class="card-icon">💬</div>
+        </div>
+        <div class="card-sub">Text Utility</div>
+        <h3 class="card-title">Subtitle Paragraph Converter</h3>
+        <p class="card-desc">Converts SRT/VTT subtitle blocks into clean, readable paragraphs ready for drafting and review workflows.</p>
+        <div class="card-actions">
+          <a class="btn btn-open" href="subtitle-tool.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/subtitle-tool.html" target="_blank" rel="noopener">Source</a>
+          <button class="btn btn-copy" data-copy="subtitle-tool.html">Copy link</button>
+        </div>
+      </article>
+
+      <!-- Math card -->
+      <article class="card" data-cat="math" data-tags="percentage percent calculator math increase decrease percent-of base value discount markup vat finance">
+        <div class="card-head">
+          <div class="card-icon">🧮</div>
+          <span class="card-badge badge-new">New</span>
+        </div>
+        <div class="card-sub">Math Utility</div>
+        <h3 class="card-title">Percentage Calculators</h3>
+        <p class="card-desc">Two tools: percentage change (start ± % → result, solve any variable) and basic percent (X is P% of Y). Great for VAT, discounts, and markups.</p>
+        <div class="card-actions">
+          <a class="btn btn-open" href="percentage-calculator.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/percentage-calculator.html" target="_blank" rel="noopener">Source</a>
+          <button class="btn btn-copy" data-copy="percentage-calculator.html">Copy link</button>
+        </div>
+      </article>
+
+      <!-- Script card -->
+      <article class="card" data-cat="script" data-tags="python script research paragraphs srv">
+        <div class="card-head">
+          <div class="card-icon">🐍</div>
+        </div>
+        <div class="card-sub">Script</div>
+        <h3 class="card-title">srv-to-paragraphs</h3>
+        <p class="card-desc">Python helper script for turning SRV content into paragraph form. Run locally — no setup beyond Python itself.</p>
+        <div class="card-actions">
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/tree/main/tools/srv-to-paragraphs" target="_blank" rel="noopener">View on GitHub</a>
+          <button class="btn btn-copy" data-copy="https://github.com/ninenine007/JuraTools/tree/main/tools/srv-to-paragraphs">Copy link</button>
+        </div>
+      </article>
+
+    </div>
+
+    <!-- Empty state -->
+    <div id="empty">
+      <div class="empty-icon">🔍</div>
+      No tools match your search.
+    </div>
+
+    <!-- Changelog -->
+    <div class="section-head">
+      <span class="section-head-label">Changelog</span>
+      <div class="section-head-line"></div>
+    </div>
+    <div class="changelog">
+      <div class="cl-item">
+        <span class="cl-date">Dec 2025</span>
+        <span class="cl-text">Added <strong>Thai Legal Text Line Formatter</strong> — word-safe line breaks for Thai drafting.</span>
       </div>
-    </footer>
+      <div class="cl-item">
+        <span class="cl-date">Dec 2025</span>
+        <span class="cl-text">Added <strong>Shareholder Voting Simulator</strong> for majority / ⅔ / ¾ scenario testing.</span>
+      </div>
+      <div class="cl-item">
+        <span class="cl-date">Dec 2025</span>
+        <span class="cl-text">Added <strong>Share Certificate Calculator</strong> with certificate range generation.</span>
+      </div>
+      <div class="cl-item">
+        <span class="cl-date">Aug 2025</span>
+        <span class="cl-text">Added <strong>GM Notice & Registration (CCC s.1175)</strong> with BOD ordering and conflict checks.</span>
+      </div>
+      <div class="cl-item">
+        <span class="cl-date">Aug 2025</span>
+        <span class="cl-text">Published <strong>CCC Date & Time Calculator</strong>.</span>
+      </div>
+      <div class="cl-item">
+        <span class="cl-date">Aug 2025</span>
+        <span class="cl-text">Refined <strong>Clear-Days Deadline Calculator</strong> with calendar view and move-back adjustments.</span>
+      </div>
+      <div class="cl-item">
+        <span class="cl-date">Jul 2025</span>
+        <span class="cl-text"><strong>Subtitle Paragraph Converter</strong> released.</span>
+      </div>
+    </div>
+
+    <div class="footer">
+      © 2025 Kornrawee Chanchom &nbsp;—&nbsp; JuraTools
+    </div>
   </div>
 
   <script>
-    // Simple filter + copy-link
-    const filter = document.getElementById('filter');
-    const reset = document.getElementById('reset');
-    const cards = [...document.querySelectorAll('#tools .card')];
+    const searchEl = document.getElementById('search');
+    const cards    = [...document.querySelectorAll('#grid .card')];
+    const tabs     = [...document.querySelectorAll('.tab')];
+    const tabCount = document.getElementById('tab-count');
+    const empty    = document.getElementById('empty');
 
-    function applyFilter() {
-      const q = filter.value.trim().toLowerCase();
+    let activeFilter = '';
+    let searchQuery  = '';
+
+    function render() {
+      let n = 0;
       cards.forEach(card => {
-        const hay = (card.innerText + ' ' + (card.dataset.tags||'')).toLowerCase();
-        card.classList.toggle('hidden', q && !hay.includes(q));
+        const hay = (card.innerText + ' ' + (card.dataset.tags || '') + ' ' + (card.dataset.cat || '')).toLowerCase();
+        const matchSearch = !searchQuery  || hay.includes(searchQuery);
+        const matchFilter = !activeFilter || card.dataset.cat === activeFilter;
+        const show = matchSearch && matchFilter;
+        card.classList.toggle('hidden', !show);
+        if (show) n++;
       });
+      tabCount.textContent = n;
+      empty.style.display = n === 0 ? 'block' : 'none';
     }
-    filter.addEventListener('input', applyFilter);
-    reset.addEventListener('click', () => { filter.value=''; applyFilter(); });
 
-    document.querySelectorAll('[data-copy]').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
+    searchEl.addEventListener('input', () => {
+      searchQuery = searchEl.value.trim().toLowerCase();
+      render();
+    });
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+        tab.classList.add('active');
+        tab.setAttribute('aria-selected', 'true');
+        activeFilter = tab.dataset.filter || '';
+        render();
+      });
+    });
+
+    document.querySelectorAll('[data-copy]').forEach(btn => {
+      btn.addEventListener('click', () => {
         const url = new URL(btn.getAttribute('data-copy'), location.href).href;
-        navigator.clipboard.writeText(url).then(()=>{
-          btn.textContent = 'Copied!';
-          setTimeout(()=>btn.textContent='Copy link', 1200);
+        navigator.clipboard.writeText(url).then(() => {
+          const orig = btn.textContent;
+          btn.textContent = '✓ Copied';
+          setTimeout(() => btn.textContent = orig, 1300);
         });
       });
     });
