@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Paste Sanitizer — JuraTools</title>
+  <meta name="description" content="Strip formatting from pasted text instantly. No data sent anywhere." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      color: #1c1c1e;
+      min-height: 100vh;
+      background: #f2f2f7;
+      background-image:
+        radial-gradient(ellipse 1100px 700px at 10% 0%,   rgba(167,243,208,0.4)   0%, transparent 60%),
+        radial-gradient(ellipse  700px 700px at 95% 10%,  rgba(167,243,208,0.3)   0%, transparent 55%),
+        radial-gradient(ellipse  800px 600px at 0%  90%,  rgba(194,221,255,0.3)   0%, transparent 55%),
+        radial-gradient(ellipse  900px 500px at 100% 95%, rgba(218,205,255,0.25)  0%, transparent 55%);
+    }
+
+    /* ── Nav ── */
+    .nav {
+      position: sticky; top: 0; z-index: 200;
+      height: 52px;
+      display: flex; align-items: center; gap: 12px;
+      padding: 0 24px;
+      background: rgba(242,242,247,0.82);
+      backdrop-filter: blur(24px) saturate(200%);
+      -webkit-backdrop-filter: blur(24px) saturate(200%);
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+    }
+    .nav-brand {
+      display: flex; align-items: center; gap: 9px;
+      text-decoration: none; color: inherit; flex-shrink: 0; user-select: none;
+    }
+    .nav-icon {
+      width: 30px; height: 30px; border-radius: 7px; flex-shrink: 0;
+      background: linear-gradient(145deg, #2979ff, #1565c0);
+      display: grid; place-items: center; font-size: 15px;
+      box-shadow: 0 2px 6px rgba(41,121,255,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    .nav-wordmark { font-size: 15px; font-weight: 700; letter-spacing: -0.4px; }
+    .nav-sep { color: #d1d1d6; font-size: 15px; }
+    .nav-title { font-size: 15px; font-weight: 500; color: #6e6e73; }
+    .nav-back {
+      margin-left: auto;
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 6px 12px; border-radius: 9px;
+      font-size: 13px; font-weight: 500; font-family: inherit;
+      background: rgba(0,0,0,0.055); color: #3c3c43;
+      border: 1px solid rgba(0,0,0,0.1); cursor: pointer; text-decoration: none;
+      transition: background .14s;
+    }
+    .nav-back:hover { background: rgba(0,0,0,0.09); }
+
+    /* ── Page layout ── */
+    .page { max-width: 900px; margin: 0 auto; padding: 36px 24px 64px; }
+
+    .page-header { margin-bottom: 28px; }
+    .page-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(13,148,136,0.10); border: 1px solid rgba(13,148,136,0.22);
+      border-radius: 999px; padding: 4px 12px;
+      font-size: 12px; font-weight: 600; color: #0d6e64;
+      margin-bottom: 14px;
+    }
+    .page-header h1 {
+      font-size: clamp(26px, 4vw, 36px);
+      font-weight: 800; letter-spacing: -1px; line-height: 1.1;
+      background: linear-gradient(135deg, #1c1c1e 0%, #0d9488 70%, #2979ff 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+    .page-header p { font-size: 15px; color: #6e6e73; line-height: 1.55; max-width: 560px; }
+
+    /* ── Cards ── */
+    .card {
+      background: rgba(255,255,255,0.82);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.9);
+      border-radius: 18px;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.07);
+    }
+
+    /* ── Drop zone ── */
+    .drop-zone {
+      padding: 20px;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+    }
+    .drop-zone-label {
+      font-size: 12px; font-weight: 700; color: #aeaeb2;
+      text-transform: uppercase; letter-spacing: .7px;
+      margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+    }
+    .drop-zone-label span { font-weight: 500; text-transform: none; letter-spacing: 0; font-size: 12px; color: #c7c7cc; }
+
+    .paste-area {
+      width: 100%; min-height: 180px;
+      border-radius: 12px;
+      border: 2px dashed rgba(13,148,136,0.3);
+      background: rgba(13,148,136,0.04);
+      padding: 16px;
+      font-size: 14px; font-family: inherit; color: #1c1c1e;
+      line-height: 1.6; resize: vertical; outline: none;
+      transition: border-color .15s, background .15s, box-shadow .15s;
+    }
+    .paste-area::placeholder { color: #c7c7cc; }
+    .paste-area:focus {
+      border-color: rgba(13,148,136,0.55);
+      background: rgba(13,148,136,0.06);
+      box-shadow: 0 0 0 3px rgba(13,148,136,0.12);
+    }
+    .paste-area.has-content {
+      border-style: solid;
+      border-color: rgba(13,148,136,0.3);
+      background: rgba(255,255,255,0.6);
+    }
+
+    /* ── Output ── */
+    .output-section { padding: 20px; }
+    .output-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .output-label {
+      font-size: 12px; font-weight: 700; color: #aeaeb2;
+      text-transform: uppercase; letter-spacing: .7px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .char-count {
+      font-size: 12px; color: #c7c7cc; font-weight: 400;
+      text-transform: none; letter-spacing: 0;
+    }
+    .output-box {
+      width: 100%; min-height: 180px;
+      border-radius: 12px;
+      border: 1px solid rgba(0,0,0,0.08);
+      background: rgba(248,248,248,0.8);
+      padding: 16px;
+      font-size: 14px; font-family: inherit; color: #1c1c1e;
+      line-height: 1.6; resize: vertical; outline: none;
+      white-space: pre-wrap; word-break: break-word;
+      cursor: text;
+    }
+    .output-box:empty::before {
+      content: "Clean text will appear here…";
+      color: #c7c7cc;
+      pointer-events: none;
+    }
+
+    /* ── Action bar ── */
+    .action-bar {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      padding: 14px 20px;
+      border-top: 1px solid rgba(0,0,0,0.06);
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 8px 16px; border-radius: 10px;
+      font-size: 13px; font-weight: 500; font-family: inherit;
+      cursor: pointer; border: none; transition: all .14s; white-space: nowrap;
+    }
+    .btn-primary {
+      background: #0d9488; color: #fff;
+      box-shadow: 0 1px 4px rgba(13,148,136,.38), inset 0 1px 0 rgba(255,255,255,.18);
+    }
+    .btn-primary:hover { background: #0c7a70; }
+    .btn-primary:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-secondary {
+      background: rgba(0,0,0,0.055); color: #3c3c43;
+      border: 1px solid rgba(0,0,0,0.1);
+    }
+    .btn-secondary:hover { background: rgba(0,0,0,0.09); }
+    .btn-danger {
+      background: rgba(255,59,48,0.09); color: #c0392b;
+      border: 1px solid rgba(255,59,48,0.18);
+    }
+    .btn-danger:hover { background: rgba(255,59,48,0.15); }
+
+    .btn-success {
+      background: rgba(52,199,89,0.12); color: #1a7a35;
+      border: 1px solid rgba(52,199,89,.22);
+    }
+
+    .spacer { flex: 1; }
+
+    /* ── Tip ── */
+    .tip {
+      margin-top: 16px;
+      background: rgba(255,255,255,0.6);
+      border: 1px solid rgba(255,255,255,0.9);
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 13px; color: #6e6e73; line-height: 1.6;
+    }
+    .tip strong { color: #3c3c43; }
+
+    /* ── Auto-paste feedback toast ── */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: #1c1c1e; color: #fff;
+      padding: 10px 20px; border-radius: 999px;
+      font-size: 13px; font-weight: 500;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+      transition: transform .25s cubic-bezier(.34,1.56,.64,1), opacity .25s;
+      opacity: 0; pointer-events: none; z-index: 999; white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav class="nav">
+    <a class="nav-brand" href="index.html">
+      <div class="nav-icon">⚖️</div>
+      <span class="nav-wordmark">JuraTools</span>
+    </a>
+    <span class="nav-sep">/</span>
+    <span class="nav-title">Paste Sanitizer</span>
+    <a class="nav-back" href="index.html">← All tools</a>
+  </nav>
+
+  <div class="page">
+
+    <!-- Header -->
+    <div class="page-header">
+      <div class="page-badge">🧹 Text Utility</div>
+      <h1>Paste Sanitizer</h1>
+      <p>Paste text copied from Word, Claude, PDFs, or any app — formatting is stripped instantly. Copy the clean plain text and paste it anywhere.</p>
+    </div>
+
+    <!-- Main card -->
+    <div class="card">
+
+      <!-- Input -->
+      <div class="drop-zone">
+        <div class="drop-zone-label">
+          Paste here
+          <span>⌘V or Ctrl+V — formatting is removed automatically</span>
+        </div>
+        <textarea
+          id="input"
+          class="paste-area"
+          placeholder="Click here and paste your text (⌘V)…"
+          spellcheck="false"
+          autocorrect="off"
+          autocomplete="off"
+        ></textarea>
+      </div>
+
+      <!-- Output -->
+      <div class="output-section">
+        <div class="output-header">
+          <div class="output-label">
+            Clean text
+            <span class="char-count" id="char-count"></span>
+          </div>
+        </div>
+        <div
+          id="output"
+          class="output-box"
+          contenteditable="true"
+          spellcheck="false"
+          autocorrect="off"
+        ></div>
+      </div>
+
+      <!-- Actions -->
+      <div class="action-bar">
+        <button class="btn btn-primary" id="copy-btn" disabled>Copy clean text</button>
+        <button class="btn btn-secondary" id="select-btn" disabled>Select all</button>
+        <div class="spacer"></div>
+        <button class="btn btn-danger" id="clear-btn">Clear</button>
+      </div>
+
+    </div>
+
+    <!-- Tip -->
+    <div class="tip">
+      <strong>How it works:</strong> When you paste, this tool reads only the plain-text version of your clipboard, discarding all HTML, RTF, and other formatting metadata. The output is editable — feel free to trim or adjust before copying.
+    </div>
+
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const inputEl   = document.getElementById('input');
+    const outputEl  = document.getElementById('output');
+    const copyBtn   = document.getElementById('copy-btn');
+    const selectBtn = document.getElementById('select-btn');
+    const clearBtn  = document.getElementById('clear-btn');
+    const charCount = document.getElementById('char-count');
+    const toast     = document.getElementById('toast');
+
+    let toastTimer;
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
+    function updateOutput(text) {
+      outputEl.textContent = text;
+      const n = text.length;
+      charCount.textContent = n > 0 ? `${n.toLocaleString()} chars` : '';
+      const hasText = n > 0;
+      copyBtn.disabled  = !hasText;
+      selectBtn.disabled = !hasText;
+    }
+
+    /* Intercept paste on the textarea — read plain text only */
+    inputEl.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const plain = e.clipboardData.getData('text/plain');
+      inputEl.value = plain;
+      inputEl.classList.add('has-content');
+      updateOutput(plain);
+    });
+
+    /* Also handle normal typing/editing in input */
+    inputEl.addEventListener('input', () => {
+      const plain = inputEl.value;
+      inputEl.classList.toggle('has-content', plain.length > 0);
+      updateOutput(plain);
+    });
+
+    copyBtn.addEventListener('click', () => {
+      const text = outputEl.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        const orig = copyBtn.textContent;
+        copyBtn.textContent = '✓ Copied!';
+        copyBtn.classList.add('btn-success');
+        copyBtn.classList.remove('btn-primary');
+        showToast('Clean text copied to clipboard');
+        setTimeout(() => {
+          copyBtn.textContent = orig;
+          copyBtn.classList.remove('btn-success');
+          copyBtn.classList.add('btn-primary');
+        }, 1400);
+      });
+    });
+
+    selectBtn.addEventListener('click', () => {
+      const range = document.createRange();
+      range.selectNodeContents(outputEl);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      outputEl.focus();
+    });
+
+    clearBtn.addEventListener('click', () => {
+      inputEl.value = '';
+      inputEl.classList.remove('has-content');
+      outputEl.textContent = '';
+      charCount.textContent = '';
+      copyBtn.disabled  = true;
+      selectBtn.disabled = true;
+    });
+
+    /* Focus input on page load */
+    inputEl.focus();
+  </script>
+</body>
+</html>
