@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Paste Sanitizer — JuraTools</title>
-  <meta name="description" content="Strip formatting from pasted text instantly. No data sent anywhere." />
+  <title>Text Sanitizer — JuraTools</title>
+  <meta name="description" content="Strip formatting and fix quotation marks from pasted text instantly. No data sent anywhere." />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
@@ -77,7 +77,7 @@
     }
     .page-header p { font-size: 15px; color: #6e6e73; line-height: 1.55; max-width: 560px; }
 
-    /* ── Cards ── */
+    /* ── Card ── */
     .card {
       background: rgba(255,255,255,0.82);
       backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
@@ -120,6 +120,42 @@
       background: rgba(255,255,255,0.6);
     }
 
+    /* ── Options bar ── */
+    .options-bar {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      padding: 12px 20px;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      background: rgba(0,0,0,0.015);
+    }
+    .options-label {
+      font-size: 12px; font-weight: 700; color: #aeaeb2;
+      text-transform: uppercase; letter-spacing: .7px;
+      flex-shrink: 0;
+    }
+    .toggle-btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 6px 14px; border-radius: 999px;
+      font-size: 13px; font-weight: 500; font-family: inherit;
+      cursor: pointer; border: 1px solid rgba(0,0,0,0.12);
+      background: rgba(0,0,0,0.04); color: #6e6e73;
+      transition: all .14s; user-select: none;
+    }
+    .toggle-btn:hover { background: rgba(0,0,0,0.08); color: #3c3c43; }
+    .toggle-btn.on {
+      background: rgba(13,148,136,0.12);
+      border-color: rgba(13,148,136,0.35);
+      color: #0d6e64;
+    }
+    .toggle-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: currentColor; opacity: 0.45; flex-shrink: 0;
+      transition: opacity .14s;
+    }
+    .toggle-btn.on .toggle-dot { opacity: 1; }
+    .toggle-example {
+      font-size: 11.5px; opacity: .6; letter-spacing: .2px;
+    }
+
     /* ── Output ── */
     .output-section { padding: 20px; }
     .output-header {
@@ -147,7 +183,7 @@
       cursor: text;
     }
     .output-box:empty::before {
-      content: "Clean text will appear here…";
+      content: "Clean text will appear here\2026";
       color: #c7c7cc;
       pointer-events: none;
     }
@@ -180,12 +216,10 @@
       border: 1px solid rgba(255,59,48,0.18);
     }
     .btn-danger:hover { background: rgba(255,59,48,0.15); }
-
     .btn-success {
       background: rgba(52,199,89,0.12); color: #1a7a35;
       border: 1px solid rgba(52,199,89,.22);
     }
-
     .spacer { flex: 1; }
 
     /* ── Tip ── */
@@ -198,8 +232,10 @@
       font-size: 13px; color: #6e6e73; line-height: 1.6;
     }
     .tip strong { color: #3c3c43; }
+    .tip ul { margin: 5px 0 0 16px; }
+    .tip li { margin-top: 3px; }
 
-    /* ── Auto-paste feedback toast ── */
+    /* ── Toast ── */
     .toast {
       position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
       background: #1c1c1e; color: #fff;
@@ -217,21 +253,21 @@
   <!-- Nav -->
   <nav class="nav">
     <a class="nav-brand" href="index.html">
-      <div class="nav-icon">⚖️</div>
+      <div class="nav-icon">&#x2696;&#xFE0F;</div>
       <span class="nav-wordmark">JuraTools</span>
     </a>
     <span class="nav-sep">/</span>
-    <span class="nav-title">Paste Sanitizer</span>
-    <a class="nav-back" href="index.html">← All tools</a>
+    <span class="nav-title">Text Sanitizer</span>
+    <a class="nav-back" href="index.html">&#x2190; All tools</a>
   </nav>
 
   <div class="page">
 
     <!-- Header -->
     <div class="page-header">
-      <div class="page-badge">🧹 Text Utility</div>
-      <h1>Paste Sanitizer</h1>
-      <p>Paste text copied from Word, Claude, PDFs, or any app — formatting is stripped instantly. Copy the clean plain text and paste it anywhere.</p>
+      <div class="page-badge">&#x1F9F9; Text Utility</div>
+      <h1>Text Sanitizer</h1>
+      <p>Paste text from Word, Claude, PDFs, or any app &#x2014; formatting is stripped instantly. Optionally convert straight quotes to curly quotes, then copy the clean text anywhere.</p>
     </div>
 
     <!-- Main card -->
@@ -241,16 +277,26 @@
       <div class="drop-zone">
         <div class="drop-zone-label">
           Paste here
-          <span>⌘V or Ctrl+V — formatting is removed automatically</span>
+          <span>&#x2318;V or Ctrl+V &#x2014; formatting is removed automatically</span>
         </div>
         <textarea
           id="input"
           class="paste-area"
-          placeholder="Click here and paste your text (⌘V)…"
+          placeholder="Click here and paste your text (&#x2318;V)&#x2026;"
           spellcheck="false"
           autocorrect="off"
           autocomplete="off"
         ></textarea>
+      </div>
+
+      <!-- Options -->
+      <div class="options-bar">
+        <span class="options-label">Options</span>
+        <button class="toggle-btn" id="curly-toggle">
+          <span class="toggle-dot"></span>
+          Curly quotes
+          <span class="toggle-example">&#x201C;hello&#x201D; &amp; &#x2018;world&#x2019;</span>
+        </button>
       </div>
 
       <!-- Output -->
@@ -282,7 +328,11 @@
 
     <!-- Tip -->
     <div class="tip">
-      <strong>How it works:</strong> When you paste, this tool reads only the plain-text version of your clipboard, discarding all HTML, RTF, and other formatting metadata. The output is editable — feel free to trim or adjust before copying.
+      <strong>How it works:</strong>
+      <ul>
+        <li><strong>Format stripping:</strong> reads only the plain-text version of your clipboard, discarding all HTML, RTF, and styling metadata.</li>
+        <li><strong>Curly quotes:</strong> replaces straight <code>"</code> and <code>'</code> with typographic quotes (&#x201C;&#x201D; &#x2018;&#x2019;) based on surrounding context. Apostrophes in contractions (don&#x2019;t, it&#x2019;s) are handled correctly.</li>
+      </ul>
     </div>
 
   </div>
@@ -291,16 +341,41 @@
   <div class="toast" id="toast"></div>
 
   <script>
-    const inputEl   = document.getElementById('input');
-    const outputEl  = document.getElementById('output');
-    const copyBtn   = document.getElementById('copy-btn');
-    const selectBtn = document.getElementById('select-btn');
-    const clearBtn  = document.getElementById('clear-btn');
-    const charCount = document.getElementById('char-count');
-    const toast     = document.getElementById('toast');
+    const inputEl     = document.getElementById('input');
+    const outputEl    = document.getElementById('output');
+    const copyBtn     = document.getElementById('copy-btn');
+    const selectBtn   = document.getElementById('select-btn');
+    const clearBtn    = document.getElementById('clear-btn');
+    const curlyToggle = document.getElementById('curly-toggle');
+    const charCount   = document.getElementById('char-count');
+    const toast       = document.getElementById('toast');
 
-    let toastTimer;
+    let curlyOn    = false;
+    let toastTimer = null;
 
+    /* ── Smart-quotes conversion ────────────────────────────────────────────
+       Strategy: scan left-to-right using context before each quote.
+       A quote preceded by whitespace / start-of-line / opening bracket
+       → opening (left) quote; everything else → closing (right) quote.
+       This correctly handles apostrophes in contractions (don't, it's)
+       because the letter before the quote is not whitespace.               */
+    function applySmartQuotes(text) {
+      // Double quotes
+      // Opening " : preceded by whitespace, line-start, or opening bracket/dash
+      text = text.replace(/(^|[\s\(\[\{<—–])"(?=\S)/gm, '$1“');
+      // All remaining " become closing right double quote
+      text = text.replace(/"/g, '”');
+
+      // Single quotes
+      // Opening ' : preceded by whitespace, line-start, or opening bracket/dash
+      text = text.replace(/(^|[\s\(\[\{<—–])'(?=\S)/gm, '$1‘');
+      // All remaining ' become right single quote (also correct for apostrophes)
+      text = text.replace(/'/g, '’');
+
+      return text;
+    }
+
+    /* ── Toast ── */
     function showToast(msg) {
       toast.textContent = msg;
       toast.classList.add('show');
@@ -308,40 +383,50 @@
       toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
     }
 
-    function updateOutput(text) {
+    /* ── Render output ── */
+    function updateOutput(rawText) {
+      const text = curlyOn ? applySmartQuotes(rawText) : rawText;
       outputEl.textContent = text;
       const n = text.length;
-      charCount.textContent = n > 0 ? `${n.toLocaleString()} chars` : '';
-      const hasText = n > 0;
-      copyBtn.disabled  = !hasText;
-      selectBtn.disabled = !hasText;
+      charCount.textContent = n > 0 ? n.toLocaleString() + ' chars' : '';
+      const has = n > 0;
+      copyBtn.disabled  = !has;
+      selectBtn.disabled = !has;
     }
 
-    /* Intercept paste on the textarea — read plain text only */
-    inputEl.addEventListener('paste', (e) => {
+    /* ── Paste — intercept and read plain text only ── */
+    inputEl.addEventListener('paste', function(e) {
       e.preventDefault();
-      const plain = e.clipboardData.getData('text/plain');
+      var plain = e.clipboardData.getData('text/plain');
       inputEl.value = plain;
       inputEl.classList.add('has-content');
       updateOutput(plain);
     });
 
-    /* Also handle normal typing/editing in input */
-    inputEl.addEventListener('input', () => {
-      const plain = inputEl.value;
+    /* Typing / editing in the input box */
+    inputEl.addEventListener('input', function() {
+      var plain = inputEl.value;
       inputEl.classList.toggle('has-content', plain.length > 0);
       updateOutput(plain);
     });
 
-    copyBtn.addEventListener('click', () => {
-      const text = outputEl.textContent;
-      navigator.clipboard.writeText(text).then(() => {
-        const orig = copyBtn.textContent;
+    /* ── Curly-quotes toggle ── */
+    curlyToggle.addEventListener('click', function() {
+      curlyOn = !curlyOn;
+      curlyToggle.classList.toggle('on', curlyOn);
+      updateOutput(inputEl.value);
+    });
+
+    /* ── Copy ── */
+    copyBtn.addEventListener('click', function() {
+      var text = outputEl.textContent;
+      navigator.clipboard.writeText(text).then(function() {
+        var orig = copyBtn.textContent;
         copyBtn.textContent = '✓ Copied!';
         copyBtn.classList.add('btn-success');
         copyBtn.classList.remove('btn-primary');
         showToast('Clean text copied to clipboard');
-        setTimeout(() => {
+        setTimeout(function() {
           copyBtn.textContent = orig;
           copyBtn.classList.remove('btn-success');
           copyBtn.classList.add('btn-primary');
@@ -349,16 +434,18 @@
       });
     });
 
-    selectBtn.addEventListener('click', () => {
-      const range = document.createRange();
+    /* ── Select all ── */
+    selectBtn.addEventListener('click', function() {
+      var range = document.createRange();
       range.selectNodeContents(outputEl);
-      const sel = window.getSelection();
+      var sel = window.getSelection();
       sel.removeAllRanges();
       sel.addRange(range);
       outputEl.focus();
     });
 
-    clearBtn.addEventListener('click', () => {
+    /* ── Clear ── */
+    clearBtn.addEventListener('click', function() {
       inputEl.value = '';
       inputEl.classList.remove('has-content');
       outputEl.textContent = '';
@@ -367,7 +454,7 @@
       selectBtn.disabled = true;
     });
 
-    /* Focus input on page load */
+    /* Auto-focus the paste area */
     inputEl.focus();
   </script>
 </body>
