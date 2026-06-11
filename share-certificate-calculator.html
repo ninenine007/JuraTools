@@ -16,26 +16,172 @@
             --danger: #ef4444;
             --hover-gray: #f1f5f9;
         }
+        * { box-sizing: border-box; }
         body {
             font-family: 'Inter', sans-serif;
             background-color: var(--bg);
             color: var(--text);
             padding: 20px;
+            margin: 0;
             display: flex;
             justify-content: center;
-            margin: 0;
         }
+        .app {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            max-width: 1280px;
+            align-items: flex-start;
+        }
+
+        /* --- Sidebar (Company List) --- */
+        .sidebar {
+            background: var(--card);
+            width: 280px;
+            min-width: 280px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            position: sticky;
+            top: 20px;
+        }
+        .sidebar h2 {
+            margin: 0 0 4px 0;
+            font-size: 1.05em;
+            color: #1e293b;
+        }
+        .sidebar .hint {
+            font-size: 0.8em;
+            color: #94a3b8;
+            margin: 0 0 14px 0;
+        }
+        .company-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+        .company-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.15s;
+            background: #fff;
+        }
+        .company-item:hover { background: var(--hover-gray); }
+        .company-item.active {
+            border-color: var(--primary);
+            background: #eff6ff;
+        }
+        .company-item .c-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .company-item .c-name {
+            font-weight: 600;
+            font-size: 0.92em;
+            color: #1e293b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .company-item .c-meta {
+            font-size: 0.75em;
+            color: #94a3b8;
+        }
+        .company-item .c-actions {
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+            transition: 0.15s;
+        }
+        .company-item:hover .c-actions { opacity: 1; }
+        .icon-btn {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            color: #64748b;
+            line-height: 1;
+        }
+        .icon-btn:hover { background: #e2e8f0; }
+        .icon-btn.danger:hover { background: #fee2e2; color: var(--danger); }
+
+        .btn-new-company {
+            width: 100%;
+            padding: 10px;
+            background: #eff6ff;
+            color: var(--primary);
+            font-weight: 600;
+            border: 1px dashed #93c5fd;
+            border-radius: 8px;
+            font-size: 0.9em;
+        }
+        .btn-new-company:hover { background: #dbeafe; }
+
+        .sidebar-footer {
+            margin-top: 16px;
+            padding-top: 14px;
+            border-top: 1px solid var(--border);
+        }
+        .btn-reset {
+            width: 100%;
+            padding: 9px;
+            background: #fff;
+            color: #94a3b8;
+            font-weight: 600;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.82em;
+        }
+        .btn-reset:hover { background: #fee2e2; color: var(--danger); border-color: #fecaca; }
+        .autosave-note {
+            text-align: center;
+            font-size: 0.72em;
+            color: #cbd5e1;
+            margin-top: 10px;
+        }
+
+        /* --- Main Workspace --- */
         .container {
             background: var(--card);
-            width: 100%;
-            max-width: 900px;
+            flex: 1;
+            min-width: 0;
             padding: 40px;
             border-radius: 12px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
             border: 1px solid var(--border);
         }
-        h1 { margin-top: 0; color: #1e293b; text-align: center; }
+        h1 { margin-top: 0; color: #1e293b; text-align: center; font-size: 1.5em; }
         p.subtitle { text-align: center; color: #64748b; margin-bottom: 30px; margin-top: -10px; }
+
+        .company-title-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .company-title-bar input {
+            flex: 1;
+            font-size: 1.15em;
+            font-weight: 700;
+            color: #1e293b;
+            border: 1px solid transparent;
+            background: transparent;
+            padding: 8px 10px;
+        }
+        .company-title-bar input:hover { border-color: var(--border); }
+        .company-title-bar input:focus {
+            background: #fff;
+            border-color: var(--primary);
+        }
 
         /* --- Shareholder Row Styles --- */
         .shareholder-list {
@@ -43,11 +189,13 @@
             flex-direction: column;
             gap: 10px;
         }
-        .row {
+        .grid-cols {
             display: grid;
             grid-template-columns: 40px 3fr 2fr 100px 40px; /* Index, Name, Shares, MoveBtns, Delete */
             gap: 12px;
             align-items: center;
+        }
+        .row {
             padding: 12px;
             background: #fff;
             border: 1px solid var(--border);
@@ -69,7 +217,6 @@
             border-radius: 6px;
             font-size: 15px;
             width: 100%;
-            box-sizing: border-box;
             font-family: 'Inter', sans-serif;
         }
         input:focus {
@@ -77,11 +224,14 @@
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
+        input.input-invalid {
+            border-color: #fca5a5;
+            background: #fef2f2;
+        }
 
         /* --- Buttons --- */
         button { cursor: pointer; border: none; border-radius: 6px; transition: 0.2s; font-family: 'Inter', sans-serif; }
-        
-        /* Move Buttons Group */
+
         .move-controls {
             display: flex;
             gap: 4px;
@@ -94,7 +244,7 @@
             font-weight: bold;
         }
         .btn-move:hover { background: #cbd5e1; }
-        
+
         .btn-delete {
             background: #fee2e2;
             color: #ef4444;
@@ -146,7 +296,10 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
+        .export-buttons { display: flex; gap: 8px; }
         .btn-copy {
             background: #334155;
             color: white;
@@ -154,6 +307,14 @@
             font-size: 0.9em;
         }
         .btn-copy:hover { background: #1e293b; }
+        .btn-csv {
+            background: #fff;
+            color: #334155;
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            font-size: 0.9em;
+        }
+        .btn-csv:hover { background: var(--hover-gray); }
 
         table {
             width: 100%;
@@ -180,199 +341,500 @@
             color: #0f172a;
             letter-spacing: 0.5px;
         }
+        .skipped-note {
+            font-size: 0.82em;
+            color: #f59e0b;
+            margin-top: 10px;
+        }
+
+        /* --- Toast --- */
+        #toast {
+            position: fixed;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: #1e293b;
+            color: #fff;
+            padding: 12px 22px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            font-weight: 600;
+            opacity: 0;
+            pointer-events: none;
+            transition: 0.25s;
+            z-index: 100;
+        }
+        #toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        #toast.success { background: #059669; }
+        #toast.danger { background: #dc2626; }
+
+        /* --- Responsive --- */
+        @media (max-width: 900px) {
+            body { padding: 10px; }
+            .app { flex-direction: column; }
+            .sidebar { width: 100%; min-width: 0; position: static; }
+            .container { padding: 20px; }
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>Share Certificate Calculator</h1>
-    <p class="subtitle">Manage shareholders, reorder list, and generate certificate numbers instantly.</p>
+<div class="app">
 
-    <div style="display: grid; grid-template-columns: 40px 3fr 2fr 100px 40px; gap: 12px; padding: 0 12px; margin-bottom: 5px; font-size: 0.85em; color: #64748b; font-weight: 600;">
-        <div style="text-align: center;">No.</div>
-        <div>Shareholder Name</div>
-        <div>Shares</div>
-        <div style="text-align: center;">Order</div>
-        <div style="text-align: center;">Del</div>
+    <!-- Sidebar: Company workspaces -->
+    <div class="sidebar">
+        <h2>📁 Companies</h2>
+        <p class="hint">Work on multiple companies at once. Click to switch.</p>
+        <div id="company-list" class="company-list"></div>
+        <button class="btn-new-company" onclick="addCompany()">+ New Company</button>
+        <div class="sidebar-footer">
+            <button class="btn-reset" onclick="resetAllData()">⟲ Reset All Data</button>
+            <div class="autosave-note">All changes are saved automatically</div>
+        </div>
     </div>
 
-    <div id="list-container" class="shareholder-list">
+    <!-- Main workspace for the active company -->
+    <div class="container">
+        <h1>Share Certificate Calculator</h1>
+        <p class="subtitle">Manage shareholders, reorder list, and generate certificate numbers instantly.</p>
+
+        <div class="company-title-bar">
+            <input type="text" id="company-name-input" placeholder="Company name" oninput="renameActiveCompany(this.value)">
         </div>
 
-    <button class="btn-add" onclick="addNewRow()">+ Add Shareholder</button>
-
-    <div class="summary-bar">
-        <span>Total Shares:</span>
-        <span class="total-shares" id="display-total">0</span>
-    </div>
-
-    <button class="btn-generate" onclick="generateTable()">Calculate & Generate Table</button>
-
-    <div id="result-section">
-        <div class="table-header-group">
-            <h3 style="margin:0; color:#1e293b;">Certificate Register</h3>
-            <button class="btn-copy" onclick="copyTable()">Copy to Clipboard</button>
+        <div class="grid-cols" style="padding: 0 12px; margin-bottom: 5px; font-size: 0.85em; color: #64748b; font-weight: 600;">
+            <div style="text-align: center;">No.</div>
+            <div>Shareholder Name</div>
+            <div>Shares</div>
+            <div style="text-align: center;">Order</div>
+            <div style="text-align: center;">Del</div>
         </div>
-        <table id="result-table">
-            <thead>
-                <tr>
-                    <th style="width: 50px;">No.</th>
-                    <th>Shareholder Name</th>
-                    <th class="text-right">Shares</th>
-                    <th class="text-right">Cert. Start</th>
-                    <th class="text-right">Cert. End</th>
-                </tr>
-            </thead>
-            <tbody id="result-body">
-                </tbody>
-        </table>
+
+        <div id="list-container" class="shareholder-list"></div>
+
+        <button class="btn-add" onclick="addShareholder()">+ Add Shareholder</button>
+
+        <div class="summary-bar">
+            <span>Total Shares:</span>
+            <span class="total-shares" id="display-total">0</span>
+        </div>
+
+        <button class="btn-generate" onclick="showResults()">Calculate &amp; Generate Table</button>
+
+        <div id="result-section">
+            <div class="table-header-group">
+                <h3 style="margin:0; color:#1e293b;" id="result-title">Certificate Register</h3>
+                <div class="export-buttons">
+                    <button class="btn-csv" onclick="exportCSV()">Export CSV</button>
+                    <button class="btn-copy" onclick="copyTable()">Copy to Clipboard</button>
+                </div>
+            </div>
+            <table id="result-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">No.</th>
+                        <th>Shareholder Name</th>
+                        <th class="text-right">Shares</th>
+                        <th class="text-right">%</th>
+                        <th class="text-right">Cert. Start</th>
+                        <th class="text-right">Cert. End</th>
+                    </tr>
+                </thead>
+                <tbody id="result-body"></tbody>
+            </table>
+            <div id="skipped-note" class="skipped-note" style="display:none;"></div>
+        </div>
     </div>
+
 </div>
 
+<div id="toast"></div>
+
 <script>
-    // Initialize default data
-    document.addEventListener('DOMContentLoaded', () => {
-        addNewRow('Founder A', 25000);
-        addNewRow('Founder B', 24000);
-        addNewRow('Investor C', 51000);
-    });
+    // ============================================================
+    // State: { companies: [{ id, name, shareholders: [{name, shares}] }], activeId }
+    // Persisted to localStorage so nothing is lost on refresh.
+    // ============================================================
+    const STORAGE_KEY = 'juratools-share-cert-v1';
 
-    // 1. Add New Row
-    function addNewRow(name = '', shares = '') {
-        const container = document.getElementById('list-container');
+    let state = loadState();
+
+    function defaultState() {
+        const id = newId();
+        return {
+            companies: [{
+                id: id,
+                name: 'Company 1',
+                shareholders: [
+                    { name: 'Founder A', shares: 25000 },
+                    { name: 'Founder B', shares: 24000 },
+                    { name: 'Investor C', shares: 51000 }
+                ]
+            }],
+            activeId: id
+        };
+    }
+
+    function loadState() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (parsed && Array.isArray(parsed.companies) && parsed.companies.length > 0) {
+                    if (!parsed.companies.some(c => c.id === parsed.activeId)) {
+                        parsed.activeId = parsed.companies[0].id;
+                    }
+                    return parsed;
+                }
+            }
+        } catch (e) { /* corrupted data -> start fresh */ }
+        return defaultState();
+    }
+
+    function saveState() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function newId() {
+        return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    }
+
+    function activeCompany() {
+        return state.companies.find(c => c.id === state.activeId);
+    }
+
+    function escapeHtml(str) {
         const div = document.createElement('div');
-        div.className = 'row';
-        div.innerHTML = `
-            <div class="row-index"></div>
-            <input type="text" placeholder="e.g. John Doe" class="input-name" value="${name}" oninput="autoUpdate()">
-            <input type="number" placeholder="0" class="input-shares" value="${shares}" oninput="autoUpdate()">
-            <div class="move-controls">
-                <button class="btn-move" onclick="moveRow(this, -1)">↑</button>
-                <button class="btn-move" onclick="moveRow(this, 1)">↓</button>
-            </div>
-            <button class="btn-delete" onclick="deleteRow(this)">✕</button>
-        `;
-        container.appendChild(div);
-        refreshUI();
+        div.textContent = str;
+        return div.innerHTML;
     }
 
-    // 2. Delete Row
-    function deleteRow(btn) {
-        if(confirm("Remove this shareholder?")) {
-            btn.closest('.row').remove();
-            refreshUI();
+    // ============================================================
+    // Company management (sidebar)
+    // ============================================================
+    function addCompany() {
+        const company = {
+            id: newId(),
+            name: 'Company ' + (state.companies.length + 1),
+            shareholders: [{ name: '', shares: '' }]
+        };
+        state.companies.push(company);
+        state.activeId = company.id;
+        saveState();
+        renderAll();
+        showToast('Company added', 'success');
+        document.getElementById('company-name-input').focus();
+        document.getElementById('company-name-input').select();
+    }
+
+    function switchCompany(id) {
+        if (state.activeId === id) return;
+        state.activeId = id;
+        saveState();
+        renderAll();
+    }
+
+    function renameActiveCompany(name) {
+        activeCompany().name = name;
+        saveState();
+        renderSidebar();
+        // Keep result title in sync if results are open
+        if (resultsVisible()) {
+            document.getElementById('result-title').innerText =
+                'Certificate Register' + (name ? ' — ' + name : '');
         }
     }
 
-    // 3. Move Row (Up/Down)
-    function moveRow(btn, direction) {
-        const row = btn.closest('.row');
-        const container = document.getElementById('list-container');
-        
-        if (direction === -1) {
-            // Move Up
-            if (row.previousElementSibling) {
-                container.insertBefore(row, row.previousElementSibling);
-            }
-        } else {
-            // Move Down
-            if (row.nextElementSibling) {
-                container.insertBefore(row.nextElementSibling, row);
-            }
+    function deleteCompany(id, event) {
+        event.stopPropagation();
+        const company = state.companies.find(c => c.id === id);
+        if (!confirm('Delete "' + (company.name || 'Untitled') + '" and all its shareholders?')) return;
+        state.companies = state.companies.filter(c => c.id !== id);
+        if (state.companies.length === 0) {
+            state = defaultState();
+            state.companies[0].shareholders = [{ name: '', shares: '' }];
+        } else if (state.activeId === id) {
+            state.activeId = state.companies[0].id;
         }
-        refreshUI();
+        saveState();
+        renderAll();
+        showToast('Company deleted', 'danger');
     }
 
-    // 4. Update UI (Indices, Totals, and Table if visible)
-    function refreshUI() {
-        updateIndices();
+    function resetAllData() {
+        if (!confirm('Reset ALL data? This deletes every company and shareholder, and cannot be undone.')) return;
+        localStorage.removeItem(STORAGE_KEY);
+        state = defaultState();
+        saveState();
+        renderAll();
+        showToast('All data has been reset', 'success');
+    }
+
+    // ============================================================
+    // Shareholder management (active company)
+    // ============================================================
+    function addShareholder() {
+        activeCompany().shareholders.push({ name: '', shares: '' });
+        saveState();
+        renderAll();
+        // Focus the new row's name input for fast entry
+        const names = document.querySelectorAll('.input-name');
+        if (names.length) names[names.length - 1].focus();
+    }
+
+    function deleteShareholder(index) {
+        if (!confirm('Remove this shareholder?')) return;
+        activeCompany().shareholders.splice(index, 1);
+        saveState();
+        renderAll();
+    }
+
+    function moveShareholder(index, direction) {
+        const list = activeCompany().shareholders;
+        const target = index + direction;
+        if (target < 0 || target >= list.length) return;
+        [list[index], list[target]] = [list[target], list[index]];
+        saveState();
+        renderAll();
+    }
+
+    // Called on typing — updates state without re-rendering rows (keeps focus)
+    function updateShareholder(index, field, value) {
+        activeCompany().shareholders[index][field] = value;
+        saveState();
         updateTotal();
-        
-        // If the result table is already open, update it in real-time
-        const resultSection = document.getElementById('result-section');
-        if (resultSection.style.display === 'block') {
-            generateTable();
+        renderSidebar();
+        if (resultsVisible()) renderResults();
+    }
+
+    // Enter in the shares field of the last row adds a new shareholder
+    function handleShareKeydown(event, index) {
+        if (event.key === 'Enter' && index === activeCompany().shareholders.length - 1) {
+            addShareholder();
         }
     }
 
-    // Triggered by typing in inputs
-    function autoUpdate() {
-        updateTotal();
-        const resultSection = document.getElementById('result-section');
-        if (resultSection.style.display === 'block') {
-            generateTable();
-        }
+    // ============================================================
+    // Rendering
+    // ============================================================
+    function renderAll() {
+        renderSidebar();
+        renderWorkspace();
     }
 
-    function updateIndices() {
-        const indices = document.querySelectorAll('.row-index');
-        indices.forEach((el, index) => {
-            el.innerText = index + 1;
+    function renderSidebar() {
+        const container = document.getElementById('company-list');
+        container.innerHTML = '';
+        state.companies.forEach(c => {
+            const total = companyTotal(c);
+            const div = document.createElement('div');
+            div.className = 'company-item' + (c.id === state.activeId ? ' active' : '');
+            div.onclick = () => switchCompany(c.id);
+            div.innerHTML = `
+                <div class="c-info">
+                    <div class="c-name">${escapeHtml(c.name || 'Untitled')}</div>
+                    <div class="c-meta">${c.shareholders.length} shareholder${c.shareholders.length === 1 ? '' : 's'} · ${total.toLocaleString('en-US')} shares</div>
+                </div>
+                <div class="c-actions">
+                    <button class="icon-btn danger" title="Delete company" onclick="deleteCompany('${c.id}', event)">🗑</button>
+                </div>
+            `;
+            container.appendChild(div);
         });
+    }
+
+    function renderWorkspace() {
+        const company = activeCompany();
+        const nameInput = document.getElementById('company-name-input');
+        if (document.activeElement !== nameInput) nameInput.value = company.name;
+
+        const container = document.getElementById('list-container');
+        container.innerHTML = '';
+        company.shareholders.forEach((sh, index) => {
+            const div = document.createElement('div');
+            div.className = 'row grid-cols';
+            div.innerHTML = `
+                <div class="row-index">${index + 1}</div>
+                <input type="text" placeholder="e.g. John Doe" class="input-name" value="${escapeHtml(String(sh.name))}"
+                    oninput="updateShareholder(${index}, 'name', this.value)">
+                <input type="number" placeholder="0" class="input-shares" value="${sh.shares}" min="0"
+                    oninput="updateShareholder(${index}, 'shares', this.value); markValidity(this)"
+                    onkeydown="handleShareKeydown(event, ${index})">
+                <div class="move-controls">
+                    <button class="btn-move" onclick="moveShareholder(${index}, -1)">↑</button>
+                    <button class="btn-move" onclick="moveShareholder(${index}, 1)">↓</button>
+                </div>
+                <button class="btn-delete" onclick="deleteShareholder(${index})">✕</button>
+            `;
+            container.appendChild(div);
+            markValidity(div.querySelector('.input-shares'));
+        });
+
+        updateTotal();
+        if (resultsVisible()) renderResults();
+    }
+
+    function markValidity(input) {
+        const num = parseInt(input.value);
+        const invalid = input.value !== '' && (isNaN(num) || num < 0);
+        input.classList.toggle('input-invalid', invalid);
+    }
+
+    function companyTotal(company) {
+        return company.shareholders.reduce((sum, sh) => {
+            const n = parseInt(sh.shares);
+            return sum + (n > 0 ? n : 0);
+        }, 0);
     }
 
     function updateTotal() {
-        const inputs = document.querySelectorAll('.input-shares');
-        let total = 0;
-        inputs.forEach(input => {
-            total += parseInt(input.value) || 0;
-        });
-        document.getElementById('display-total').innerText = total.toLocaleString('en-US');
+        document.getElementById('display-total').innerText =
+            companyTotal(activeCompany()).toLocaleString('en-US');
     }
 
-    // 5. Core Logic: Generate Table
-    function generateTable() {
-        const rows = document.querySelectorAll('.row');
+    function resultsVisible() {
+        return document.getElementById('result-section').style.display === 'block';
+    }
+
+    // ============================================================
+    // Core logic: certificate register
+    // ============================================================
+    function buildRegister(company) {
+        const total = companyTotal(company);
+        // Pad to at least 6 digits (e.g. 000001), more if total needs it
+        const padLen = Math.max(total.toString().length, 6);
+        const rows = [];
+        let current = 1;
+        let skipped = 0;
+
+        company.shareholders.forEach((sh, index) => {
+            const shares = parseInt(sh.shares);
+            if (!(shares > 0)) {
+                if (sh.name || sh.shares !== '') skipped++;
+                return;
+            }
+            const start = current;
+            const end = current + shares - 1;
+            rows.push({
+                no: index + 1,
+                name: sh.name || `Shareholder ${index + 1}`,
+                shares: shares,
+                pct: total > 0 ? (shares / total * 100) : 0,
+                start: String(start).padStart(padLen, '0'),
+                end: String(end).padStart(padLen, '0')
+            });
+            current = end + 1;
+        });
+
+        return { rows, total, skipped };
+    }
+
+    function showResults() {
+        document.getElementById('result-section').style.display = 'block';
+        renderResults();
+    }
+
+    function renderResults() {
+        const company = activeCompany();
+        const { rows, skipped } = buildRegister(company);
+
+        document.getElementById('result-title').innerText =
+            'Certificate Register' + (company.name ? ' — ' + company.name : '');
+
         const tbody = document.getElementById('result-body');
         tbody.innerHTML = '';
-        
-        let currentRun = 1;
-        let totalShares = 0;
-
-        // Calculate total first for padding logic
-        rows.forEach(row => {
-            totalShares += parseInt(row.querySelector('.input-shares').value) || 0;
+        rows.forEach(r => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${r.no}</td>
+                <td><b>${escapeHtml(r.name)}</b></td>
+                <td class="text-right">${r.shares.toLocaleString('en-US')}</td>
+                <td class="text-right">${r.pct.toFixed(2)}%</td>
+                <td class="text-right mono">${r.start}</td>
+                <td class="text-right mono">${r.end}</td>
+            `;
+            tbody.appendChild(tr);
         });
 
-        // Determine padding (e.g. if 100,000 -> 6 digits)
-        const padLen = totalShares.toString().length > 6 ? totalShares.toString().length : 6;
-
-        rows.forEach((row, index) => {
-            const name = row.querySelector('.input-name').value || `Shareholder ${index + 1}`;
-            const shares = parseInt(row.querySelector('.input-shares').value) || 0;
-
-            if (shares > 0) {
-                const startNum = currentRun;
-                const endNum = currentRun + shares - 1;
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${index + 1}</td>
-                    <td><b>${name}</b></td>
-                    <td class="text-right">${shares.toLocaleString('en-US')}</td>
-                    <td class="text-right mono">${startNum.toString().padStart(padLen, '0')}</td>
-                    <td class="text-right mono">${endNum.toString().padStart(padLen, '0')}</td>
-                `;
-                tbody.appendChild(tr);
-
-                currentRun = endNum + 1;
-            }
-        });
-
-        document.getElementById('result-section').style.display = 'block';
+        const note = document.getElementById('skipped-note');
+        if (skipped > 0) {
+            note.style.display = 'block';
+            note.innerText = '⚠ ' + skipped + ' row(s) skipped (shares must be greater than 0).';
+        } else {
+            note.style.display = 'none';
+        }
     }
 
-    // 6. Copy to Clipboard
-    function copyTable() {
+    // ============================================================
+    // Export: clipboard (rich table) + CSV download
+    // ============================================================
+    async function copyTable() {
         const table = document.getElementById('result-table');
-        const range = document.createRange();
-        range.selectNode(table);
-        window.getSelection().removeAllRanges();
-        window.getSelection().addRange(range);
-        document.execCommand('copy');
-        window.getSelection().removeAllRanges();
-        alert('Table copied to clipboard!');
+        const html = table.outerHTML;
+        const text = buildRegister(activeCompany()).rows
+            .map(r => [r.no, r.name, r.shares, r.pct.toFixed(2) + '%', r.start, r.end].join('\t'))
+            .join('\n');
+        try {
+            if (navigator.clipboard && window.ClipboardItem) {
+                await navigator.clipboard.write([new ClipboardItem({
+                    'text/html': new Blob([html], { type: 'text/html' }),
+                    'text/plain': new Blob([text], { type: 'text/plain' })
+                })]);
+            } else {
+                await navigator.clipboard.writeText(text);
+            }
+            showToast('Table copied to clipboard ✓', 'success');
+        } catch (e) {
+            // Fallback for older browsers
+            const range = document.createRange();
+            range.selectNode(table);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            document.execCommand('copy');
+            window.getSelection().removeAllRanges();
+            showToast('Table copied to clipboard ✓', 'success');
+        }
     }
+
+    function exportCSV() {
+        const company = activeCompany();
+        const { rows } = buildRegister(company);
+        const esc = v => '"' + String(v).replace(/"/g, '""') + '"';
+        const lines = [
+            ['No.', 'Shareholder Name', 'Shares', 'Percentage', 'Cert. Start', 'Cert. End'].map(esc).join(','),
+            ...rows.map(r => [r.no, r.name, r.shares, r.pct.toFixed(2) + '%', r.start, r.end].map(esc).join(','))
+        ];
+        const blob = new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = (company.name || 'certificate-register').replace(/[\\/:*?"<>|]/g, '_') + '-certificates.csv';
+        a.click();
+        URL.revokeObjectURL(a.href);
+        showToast('CSV downloaded ✓', 'success');
+    }
+
+    // ============================================================
+    // Toast notifications
+    // ============================================================
+    let toastTimer = null;
+    function showToast(message, type = '') {
+        const toast = document.getElementById('toast');
+        toast.innerText = message;
+        toast.className = type;
+        // restart animation
+        void toast.offsetWidth;
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+    }
+
+    // ============================================================
+    // Init
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', renderAll);
 </script>
 
 </body>
