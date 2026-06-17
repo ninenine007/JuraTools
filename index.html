@@ -180,6 +180,7 @@
     .card[data-cat="text"]      { --glow: 0 6px 24px rgba(13,148,136,0.14); }
     .card[data-cat="math"]      { --glow: 0 6px 24px rgba(234,88,12,0.14);  }
     .card[data-cat="script"]    { --glow: 0 6px 24px rgba(22,163,74,0.14);  }
+    .card[data-cat="tax"]       { --glow: 0 6px 24px rgba(225,29,72,0.14);  }
 
     .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
     .card-icon {
@@ -192,6 +193,7 @@
     .card[data-cat="text"]      .card-icon { background: linear-gradient(145deg, #ccfbf1, #a7f3d0); }
     .card[data-cat="math"]      .card-icon { background: linear-gradient(145deg, #fef3c7, #fed7aa); }
     .card[data-cat="script"]    .card-icon { background: linear-gradient(145deg, #dcfce7, #bbf7d0); }
+    .card[data-cat="tax"]       .card-icon { background: linear-gradient(145deg, #ffe4e6, #fecdd3); }
 
     .card-badge {
       display: inline-flex; align-items: center;
@@ -323,7 +325,7 @@
       <span style="color:#d1d1d6">·</span>
       <span>🔒 No data sent anywhere</span>
       <span style="color:#d1d1d6">·</span>
-      <span>📦 13 tools</span>
+      <span>📦 14 tools</span>
     </div>
   </div>
 
@@ -331,7 +333,7 @@
   <div class="tabs-wrap">
     <div class="tabs" role="tablist">
       <button class="tab active" data-filter="" role="tab" aria-selected="true">
-        All <span class="tab-count" id="tab-count">13</span>
+        All <span class="tab-count" id="tab-count">14</span>
       </button>
       <button class="tab" data-filter="legal" role="tab">
         <span class="tab-dot" style="background:linear-gradient(135deg,#2979ff,#64b5f6)"></span>
@@ -340,6 +342,10 @@
       <button class="tab" data-filter="corporate" role="tab">
         <span class="tab-dot" style="background:linear-gradient(135deg,#7c3aed,#a78bfa)"></span>
         Corporate
+      </button>
+      <button class="tab" data-filter="tax" role="tab">
+        <span class="tab-dot" style="background:linear-gradient(135deg,#e11d48,#fb7185)"></span>
+        Tax
       </button>
       <button class="tab" data-filter="text" role="tab">
         <span class="tab-dot" style="background:linear-gradient(135deg,#0d9488,#34d399)"></span>
@@ -466,6 +472,22 @@
         </div>
       </article>
 
+      <!-- Tax cards -->
+      <article class="card" data-cat="tax" data-tags="thai tax calculator land sale comparison asset share spv stamp duty income tax sbt transfer fee revenue code property real estate disposal collection hub">
+        <div class="card-head">
+          <div class="card-icon">🧾</div>
+          <span class="card-badge badge-new">New</span>
+        </div>
+        <div class="card-sub">Tax / Collection</div>
+        <h3 class="card-title">Thai Tax Tools</h3>
+        <p class="card-desc">A collection of calculators for Thai tax planning. Opens a hub linking to each tool — the <strong>Land Sale Tax Comparison</strong> (asset sale vs. share sale / SPV) and a <strong>Stamp Duty Calculator</strong> for the Revenue Code stamp duty schedule.</p>
+        <div class="card-actions">
+          <a class="btn btn-open" href="thai-tax-tools.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/thai-tax-tools.html" target="_blank" rel="noopener">Source</a>
+          <button class="btn btn-copy" data-copy="thai-tax-tools.html">Copy link</button>
+        </div>
+      </article>
+
       <!-- Text cards -->
       <article class="card" data-cat="text" data-tags="thai line break formatter legal text word segmentation pythainlp contract regulation drafting">
         <div class="card-head">
@@ -555,6 +577,14 @@
       <div class="section-head-line"></div>
     </div>
     <div class="changelog">
+      <div class="cl-item">
+        <span class="cl-date">Jun 2026</span>
+        <span class="cl-text">Added the <strong>Stamp Duty Calculator</strong> to <strong>Thai Tax Tools</strong> — per-instrument Thai stamp duty across the Revenue Code schedule, with counterpart/duplicate duty, §§113–114 surcharges, a liable-person summary, and CSV export.</span>
+      </div>
+      <div class="cl-item">
+        <span class="cl-date">Jun 2026</span>
+        <span class="cl-text">Added <strong>Thai Tax Tools</strong> — a hub for Thai tax calculators, launching with the <strong>Land Sale Tax Comparison</strong> (asset sale vs. share sale / SPV: income tax, transfer fee, SBT, stamp duty, annual company cost, and break-even analysis).</span>
+      </div>
       <div class="cl-item">
         <span class="cl-date">Jun 2026</span>
         <span class="cl-text">Added <strong>CorpDesk</strong> — share register workbench with full transaction replay: transfers, capital increases (§1222 pro-rata rights), capital decreases (par value or share cancellation per §1224), paid-up updates, and renumbering. Exports master-data JSON for Thai share documents.</span>

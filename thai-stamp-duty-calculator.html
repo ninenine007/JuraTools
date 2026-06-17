@@ -1,0 +1,1945 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Thai Stamp Duty Calculator — Thai Tax Tools | JuraTools</title>
+  <meta name="description" content="Estimate Thai stamp duty across the Revenue Code stamp duty schedule — instruments, counterpart duty, and §§113–114 surcharges. By Kornrawee Chanchom." />
+  <style>
+    :root {
+      --ink: #1c1c1e; --ink-2: #3c3c43; --muted: #6e6e73; --faint: #aeaeb2;
+      --line: rgba(0,0,0,0.08); --line-soft: rgba(0,0,0,0.05);
+      --rose: #e11d48; --rose-dark: #c81740; --amber: #d97706;
+      --g50: #f8fafc; --g100: #f1f5f9; --g200: #e2e8f0; --g300: #cbd5e1;
+      --g500: #64748b; --g700: #334155;
+      --card-bg: rgba(255,255,255,0.82);
+      --radius: 16px; --radius-sm: 10px;
+      --shadow: 0 1px 1px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06);
+      --maxw: 1160px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0; color: var(--ink); line-height: 1.45;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", "Noto Sans Thai", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      background: #f2f2f7;
+      background-image:
+        radial-gradient(ellipse 1100px 700px at 10% 0%,   rgba(255,205,210,0.4)   0%, transparent 60%),
+        radial-gradient(ellipse  700px 700px at 95% 8%,   rgba(255,224,178,0.35)  0%, transparent 55%),
+        radial-gradient(ellipse  800px 600px at 0%  92%,  rgba(194,221,255,0.3)   0%, transparent 55%),
+        radial-gradient(ellipse  900px 500px at 100% 96%, rgba(218,205,255,0.28)  0%, transparent 55%);
+    }
+    button, input, select, textarea { font: inherit; }
+    a { color: var(--rose); }
+    h1, h2, h3, p { margin-top: 0; }
+    .muted { color: var(--muted); }
+
+    /* ── Sticky breadcrumb nav ────────────────────── */
+    .nav {
+      position: sticky; top: 0; z-index: 200; height: 52px;
+      display: flex; align-items: center; gap: 11px; padding: 0 22px;
+      background: rgba(242,242,247,0.82);
+      backdrop-filter: blur(24px) saturate(200%);
+      -webkit-backdrop-filter: blur(24px) saturate(200%);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav a { text-decoration: none; color: inherit; font-weight: inherit; }
+    .nav-brand { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+    .nav-icon {
+      width: 30px; height: 30px; border-radius: 7px;
+      background: linear-gradient(145deg, #2979ff, #1565c0);
+      display: grid; place-items: center; font-size: 15px;
+      box-shadow: 0 2px 6px rgba(41,121,255,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    .nav-wordmark { font-size: 15px; font-weight: 700; letter-spacing: -0.4px; color: var(--ink); }
+    .nav-sep { color: #c7c7cc; font-size: 14px; }
+    .nav-crumb { font-size: 14px; font-weight: 500; color: var(--muted); }
+    .nav-crumb.current { color: var(--ink); font-weight: 600; }
+    .nav-back {
+      margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+      font-size: 13px; font-weight: 500; color: var(--ink-2);
+      background: rgba(0,0,0,0.055); border: 1px solid rgba(0,0,0,0.1);
+      padding: 6px 12px; border-radius: 9px; transition: background .14s;
+    }
+    .nav-back:hover { background: rgba(0,0,0,0.09); }
+    @media (max-width: 620px) { .nav-crumb:not(.current), .nav-sep.hide-sm { display: none; } }
+
+    /* ── Hero ─────────────────────────────────────── */
+    .hero { width: min(var(--maxw), calc(100% - 32px)); margin: 0 auto; padding: 30px 0 8px; }
+    .hero h1 {
+      font-size: clamp(26px, 3.6vw, 34px); font-weight: 800; letter-spacing: -1px; line-height: 1.12;
+      background: linear-gradient(135deg, #1c1c1e 0%, #e11d48 60%, #ea580c 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      margin-bottom: 6px;
+    }
+    .hero h1 .h1-emoji { -webkit-text-fill-color: initial; background: none; }
+    .hero .sub { font-size: 14px; color: var(--muted); line-height: 1.5; max-width: 800px; }
+    .hero .sub .en { display: block; font-size: 12px; color: var(--faint); margin-top: 2px; }
+    .hero-links { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 12px; font-size: 12px; color: var(--faint); align-items: center; }
+    .hero-links a { color: var(--rose); font-weight: 600; text-decoration: none; }
+    .hero-links a:hover { text-decoration: underline; }
+    .hero-links .dot { color: #d1d1d6; }
+
+    /* ── Workspace layout ─────────────────────────── */
+    .workspace {
+      width: min(var(--maxw), calc(100% - 32px));
+      margin: 12px auto 24px;
+      display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start;
+    }
+    .entry-area, .summary-panel { min-width: 0; }
+
+    .toolbar, .summary-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+    .toolbar h2, .summary-head h2 { font-size: 1.1rem; font-weight: 700; letter-spacing: -.2px; color: var(--ink); margin-bottom: 0; }
+    .toolbar .muted { margin: 4px 0 0; font-size: .8rem; }
+    .toolbar-actions, .summary-actions, .row-actions { display: flex; align-items: center; gap: 8px; }
+
+    /* ── Buttons ──────────────────────────────────── */
+    .button {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      border-radius: 10px; padding: 0 15px; min-height: 40px;
+      font-weight: 600; font-size: 13px; border: 1px solid var(--line);
+      background: #fff; color: var(--ink-2); cursor: pointer;
+      transition: background .15s, border-color .15s, box-shadow .15s, transform .12s;
+    }
+    .button span:first-child { font-size: 1.05rem; line-height: 1; }
+    .button.primary { background: var(--rose); color: #fff; border-color: var(--rose); box-shadow: 0 1px 4px rgba(225,29,72,.32), inset 0 1px 0 rgba(255,255,255,.18); }
+    .button.primary:hover { background: var(--rose-dark); transform: translateY(-1px); }
+    .button.secondary { background: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.1); }
+    .button.secondary:hover { background: rgba(0,0,0,0.09); transform: translateY(-1px); }
+    .icon-button {
+      width: 38px; height: 38px; border-radius: 9px; display: grid; place-items: center;
+      font-weight: 700; border: 1px solid var(--line); background: #fff; color: var(--ink-2);
+      cursor: pointer; transition: background .15s, border-color .15s, box-shadow .15s;
+    }
+    .icon-button:hover { background: rgba(0,0,0,0.05); }
+    .icon-button.danger { color: var(--rose); }
+    .text-button {
+      border: 1px solid var(--line); background: #fff; border-radius: 9px; min-height: 32px;
+      padding: 0 10px; font-weight: 600; font-size: 12px; cursor: pointer; color: var(--ink-2);
+      transition: background .15s;
+    }
+    .text-button:hover { background: rgba(0,0,0,0.05); }
+
+    .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--rose); box-shadow: 0 0 0 3px rgba(225,29,72,0.13); }
+    .button:focus-visible, .icon-button:focus-visible, .text-button:focus-visible, .check-field input:focus-visible { outline: none; border-color: var(--rose); box-shadow: 0 0 0 3px rgba(225,29,72,0.2); }
+
+    /* ── Instrument cards ─────────────────────────── */
+    .rows { display: grid; gap: 14px; }
+    .instrument-card {
+      background: var(--card-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.9); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px;
+    }
+    .row-head { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; gap: 12px; align-items: end; }
+    .row-badge {
+      width: 38px; height: 38px; border-radius: 9px;
+      background: rgba(225,29,72,0.1); color: var(--rose-dark);
+      display: grid; place-items: center; font-weight: 800; border: 1px solid rgba(225,29,72,0.2);
+    }
+
+    .fields-grid { margin-top: 14px; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
+    .field, .check-field { min-width: 0; }
+    .field { display: grid; gap: 5px; }
+    .field span, .check-field span, .label { color: var(--g500); font-size: .72rem; font-weight: 700; }
+    .select-wide { grid-column: span 2; }
+    .row-head .select-wide { grid-column: auto; }
+    .field input, .field select, .field textarea {
+      width: 100%; min-height: 40px; border: 1px solid var(--g200); border-radius: 9px;
+      background: #fff; color: var(--ink); padding: 8px 11px; font-size: 13px; font-family: inherit;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .field textarea { resize: vertical; }
+    .check-field { display: flex; align-items: center; gap: 8px; min-height: 40px; padding-top: 22px; font-size: .82rem; color: var(--ink-2); }
+    .check-field input { width: 18px; height: 18px; accent-color: var(--rose); }
+    .inline-check { padding-top: 0; }
+    .compact-field { max-width: 180px; }
+
+    .counterpart-box {
+      margin-top: 14px; display: grid; grid-template-columns: minmax(0, 1fr) 180px; gap: 10px 14px;
+      align-items: end; padding: 13px; background: rgba(254,243,199,0.5);
+      border: 1px solid rgba(217,119,6,0.28); border-radius: var(--radius-sm);
+    }
+    .counterpart-box p { grid-column: 1 / -1; margin: 0; color: #92400e; font-size: .82rem; }
+
+    .law-strip {
+      margin-top: 14px; display: grid; grid-template-columns: 1.5fr 1fr; gap: 12px;
+      padding: 13px; background: var(--g50); border: 1px solid var(--g200); border-radius: var(--radius-sm);
+    }
+    .law-strip p { margin: 3px 0 0; font-size: .9rem; color: var(--g700); }
+
+    .notes { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+    .notes summary { cursor: pointer; color: var(--rose-dark); font-weight: 600; font-size: .86rem; }
+    .notes ul { margin: 10px 0 0; padding-left: 18px; color: var(--muted); font-size: .86rem; }
+
+    .line-result { margin-top: 14px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+    .line-result div, .totals div { background: var(--g50); border: 1px solid var(--g200); border-radius: var(--radius-sm); padding: 11px; min-width: 0; }
+    .line-result span, .totals dt { color: var(--g500); display: block; font-size: .72rem; font-weight: 700; }
+    .line-result strong, .totals dd { display: block; margin: 4px 0 0; font-size: 1.02rem; font-weight: 700; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+
+    /* ── Summary panel ────────────────────────────── */
+    .summary-panel {
+      position: sticky; top: 64px;
+      background: var(--card-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.9); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px;
+    }
+    .totals { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; }
+    .totals .grand-total { grid-column: 1 / -1; background: linear-gradient(135deg, #be123c, #e11d48); color: #fff; border-color: transparent; }
+    .totals .grand-total dt { color: rgba(255,255,255,0.85); }
+    .totals .grand-total dd { font-size: 1.5rem; font-weight: 800; }
+    .summary-block { margin-top: 18px; }
+    .summary-block h3 { font-size: .9rem; font-weight: 700; color: var(--ink); margin-bottom: 10px; }
+    .mini-list { display: grid; gap: 8px; }
+    .mini-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); padding-bottom: 8px; font-size: .9rem; }
+    .mini-row strong { white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+    .table-wrap { overflow-x: auto; border: 1px solid var(--g200); border-radius: var(--radius-sm); }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: .74rem; }
+    th, td { padding: 8px 5px; border-bottom: 1px solid var(--line-soft); text-align: right; white-space: nowrap; }
+    th { white-space: normal; line-height: 1.2; background: var(--g100); color: var(--g700); font-weight: 600; }
+    th:first-child, td:first-child { text-align: left; white-space: normal; width: 40%; }
+    th:not(:first-child), td:not(:first-child) { width: 20%; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    tbody tr:last-child td { border-bottom: 0; }
+    .empty { color: var(--faint); text-align: center; padding: 18px 8px; }
+
+    .caution { margin: 16px 0 0; font-size: .8rem; color: var(--muted); }
+    .storage-status { margin-top: 12px; display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: .8rem; }
+
+    /* ── Payment method & stamp combinations ──────── */
+    .summary-actions .icon-button { width: auto; min-width: 38px; padding: 0 11px; font-size: 11px; font-weight: 700; letter-spacing: .3px; }
+    .pay-box { margin-top: 14px; padding: 14px; background: #fff; border: 1px solid var(--g200); border-radius: var(--radius-sm); display: grid; gap: 12px; }
+    .pay-head { display: grid; gap: 5px; max-width: 360px; }
+    .pay-box select { width: 100%; min-height: 40px; border: 1px solid var(--g200); border-radius: 9px; background: #fff; color: var(--ink); padding: 8px 11px; font-size: 13px; font-family: inherit; transition: border-color .15s, box-shadow .15s; }
+    .pay-box select:focus { outline: none; border-color: var(--rose); box-shadow: 0 0 0 3px rgba(225,29,72,0.13); }
+    .stamp-choose { display: grid; gap: 9px; }
+    .stamp-basis-row { display: grid; gap: 5px; max-width: 360px; }
+    .stamp-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px; border-radius: 999px; background: var(--g100); border: 1px solid var(--g200); font-size: 12px; color: var(--g700); font-variant-numeric: tabular-nums; }
+    .chip b { font-weight: 800; color: var(--ink); }
+    .chip-zero { opacity: .4; }
+    .chip-total { background: rgba(225,29,72,0.1); border-color: rgba(225,29,72,0.22); color: var(--rose-dark); font-weight: 700; }
+    .stamp-tally { display: grid; gap: 8px; }
+    .stamp-tally .tally-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: .9rem; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+    .stamp-tally .tally-row.total { border-bottom: 0; padding-bottom: 0; font-weight: 700; color: var(--ink); }
+    .stamp-tally .denom { display: inline-flex; align-items: center; gap: 9px; }
+    .stamp-tally strong { font-variant-numeric: tabular-nums; }
+    .stamp-pill { display: inline-grid; place-items: center; min-width: 36px; height: 22px; padding: 0 7px; border-radius: 6px; background: var(--rose); color: #fff; font-size: 11px; font-weight: 800; }
+
+    .footer { width: min(var(--maxw), calc(100% - 32px)); margin: 0 auto 40px; text-align: center; font-size: 12px; color: #c7c7cc; }
+
+    [hidden] { display: none !important; }
+
+    @media (max-width: 1080px) {
+      .workspace { grid-template-columns: 1fr; }
+      .summary-panel { position: static; }
+    }
+    @media (max-width: 720px) {
+      .hero { width: min(100% - 20px, var(--maxw)); }
+      .workspace, .footer { width: min(100% - 20px, var(--maxw)); }
+      .toolbar, .summary-head { align-items: stretch; flex-direction: column; }
+      .toolbar-actions { width: 100%; }
+      .toolbar-actions .button { flex: 1; }
+      .instrument-card { padding: 14px; }
+      .row-head { grid-template-columns: 38px minmax(0, 1fr); }
+      .row-actions { grid-column: 1 / -1; justify-content: flex-end; }
+      .fields-grid, .law-strip, .line-result, .totals, .counterpart-box { grid-template-columns: 1fr; }
+      .select-wide { grid-column: auto; }
+      .compact-field { max-width: none; }
+    }
+
+    @media print {
+      body { background: #fff; }
+      .nav, .hero, .toolbar-actions, .row-actions, .summary-actions, .notes { display: none; }
+      .workspace { width: 100%; margin: 0; grid-template-columns: 1fr; }
+      .instrument-card, .summary-panel { box-shadow: none; break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-brand" href="index.html">
+      <div class="nav-icon">⚖️</div>
+      <span class="nav-wordmark">JuraTools</span>
+    </a>
+    <span class="nav-sep hide-sm">/</span>
+    <a class="nav-crumb" href="thai-tax-tools.html">Thai Tax Tools</a>
+    <span class="nav-sep">/</span>
+    <span class="nav-crumb current">Stamp Duty Calculator</span>
+    <a class="nav-back" href="thai-tax-tools.html">← Thai Tax Tools</a>
+  </nav>
+
+  <div class="hero">
+    <h1><span class="h1-emoji">🪙</span> Thai Stamp Duty Calculator</h1>
+    <p class="sub">Estimate Thai stamp duty across the instruments in the Revenue Code stamp duty schedule — including counterpart/duplicate duty and §§113–114 surcharges.
+      <span class="en">เครื่องคำนวณอากรแสตมป์ตามบัญชีอัตราอากรแสตมป์ ประมวลรัษฎากร</span>
+    </p>
+    <div class="hero-links">
+      <span>Based on the Revenue Department stamp duty schedule &amp; Revenue Code §§103–129.</span>
+      <span class="dot">·</span>
+      <a href="https://www.rd.go.th/6162.html" target="_blank" rel="noreferrer">RD schedule</a>
+      <a href="https://www.rd.go.th/5203.html" target="_blank" rel="noreferrer">Sections 103–129</a>
+      <span class="dot">·</span>
+      <span>Schedule updated 09-09-2025</span>
+    </div>
+  </div>
+
+  <main class="workspace">
+    <section class="entry-area" aria-label="Instrument entries">
+      <div class="toolbar">
+        <div>
+          <h2>Instruments (ตราสาร)</h2>
+          <p class="muted">Add every dutiable instrument or variant as a separate line (เพิ่มตราสารแต่ละรายการเป็นบรรทัดแยก).</p>
+        </div>
+        <div class="toolbar-actions">
+          <button class="button secondary" id="resetRows" type="button" title="Clear all rows">
+            <span aria-hidden="true">x</span>
+            <span>Clear (ล้าง)</span>
+          </button>
+          <button class="button primary" id="addRow" type="button" title="Add instrument">
+            <span aria-hidden="true">+</span>
+            <span>Add instrument (เพิ่มตราสาร)</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="rows" class="rows"></div>
+    </section>
+
+    <aside class="summary-panel" aria-label="Summary">
+      <div class="summary-head">
+        <h2>Summary (สรุป)</h2>
+        <div class="summary-actions">
+          <button class="icon-button" id="exportCsv" type="button" title="Export CSV" aria-label="Export CSV">CSV</button>
+          <button class="icon-button" id="exportJson" type="button" title="Export all transactions as JSON" aria-label="Export JSON">JSON</button>
+          <button class="icon-button" id="printPage" type="button" title="Print" aria-label="Print">P</button>
+        </div>
+      </div>
+
+      <dl class="totals">
+        <div>
+          <dt>Base duty (อากร)</dt>
+          <dd id="totalDuty">0.00</dd>
+        </div>
+        <div>
+          <dt>Already stamped (ปิดแล้ว)</dt>
+          <dd id="totalStamped">0.00</dd>
+        </div>
+        <div>
+          <dt>Surcharge (เงินเพิ่ม)</dt>
+          <dd id="totalSurcharge">0.00</dd>
+        </div>
+        <div class="grand-total">
+          <dt>Payable now (ต้องชำระ)</dt>
+          <dd id="totalPayable">0.00</dd>
+        </div>
+      </dl>
+
+      <div class="summary-block">
+        <h3>By liable person (ผู้มีหน้าที่เสียอากร)</h3>
+        <div id="payerSummary" class="mini-list"></div>
+      </div>
+
+      <div class="summary-block">
+        <h3>By payment method (วิธีชำระ)</h3>
+        <div id="methodSummary" class="mini-list"></div>
+      </div>
+
+      <div class="summary-block">
+        <h3>Stamps used (อากรแสตมป์ที่ใช้)</h3>
+        <div id="stampsSummary" class="stamp-tally"></div>
+      </div>
+
+      <div class="summary-block">
+        <h3>Line details (รายละเอียด)</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Item (รายการ)</th>
+                <th>Duty (อากร)</th>
+                <th>Extra (เงินเพิ่ม)</th>
+                <th>Due (รวม)</th>
+              </tr>
+            </thead>
+            <tbody id="summaryRows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <p class="caution">
+        Planning estimate only (เป็นเพียงการประมาณการ). Apply exemptions, rulings, and payment method rules against the actual instrument.
+      </p>
+
+      <div class="storage-status" aria-live="polite">
+        <span id="saveStatus">Saved locally (บันทึกในเครื่องแล้ว)</span>
+        <button class="text-button" id="clearSaved" type="button">Clear saved data (ล้างข้อมูลที่บันทึก)</button>
+      </div>
+    </aside>
+  </main>
+
+  <div class="footer">© 2026 Kornrawee Chanchom &nbsp;—&nbsp; JuraTools · Thai Tax Tools</div>
+
+  <template id="instrumentTemplate">
+    <section class="instrument-card" data-row>
+      <div class="row-head">
+        <div class="row-badge" data-output="rowNumber">1</div>
+        <label class="field select-wide">
+          <span>Instrument / rate (ตราสาร / อัตรา)</span>
+          <select data-field="variantId"></select>
+        </label>
+        <div class="row-actions">
+          <button class="icon-button" type="button" data-action="duplicate" title="Duplicate line" aria-label="Duplicate line">+</button>
+          <button class="icon-button danger" type="button" data-action="remove" title="Remove line" aria-label="Remove line">x</button>
+        </div>
+      </div>
+
+      <div class="fields-grid">
+        <label class="field select-wide">
+          <span>Instrument name (ชื่อรายการ)</span>
+          <input type="text" data-field="customName" placeholder="e.g. Lease agreement - Bangkok office" />
+        </label>
+        <label class="field select-wide">
+          <span>Internal note (หมายเหตุ)</span>
+          <textarea data-field="note" rows="2" placeholder="Optional note for this line"></textarea>
+        </label>
+        <label class="field" data-wrap="amount">
+          <span data-label="amount">Amount</span>
+          <input type="text" inputmode="decimal" autocomplete="off" data-field="amount" placeholder="0.00" />
+        </label>
+        <label class="field" data-wrap="secondaryAmount">
+          <span data-label="secondaryAmount">Compare amount</span>
+          <input type="text" inputmode="decimal" autocomplete="off" data-field="secondaryAmount" placeholder="0.00" />
+        </label>
+        <label class="field">
+          <span data-label="count">Count</span>
+          <input type="number" min="1" step="1" inputmode="numeric" data-field="count" placeholder="1" />
+        </label>
+        <label class="field">
+          <span>Already stamped / paid (ปิดแล้ว / ชำระแล้ว)</span>
+          <input type="text" inputmode="decimal" autocomplete="off" data-field="stamped" placeholder="0.00" />
+        </label>
+        <label class="field select-wide">
+          <span>Surcharge context (กรณีเงินเพิ่ม)</span>
+          <select data-field="mode"></select>
+        </label>
+        <label class="check-field">
+          <input type="checkbox" data-field="exempt" />
+          <span>Apply exemption (ยกเว้นอากร)</span>
+        </label>
+      </div>
+
+      <div class="counterpart-box">
+        <label class="check-field inline-check">
+          <input type="checkbox" data-field="includeCounterpart" />
+          <span>Add counterpart / duplicate duty to this instrument (เพิ่มอากรคู่ฉบับ/คู่ฉีก)</span>
+        </label>
+        <label class="field compact-field" data-wrap="counterpartCount">
+          <span>Counterparts (จำนวนคู่ฉบับ)</span>
+          <input type="number" min="1" step="1" inputmode="numeric" data-field="counterpartCount" placeholder="1" />
+        </label>
+        <p data-output="counterpartText">Item 23 can also be calculated as a separate instrument.</p>
+      </div>
+
+      <div class="law-strip">
+        <div>
+          <span class="label">Rate (อัตรา)</span>
+          <p data-output="rateText"></p>
+        </div>
+        <div>
+          <span class="label">Liable / cancel stamp (ผู้เสียอากร / ผู้ขีดฆ่า)</span>
+          <p data-output="payerText"></p>
+        </div>
+      </div>
+
+      <details class="notes" data-wrap="notes">
+        <summary>Notes and exemptions (หมายเหตุและข้อยกเว้น)</summary>
+        <ul data-output="notesList"></ul>
+      </details>
+
+      <div class="line-result" aria-live="polite">
+        <div>
+          <span>Basis (ฐานคำนวณ)</span>
+          <strong data-output="basis">-</strong>
+        </div>
+        <div>
+          <span>Base duty (อากร)</span>
+          <strong data-output="baseDuty">0.00</strong>
+        </div>
+        <div>
+          <span>Surcharge (เงินเพิ่ม)</span>
+          <strong data-output="surcharge">0.00</strong>
+        </div>
+        <div>
+          <span>Payable now (ต้องชำระ)</span>
+          <strong data-output="payable">0.00</strong>
+        </div>
+      </div>
+
+      <div class="pay-box" data-wrap="payBox">
+        <div class="pay-head">
+          <span class="label">Pay this duty by (วิธีชำระอากร)</span>
+          <select data-field="payMethod">
+            <option value="stamp">ปิดแสตมป์ — Adhesive stamps</option>
+            <option value="cash">ชำระเป็นตัวเงิน — Cash to officer</option>
+          </select>
+        </div>
+        <div class="stamp-choose" data-wrap="stampChoose">
+          <div class="stamp-basis-row" data-wrap="stampBasisRow">
+            <span class="label">Stamps cover (ปิดแสตมป์สำหรับ)</span>
+            <select data-field="stampBasis">
+              <option value="duty">Base duty (อากร)</option>
+              <option value="payable">Payable now (อากร + เงินเพิ่ม)</option>
+            </select>
+          </div>
+          <span class="label">Stamp combination for THB <span data-output="stampTarget">0</span> — choose ฿20 / ฿5 / ฿1 (ชุดอากรแสตมป์)</span>
+          <select data-field="stampCombo"></select>
+          <div class="stamp-chips" data-output="stampChips"></div>
+        </div>
+      </div>
+    </section>
+  </template>
+
+  <script>
+const StampDutyApp = (() => {
+  const STORAGE_KEY = "thai-stamp-duty-calculator-v1";
+
+  const modes = [
+    {
+      id: "normal",
+      label: "Timely / complete stamping",
+      basis: "shortage",
+      multiplier: 0,
+      minimum: 0,
+      law: "No surcharge; pay only any unpaid base duty."
+    },
+    {
+      id: "s113_15",
+      label: "Section 113: voluntary within 15 days",
+      basis: "shortage",
+      multiplier: 0,
+      minimum: 0,
+      law: "Instrument made in Thailand and submitted within 15 days: base duty only."
+    },
+    {
+      id: "s113_90",
+      label: "Section 113: voluntary late, up to 90 days",
+      basis: "base",
+      multiplier: 2,
+      minimum: 4,
+      law: "Surcharge is 2x duty or THB 4, whichever is higher."
+    },
+    {
+      id: "s113_over90",
+      label: "Section 113: voluntary late, over 90 days",
+      basis: "base",
+      multiplier: 5,
+      minimum: 10,
+      law: "Surcharge is 5x duty or THB 10, whichever is higher."
+    },
+    {
+      id: "s114_no_receipt",
+      label: "Section 114(1): required receipt not issued",
+      basis: "base",
+      multiplier: 6,
+      minimum: 25,
+      law: "Surcharge is 6x duty or THB 25, whichever is higher."
+    },
+    {
+      id: "s114_no_stamp",
+      label: "Section 114(2)(a): no stamp",
+      basis: "base",
+      multiplier: 6,
+      minimum: 25,
+      forceShortage: true,
+      law: "Surcharge is 6x required duty or THB 25, whichever is higher."
+    },
+    {
+      id: "s114_understamped",
+      label: "Section 114(2)(b): under-stamped",
+      basis: "shortage",
+      multiplier: 6,
+      minimum: 25,
+      law: "Surcharge is 6x missing duty or THB 25, whichever is higher."
+    },
+    {
+      id: "s114_other",
+      label: "Section 114(2)(c): other incomplete stamping",
+      basis: "base",
+      multiplier: 1,
+      minimum: 25,
+      law: "Surcharge is 1x required duty or THB 25, whichever is higher."
+    }
+  ];
+
+  const instruments = [
+    {
+      no: "1",
+      name: "เช่าที่ดิน โรงเรือน สิ่งปลูกสร้างอย่างอื่น หรือแพ",
+      variants: [
+        perAmount("lease", "Lease of land, building, other construction, or raft", 1000, 1, {
+          amountLabel: "Rent / key money for full lease term",
+          rateText: "THB 1 per THB 1,000 or fraction of total rent, key money, or both for the lease term.",
+          payer: "ผู้ให้เช่า",
+          canceller: "ผู้เช่า",
+          notes: [
+            "If the lease does not specify a term, the schedule treats it as 3 years.",
+            "Exemption listed for lease of property used for rice farming, farming, or gardening."
+          ]
+        })
+      ]
+    },
+    {
+      no: "2",
+      name: "โอนใบหุ้น ใบหุ้นกู้ พันธบัตร และใบรับรองหนี้",
+      variants: [
+        comparePerAmount("share-transfer", "Transfer of share/debenture/bond/debt certificate", 1000, 1, {
+          amountLabel: "Paid-up value",
+          secondaryLabel: "Instrument price",
+          rateText: "THB 1 per THB 1,000 or fraction, using the greater of paid-up value and instrument price.",
+          payer: "ผู้โอน",
+          canceller: "ผู้รับโอน",
+          notes: [
+            "Exemptions listed for transfer of Thai government bonds.",
+            "Exemptions listed for shares, debentures, and debt certificates issued by cooperatives or BAAC."
+          ]
+        })
+      ]
+    },
+    {
+      no: "3",
+      name: "เช่าซื้อทรัพย์สิน",
+      variants: [
+        perAmount("hire-purchase", "Hire-purchase of property", 1000, 1, {
+          amountLabel: "Total price",
+          rateText: "THB 1 per THB 1,000 or fraction of the total price.",
+          payer: "ผู้ให้เช่า",
+          canceller: "ผู้เช่า",
+          notes: ["Exemption listed for hire-purchase of property used for rice farming, farming, or gardening."]
+        })
+      ]
+    },
+    {
+      no: "4",
+      name: "จ้างทำของ",
+      variants: [
+        perAmount("work-hire", "Hire of work / contract for work", 1000, 1, {
+          amountLabel: "Agreed remuneration",
+          rateText: "THB 1 per THB 1,000 or fraction of agreed remuneration.",
+          payer: "ผู้รับจ้าง",
+          canceller: "ผู้รับจ้าง",
+          notes: [
+            "If remuneration is unknown when contracting, estimate a reasonable amount and adjust when payment is received.",
+            "Exemption listed for contracts made outside Thailand where performance is also outside Thailand."
+          ]
+        })
+      ]
+    },
+    {
+      no: "5",
+      name: "กู้ยืมเงินหรือการตกลงให้เบิกเงินเกินบัญชีจากธนาคาร",
+      variants: [
+        perAmount("loan-overdraft", "Loan or bank overdraft agreement", 2000, 1, {
+          amountLabel: "Loan / overdraft amount",
+          cap: 10000,
+          rateText: "THB 1 per THB 2,000 or fraction of loan/overdraft amount; capped at THB 10,000.",
+          payer: "ผู้ให้กู้",
+          canceller: "ผู้กู้",
+          notes: ["Exemption listed for loans involving cooperatives or BAAC as described in the schedule."]
+        })
+      ]
+    },
+    {
+      no: "6",
+      name: "กรมธรรม์ประกันภัย",
+      variants: [
+        perAmount("insurance-non-life", "6(a) Non-life insurance policy", 250, 1, {
+          amountLabel: "Insurance premium",
+          rateText: "THB 1 per THB 250 or fraction of insurance premium.",
+          payer: "ผู้รับประกันภัย",
+          canceller: "ผู้รับประกันภัย"
+        }),
+        perAmount("insurance-life", "6(b) Life insurance policy", 2000, 1, {
+          amountLabel: "Sum insured",
+          cap: 20,
+          rateText: "THB 1 per THB 2,000 or fraction of sum insured; reduced to THB 20 if higher.",
+          payer: "ผู้รับประกันภัย",
+          canceller: "ผู้รับประกันภัย"
+        }),
+        perAmount("insurance-other", "6(c) Other insurance policy", 2000, 1, {
+          amountLabel: "Sum insured",
+          rateText: "THB 1 per THB 2,000 or fraction of sum insured.",
+          payer: "ผู้รับประกันภัย",
+          canceller: "ผู้รับประกันภัย"
+        }),
+        perAmount("insurance-annuity", "6(d) Annuity policy", 2000, 1, {
+          amountLabel: "Annuity capital or 33x annual income",
+          rateText: "THB 1 per THB 2,000 or fraction of annuity capital, or 33x annual income if capital is not shown.",
+          payer: "ผู้รับประกันภัย",
+          canceller: "ผู้รับประกันภัย"
+        }),
+        fixed("insurance-reinsurance", "6(e) Reinsurance policy", 1, {
+          rateText: "THB 1 per instrument.",
+          payer: "ผู้รับประกันภัย",
+          canceller: "ผู้รับประกันภัย"
+        }),
+        {
+          id: "insurance-renewal",
+          label: "6(f) Renewal endorsement of original policy",
+          type: "halfDuty",
+          amountLabel: "Duty charged for original policy",
+          countLabel: "Endorsements",
+          rateText: "Half of the duty charged for the original policy; fractional baht is disregarded.",
+          payer: "ผู้รับประกันภัย",
+          canceller: "ผู้รับประกันภัย",
+          notes: [
+            "Exemptions listed for insurance of draught animals used in agriculture.",
+            "Temporary cover notes may be exempt unless rights other than delivery of the final policy are claimed."
+          ]
+        }
+      ]
+    },
+    {
+      no: "7",
+      name: "ใบมอบอำนาจ",
+      variants: [
+        fixed("poa-one-act", "7(a) Power of attorney for one act", 10, {
+          rateText: "THB 10 per instrument.",
+          payer: "ผู้มอบอำนาจ",
+          canceller: "ผู้รับมอบอำนาจ"
+        }),
+        fixed("poa-more-than-once", "7(b) Power of attorney for more than one act jointly", 30, {
+          rateText: "THB 30 per instrument.",
+          payer: "ผู้มอบอำนาจ",
+          canceller: "ผู้รับมอบอำนาจ"
+        }),
+        fixed("poa-separate-persons", "7(c) Power for separate appointees to act separately", 30, {
+          countLabel: "Appointees",
+          rateText: "THB 30 per appointed person.",
+          payer: "ผู้มอบอำนาจ",
+          canceller: "ผู้รับมอบอำนาจ",
+          notes: [
+            "If there are multiple principals who are not jointly authorized and they appoint in one instrument, calculate by each principal under section 108.",
+            "Exemptions listed for certain lawyer, animal-transfer, receipt-of-money, and cooperative powers of attorney."
+          ]
+        })
+      ]
+    },
+    {
+      no: "8",
+      name: "ใบมอบฉันทะสำหรับให้ลงมติในที่ประชุมของบริษัท",
+      variants: [
+        fixed("proxy-one-meeting", "8(a) Proxy for one company meeting", 20, {
+          rateText: "THB 20 per proxy.",
+          payer: "ผู้มอบฉันทะ",
+          canceller: "ผู้มอบฉันทะ"
+        }),
+        fixed("proxy-multiple-meetings", "8(b) Proxy for more than one company meeting", 100, {
+          rateText: "THB 100 per proxy.",
+          payer: "ผู้มอบฉันทะ",
+          canceller: "ผู้มอบฉันทะ"
+        })
+      ]
+    },
+    {
+      no: "9",
+      name: "ตั๋วแลกเงินและตั๋วสัญญาใช้เงิน",
+      variants: [
+        fixed("bill-exchange", "9(1) Bill of exchange or similar instrument", 3, {
+          rateText: "THB 3 per instrument.",
+          payer: "ผู้สั่งจ่าย",
+          canceller: "ผู้สั่งจ่าย"
+        }),
+        fixed("promissory-note", "9(2) Promissory note or similar instrument", 3, {
+          rateText: "THB 3 per instrument.",
+          payer: "ผู้ออกตั๋ว",
+          canceller: "ผู้ออกตั๋ว",
+          notes: ["If issued in a set and the first original is duly stamped, other originals may be exempt if endorsed as already stamped."]
+        })
+      ]
+    },
+    {
+      no: "10",
+      name: "บิลออฟเลดิง",
+      variants: [
+        fixed("bill-of-lading", "Bill of lading", 2, {
+          rateText: "THB 2 per instrument. If issued in a set, stamp every original.",
+          payer: "ผู้กระทำตราสาร",
+          canceller: "ผู้กระทำตราสาร"
+        })
+      ]
+    },
+    {
+      no: "11",
+      name: "ใบหุ้น ใบหุ้นกู้ ใบรับรองหนี้ และพันธบัตร",
+      variants: [
+        fixed("share-certificate", "11(1) Share/debenture/debt certificate", 5, {
+          rateText: "THB 5 per instrument.",
+          payer: "ผู้ทรงตราสาร",
+          canceller: "ผู้ทรงตราสาร",
+          notes: ["Exemption listed for share, debenture, and debt certificates of cooperatives."]
+        }),
+        perAmount("government-bond", "11(2) Government bond sold in Thailand", 100, 1, {
+          amountLabel: "Bond amount",
+          rateText: "THB 1 per THB 100 or fraction.",
+          payer: "ผู้ทรงตราสาร",
+          canceller: "ผู้ทรงตราสาร"
+        })
+      ]
+    },
+    {
+      no: "12",
+      name: "เช็ค หรือหนังสือคำสั่งใด ๆ ซึ่งใช้แทนเช็ค",
+      variants: [
+        fixed("cheque", "Cheque or payment order used instead of cheque", 3, {
+          rateText: "THB 3 per instrument.",
+          payer: "ผู้สั่งจ่าย",
+          canceller: "ผู้สั่งจ่าย"
+        })
+      ]
+    },
+    {
+      no: "13",
+      name: "ใบรับฝากเงินประเภทประจำของธนาคาร โดยมีดอกเบี้ย",
+      variants: [
+        fixed("fixed-deposit-receipt", "Fixed deposit receipt with interest", 5, {
+          rateText: "THB 5 per instrument.",
+          payer: "ผู้รับฝาก",
+          canceller: "ผู้รับฝาก"
+        })
+      ]
+    },
+    {
+      no: "14",
+      name: "เลตเตอร์ออฟเครดิต",
+      variants: [
+        {
+          id: "lc-thailand",
+          label: "14(a) Letter of credit issued in Thailand",
+          type: "tier",
+          amountLabel: "Credit amount",
+          countLabel: "Instruments",
+          tiers: [
+            { lte: 9999.99, duty: 20 },
+            { duty: 30 }
+          ],
+          rateText: "Issued in Thailand: THB 20 if under THB 10,000; THB 30 if THB 10,000 or more.",
+          payer: "ผู้ออกตราสาร",
+          canceller: "ผู้ออกตราสาร",
+          notes: ["If issued in Thailand and payable abroad, keep a copy in Thailand and stamp that copy."]
+        },
+        fixed("lc-abroad-payable-thailand", "14(b) Letter of credit issued abroad, payable in Thailand", 20, {
+          countLabel: "Occasions",
+          rateText: "THB 20 per occasion.",
+          payer: "ผู้ทรงคนแรกในประเทศไทย",
+          canceller: "ผู้ทรงคนแรกในประเทศไทย"
+        })
+      ]
+    },
+    {
+      no: "15",
+      name: "เช็คสำหรับผู้เดินทาง",
+      variants: [
+        fixed("travellers-cheque-thailand", "15(a) Traveller's cheque issued in Thailand", 3, {
+          rateText: "THB 3 per cheque.",
+          payer: "ผู้ออกเช็ค",
+          canceller: "ผู้ออกเช็ค"
+        }),
+        fixed("travellers-cheque-abroad", "15(b) Traveller's cheque issued abroad, payable in Thailand", 3, {
+          rateText: "THB 3 per cheque.",
+          payer: "ผู้ทรงคนแรกในประเทศไทย",
+          canceller: "ผู้ทรงคนแรกในประเทศไทย"
+        })
+      ]
+    },
+    {
+      no: "16",
+      name: "ใบรับของจากกิจการรับขนส่งสินค้า",
+      variants: [
+        fixed("goods-receipt-transport", "Goods receipt for carriage when no bill of lading is issued", 1, {
+          rateText: "THB 1 per instrument. If issued in a set, stamp every original.",
+          payer: "ผู้ออกใบรับ",
+          canceller: "ผู้ออกใบรับ"
+        })
+      ]
+    },
+    {
+      no: "17",
+      name: "ค้ำประกัน",
+      variants: [
+        fixed("guarantee-unlimited", "17(a) Guarantee with no amount limit", 10, {
+          rateText: "THB 10 per instrument.",
+          payer: "ผู้ค้ำประกัน",
+          canceller: "ผู้ค้ำประกัน",
+          notes: [
+            "Exemptions listed for certain government agricultural/consumption loans and cooperative-member loans."
+          ]
+        }),
+        {
+          id: "guarantee-limited",
+          label: "17(b-d) Guarantee with stated amount",
+          type: "tier",
+          amountLabel: "Guaranteed amount",
+          countLabel: "Guarantees",
+          tiers: [
+            { lte: 1000, duty: 1 },
+            { lte: 10000, duty: 5 },
+            { duty: 10 }
+          ],
+          rateText: "THB 1 if not over THB 1,000; THB 5 if over THB 1,000 up to THB 10,000; THB 10 if over THB 10,000.",
+          payer: "ผู้ค้ำประกัน",
+          canceller: "ผู้ค้ำประกัน"
+        }
+      ]
+    },
+    {
+      no: "18",
+      name: "จำนำ",
+      variants: [
+        perAmount("pledge-limited", "Pledge with stated debt amount", 2000, 1, {
+          amountLabel: "Debt amount",
+          rateText: "THB 1 per THB 2,000 or fraction of debt.",
+          payer: "ผู้รับจำนำ",
+          canceller: "ผู้รับจำนำ",
+          notes: [
+            "Exemptions listed for licensed pawnshop pawn tickets.",
+            "Exemptions listed for pledge connected with a loan already duly stamped under item 5."
+          ]
+        }),
+        fixed("pledge-unlimited", "Pledge with no debt amount limit", 1, {
+          rateText: "THB 1 per instrument.",
+          payer: "ผู้รับจำนำ",
+          canceller: "ผู้รับจำนำ"
+        })
+      ]
+    },
+    {
+      no: "19",
+      name: "ใบรับของคลังสินค้า",
+      variants: [
+        fixed("warehouse-receipt", "Warehouse receipt", 1, {
+          rateText: "THB 1 per instrument.",
+          payer: "นายคลังสินค้า",
+          canceller: "นายคลังสินค้า"
+        })
+      ]
+    },
+    {
+      no: "20",
+      name: "คำสั่งให้ส่งมอบของ",
+      variants: [
+        fixed("delivery-order", "Delivery order", 1, {
+          rateText: "THB 1 per instrument.",
+          payer: "ผู้ออกคำสั่ง",
+          canceller: "ผู้ออกคำสั่ง"
+        })
+      ]
+    },
+    {
+      no: "21",
+      name: "ตัวแทน",
+      variants: [
+        fixed("agency-special", "21(a) Special agency appointment", 10, {
+          rateText: "THB 10 per instrument.",
+          payer: "ตัวการ",
+          canceller: "ตัวการ",
+          notes: ["Exemption listed for agency appointment where a cooperative is principal."]
+        }),
+        fixed("agency-general", "21(b) General agency appointment", 30, {
+          rateText: "THB 30 per instrument.",
+          payer: "ตัวการ",
+          canceller: "ตัวการ"
+        })
+      ]
+    },
+    {
+      no: "22",
+      name: "คำชี้ขาดของอนุญาโตตุลาการ",
+      variants: [
+        perAmount("arbitration-amount", "22(a) Arbitration award with disputed amount/value", 1000, 1, {
+          amountLabel: "Disputed amount / value",
+          rateText: "THB 1 per THB 1,000 or fraction of disputed amount/value.",
+          payer: "อนุญาโตตุลาการ",
+          canceller: "อนุญาโตตุลาการ"
+        }),
+        fixed("arbitration-no-amount", "22(b) Arbitration award with no stated amount/value", 10, {
+          rateText: "THB 10 per award.",
+          payer: "อนุญาโตตุลาการ",
+          canceller: "อนุญาโตตุลาการ"
+        })
+      ]
+    },
+    {
+      no: "23",
+      name: "คู่ฉบับหรือคู่ฉีกแห่งตราสาร",
+      variants: [
+        {
+          id: "counterpart",
+          label: "Counterpart or duplicate of instrument",
+          type: "counterpart",
+          amountLabel: "Duty on original instrument",
+          countLabel: "Counterparts / duplicates",
+          rateText: "THB 1 if original duty is not over THB 5; THB 5 if original duty is over THB 5.",
+          payer: "ตามผู้เสียอากรต้นฉบับหรือคู่สัญญาอีกฝ่าย",
+          canceller: "คนเดียวกับผู้ขีดฆ่าต้นฉบับ",
+          notes: [
+            "This item can be calculated as a separate instrument, or added to another instrument by using the counterpart option in that row.",
+            "Exemption listed if the party liable for duty is a cooperative."
+          ]
+        }
+      ]
+    },
+    {
+      no: "24",
+      name: "หนังสือบริคณห์สนธิของบริษัทจำกัดที่ส่งต่อนายทะเบียน",
+      variants: [
+        fixed("moa-company", "Memorandum of association submitted to registrar", 200, {
+          rateText: "THB 200 per instrument.",
+          payer: "ผู้เริ่มก่อการ",
+          canceller: "ผู้เริ่มก่อการ"
+        })
+      ]
+    },
+    {
+      no: "25",
+      name: "ข้อบังคับของบริษัทจำกัดที่ส่งต่อนายทะเบียน",
+      variants: [
+        fixed("articles-company", "Company articles submitted to registrar", 200, {
+          rateText: "THB 200 per instrument.",
+          payer: "กรรมการ",
+          canceller: "กรรมการ"
+        })
+      ]
+    },
+    {
+      no: "26",
+      name: "ข้อบังคับใหม่หรือสำเนาหนังสือบริคณห์สนธิหรือข้อบังคับที่เปลี่ยนแปลงใหม่",
+      variants: [
+        fixed("new-articles-copy", "New articles or changed memorandum/articles copy submitted to registrar", 50, {
+          rateText: "THB 50 per instrument.",
+          payer: "กรรมการ",
+          canceller: "กรรมการ"
+        })
+      ]
+    },
+    {
+      no: "27",
+      name: "หนังสือสัญญาห้างหุ้นส่วน",
+      variants: [
+        fixed("partnership-formation", "27(a) Partnership formation agreement", 100, {
+          rateText: "THB 100 per agreement.",
+          payer: "ผู้เป็นหุ้นส่วน",
+          canceller: "ผู้เป็นหุ้นส่วน"
+        }),
+        fixed("partnership-amendment", "27(b) Partnership agreement amendment", 50, {
+          rateText: "THB 50 per agreement.",
+          payer: "ผู้เป็นหุ้นส่วน",
+          canceller: "ผู้เป็นหุ้นส่วน"
+        })
+      ]
+    },
+    {
+      no: "28",
+      name: "ใบรับ",
+      variants: [
+        receipt("receipt-lottery", "28(a) Receipt for government lottery prize"),
+        receipt("receipt-real-estate", "28(b) Receipt for registered real-estate right transfer/creation"),
+        receipt("receipt-vehicle", "28(c) Receipt for registered vehicle sale, hire-purchase, or ownership transfer")
+      ]
+    }
+  ];
+
+  function perAmount(id, label, unit, rate, options) {
+    return {
+      id,
+      label,
+      type: "perAmount",
+      unit,
+      rate,
+      countLabel: "Instruments",
+      ...options
+    };
+  }
+
+  function comparePerAmount(id, label, unit, rate, options) {
+    return {
+      id,
+      label,
+      type: "comparePerAmount",
+      unit,
+      rate,
+      countLabel: "Instruments",
+      ...options
+    };
+  }
+
+  function fixed(id, label, duty, options) {
+    return {
+      id,
+      label,
+      type: "fixed",
+      duty,
+      countLabel: "Instruments",
+      ...options
+    };
+  }
+
+  function receipt(id, label) {
+    return perAmount(id, label, 200, 1, {
+      amountLabel: "Receipt amount",
+      threshold: 200,
+      rateText: "If the receipt is THB 200 or more: THB 1 per THB 200 or fraction.",
+      payer: "ผู้ออกใบรับ",
+      canceller: "ผู้ออกใบรับ",
+      notes: ["Exemption listed for receipts where the recipient must pay VAT or specific business tax."]
+    });
+  }
+
+  const variantIndex = new Map();
+  instruments.forEach((instrument) => {
+    instrument.variants.forEach((variant) => {
+      variant.instrumentNo = instrument.no;
+      variant.instrumentName = instrument.name;
+      variantIndex.set(variant.id, variant);
+    });
+  });
+
+  const defaultRow = () => ({
+    id: cryptoId(),
+    variantId: "lease",
+    amount: "",
+    secondaryAmount: "",
+    count: "1",
+    stamped: "",
+    mode: "normal",
+    exempt: false,
+    customName: "",
+    note: "",
+    includeCounterpart: false,
+    counterpartCount: "1",
+    payMethod: "stamp",
+    stampCombo: "",
+    stampBasis: "duty"
+  });
+
+  const state = {
+    rows: []
+  };
+
+  let elements = {};
+
+  function cryptoId() {
+    if (typeof crypto !== "undefined" && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    return `row-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+
+  function money(value) {
+    return Number(value || 0).toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+
+  function parseMoney(value) {
+    if (typeof value === "number") return Math.max(0, value);
+    const cleaned = String(value || "").replace(/,/g, "").trim();
+    const parsed = Number(cleaned);
+    return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+  }
+
+  function parseCount(value) {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+  }
+
+  function wholeBaht(value) {
+    if (!Number.isFinite(value) || value <= 0) return 0;
+    return Math.floor(value + 1e-9);
+  }
+
+  // ── Amount input formatting (thousands separators, caret-preserving) ──
+  const AMOUNT_FIELDS = new Set(["amount", "secondaryAmount", "stamped"]);
+
+  function cleanNum(str) {
+    let s = String(str == null ? "" : str).replace(/[^0-9.]/g, "");
+    const i = s.indexOf(".");
+    if (i !== -1) s = s.slice(0, i + 1) + s.slice(i + 1).replace(/\./g, "");
+    s = s.replace(/^0+(?=\d)/, "");
+    const d = s.indexOf(".");
+    if (d !== -1) s = s.slice(0, d + 1) + s.slice(d + 1, d + 3);
+    return s;
+  }
+
+  function formatNum(str) {
+    const s = cleanNum(str);
+    if (s === "") return "";
+    const [intPart, dec] = s.split(".");
+    const intFmt = intPart === "" ? "0" : Number(intPart).toLocaleString("en-US");
+    return dec !== undefined ? `${intFmt}.${dec}` : intFmt;
+  }
+
+  function digitsBeforeCaret(input) {
+    const upto = input.value.slice(0, input.selectionStart || 0);
+    return upto.replace(/[^0-9]/g, "").length;
+  }
+
+  function setCaretByDigits(input, digitCount) {
+    if (digitCount <= 0) { try { input.setSelectionRange(0, 0); } catch (e) {} return; }
+    const v = input.value;
+    let count = 0, pos = v.length;
+    for (let i = 0; i < v.length; i++) {
+      const code = v.charCodeAt(i);
+      if (code >= 48 && code <= 57) count++;
+      if (count >= digitCount) { pos = i + 1; break; }
+    }
+    try { input.setSelectionRange(pos, pos); } catch (e) {}
+  }
+
+  // ── Stamp denominations & combinations (฿20 / ฿5 / ฿1) ──
+  function comboKey(c) { return `${c.n20}-${c.n5}-${c.n1}`; }
+
+  function stampCombos(amount) {
+    const n = Math.round(amount);
+    if (!Number.isFinite(n) || n <= 0) return [];
+    const map = new Map();
+    const add = (n20, n5, n1) => {
+      if (n20 < 0 || n5 < 0 || n1 < 0) return;
+      if (n20 * 20 + n5 * 5 + n1 !== n) return;
+      const c = { n20, n5, n1, total: n20 + n5 + n1 };
+      const k = comboKey(c);
+      if (!map.has(k)) map.set(k, c);
+    };
+    const maxT = Math.floor(n / 20);
+    for (let t = maxT; t >= Math.max(0, maxT - 6); t--) {
+      const rem = n - t * 20;
+      add(t, Math.floor(rem / 5), rem % 5);
+    }
+    add(0, Math.floor(n / 5), n % 5); // no ฿20
+    add(0, 0, n);                     // all ฿1
+    return [...map.values()].sort((a, b) => a.total - b.total);
+  }
+
+  function effectiveCombo(row, baseDuty) {
+    const combos = stampCombos(baseDuty);
+    if (!combos.length) return null;
+    if (row.stampCombo) {
+      const found = combos.find((c) => comboKey(c) === row.stampCombo);
+      if (found) return found;
+    }
+    return combos[0];
+  }
+
+  function comboLabel(c, isOptimal) {
+    const parts = [];
+    if (c.n20) parts.push(`${c.n20}×฿20`);
+    if (c.n5) parts.push(`${c.n5}×฿5`);
+    if (c.n1) parts.push(`${c.n1}×฿1`);
+    const breakdown = parts.length ? parts.join(" + ") : "—";
+    return `${isOptimal ? "★ " : ""}${breakdown}  ·  ${c.total} stamp${c.total === 1 ? "" : "s"}`;
+  }
+
+  function renderChips(container, c) {
+    container.innerHTML = "";
+    [["฿20", c.n20], ["฿5", c.n5], ["฿1", c.n1]].forEach(([d, count]) => {
+      const chip = document.createElement("span");
+      chip.className = "chip" + (count > 0 ? "" : " chip-zero");
+      chip.innerHTML = `<b>${count}</b> × ${d}`;
+      container.appendChild(chip);
+    });
+    const tot = document.createElement("span");
+    tot.className = "chip chip-total";
+    tot.textContent = `= ${c.total} stamp${c.total === 1 ? "" : "s"}`;
+    container.appendChild(tot);
+  }
+
+  function stampTargetFor(result) {
+    const basis = result.row.stampBasis === "payable" ? "payable" : "duty";
+    return basis === "payable" ? Math.round(result.payable) : result.baseDuty;
+  }
+
+  function aggregateStamps(results) {
+    let n20 = 0, n5 = 0, n1 = 0, stampsValue = 0, cashValue = 0, surcharge = 0;
+    results.forEach((r) => {
+      surcharge += r.surcharge;
+      const method = r.row.payMethod || "stamp";
+      const payable = r.payable;
+      if (method === "cash") { cashValue += payable; return; }
+      const target = stampTargetFor(r);
+      if (target > 0) {
+        const c = effectiveCombo(r.row, target);
+        if (c) { n20 += c.n20; n5 += c.n5; n1 += c.n1; }
+        stampsValue += target;
+      }
+      cashValue += Math.max(0, payable - target);
+    });
+    return { n20, n5, n1, total: n20 + n5 + n1, value: n20 * 20 + n5 * 5 + n1, stampsValue, cashValue, surcharge };
+  }
+
+  function calculateBaseDuty(variant, amountValue, secondaryValue, countValue, exempt = false) {
+    const amount = parseMoney(amountValue);
+    const secondaryAmount = parseMoney(secondaryValue);
+    const count = parseCount(countValue);
+    let singleDuty = 0;
+    let basis = 0;
+    let basisText = "-";
+
+    if (exempt) {
+      return {
+        basis,
+        basisText: "Exemption applied",
+        singleDuty: 0,
+        baseDuty: 0,
+        count
+      };
+    }
+
+    switch (variant.type) {
+      case "fixed":
+        singleDuty = variant.duty;
+        basisText = "Fixed duty";
+        break;
+      case "perAmount":
+        basis = amount;
+        if (amount > 0 && (!variant.threshold || amount >= variant.threshold)) {
+          singleDuty = Math.ceil(amount / variant.unit) * variant.rate;
+          if (variant.cap) singleDuty = Math.min(singleDuty, variant.cap);
+        }
+        basisText = amount > 0 ? `THB ${money(amount)}` : "-";
+        break;
+      case "comparePerAmount":
+        basis = Math.max(amount, secondaryAmount);
+        if (basis > 0) {
+          singleDuty = Math.ceil(basis / variant.unit) * variant.rate;
+          if (variant.cap) singleDuty = Math.min(singleDuty, variant.cap);
+        }
+        basisText = basis > 0 ? `Greater amount: THB ${money(basis)}` : "-";
+        break;
+      case "halfDuty":
+        basis = amount;
+        singleDuty = amount > 0 ? amount * 0.5 : 0;
+        basisText = amount > 0 ? `Original duty: THB ${money(amount)}` : "-";
+        break;
+      case "tier":
+        basis = amount;
+        if (amount > 0) {
+          const tier = variant.tiers.find((item) => item.lte === undefined || amount <= item.lte);
+          singleDuty = tier ? tier.duty : 0;
+        }
+        basisText = amount > 0 ? `THB ${money(amount)}` : "-";
+        break;
+      case "counterpart":
+        basis = amount;
+        if (amount > 0) singleDuty = amount <= 5 ? 1 : 5;
+        basisText = amount > 0 ? `Original duty: THB ${money(amount)}` : "-";
+        break;
+      default:
+        singleDuty = 0;
+    }
+
+    singleDuty = wholeBaht(singleDuty);
+    return {
+      basis,
+      basisText,
+      singleDuty,
+      baseDuty: singleDuty * count,
+      count
+    };
+  }
+
+  function calculatePenalty(baseDuty, stampedValue, modeId) {
+    const mode = modes.find((item) => item.id === modeId) || modes[0];
+    const stamped = parseMoney(stampedValue);
+    const shortage = mode.forceShortage ? baseDuty : Math.max(baseDuty - stamped, 0);
+    let surchargeBasis = 0;
+
+    if (baseDuty <= 0) {
+      return { stamped, shortage: 0, surcharge: 0, payable: 0, mode };
+    }
+
+    if (mode.basis === "base") {
+      surchargeBasis = baseDuty;
+    } else {
+      surchargeBasis = shortage;
+    }
+
+    let surcharge = 0;
+    if (mode.multiplier > 0 && surchargeBasis > 0) {
+      surcharge = Math.max(mode.multiplier * surchargeBasis, mode.minimum);
+    }
+
+    surcharge = wholeBaht(surcharge);
+    return {
+      stamped,
+      shortage,
+      surcharge,
+      payable: Math.max(shortage, 0) + surcharge,
+      mode
+    };
+  }
+
+  function calculateCounterpartDuty(originalDuty, countValue) {
+    const count = parseCount(countValue);
+    if (originalDuty <= 0) return 0;
+    return (originalDuty <= 5 ? 1 : 5) * count;
+  }
+
+  function calculateRow(row) {
+    const variant = variantIndex.get(row.variantId) || variantIndex.get("lease");
+    const base = calculateBaseDuty(variant, row.amount, row.secondaryAmount, row.count, row.exempt);
+    const counterpartDuty =
+      row.includeCounterpart && variant.type !== "counterpart" && !row.exempt
+        ? calculateCounterpartDuty(base.baseDuty, row.counterpartCount)
+        : 0;
+    const combinedBaseDuty = base.baseDuty + counterpartDuty;
+    const basisText = counterpartDuty > 0
+      ? `${base.basisText}; counterpart duty: THB ${money(counterpartDuty)}`
+      : base.basisText;
+    const penalty = calculatePenalty(combinedBaseDuty, row.stamped, row.mode);
+    return {
+      row,
+      variant,
+      ...base,
+      primaryBaseDuty: base.baseDuty,
+      counterpartDuty,
+      baseDuty: combinedBaseDuty,
+      basisText,
+      ...penalty
+    };
+  }
+
+  function init() {
+    elements = {
+      rows: document.querySelector("#rows"),
+      template: document.querySelector("#instrumentTemplate"),
+      addRow: document.querySelector("#addRow"),
+      resetRows: document.querySelector("#resetRows"),
+      totalDuty: document.querySelector("#totalDuty"),
+      totalStamped: document.querySelector("#totalStamped"),
+      totalSurcharge: document.querySelector("#totalSurcharge"),
+      totalPayable: document.querySelector("#totalPayable"),
+      payerSummary: document.querySelector("#payerSummary"),
+      methodSummary: document.querySelector("#methodSummary"),
+      stampsSummary: document.querySelector("#stampsSummary"),
+      summaryRows: document.querySelector("#summaryRows"),
+      saveStatus: document.querySelector("#saveStatus"),
+      clearSaved: document.querySelector("#clearSaved"),
+      exportCsv: document.querySelector("#exportCsv"),
+      exportJson: document.querySelector("#exportJson"),
+      printPage: document.querySelector("#printPage")
+    };
+
+    loadState();
+    renderRows();
+
+    elements.addRow.addEventListener("click", () => {
+      state.rows.push(defaultRow());
+      renderRows();
+      saveState();
+    });
+
+    elements.resetRows.addEventListener("click", () => {
+      if (!confirm("Clear all calculator rows? (ล้างรายการทั้งหมดหรือไม่)")) return;
+      state.rows = [defaultRow()];
+      renderRows();
+      saveState();
+    });
+
+    elements.rows.addEventListener("input", onRowFieldChange);
+    elements.rows.addEventListener("change", onRowFieldChange);
+    elements.rows.addEventListener("click", onRowAction);
+
+    elements.exportCsv.addEventListener("click", exportCsv);
+    elements.exportJson.addEventListener("click", exportJson);
+    elements.printPage.addEventListener("click", () => window.print());
+    elements.clearSaved.addEventListener("click", clearSavedData);
+  }
+
+  function loadState() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+      if (saved && Array.isArray(saved.rows) && saved.rows.length) {
+        state.rows = saved.rows.map((row) => ({
+          ...defaultRow(),
+          ...row,
+          id: row.id || cryptoId()
+        }));
+        updateSaveStatus(saved.savedAt ? `Loaded saved data (โหลดข้อมูลที่บันทึก): ${formatDateTime(saved.savedAt)}` : "Loaded saved data (โหลดข้อมูลที่บันทึก)");
+        return;
+      }
+    } catch (error) {
+      console.warn("Unable to read saved calculator state", error);
+    }
+    state.rows = [defaultRow()];
+    updateSaveStatus("Ready. Changes save locally in this browser (พร้อมใช้งาน: ระบบบันทึกในเบราว์เซอร์นี้)");
+  }
+
+  function saveState() {
+    try {
+      const savedAt = new Date().toISOString();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ rows: state.rows, savedAt }));
+      updateSaveStatus(`Saved locally (บันทึกในเครื่องแล้ว): ${formatDateTime(savedAt)}`);
+    } catch (error) {
+      console.warn("Unable to save calculator state", error);
+      updateSaveStatus("Unable to save locally (ไม่สามารถบันทึกในเครื่องได้)");
+    }
+  }
+
+  function clearSavedData() {
+    if (!confirm("Clear saved local data and reset the calculator? (ล้างข้อมูลที่บันทึกและเริ่มใหม่หรือไม่)")) return;
+    localStorage.removeItem(STORAGE_KEY);
+    state.rows = [defaultRow()];
+    renderRows();
+    updateSaveStatus("Saved data cleared (ล้างข้อมูลที่บันทึกแล้ว)");
+  }
+
+  function renderRows() {
+    elements.rows.innerHTML = "";
+    state.rows.forEach((row, index) => {
+      const node = elements.template.content.firstElementChild.cloneNode(true);
+      node.dataset.id = row.id;
+      node.querySelector('[data-output="rowNumber"]').textContent = index + 1;
+      fillVariantSelect(node.querySelector('[data-field="variantId"]'), row.variantId);
+      fillModeSelect(node.querySelector('[data-field="mode"]'), row.mode);
+      node.querySelector('[data-field="customName"]').value = row.customName || "";
+      node.querySelector('[data-field="note"]').value = row.note || "";
+      node.querySelector('[data-field="amount"]').value = formatNum(row.amount);
+      node.querySelector('[data-field="secondaryAmount"]').value = formatNum(row.secondaryAmount);
+      node.querySelector('[data-field="count"]').value = row.count;
+      node.querySelector('[data-field="stamped"]').value = formatNum(row.stamped);
+      node.querySelector('[data-field="exempt"]').checked = Boolean(row.exempt);
+      node.querySelector('[data-field="includeCounterpart"]').checked = Boolean(row.includeCounterpart);
+      node.querySelector('[data-field="counterpartCount"]').value = row.counterpartCount || "1";
+      elements.rows.appendChild(node);
+      refreshRow(node, row);
+    });
+    refreshSummary();
+  }
+
+  function fillVariantSelect(select, selectedId) {
+    instruments.forEach((instrument) => {
+      const group = document.createElement("optgroup");
+      group.label = `${instrument.no}. ${instrument.name}`;
+      instrument.variants.forEach((variant) => {
+        const option = document.createElement("option");
+        option.value = variant.id;
+        option.textContent = `${variant.label} (${instrument.name})`;
+        group.appendChild(option);
+      });
+      select.appendChild(group);
+    });
+    select.value = selectedId;
+  }
+
+  function fillModeSelect(select, selectedId) {
+    modes.forEach((mode) => {
+      const option = document.createElement("option");
+      option.value = mode.id;
+      option.textContent = mode.label;
+      select.appendChild(option);
+    });
+    select.value = selectedId;
+  }
+
+  function onRowFieldChange(event) {
+    const field = event.target.dataset.field;
+    if (!field) return;
+    const rowEl = event.target.closest("[data-row]");
+    const row = findRow(rowEl.dataset.id);
+    if (!row) return;
+
+    if (AMOUNT_FIELDS.has(field)) {
+      const dbc = digitsBeforeCaret(event.target);
+      const cleaned = cleanNum(event.target.value);
+      row[field] = cleaned;
+      event.target.value = formatNum(cleaned);
+      setCaretByDigits(event.target, dbc);
+    } else {
+      row[field] = event.target.type === "checkbox" ? event.target.checked : event.target.value;
+    }
+
+    if (field === "variantId") {
+      row.amount = "";
+      row.secondaryAmount = "";
+      row.count = "1";
+      row.stamped = "";
+      row.exempt = false;
+      row.includeCounterpart = false;
+      row.counterpartCount = "1";
+      row.payMethod = "stamp";
+      row.stampCombo = "";
+      row.stampBasis = "duty";
+      rowEl.querySelector('[data-field="amount"]').value = "";
+      rowEl.querySelector('[data-field="secondaryAmount"]').value = "";
+      rowEl.querySelector('[data-field="count"]').value = "1";
+      rowEl.querySelector('[data-field="stamped"]').value = "";
+      rowEl.querySelector('[data-field="exempt"]').checked = false;
+      rowEl.querySelector('[data-field="includeCounterpart"]').checked = false;
+      rowEl.querySelector('[data-field="counterpartCount"]').value = "1";
+      rowEl.querySelector('[data-field="payMethod"]').value = "stamp";
+    }
+
+    refreshRow(rowEl, row);
+    refreshSummary();
+    saveState();
+  }
+
+  function onRowAction(event) {
+    const action = event.target.closest("[data-action]")?.dataset.action;
+    if (!action) return;
+    const rowEl = event.target.closest("[data-row]");
+    const row = findRow(rowEl.dataset.id);
+    if (!row) return;
+
+    if (action === "remove") {
+      state.rows = state.rows.filter((item) => item.id !== row.id);
+      if (!state.rows.length) state.rows.push(defaultRow());
+    }
+
+    if (action === "duplicate") {
+      const index = state.rows.findIndex((item) => item.id === row.id);
+      state.rows.splice(index + 1, 0, { ...row, id: cryptoId() });
+    }
+
+    renderRows();
+    saveState();
+  }
+
+  function findRow(id) {
+    return state.rows.find((row) => row.id === id);
+  }
+
+  function refreshRow(rowEl, row) {
+    const result = calculateRow(row);
+    const { variant } = result;
+    const amountWrap = rowEl.querySelector('[data-wrap="amount"]');
+    const secondaryWrap = rowEl.querySelector('[data-wrap="secondaryAmount"]');
+    const counterpartBox = rowEl.querySelector(".counterpart-box");
+    const counterpartCountWrap = rowEl.querySelector('[data-wrap="counterpartCount"]');
+    const notesWrap = rowEl.querySelector('[data-wrap="notes"]');
+    const notesList = rowEl.querySelector('[data-output="notesList"]');
+
+    amountWrap.hidden = variant.type === "fixed";
+    secondaryWrap.hidden = variant.type !== "comparePerAmount";
+    counterpartBox.hidden = variant.type === "counterpart";
+    counterpartCountWrap.hidden = !row.includeCounterpart;
+    rowEl.querySelector('[data-label="amount"]').textContent = variant.amountLabel || "Amount";
+    rowEl.querySelector('[data-label="secondaryAmount"]').textContent = variant.secondaryLabel || "Compare amount";
+    rowEl.querySelector('[data-label="count"]').textContent = variant.countLabel || "Count";
+    rowEl.querySelector('[data-output="rateText"]').textContent = variant.rateText;
+    rowEl.querySelector('[data-output="payerText"]').textContent = `${variant.payer || "-"} / ${variant.canceller || "-"}`;
+    rowEl.querySelector('[data-output="basis"]').textContent = result.basisText;
+    rowEl.querySelector('[data-output="baseDuty"]').textContent = money(result.baseDuty);
+    rowEl.querySelector('[data-output="surcharge"]').textContent = money(result.surcharge);
+    rowEl.querySelector('[data-output="payable"]').textContent = money(result.payable);
+    rowEl.querySelector('[data-output="counterpartText"]').textContent =
+      result.counterpartDuty > 0
+        ? `Item 23 added to this row: THB ${money(result.counterpartDuty)} (${parseCount(row.counterpartCount)} counterpart(s)).`
+        : "Item 23 can also be calculated as a separate instrument. Use this when a counterpart / duplicate belongs to this instrument.";
+
+    notesList.innerHTML = "";
+    const notes = [
+      ...(variant.notes || []),
+      result.counterpartDuty > 0 ? "Counterpart / duplicate duty under item 23 has been added to this line." : "",
+      row.note ? `Your note: ${row.note}` : "",
+      result.mode.law
+    ].filter(Boolean);
+    notesWrap.hidden = notes.length === 0;
+    notes.forEach((note) => {
+      const li = document.createElement("li");
+      li.textContent = note;
+      notesList.appendChild(li);
+    });
+
+    // Payment method & stamp combination
+    const payBox = rowEl.querySelector('[data-wrap="payBox"]');
+    const stampChoose = rowEl.querySelector('[data-wrap="stampChoose"]');
+    const basisRow = rowEl.querySelector('[data-wrap="stampBasisRow"]');
+    const payMethodSelect = rowEl.querySelector('[data-field="payMethod"]');
+    const basisSelect = rowEl.querySelector('[data-field="stampBasis"]');
+    const stampSelect = rowEl.querySelector('[data-field="stampCombo"]');
+    const stampChips = rowEl.querySelector('[data-output="stampChips"]');
+    const stampTarget = rowEl.querySelector('[data-output="stampTarget"]');
+    const method = row.payMethod || "stamp";
+    const targetDuty = result.baseDuty;
+    const targetPayable = Math.round(result.payable);
+    const basis = row.stampBasis === "payable" ? "payable" : "duty";
+    const target = basis === "payable" ? targetPayable : targetDuty;
+    payMethodSelect.value = method;
+    basisSelect.value = basis;
+    payBox.hidden = targetDuty <= 0;
+    const showStamp = method === "stamp" && target > 0;
+    stampChoose.hidden = !showStamp;
+    basisRow.hidden = !(showStamp && targetDuty !== targetPayable);
+    if (showStamp) {
+      const combos = stampCombos(target);
+      stampSelect.innerHTML = "";
+      combos.forEach((c, i) => {
+        const opt = document.createElement("option");
+        opt.value = comboKey(c);
+        opt.textContent = comboLabel(c, i === 0);
+        stampSelect.appendChild(opt);
+      });
+      const eff = effectiveCombo(row, target);
+      stampSelect.value = comboKey(eff);
+      stampTarget.textContent = formatNum(String(target));
+      renderChips(stampChips, eff);
+    }
+  }
+
+  function refreshSummary() {
+    const results = state.rows.map(calculateRow);
+    const totals = results.reduce(
+      (acc, result) => {
+        acc.baseDuty += result.baseDuty;
+        acc.stamped += result.stamped;
+        acc.surcharge += result.surcharge;
+        acc.payable += result.payable;
+        return acc;
+      },
+      { baseDuty: 0, stamped: 0, surcharge: 0, payable: 0 }
+    );
+
+    elements.totalDuty.textContent = money(totals.baseDuty);
+    elements.totalStamped.textContent = money(totals.stamped);
+    elements.totalSurcharge.textContent = money(totals.surcharge);
+    elements.totalPayable.textContent = money(totals.payable);
+
+    renderPayerSummary(results);
+    renderMethodSummary(results);
+    renderStampsSummary(results);
+    renderLineSummary(results);
+  }
+
+  function renderPayerSummary(results) {
+    const byPayer = new Map();
+    results.forEach((result) => {
+      const key = result.variant.payer || "-";
+      byPayer.set(key, (byPayer.get(key) || 0) + result.baseDuty);
+    });
+
+    elements.payerSummary.innerHTML = "";
+    if (!byPayer.size) {
+      elements.payerSummary.innerHTML = '<p class="empty">No rows</p>';
+      return;
+    }
+
+    [...byPayer.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .forEach(([payer, duty]) => {
+        const div = document.createElement("div");
+        div.className = "mini-row";
+        div.innerHTML = `<span>${escapeHtml(payer)}</span><strong>${money(duty)}</strong>`;
+        elements.payerSummary.appendChild(div);
+      });
+  }
+
+  function renderMethodSummary(results) {
+    const agg = aggregateStamps(results);
+    elements.methodSummary.innerHTML = "";
+    const rows = [
+      ["ปิดแสตมป์ Adhesive stamps", money(agg.stampsValue), `${agg.total} stamp${agg.total === 1 ? "" : "s"}`],
+      ["ชำระเป็นตัวเงิน Cash to officer", money(agg.cashValue), agg.surcharge > 0 ? `total surcharge ${money(agg.surcharge)}` : ""]
+    ];
+    rows.forEach(([label, val, sub]) => {
+      const div = document.createElement("div");
+      div.className = "mini-row";
+      div.innerHTML = `<span>${escapeHtml(label)}${sub ? `<br><small style="color:var(--faint);font-weight:600">${escapeHtml(sub)}</small>` : ""}</span><strong>${val}</strong>`;
+      elements.methodSummary.appendChild(div);
+    });
+  }
+
+  function renderStampsSummary(results) {
+    const agg = aggregateStamps(results);
+    elements.stampsSummary.innerHTML = "";
+    if (agg.total === 0) {
+      elements.stampsSummary.innerHTML = '<p class="empty">No stamp payments</p>';
+      return;
+    }
+    [["฿20", agg.n20, 20], ["฿5", agg.n5, 5], ["฿1", agg.n1, 1]].forEach(([label, count, d]) => {
+      const div = document.createElement("div");
+      div.className = "tally-row";
+      div.innerHTML = `<span class="denom"><span class="stamp-pill">${label}</span> × ${count}</span><strong>${money(count * d)}</strong>`;
+      elements.stampsSummary.appendChild(div);
+    });
+    const tot = document.createElement("div");
+    tot.className = "tally-row total";
+    tot.innerHTML = `<span>${agg.total} stamp${agg.total === 1 ? "" : "s"} total</span><strong>${money(agg.value)}</strong>`;
+    elements.stampsSummary.appendChild(tot);
+  }
+
+  function renderLineSummary(results) {
+    elements.summaryRows.innerHTML = "";
+    if (!results.length) {
+      elements.summaryRows.innerHTML = '<tr><td class="empty" colspan="4">No rows</td></tr>';
+      return;
+    }
+
+    results.forEach((result, index) => {
+      const tr = document.createElement("tr");
+      const displayName = result.row.customName ? `${result.row.customName} - ${result.variant.label}` : result.variant.label;
+      const counterpartLabel = result.counterpartDuty > 0 ? ` + counterpart THB ${money(result.counterpartDuty)}` : "";
+      const title = `${index + 1}. ${displayName}${counterpartLabel}`;
+      tr.innerHTML = `
+        <td>${escapeHtml(title)}</td>
+        <td>${money(result.baseDuty)}</td>
+        <td>${money(result.surcharge)}</td>
+        <td>${money(result.payable)}</td>
+      `;
+      elements.summaryRows.appendChild(tr);
+    });
+  }
+
+  function exportCsv() {
+    const results = state.rows.map(calculateRow);
+    const headers = ["No", "Name", "Instrument", "Note", "Count", "Basis", "Primary duty", "Counterpart duty", "Base duty", "Already stamped", "Surcharge", "Payable", "Liable person", "Mode", "Payment method", "Stamps cover", "Stamp target", "Stamps THB20", "Stamps THB5", "Stamps THB1", "Stamp count"];
+    const lines = [
+      headers.join(","),
+      ...results.map((result, index) => {
+        const method = result.row.payMethod || "stamp";
+        const target = method === "stamp" ? stampTargetFor(result) : 0;
+        const combo = method === "stamp" && target > 0 ? effectiveCombo(result.row, target) : null;
+        return [
+          index + 1,
+          result.row.customName || "",
+          result.variant.label,
+          result.row.note || "",
+          result.count,
+          result.basisText,
+          result.primaryBaseDuty,
+          result.counterpartDuty,
+          result.baseDuty,
+          result.stamped,
+          result.surcharge,
+          result.payable,
+          result.variant.payer || "",
+          result.mode.label,
+          method === "stamp" ? "Adhesive stamps" : "Cash to officer",
+          method === "stamp" ? (result.row.stampBasis === "payable" ? "Payable" : "Base duty") : "",
+          combo ? target : "",
+          combo ? combo.n20 : "",
+          combo ? combo.n5 : "",
+          combo ? combo.n1 : "",
+          combo ? combo.total : ""
+        ]
+          .map(csvCell)
+          .join(",");
+      })
+    ];
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+    triggerDownload(blob, "thai-stamp-duty-summary.csv");
+  }
+
+  function exportJson() {
+    const results = state.rows.map(calculateRow);
+    const agg = aggregateStamps(results);
+    const totals = results.reduce(
+      (acc, r) => {
+        acc.baseDuty += r.baseDuty;
+        acc.stamped += r.stamped;
+        acc.surcharge += r.surcharge;
+        acc.payable += r.payable;
+        return acc;
+      },
+      { baseDuty: 0, stamped: 0, surcharge: 0, payable: 0 }
+    );
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      currency: "THB",
+      totals,
+      stamps: { byDenomination: { "20": agg.n20, "5": agg.n5, "1": agg.n1 }, count: agg.total, value: agg.value },
+      paymentSplit: { byStamps: agg.stampsValue, byCash: agg.cashValue },
+      rows: results.map((r, index) => {
+        const method = r.row.payMethod || "stamp";
+        const target = method === "stamp" ? stampTargetFor(r) : 0;
+        const combo = method === "stamp" && target > 0 ? effectiveCombo(r.row, target) : null;
+        return {
+          no: index + 1,
+          name: r.row.customName || "",
+          instrumentNo: r.variant.instrumentNo,
+          instrument: r.variant.label,
+          note: r.row.note || "",
+          count: r.count,
+          basis: r.basisText,
+          primaryDuty: r.primaryBaseDuty,
+          counterpartDuty: r.counterpartDuty,
+          baseDuty: r.baseDuty,
+          alreadyStamped: r.stamped,
+          surcharge: r.surcharge,
+          payable: r.payable,
+          liablePerson: r.variant.payer || "",
+          mode: r.mode.label,
+          paymentMethod: method,
+          stampsCover: method === "stamp" ? (r.row.stampBasis === "payable" ? "payable" : "duty") : null,
+          stampTarget: combo ? target : null,
+          stampCombination: combo ? { "20": combo.n20, "5": combo.n5, "1": combo.n1, count: combo.total } : null
+        };
+      })
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
+    triggerDownload(blob, "thai-stamp-duty.json");
+  }
+
+  function triggerDownload(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function csvCell(value) {
+    const text = String(value ?? "");
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function updateSaveStatus(message) {
+    if (elements.saveStatus) elements.saveStatus.textContent = message;
+  }
+
+  function formatDateTime(isoString) {
+    const date = new Date(isoString);
+    if (Number.isNaN(date.getTime())) return isoString;
+    return date.toLocaleString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  }
+
+  return {
+    instruments,
+    modes,
+    calculateBaseDuty,
+    calculateCounterpartDuty,
+    calculatePenalty,
+    calculateRow,
+    money,
+    init
+  };
+})();
+
+if (typeof window !== "undefined") {
+  window.StampDutyApp = StampDutyApp;
+  window.addEventListener("DOMContentLoaded", StampDutyApp.init);
+}
+
+if (typeof module !== "undefined") {
+  module.exports = StampDutyApp;
+}
+
+  </script>
+</body>
+</html>

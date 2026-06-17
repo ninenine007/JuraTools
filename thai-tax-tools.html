@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Thai Tax Tools — JuraTools</title>
+  <meta name="description" content="A collection of calculators for Thai tax planning — land sale tax comparison, stamp duty, and more. By Kornrawee Chanchom." />
+  <style>
+    /* ── Reset & Tokens ───────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      color: #1c1c1e;
+      min-height: 100vh;
+      background: #f2f2f7;
+      background-image:
+        radial-gradient(ellipse 1100px 700px at 10% 0%,   rgba(255,205,210,0.45)  0%, transparent 60%),
+        radial-gradient(ellipse  700px 700px at 95% 10%,  rgba(255,224,178,0.4)   0%, transparent 55%),
+        radial-gradient(ellipse  800px 600px at 0%  90%,  rgba(194,221,255,0.35)  0%, transparent 55%),
+        radial-gradient(ellipse  900px 500px at 100% 95%, rgba(218,205,255,0.3)   0%, transparent 55%);
+    }
+    a { color: inherit; text-decoration: none; }
+
+    /* ── Sticky Nav ───────────────────────────────── */
+    .nav {
+      position: sticky; top: 0; z-index: 200;
+      height: 52px;
+      display: flex; align-items: center; gap: 12px;
+      padding: 0 24px;
+      background: rgba(242,242,247,0.82);
+      backdrop-filter: blur(24px) saturate(200%);
+      -webkit-backdrop-filter: blur(24px) saturate(200%);
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+    }
+    .nav-brand { display: flex; align-items: center; gap: 9px; flex-shrink: 0; user-select: none; }
+    .nav-icon {
+      width: 30px; height: 30px; border-radius: 7px; flex-shrink: 0;
+      background: linear-gradient(145deg, #2979ff, #1565c0);
+      display: grid; place-items: center; font-size: 15px;
+      box-shadow: 0 2px 6px rgba(41,121,255,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    .nav-wordmark { font-size: 15px; font-weight: 700; letter-spacing: -0.4px; color: #1c1c1e; }
+    .nav-sep { color: #c7c7cc; font-size: 15px; }
+    .nav-current { font-size: 15px; font-weight: 600; color: #6e6e73; }
+    .nav-back {
+      margin-left: auto;
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 13px; font-weight: 500; color: #3c3c43;
+      background: rgba(0,0,0,0.055); border: 1px solid rgba(0,0,0,0.1);
+      padding: 6px 12px; border-radius: 9px;
+      transition: background .14s;
+    }
+    .nav-back:hover { background: rgba(0,0,0,0.09); }
+
+    /* ── Hero ─────────────────────────────────────── */
+    .hero { padding: 56px 24px 28px; text-align: center; max-width: 680px; margin: 0 auto; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(225,29,72,0.1); border: 1px solid rgba(225,29,72,0.22);
+      border-radius: 999px; padding: 4px 12px;
+      font-size: 12px; font-weight: 600; color: #be123c;
+      margin-bottom: 18px;
+    }
+    .hero-dot { width: 6px; height: 6px; border-radius: 50%; background: #e11d48; animation: pulse 2.5s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.55;transform:scale(.8)} }
+    .hero h1 {
+      font-size: clamp(34px, 5vw, 48px);
+      font-weight: 800; letter-spacing: -1.5px; line-height: 1.08;
+      background: linear-gradient(135deg, #1c1c1e 0%, #e11d48 55%, #ea580c 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      margin-bottom: 12px;
+    }
+    .hero p { font-size: 16px; color: #6e6e73; line-height: 1.55; max-width: 480px; margin: 0 auto 18px; }
+    .hero-meta { display: flex; justify-content: center; align-items: center; gap: 14px; font-size: 13px; color: #aeaeb2; flex-wrap: wrap; }
+    .hero-meta span { display: flex; align-items: center; gap: 5px; }
+
+    /* ── Content ──────────────────────────────────── */
+    .content { max-width: 920px; margin: 0 auto; padding: 16px 24px 64px; }
+    .grid { display: grid; gap: 14px; grid-template-columns: repeat(2, 1fr); }
+    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: rgba(255,255,255,0.82);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.9);
+      border-radius: 18px; padding: 22px;
+      display: flex; flex-direction: column; gap: 10px;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.07);
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+    .card.live:hover { transform: translateY(-2px); box-shadow: 0 1px 1px rgba(0,0,0,0.04), 0 10px 32px rgba(0,0,0,0.11), 0 6px 24px rgba(225,29,72,0.13); }
+    .card.soon { opacity: .72; }
+
+    .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+    .card-icon {
+      width: 48px; height: 48px; border-radius: 12px; flex-shrink: 0;
+      display: grid; place-items: center; font-size: 24px;
+      background: linear-gradient(145deg, #ffe4e6, #fecdd3);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.7);
+    }
+    .card.soon .card-icon { background: linear-gradient(145deg, #ececf0, #e0e0e5); filter: grayscale(.3); }
+    .card-badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .badge-live { background: rgba(52,199,89,0.13);  color: #1a7a35; border: 1px solid rgba(52,199,89,.22); }
+    .badge-soon { background: rgba(142,142,147,0.14); color: #6e6e73; border: 1px solid rgba(142,142,147,.25); }
+    .card-sub { font-size: 12px; color: #aeaeb2; font-weight: 500; letter-spacing: .1px; text-transform: uppercase; margin-top: 2px; }
+    .card-title { font-size: 16px; font-weight: 700; letter-spacing: -.3px; line-height: 1.25; color: #1c1c1e; margin-top: -2px; }
+    .card-th { font-size: 12.5px; color: #8e8e93; font-weight: 500; margin-top: -6px; }
+    .card-desc { font-size: 13px; color: #6e6e73; line-height: 1.6; flex: 1; }
+
+    .card-actions { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 6px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.06); }
+    .btn { display: inline-flex; align-items: center; gap: 4px; padding: 8px 16px; border-radius: 9px; font-size: 13px; font-weight: 500; font-family: inherit; cursor: pointer; border: none; transition: all .14s; white-space: nowrap; }
+    .btn-open { background: #e11d48; color: #fff; box-shadow: 0 1px 4px rgba(225,29,72,.38), inset 0 1px 0 rgba(255,255,255,.18); }
+    .btn-open:hover { background: #c81740; box-shadow: 0 3px 10px rgba(225,29,72,.45); }
+    .btn-disabled { background: rgba(0,0,0,0.05); color: #aeaeb2; cursor: not-allowed; border: 1px solid rgba(0,0,0,0.07); }
+    .btn-source { background: rgba(0,0,0,0.055); color: #3c3c43; border: 1px solid rgba(0,0,0,0.1); }
+    .btn-source:hover { background: rgba(0,0,0,0.09); }
+
+    .footer { text-align: center; margin-top: 40px; font-size: 12px; color: #c7c7cc; }
+  </style>
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav class="nav">
+    <a class="nav-brand" href="index.html">
+      <div class="nav-icon">⚖️</div>
+      <span class="nav-wordmark">JuraTools</span>
+    </a>
+    <span class="nav-sep">/</span>
+    <span class="nav-current">Thai Tax Tools</span>
+    <a class="nav-back" href="index.html">← All tools</a>
+  </nav>
+
+  <!-- ── Hero ── -->
+  <div class="hero">
+    <div class="hero-badge">
+      <span class="hero-dot"></span> Runs entirely in your browser
+    </div>
+    <h1>Thai Tax Tools</h1>
+    <p>A growing set of calculators for Thai tax planning — compare structures, estimate duties, and pressure-test scenarios before you advise.</p>
+    <div class="hero-meta">
+      <span>🧾 Tax calculators</span>
+      <span style="color:#d1d1d6">·</span>
+      <span>🔒 No data sent anywhere</span>
+    </div>
+  </div>
+
+  <!-- ── Tool Grid ── -->
+  <div class="content">
+    <div class="grid">
+
+      <!-- Land Sale Tax Comparison -->
+      <article class="card live">
+        <div class="card-head">
+          <div class="card-icon">🏗️</div>
+          <span class="card-badge badge-live">Live</span>
+        </div>
+        <div class="card-sub">Land disposal</div>
+        <h3 class="card-title">Land Sale Tax Comparison</h3>
+        <p class="card-th">เปรียบเทียบภาษีขายที่ดิน — ขายทรัพย์สิน vs ขายหุ้น</p>
+        <p class="card-desc">Compare the total tax burden of two ways to sell land: selling the asset directly vs. selling shares in a company (SPV) that holds it. Models income tax, transfer fee, SBT, stamp duty, and annual company cost — with a break-even analysis.</p>
+        <div class="card-actions">
+          <a class="btn btn-open" href="thai-land-tax-comparison.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/thai-land-tax-comparison.html" target="_blank" rel="noopener">Source</a>
+        </div>
+      </article>
+
+      <!-- Stamp Duty Calculator -->
+      <article class="card live">
+        <div class="card-head">
+          <div class="card-icon">🪙</div>
+          <span class="card-badge badge-live">Live</span>
+        </div>
+        <div class="card-sub">Instruments &amp; duties</div>
+        <h3 class="card-title">Stamp Duty Calculator</h3>
+        <p class="card-th">เครื่องคำนวณอากรแสตมป์</p>
+        <p class="card-desc">Calculate Thai stamp duty across the Revenue Code stamp duty schedule — by instrument, with counterpart/duplicate duty and §§113–114 surcharges. Shows per-line basis, a liable-person summary, and CSV export.</p>
+        <div class="card-actions">
+          <a class="btn btn-open" href="thai-stamp-duty-calculator.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/thai-stamp-duty-calculator.html" target="_blank" rel="noopener">Source</a>
+        </div>
+      </article>
+
+    </div>
+
+    <div class="footer">
+      © 2026 Kornrawee Chanchom &nbsp;—&nbsp; JuraTools · Thai Tax Tools
+    </div>
+  </div>
+
+</body>
+</html>
