@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marginalia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Noto+Serif+Thai:wght@400;500;600&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font-family: 'Sarabun', system-ui, sans-serif; background: #e7e5df; }
+::selection { background: rgba(201,151,30,0.28); }
+
+.reading h1 { font-size: 1.5em; font-weight: 600; line-height: 1.3; margin: 1.1em 0 0.5em; }
+.reading h2 { font-size: 1.25em; font-weight: 600; line-height: 1.35; margin: 1em 0 0.4em; }
+.reading h3 { font-size: 1.08em; font-weight: 600; margin: 0.9em 0 0.3em; }
+.reading p  { margin: 0 0 1.05em; }
+.reading blockquote { margin: 1em 0; padding: 0.2em 0 0.2em 1.1em; border-left: 3px solid #d8cdb4; color: #5a5142; font-style: italic; }
+.reading ul, .reading ol { margin: 0 0 1.05em; padding-left: 1.5em; }
+.reading li { margin: 0.2em 0; }
+.reading:focus { outline: none; }
+.reading[contenteditable="true"]:empty:before { content: "Type or paste your text here…"; color: #b3a78f; }
+
+@keyframes flashmark {
+  0%,100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); }
+  25%      { box-shadow: 0 0 0 4px rgba(201,151,30,0.55); }
+}
+
+.scroll::-webkit-scrollbar { width: 11px; }
+.scroll::-webkit-scrollbar-thumb { background: #d6cab2; border-radius: 6px; border: 3px solid transparent; background-clip: padding-box; }
+
+#app { display: flex; flex-direction: column; height: 100vh; background: #ece4d4; color: #2b2620; }
+
+/* ---- header ---- */
+#header { flex: none; display: flex; align-items: center; gap: 18px; padding: 0 18px; height: 54px; background: #f1ead9; border-bottom: 1px solid #ddd0b3; }
+#doc-title { font-family: 'Spectral', serif; font-size: 16px; color: #2b2620; background: transparent; border: none; border-bottom: 1px solid transparent; padding: 4px 6px; text-align: center; width: min(440px, 90%); }
+#doc-title:focus { outline: none; border-bottom-color: #cdbd98; }
+.hbtn { font-size: 12.5px; color: #6b6151; background: transparent; border: 1px solid #d8cdb4; border-radius: 6px; padding: 6px 11px; cursor: pointer; font-family: inherit; }
+.hbtn:hover { background: #e9e0cb; }
+#mode-group { display: flex; background: #e6dcc4; border-radius: 6px; padding: 2px; }
+.mbtn { font-size: 12.5px; padding: 5px 13px; border: none; border-radius: 4px; cursor: pointer; font-family: inherit; }
+.mbtn.active { background: #2b2620; color: #f1ead9; }
+.mbtn.inactive { background: transparent; color: #6b6151; }
+
+/* ---- body ---- */
+#body { flex: 1; display: flex; min-height: 0; }
+
+/* ---- left rail ---- */
+#left-rail { flex: none; width: 212px; background: #e9e0cb; border-right: 1px solid #ddd0b3; display: flex; flex-direction: column; min-height: 0; }
+#left-rail-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 14px 8px; }
+#doc-list { flex: 1; overflow: auto; padding: 4px 8px 12px; }
+.doc-item { padding: 9px 10px; border-radius: 7px; cursor: pointer; margin-bottom: 2px; }
+.doc-item:hover { background: #f3ecdd; }
+.doc-item.active { background: #f7f1e2; box-shadow: inset 0 0 0 1px #e0d4b8; }
+.doc-item-title { font-family: 'Spectral', serif; font-size: 14px; color: #2b2620; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.doc-item-meta { display: flex; align-items: center; justify-content: space-between; margin-top: 3px; }
+
+/* ---- center ---- */
+#center { flex: 1; display: flex; flex-direction: column; min-width: 0; background: #f3ecdb; }
+#fmt-bar { display: none; flex: none; align-items: center; gap: 4px; padding: 8px 22px; background: #efe7d3; border-bottom: 1px solid #e2d7c0; }
+#center-scroll { flex: 1; overflow: auto; padding: 52px 0 120px; }
+#surface { max-width: 680px; margin: 0 auto; padding: 0 40px; font-family: 'Spectral','Noto Serif Thai',Georgia,serif; font-size: 19px; line-height: 1.92; color: #2b2620; -webkit-font-feature-settings: 'liga' 1; min-height: 200px; }
+.fbtn { height: 30px; color: #5a5142; background: transparent; border: 1px solid #ddd0b3; border-radius: 5px; cursor: pointer; font-family: 'Spectral', serif; }
+.fbtn:hover { background: #e3d8bf; }
+
+/* ---- right panel ---- */
+#right-panel { flex: none; width: 368px; background: #f7f1e2; border-left: 1px solid #ddd0b3; display: flex; flex-direction: column; min-height: 0; }
+#notes-head { flex: none; padding: 14px 18px 10px; border-bottom: 1px solid #e8ddc6; }
+#notes-head-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+#filter-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+#notes-scroll { flex: 1; overflow: auto; padding: 14px 16px 80px; }
+#notes-list { display: flex; flex-direction: column; gap: 12px; }
+.note-card { background: #fffdf8; border: 1px solid #ece1cc; border-radius: 8px; padding: 12px 13px; cursor: pointer; transition: box-shadow 0.12s; }
+.note-card:hover { box-shadow: 0 2px 8px rgba(60,50,30,.1); }
+.note-card.active { background: #fffaf0; }
+.note-textarea { width: 100%; resize: vertical; font-size: 13.5px; line-height: 1.55; color: #3a342b; background: #fffdf8; border: 1px solid #ece1cc; border-radius: 6px; padding: 8px 9px; font-family: 'Sarabun', system-ui, sans-serif; }
+.note-textarea:focus { outline: none; border-color: #cdbd98; background: #fff; }
+
+/* ---- floating toolbar ---- */
+#sel-toolbar { position: fixed; z-index: 50; transform: translate(-50%, -100%); display: none; }
+#sel-toolbar.show { display: block; }
+#sel-toolbar-inner { display: flex; align-items: center; gap: 5px; background: #2b2620; border-radius: 8px; padding: 6px 7px; box-shadow: 0 6px 20px rgba(0,0,0,.32); }
+#sel-toolbar-caret { width: 10px; height: 10px; background: #2b2620; transform: rotate(45deg); margin: -5px auto 0; }
+.tb-tag-btn { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; padding: 0; border: 2px solid transparent; }
+.tb-tag-btn:hover { transform: scale(1.15); }
+
+/* ---- tag manager overlay ---- */
+#tag-mgr-overlay { display: none; position: fixed; inset: 0; z-index: 60; background: rgba(43,38,32,.42); align-items: center; justify-content: center; }
+#tag-mgr-overlay.open { display: flex; }
+#tag-mgr-panel { width: 460px; max-height: 80vh; overflow: auto; background: #f7f1e2; border-radius: 12px; box-shadow: 0 20px 60px rgba(40,30,15,.4); padding: 22px 24px; }
+.tag-row { display: flex; align-items: center; gap: 10px; }
+.tag-name-input { flex: 1; font-size: 13.5px; color: #2b2620; background: #fffdf8; border: 1px solid #ece1cc; border-radius: 6px; padding: 7px 9px; font-family: inherit; }
+.tag-name-input:focus { outline: none; border-color: #cdbd98; }
+.palette-swatch { width: 16px; height: 16px; border-radius: 50%; cursor: pointer; padding: 0; border: 2px solid transparent; transition: transform 0.1s; }
+.palette-swatch:hover { transform: scale(1.2); }
+.ann-swatch { width: 15px; height: 15px; border-radius: 50%; cursor: pointer; padding: 0; box-shadow: 0 0 0 1px rgba(0,0,0,.06); }
+.ann-swatch:hover { transform: scale(1.15); }
+
+/* ---- misc ---- */
+.lbl { font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: #a08c5e; font-weight: 700; }
+.icon-btn { background: transparent; border: none; cursor: pointer; }
+.icon-btn:hover { opacity: 0.7; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HEADER -->
+  <div id="header">
+    <div style="display:flex;align-items:baseline;gap:9px;flex:none;">
+      <span style="font-family:'Spectral',serif;font-size:19px;font-weight:600;letter-spacing:0.01em;">Marginalia</span>
+      <span style="font-size:10.5px;letter-spacing:0.22em;text-transform:uppercase;color:#a08c5e;font-weight:600;">notes &amp; tags</span>
+    </div>
+    <div style="flex:1;display:flex;justify-content:center;">
+      <input id="doc-title" placeholder="Untitled document">
+    </div>
+    <div id="mode-group">
+      <button id="btn-read" class="mbtn active">Read</button>
+      <button id="btn-edit" class="mbtn inactive">Edit</button>
+    </div>
+    <button id="btn-tags" class="hbtn">Tags</button>
+    <div style="position:relative;">
+      <button id="btn-export" class="hbtn">Export ▾</button>
+      <div id="export-menu" style="display:none;position:absolute;right:0;top:38px;z-index:40;width:212px;background:#fff;border:1px solid #e2d7c0;border-radius:8px;box-shadow:0 8px 24px rgba(60,50,30,.18);padding:6px;flex-direction:column;">
+        <button class="emenu-btn" id="em-md">Download notes (Markdown)</button>
+        <button class="emenu-btn" id="em-copy">Copy notes to clipboard</button>
+        <div style="height:1px;background:#eee2cd;margin:4px 6px;"></div>
+        <button class="emenu-btn" id="em-json">Back up everything (.json)</button>
+        <button class="emenu-btn" id="em-restore">Restore from backup…</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div id="body">
+
+    <!-- LEFT RAIL -->
+    <div id="left-rail">
+      <div id="left-rail-head">
+        <span class="lbl">Documents</span>
+        <button id="btn-new-doc" class="icon-btn" title="New document" style="font-size:18px;line-height:1;color:#8a7f6d;padding:0 2px;">+</button>
+      </div>
+      <div id="doc-list" class="scroll"></div>
+    </div>
+
+    <!-- CENTER -->
+    <div id="center">
+      <div id="fmt-bar">
+        <button class="fbtn" id="fmt-b" style="width:30px;font-weight:700;font-size:15px;">B</button>
+        <button class="fbtn" id="fmt-i" style="width:30px;font-style:italic;font-size:15px;">I</button>
+        <div style="width:1px;height:20px;background:#ddd0b3;margin:0 6px;"></div>
+        <button class="fbtn" id="fmt-h1" style="padding:0 9px;font-weight:600;font-size:13px;">Title</button>
+        <button class="fbtn" id="fmt-h2" style="padding:0 9px;font-weight:600;font-size:13px;">Heading</button>
+        <button class="fbtn" id="fmt-bq" style="padding:0 9px;font-size:14px;">&ldquo; Quote</button>
+        <button class="fbtn" id="fmt-ul" style="padding:0 9px;font-size:13px;">• List</button>
+        <button class="fbtn" id="fmt-plain" style="padding:0 9px;font-size:13px;margin-left:auto;">Paste plain text</button>
+      </div>
+      <div id="center-scroll" class="scroll">
+        <div id="surface" class="reading"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div id="right-panel">
+      <div id="notes-head">
+        <div id="notes-head-row">
+          <span class="lbl">Notes</span>
+          <span id="notes-count" style="font-size:11.5px;color:#a08c5e;"></span>
+        </div>
+        <div id="filter-pills"></div>
+      </div>
+      <div id="notes-scroll" class="scroll">
+        <div id="notes-empty" style="display:none;text-align:center;color:#b3a78f;font-size:13.5px;line-height:1.7;padding:48px 22px;">
+          <div style="font-family:'Spectral',serif;font-style:italic;font-size:17px;color:#a08c5e;margin-bottom:10px;">The margin is empty.</div>
+          Select any passage in the text to highlight it, choose a tag colour, and write your note here.
+        </div>
+        <div id="notes-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FLOATING SELECTION TOOLBAR -->
+  <div id="sel-toolbar">
+    <div id="sel-toolbar-inner">
+      <div id="toolbar-tags" style="display:flex;align-items:center;gap:5px;"></div>
+      <div style="width:1px;height:18px;background:#544c40;margin:0 2px;"></div>
+      <button id="btn-cancel-tb" style="width:22px;height:22px;color:#b6ab97;background:transparent;border:none;cursor:pointer;font-size:15px;line-height:1;">×</button>
+    </div>
+    <div id="sel-toolbar-caret"></div>
+  </div>
+</div>
+
+<!-- TAG MANAGER -->
+<div id="tag-mgr-overlay">
+  <div id="tag-mgr-panel" onclick="event.stopPropagation()">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+      <span style="font-family:'Spectral',serif;font-size:18px;font-weight:600;">Tags</span>
+      <button id="btn-close-tagmgr" class="icon-btn" style="font-size:18px;color:#a08c5e;">×</button>
+    </div>
+    <div style="font-size:12.5px;color:#8a7f6d;margin-bottom:16px;">Rename a tag, recolour it, or add your own categories.</div>
+    <div id="tag-rows" style="display:flex;flex-direction:column;gap:10px;"></div>
+    <button id="btn-add-tag" style="margin-top:16px;font-size:13px;color:#6b6151;background:#efe7d3;border:1px dashed #cdbd98;border-radius:7px;padding:9px 12px;cursor:pointer;width:100%;font-family:inherit;">+ Add a tag</button>
+  </div>
+</div>
+
+<!-- export menu button styles injected here -->
+<style>
+.emenu-btn { display:block; width:100%; text-align:left; font-size:13px; color:#3a342b; background:transparent; border:none; border-radius:5px; padding:8px 10px; cursor:pointer; font-family:inherit; }
+.emenu-btn:hover { background:#f3ecdd; }
+</style>
+
+<input type="file" id="file-input" accept="application/json,.json" style="display:none;">
+
+<script>
+// ─── Constants ───────────────────────────────────────────────────────────────
+const PALETTE = ['#C9971E','#C25B5B','#B07C2E','#5A966E','#4E7CA8','#8E6BA8','#CC7A3B','#3E8E8E','#A0506B','#6B8E3E','#9A6B45','#566CA8'];
+const DEFAULT_TAGS = [
+  {id:'t1',name:'Theme',    color:'#C9971E'},
+  {id:'t2',name:'Question', color:'#C25B5B'},
+  {id:'t3',name:'Key quote',color:'#B07C2E'},
+  {id:'t4',name:'Evidence', color:'#5A966E'},
+  {id:'t5',name:'Definition',color:'#4E7CA8'},
+  {id:'t6',name:'Connection',color:'#8E6BA8'},
+  {id:'t7',name:'Doubt',    color:'#CC7A3B'},
+  {id:'t8',name:'Method',   color:'#3E8E8E'}
+];
+
+// ─── State ───────────────────────────────────────────────────────────────────
+let docs = [], tags = [], activeDocId = null;
+let mode = 'read';           // 'read' | 'edit'
+let activeAnnId = null;
+let filterTags = [];
+let menuOpen = false;
+let tagMgrOpen = false;
+let savedRange = null;
+let saveTimer = null;
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+const uid = (p='a') => p + Date.now().toString(36) + Math.random().toString(36).slice(2,5);
+function hexRgba(hex, a) {
+  const h = hex.replace('#','');
+  const n = parseInt(h.length===3 ? h.split('').map(c=>c+c).join('') : h, 16);
+  return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;
+}
+const getActive = () => docs.find(d => d.id === activeDocId) || null;
+const tagById  = id => tags.find(t => t.id === id) || {name:'—', color:'#9a9a9a'};
+
+// ─── Persistence ─────────────────────────────────────────────────────────────
+function loadData() {
+  try {
+    const raw = localStorage.getItem('marginalia.v1');
+    if (raw) {
+      const d = JSON.parse(raw);
+      if (d?.docs?.length) {
+        docs = d.docs;
+        tags = d.tags || [...DEFAULT_TAGS];
+        activeDocId = d.activeDocId || d.docs[0].id;
+        return;
+      }
+    }
+  } catch(e) {}
+
+  const seedHtml =
+    '<h1>On the Habits of Readers</h1>' +
+    '<p>Reading is never a passive act. The page invites us to ' +
+    '<mark data-ann-id="seed1" style="background:rgba(201,151,30,0.32);border-radius:2px;cursor:pointer;color:inherit;">leave traces</mark>' +
+    ' — a line drawn beneath a phrase, a question pressed into the margin, a colour laid over a sentence that refuses to be forgotten.</p>' +
+    '<p>A book read without marks is a book half-read; the marginal hand is where private thought first becomes visible.</p>' +
+    '<p>การอ่านไม่เคยเป็นเพียงการรับสาร หนังสือเชื้อเชิญให้เราทิ้งร่องรอยไว้ — เส้นใต้ถ้อยคำ คำถามที่จดไว้ริมขอบหน้า และสีที่ทาทับประโยคซึ่งเราไม่อยากลืม</p>' +
+    '<p>หนังสือที่อ่านโดยไม่มีรอยจดคือหนังสือที่อ่านไปเพียงครึ่งเดียว ริมขอบหน้าคือที่ซึ่งความคิดส่วนตัวปรากฏเป็นรูปธรรมครั้งแรก</p>';
+
+  docs = [{
+    id: 'doc1',
+    title: 'On the Habits of Readers',
+    html: seedHtml,
+    annotations: [{id:'seed1', tagId:'t1', comment:'The core metaphor — the whole practice named in two words.', quote:'leave traces', order:0}]
+  }];
+  tags = [...DEFAULT_TAGS].map(t => ({...t}));
+  activeDocId = 'doc1';
+}
+
+function saveData() {
+  try { localStorage.setItem('marginalia.v1', JSON.stringify({docs, tags, activeDocId})); } catch(e) {}
+}
+const saveSoon = () => { clearTimeout(saveTimer); saveTimer = setTimeout(saveData, 350); };
+
+// ─── DOM refs ─────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const surface      = $('surface');
+const centerScroll = $('center-scroll');
+const notesScroll  = $('notes-scroll');
+const docListEl    = $('doc-list');
+const notesListEl  = $('notes-list');
+const notesEmptyEl = $('notes-empty');
+const notesCountEl = $('notes-count');
+const filterPillsEl= $('filter-pills');
+const toolbarTagsEl= $('toolbar-tags');
+const selToolbar   = $('sel-toolbar');
+const tagMgrOverlay= $('tag-mgr-overlay');
+const tagRowsEl    = $('tag-rows');
+const fmtBar       = $('fmt-bar');
+const exportMenu   = $('export-menu');
+const docTitleIn   = $('doc-title');
+const fileInput    = $('file-input');
+
+// ─── Surface management ───────────────────────────────────────────────────────
+function repopulate() {
+  const doc = getActive();
+  surface.innerHTML = doc ? doc.html : '';
+  surface.setAttribute('contenteditable', mode === 'edit' ? 'true' : 'false');
+  applyFilter();
+}
+
+function readHtmlBack() {
+  const doc = getActive(); if (!doc) return;
+  doc.html = surface.innerHTML;
+  const ids = [];
+  surface.querySelectorAll('mark[data-ann-id]').forEach(m => {
+    const id = m.getAttribute('data-ann-id');
+    if (!ids.includes(id)) ids.push(id);
+  });
+  doc.annotations = doc.annotations.filter(a => ids.includes(a.id));
+  doc.annotations.forEach(a => { a.order = ids.indexOf(a.id); });
+  saveSoon();
+}
+
+function applyFilter() {
+  const doc = getActive(); if (!doc) return;
+  surface.querySelectorAll('mark[data-ann-id]').forEach(m => {
+    const id = m.getAttribute('data-ann-id');
+    const ann = doc.annotations.find(a => a.id === id);
+    const dim = filterTags.length && (!ann || !filterTags.includes(ann.tagId));
+    m.style.opacity = dim ? '0.28' : '1';
+    if (id === activeAnnId) {
+      const col = ann ? tagById(ann.tagId).color : '#999';
+      m.style.outline = `2px solid ${hexRgba(col, 0.7)}`;
+      m.style.outlineOffset = '1px';
+    } else {
+      m.style.outline = 'none';
+      m.style.outlineOffset = '';
+    }
+  });
+}
+
+// ─── Selection → highlight ────────────────────────────────────────────────────
+surface.addEventListener('mouseup', () => {
+  if (mode === 'edit') return;
+  setTimeout(() => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+    const range = sel.getRangeAt(0);
+    if (!surface.contains(range.commonAncestorContainer)) return;
+    if (!range.toString().trim()) return;
+    savedRange = range.cloneRange();
+    const r = range.getBoundingClientRect();
+    showToolbar(r.left + r.width / 2, r.top - 6);
+  }, 1);
+});
+
+surface.addEventListener('click', e => {
+  const mark = e.target.closest('mark[data-ann-id]');
+  if (mark && mode === 'read') selectAnn(mark.getAttribute('data-ann-id'), true);
+});
+
+surface.addEventListener('input', () => { if (mode === 'edit') readHtmlBack(); });
+
+surface.addEventListener('paste', e => {
+  if (mode !== 'edit') return;
+  const html = e.clipboardData?.getData('text/html');
+  if (!html) return;
+  e.preventDefault();
+  document.execCommand('insertHTML', false, sanitizeHtml(html));
+  readHtmlBack();
+});
+
+function sanitizeHtml(html) {
+  const ALLOWED = {B:1,STRONG:1,I:1,EM:1,U:1,H1:1,H2:1,H3:1,P:1,BR:1,UL:1,OL:1,LI:1,BLOCKQUOTE:1,MARK:1};
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  (function walk(node) {
+    [...node.childNodes].forEach(c => {
+      if (c.nodeType !== 1) return;
+      if (!ALLOWED[c.tagName]) {
+        while (c.firstChild) node.insertBefore(c.firstChild, c);
+        node.removeChild(c);
+      } else {
+        [...c.attributes].forEach(at => {
+          if (!(c.tagName === 'MARK' && (at.name === 'data-ann-id' || at.name === 'style')))
+            c.removeAttribute(at.name);
+        });
+        walk(c);
+      }
+    });
+  })(tmp);
+  return tmp.innerHTML;
+}
+
+function showToolbar(x, y) {
+  selToolbar.style.left = x + 'px';
+  selToolbar.style.top  = y + 'px';
+  selToolbar.classList.add('show');
+}
+function hideToolbar() {
+  selToolbar.classList.remove('show');
+  savedRange = null;
+}
+
+function applyTagToSelection(tagId) {
+  const range = savedRange;
+  if (!range) { hideToolbar(); return; }
+  const tag = tagById(tagId);
+  const annId = uid('a');
+  const quote = range.toString().trim().replace(/\s+/g,' ').slice(0, 300);
+  wrapRange(range, annId, tag.color);
+  const doc = getActive();
+  doc.annotations.push({id: annId, tagId, comment: '', quote, order: doc.annotations.length});
+  readHtmlBack();
+  window.getSelection().removeAllRanges();
+  hideToolbar();
+  activeAnnId = annId;
+  applyFilter();
+  renderNotes();
+  renderDocList();
+  scrollPanelTo(annId);
+}
+
+function wrapRange(range, annId, color) {
+  const nodes = [];
+  const walker = document.createTreeWalker(surface, NodeFilter.SHOW_TEXT, null);
+  let n;
+  while ((n = walker.nextNode())) if (range.intersectsNode(n)) nodes.push(n);
+  const bg = hexRgba(color, 0.32);
+  nodes.forEach(node => {
+    let from = 0, to = node.length;
+    if (node === range.startContainer) from = range.startOffset;
+    if (node === range.endContainer)   to   = range.endOffset;
+    if (from >= to) return;
+    let target = node;
+    if (from > 0) target = node.splitText(from);
+    if ((to - from) < target.length) target.splitText(to - from);
+    const mark = document.createElement('mark');
+    mark.setAttribute('data-ann-id', annId);
+    mark.style.cssText = `background:${bg};border-radius:2px;cursor:pointer;color:inherit;`;
+    target.parentNode.insertBefore(mark, target);
+    mark.appendChild(target);
+  });
+}
+
+function removeAnn(annId) {
+  surface.querySelectorAll(`mark[data-ann-id="${annId}"]`).forEach(m => {
+    const p = m.parentNode;
+    while (m.firstChild) p.insertBefore(m.firstChild, m);
+    p.removeChild(m);
+    p.normalize();
+  });
+  const doc = getActive();
+  doc.annotations = doc.annotations.filter(a => a.id !== annId);
+  readHtmlBack();
+  if (activeAnnId === annId) activeAnnId = null;
+  applyFilter();
+  renderNotes();
+  renderDocList();
+}
+
+function recolorMark(annId, color) {
+  surface.querySelectorAll(`mark[data-ann-id="${annId}"]`).forEach(m => {
+    m.style.background = hexRgba(color, 0.32);
+  });
+}
+
+// ─── Annotation selection / jumping ──────────────────────────────────────────
+function selectAnn(annId, scrollPanel) {
+  activeAnnId = annId;
+  applyFilter();
+  renderNotes();
+  if (scrollPanel) scrollPanelTo(annId);
+}
+
+function scrollPanelTo(annId) {
+  const card = document.getElementById('card-' + annId);
+  if (card && notesScroll) {
+    notesScroll.scrollTop += card.getBoundingClientRect().top - notesScroll.getBoundingClientRect().top - 70;
+  }
+}
+
+function jumpToMark(annId) {
+  const m = surface.querySelector(`mark[data-ann-id="${annId}"]`);
+  selectAnn(annId, false);
+  if (m && centerScroll) {
+    centerScroll.scrollTop += m.getBoundingClientRect().top - centerScroll.getBoundingClientRect().top - centerScroll.clientHeight / 2;
+    m.style.animation = 'none';
+    void m.offsetWidth;
+    m.style.animation = 'flashmark 1.1s ease';
+  }
+}
+
+// ─── Mode toggle ─────────────────────────────────────────────────────────────
+function setMode(m) {
+  if (m === mode) return;
+  if (mode === 'edit') readHtmlBack();
+  mode = m;
+  hideToolbar();
+  repopulate();
+  fmtBar.style.display = mode === 'edit' ? 'flex' : 'none';
+  $('btn-read').className = 'mbtn ' + (mode === 'read' ? 'active' : 'inactive');
+  $('btn-edit').className = 'mbtn ' + (mode === 'edit' ? 'active' : 'inactive');
+}
+
+$('btn-read').addEventListener('click', () => setMode('read'));
+$('btn-edit').addEventListener('click', () => setMode('edit'));
+
+// ─── Formatting ───────────────────────────────────────────────────────────────
+const fmt = (cmd, arg) => (e) => {
+  e.preventDefault();
+  document.execCommand(cmd, false, arg);
+  readHtmlBack();
+};
+$('fmt-b'    ).addEventListener('mousedown', fmt('bold'));
+$('fmt-i'    ).addEventListener('mousedown', fmt('italic'));
+$('fmt-h1'   ).addEventListener('mousedown', fmt('formatBlock', 'h1'));
+$('fmt-h2'   ).addEventListener('mousedown', fmt('formatBlock', 'h2'));
+$('fmt-bq'   ).addEventListener('mousedown', fmt('formatBlock', 'blockquote'));
+$('fmt-ul'   ).addEventListener('mousedown', fmt('insertUnorderedList'));
+$('fmt-plain').addEventListener('mousedown', e => e.preventDefault());
+$('fmt-plain').addEventListener('click', async () => {
+  try {
+    const t = await navigator.clipboard.readText();
+    if (t) document.execCommand('insertText', false, t);
+    readHtmlBack();
+  } catch {
+    alert('Allow clipboard access, or paste with Cmd/Ctrl+V (formatting will be cleaned automatically).');
+  }
+});
+
+// ─── Documents ───────────────────────────────────────────────────────────────
+$('btn-new-doc').addEventListener('click', () => {
+  const id = uid('doc');
+  docs.push({id, title: 'Untitled', html: '<p><br></p>', annotations: []});
+  activeDocId = id;
+  activeAnnId = null;
+  mode = 'edit';
+  saveData();
+  repopulate();
+  fmtBar.style.display = 'flex';
+  $('btn-read').className = 'mbtn inactive';
+  $('btn-edit').className = 'mbtn active';
+  surface.focus();
+  renderAll();
+});
+
+function selectDoc(id) {
+  if (id === activeDocId) return;
+  activeDocId = id;
+  activeAnnId = null;
+  mode = 'read';
+  saveData();
+  repopulate();
+  fmtBar.style.display = 'none';
+  $('btn-read').className = 'mbtn active';
+  $('btn-edit').className = 'mbtn inactive';
+  renderAll();
+}
+
+function deleteDoc(id) {
+  if (!confirm('Delete this document and all its notes?')) return;
+  docs = docs.filter(d => d.id !== id);
+  if (!docs.length) docs = [{id: uid('doc'), title: 'Untitled', html: '<p><br></p>', annotations: []}];
+  if (id === activeDocId) activeDocId = docs[0].id;
+  activeAnnId = null;
+  saveData();
+  repopulate();
+  renderAll();
+}
+
+docTitleIn.addEventListener('input', e => {
+  const doc = getActive(); if (!doc) return;
+  doc.title = e.target.value;
+  saveSoon();
+  renderDocList();
+});
+
+// ─── Filters ─────────────────────────────────────────────────────────────────
+function toggleFilter(tagId) {
+  filterTags = filterTags.includes(tagId) ? filterTags.filter(t => t !== tagId) : [...filterTags, tagId];
+  applyFilter();
+  renderFilterPills();
+}
+function clearFilters() { filterTags = []; applyFilter(); renderFilterPills(); }
+
+// ─── Tag manager ─────────────────────────────────────────────────────────────
+$('btn-tags').addEventListener('click', () => {
+  tagMgrOpen = !tagMgrOpen;
+  tagMgrOverlay.className = tagMgrOpen ? 'open' : '';
+});
+$('btn-close-tagmgr').addEventListener('click', closeTagMgr);
+tagMgrOverlay.addEventListener('click', e => { if (e.target === tagMgrOverlay) closeTagMgr(); });
+function closeTagMgr() { tagMgrOpen = false; tagMgrOverlay.className = ''; }
+
+function renameTag(id, name) {
+  const t = tags.find(x => x.id === id); if (!t) return;
+  t.name = name; saveSoon();
+  renderFilterPills(); renderNotes();
+}
+
+function recolorTag(id, color) {
+  const t = tags.find(x => x.id === id); if (!t) return;
+  t.color = color;
+  const doc = getActive();
+  if (doc) doc.annotations.filter(a => a.tagId === id).forEach(a => recolorMark(a.id, color));
+  if (doc) readHtmlBack();
+  applyFilter();
+  renderTagRows(); renderFilterPills(); renderNotes();
+}
+
+function deleteTag(id) {
+  if (tags.length <= 1) return;
+  if (!confirm('Delete this tag? Notes using it will keep their colour but lose the label.')) return;
+  tags = tags.filter(t => t.id !== id);
+  filterTags = filterTags.filter(t => t !== id);
+  saveData();
+  renderTagRows(); renderFilterPills(); renderNotes(); renderToolbarTags();
+}
+
+$('btn-add-tag').addEventListener('click', () => {
+  const used = tags.map(t => t.color);
+  const color = PALETTE.find(c => !used.includes(c)) || PALETTE[tags.length % PALETTE.length];
+  tags.push({id: uid('t'), name: 'New tag', color});
+  saveData();
+  renderTagRows(); renderFilterPills(); renderToolbarTags(); renderNotes();
+});
+
+// ─── Export / Import ──────────────────────────────────────────────────────────
+$('btn-export').addEventListener('click', e => {
+  e.stopPropagation();
+  menuOpen = !menuOpen;
+  exportMenu.style.display = menuOpen ? 'flex' : 'none';
+  if (menuOpen) exportMenu.style.flexDirection = 'column';
+});
+document.addEventListener('click', () => {
+  if (menuOpen) { menuOpen = false; exportMenu.style.display = 'none'; }
+});
+
+function notesMarkdown() {
+  const doc = getActive(); if (!doc) return '';
+  const anns = [...doc.annotations].sort((a,b) => (a.order||0)-(b.order||0));
+  let out = '# ' + doc.title + '\n\n';
+  anns.forEach((a,i) => {
+    const tag = tagById(a.tagId);
+    out += `${i+1}. **[${tag.name}]** "${a.quote}"\n`;
+    if (a.comment) out += `   — ${a.comment}\n`;
+    out += '\n';
+  });
+  return out;
+}
+
+function download(name, text, type) {
+  const blob = new Blob([text], {type: type || 'text/plain'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+$('em-md').addEventListener('click', () => {
+  const doc = getActive();
+  download((doc?.title || 'notes') + '.md', notesMarkdown(), 'text/markdown');
+  menuOpen = false; exportMenu.style.display = 'none';
+});
+$('em-copy').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(notesMarkdown()); } catch {}
+  menuOpen = false; exportMenu.style.display = 'none';
+});
+$('em-json').addEventListener('click', () => {
+  download('marginalia-backup.json', JSON.stringify({docs, tags, activeDocId}, null, 2), 'application/json');
+  menuOpen = false; exportMenu.style.display = 'none';
+});
+$('em-restore').addEventListener('click', () => {
+  menuOpen = false; exportMenu.style.display = 'none';
+  fileInput.click();
+});
+fileInput.addEventListener('change', e => {
+  const file = e.target.files?.[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const d = JSON.parse(reader.result);
+      if (!d.docs?.length) { alert('That file has no documents.'); return; }
+      if (!confirm('Restore this backup? It will replace your current documents and tags.')) return;
+      docs = d.docs; tags = d.tags || tags; activeDocId = d.activeDocId || d.docs[0].id;
+      activeAnnId = null; mode = 'read';
+      saveData(); repopulate(); renderAll();
+    } catch { alert('Could not read that file.'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+$('btn-cancel-tb').addEventListener('click', hideToolbar);
+
+// ─── Render functions ─────────────────────────────────────────────────────────
+function renderDocList() {
+  docListEl.innerHTML = '';
+  const doc = getActive();
+  docTitleIn.value = doc?.title || '';
+
+  docs.forEach(d => {
+    const item = document.createElement('div');
+    item.className = 'doc-item' + (d.id === activeDocId ? ' active' : '');
+
+    const title = document.createElement('div');
+    title.className = 'doc-item-title';
+    title.textContent = d.title || 'Untitled';
+
+    const meta = document.createElement('div');
+    meta.className = 'doc-item-meta';
+
+    const count = document.createElement('span');
+    count.style.cssText = 'font-size:11px;color:#a08c5e;';
+    count.textContent = d.annotations.length === 1 ? '1 note' : d.annotations.length + ' notes';
+
+    const del = document.createElement('button');
+    del.className = 'icon-btn';
+    del.style.cssText = 'font-size:13px;color:#bcae93;padding:0 2px;';
+    del.title = 'Delete';
+    del.textContent = '×';
+    del.addEventListener('mouseover', () => del.style.color = '#a8453a');
+    del.addEventListener('mouseout',  () => del.style.color = '#bcae93');
+    del.addEventListener('click', e => { e.stopPropagation(); deleteDoc(d.id); });
+
+    meta.append(count, del);
+    item.append(title, meta);
+    item.addEventListener('click', () => selectDoc(d.id));
+    docListEl.appendChild(item);
+  });
+}
+
+function renderFilterPills() {
+  filterPillsEl.innerHTML = '';
+  const doc = getActive();
+  const counts = {};
+  if (doc) doc.annotations.forEach(a => { counts[a.tagId] = (counts[a.tagId]||0) + 1; });
+
+  tags.forEach(t => {
+    const active = filterTags.includes(t.id);
+    const btn = document.createElement('button');
+    btn.style.cssText = `display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-family:inherit;cursor:pointer;padding:4px 10px;border-radius:20px;border:1px solid ${active ? hexRgba(t.color,.9) : '#e0d4b8'};background:${active ? hexRgba(t.color,.16) : 'transparent'};color:${active ? '#3a342b' : '#8a7f6d'};`;
+
+    const dot = document.createElement('span');
+    dot.style.cssText = `width:8px;height:8px;border-radius:50%;flex:none;background:${t.color};`;
+
+    const cnt = document.createElement('span');
+    cnt.style.cssText = 'opacity:.6;margin-left:1px;';
+    cnt.textContent = counts[t.id] ? ' ' + counts[t.id] : '';
+
+    btn.append(dot, document.createTextNode(t.name), cnt);
+    btn.addEventListener('click', () => toggleFilter(t.id));
+    filterPillsEl.appendChild(btn);
+  });
+
+  if (filterTags.length) {
+    const clr = document.createElement('button');
+    clr.textContent = 'clear';
+    clr.style.cssText = 'font-size:11.5px;color:#a8453a;background:transparent;border:none;cursor:pointer;padding:4px 6px;font-family:inherit;';
+    clr.addEventListener('click', clearFilters);
+    filterPillsEl.appendChild(clr);
+  }
+}
+
+function renderNotes() {
+  const doc = getActive();
+  const anns = doc ? [...doc.annotations].sort((a,b) => (a.order||0)-(b.order||0)) : [];
+
+  notesCountEl.textContent = anns.length === 0 ? '' : anns.length === 1 ? '1 mark' : anns.length + ' marks';
+  notesEmptyEl.style.display = anns.length === 0 ? 'block' : 'none';
+  notesListEl.innerHTML = '';
+
+  anns.forEach((a, i) => {
+    const tag = tagById(a.tagId);
+    const isActive = a.id === activeAnnId;
+
+    const card = document.createElement('div');
+    card.id = 'card-' + a.id;
+    card.className = 'note-card' + (isActive ? ' active' : '');
+    card.style.cssText = `border-left:4px solid ${tag.color};box-shadow:${isActive ? '0 2px 10px ' + hexRgba(tag.color,.28) : '0 1px 2px rgba(60,50,30,.05)'};`;
+
+    // — header row
+    const hdr = document.createElement('div');
+    hdr.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:7px;';
+
+    const num = document.createElement('span');
+    num.style.cssText = "font-family:'Spectral',serif;font-size:12px;color:#a08c5e;font-weight:500;min-width:18px;";
+    num.textContent = String(i+1).padStart(2,'0');
+
+    const dot = document.createElement('span');
+    dot.style.cssText = `width:9px;height:9px;border-radius:50%;flex:none;background:${tag.color};`;
+
+    const tagLabel = document.createElement('span');
+    tagLabel.style.cssText = `font-size:11.5px;font-weight:600;letter-spacing:.02em;color:${tag.color};`;
+    tagLabel.textContent = tag.name;
+
+    const del = document.createElement('button');
+    del.className = 'icon-btn';
+    del.style.cssText = 'margin-left:auto;font-size:14px;color:#c3b69a;padding:0 2px;';
+    del.title = 'Delete note';
+    del.textContent = '×';
+    del.addEventListener('mouseover', () => del.style.color = '#a8453a');
+    del.addEventListener('mouseout',  () => del.style.color = '#c3b69a');
+    del.addEventListener('click', e => { e.stopPropagation(); removeAnn(a.id); });
+
+    hdr.append(num, dot, tagLabel, del);
+
+    // — quote
+    const quote = document.createElement('div');
+    quote.style.cssText = "font-family:'Spectral','Noto Serif Thai',serif;font-style:italic;font-size:13.5px;line-height:1.5;color:#8a7f6d;border-left:2px solid #e6dcc4;padding-left:9px;margin-bottom:9px;";
+    quote.textContent = a.quote;
+
+    // — textarea
+    const ta = document.createElement('textarea');
+    ta.className = 'note-textarea';
+    ta.value = a.comment;
+    ta.placeholder = 'Add a note…';
+    ta.rows = 2;
+    ta.addEventListener('input', e => { a.comment = e.target.value; saveSoon(); });
+    ta.addEventListener('click', e => e.stopPropagation());
+
+    // — tag swatches
+    const swatches = document.createElement('div');
+    swatches.style.cssText = 'display:flex;flex-wrap:wrap;gap:7px;margin-top:9px;align-items:center;';
+    tags.forEach(t => {
+      const sw = document.createElement('button');
+      sw.className = 'ann-swatch';
+      sw.title = t.name;
+      sw.style.cssText = `background:${t.color};border:2px solid ${t.id===a.tagId ? '#3a342b' : 'transparent'};`;
+      sw.addEventListener('click', e => { e.stopPropagation(); setAnnTag(a.id, t.id); });
+      swatches.appendChild(sw);
+    });
+
+    card.append(hdr, quote, ta, swatches);
+    card.addEventListener('click', () => jumpToMark(a.id));
+    notesListEl.appendChild(card);
+  });
+}
+
+function renderToolbarTags() {
+  toolbarTagsEl.innerHTML = '';
+  tags.forEach(t => {
+    const btn = document.createElement('button');
+    btn.className = 'tb-tag-btn';
+    btn.title = t.name;
+    btn.style.background = t.color;
+    btn.addEventListener('mousedown', e => e.preventDefault());
+    btn.addEventListener('click', () => applyTagToSelection(t.id));
+    toolbarTagsEl.appendChild(btn);
+  });
+}
+
+function renderTagRows() {
+  tagRowsEl.innerHTML = '';
+  tags.forEach(t => {
+    const row = document.createElement('div');
+    row.className = 'tag-row';
+
+    const swBox = document.createElement('div');
+    swBox.style.cssText = 'display:flex;gap:4px;';
+    PALETTE.slice(0, 6).forEach(c => {
+      const sw = document.createElement('button');
+      sw.className = 'palette-swatch';
+      sw.style.cssText = `background:${c};border-color:${c.toLowerCase()===t.color.toLowerCase() ? '#2b2620' : 'transparent'};`;
+      sw.addEventListener('click', () => recolorTag(t.id, c));
+      swBox.appendChild(sw);
+    });
+
+    const nameIn = document.createElement('input');
+    nameIn.className = 'tag-name-input';
+    nameIn.value = t.name;
+    nameIn.addEventListener('input', e => renameTag(t.id, e.target.value));
+
+    const del = document.createElement('button');
+    del.className = 'icon-btn';
+    del.style.cssText = 'font-size:15px;color:#c3b69a;';
+    del.title = 'Delete tag';
+    del.textContent = '×';
+    del.addEventListener('mouseover', () => del.style.color = '#a8453a');
+    del.addEventListener('mouseout',  () => del.style.color = '#c3b69a');
+    del.addEventListener('click', () => deleteTag(t.id));
+
+    row.append(swBox, nameIn, del);
+    tagRowsEl.appendChild(row);
+  });
+}
+
+function setAnnTag(annId, tagId) {
+  const doc = getActive();
+  const a = doc?.annotations.find(x => x.id === annId); if (!a) return;
+  a.tagId = tagId;
+  recolorMark(annId, tagById(tagId).color);
+  readHtmlBack();
+  applyFilter();
+  renderNotes();
+}
+
+function renderAll() {
+  const doc = getActive();
+  docTitleIn.value = doc?.title || '';
+  renderDocList();
+  renderFilterPills();
+  renderNotes();
+  renderToolbarTags();
+  renderTagRows();
+}
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+loadData();
+repopulate();
+renderAll();
+</script>
+</body>
+</html>
