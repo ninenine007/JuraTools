@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unused Annual Leave Pay — JuraTools</title>
+<link rel="stylesheet" href="labour-core.css">
+</head>
+<body>
+
+<nav class="nav">
+  <a href="index.html">JuraTools</a>
+  <span class="sep">/</span>
+  <a href="thai-labour-tools.html">Thai Labour Law Tools</a>
+  <span class="sep">/</span>
+  <span class="current">Unused Annual Leave</span>
+  <a class="back" href="thai-labour-tools.html">← All</a>
+</nav>
+
+<div class="container">
+
+<header>
+  <h1>Payment for Unused Annual Leave</h1>
+  <div class="th">ค่าจ้างสำหรับวันหยุดพักผ่อนประจำปี</div>
+  <p>Labour Protection Act B.E. 2541, s.30 (entitlement) &amp; s.67 (payment on termination).</p>
+</header>
+
+<div id="profileBanner" class="profile-banner hidden">
+  <span class="pb-text"></span>
+  <span class="pb-actions">
+    <button class="btn btn-small" onclick="saveProfileFromPage()">Save to shared profile</button>
+    <button class="btn btn-small" onclick="applyProfileToPage()">Reset to shared</button>
+  </span>
+</div>
+
+<!-- STEP 1: The employment -->
+<div class="card">
+  <div class="step"><span class="step-n">1</span><h2>The employment</h2></div>
+  <div class="step-note">Who worked, until when, and for what wage.</div>
+  <div class="field">
+    <label for="payType">How is the employee paid?</label>
+    <select id="payType">
+      <option value="time">Time-based wage only (monthly, daily, ...)</option>
+      <option value="piece">Piece-rate only (ค่าจ้างตามผลงานโดยคำนวณเป็นหน่วย)</option>
+      <option value="mixed">Time-based + piece-rate</option>
+    </select>
+  </div>
+  <div id="timeWageWrap" class="field-row">
+    <div class="field" style="flex:2">
+      <label for="monthlyWage">Time-based wage (ค่าจ้าง, THB)</label>
+      <input type="number" id="monthlyWage" min="0" step="0.01" placeholder="e.g. 30000">
+    </div>
+    <div class="field">
+      <label for="wagePer">Per</label>
+      <select id="wagePer">
+        <option value="monthly">Month</option>
+        <option value="weekly">Week</option>
+        <option value="daily">Day</option>
+        <option value="perN">N days</option>
+      </select>
+    </div>
+    <div class="field hidden" id="wageNWrap">
+      <label for="wageN">N (days)</label>
+      <input type="number" id="wageN" min="1" step="1" value="10">
+    </div>
+  </div>
+  <div id="pieceWrap" class="hidden">
+    <div class="field-row">
+      <div class="field">
+        <label for="pieceLastPeriod">Piece wages received in the last pay period (THB)</label>
+        <input type="number" id="pieceLastPeriod" min="0" step="0.01" placeholder="e.g. 12000">
+      </div>
+      <div class="field">
+        <label for="pieceWorkDays">Working days in that period</label>
+        <input type="number" id="pieceWorkDays" min="0" step="1" placeholder="e.g. 24">
+      </div>
+    </div>
+    <div class="field-note" style="margin:-4px 0 16px">For piece-rate employees, holiday pay uses the <strong>average daily wage of the last pay period</strong> before the day off (ให้จ่ายค่าจ้างในวันหยุดเท่ากับค่าจ้างโดยเฉลี่ยในวันทำงานที่ลูกจ้างได้รับในงวดการจ่ายค่าจ้างก่อนวันหยุดนั้น, s.60): the piece wages received in that period ÷ the days actually worked in it.</div>
+  </div>
+  <div class="field">
+    <label for="reason">Reason for leaving</label>
+    <select id="reason"></select>
+  </div>
+  <div class="field-row">
+    <div class="field">
+      <label for="dismissDate">Dismissal date <span class="hint">(the day the employment ends — for notice or garden leave, the day the notice takes effect)</span></label>
+      <input type="date" id="dismissDate">
+    </div>
+    <div class="field">
+      <label for="dismissWorked">Did the employee work, or get paid wages, for that day?</label>
+      <select id="dismissWorked">
+        <option value="yes">Yes — worked or was paid wages for that day</option>
+        <option value="no">No — no work and no wages from that day</option>
+      </select>
+    </div>
+  </div>
+  <div class="derived-facts hidden" id="dismissDerived"></div>
+  <div class="field-note" style="margin:-8px 0 0">Leave accrues through the <strong>last day of employment</strong> (worked or paid — garden leave counts); the money falls due within 3 days of the <strong>termination effective date</strong> (s.70 ¶2). For notice or garden leave, enter the day the notice takes effect and answer No.</div>
+</div>
+
+<!-- STEP 2: The leave -->
+<div class="card">
+  <div class="step"><span class="step-n">2</span><h2>The leave</h2></div>
+  <div class="step-note">Entitlement, what was taken, and what carried over.</div>
+  <div class="field-row">
+    <div class="field"><label for="leaveYearStart">Leave-year start <span class="hint">(default 1 Jan)</span></label><input type="date" id="leaveYearStart"></div>
+    <div class="field"><label for="annualEnt">Annual entitlement (days)</label><input type="number" id="annualEnt" min="0" step="0.5" value="6"></div>
+  </div>
+  <div class="field-row">
+    <div class="field"><label for="takenThisYear">Days taken this year</label><input type="number" id="takenThisYear" min="0" step="0.5" value="0"></div>
+    <div class="field"><label for="carriedOver">Carried-over days</label><input type="number" id="carriedOver" min="0" step="0.5" value="0"></div>
+  </div>
+  <div class="field">
+    <label for="proRataBasis">Current-year pro-rata basis <span class="hint">(how months are counted)</span></label>
+    <select id="proRataBasis"></select>
+  </div>
+  <div class="check-row">
+    <input type="checkbox" id="includeCurrentOverride">
+    <label for="includeCurrentOverride">Override: include current-year pro-rata regardless of reason</label>
+  </div>
+</div>
+
+<!-- Result -->
+<div class="card">
+  <div class="card-title">Result</div>
+  <div id="forkNote" class="callout callout-info"></div>
+  <table class="data" id="leaveTable"></table>
+  <div class="amount-box" style="margin-top:14px">
+    <div class="amount-label">Unused-leave pay</div>
+    <div class="amount-value" id="payableAmount">—</div>
+    <div class="amount-sub" id="payableSub"></div>
+  </div>
+</div>
+
+<!-- Interest -->
+<div class="card" id="interestCard">
+  <div class="section-toggle" id="intToggle" onclick="toggleInterest()">Interest &amp; เงินเพิ่ม (LPA s.9)</div>
+  <div id="intSection" class="hidden" style="margin-top:16px">
+    <p class="muted" style="font-size:13px;margin-bottom:14px">Unpaid leave pay bears <strong>15%/yr</strong> during default (s.9 ¶1); on dismissal it is due <strong>within 3 days</strong> (s.70 ¶2). Due date defaults to the termination effective date + 3 days. All fields editable.</p>
+    <div class="field-row">
+      <div class="field"><label for="intDue">Due date <span class="hint">(payable)</span></label><input type="date" id="intDue"></div>
+      <div class="field"><label for="intAsOf">Calculate up to (as-of)</label><input type="date" id="intAsOf"></div>
+    </div>
+    <div class="field-row-3">
+      <div class="field"><label for="intRate">Rate (%/yr)</label><input type="number" id="intRate" step="0.01" value="15"></div>
+      <div class="field"><label for="intBasis">Day-count basis</label><select id="intBasis"></select></div>
+      <div class="field"><label for="intPrincipal">Principal (THB)</label><input type="number" id="intPrincipal" readonly></div>
+    </div>
+    <div class="check-row" style="margin-bottom:12px">
+      <input type="checkbox" id="intSurcharge">
+      <label for="intSurcharge">Add <strong>เงินเพิ่ม</strong> — 15% of principal per completed 7-day period (s.9 ¶2). Requires willful non-payment without reasonable cause.</label>
+    </div>
+    <table class="data" id="intTable"></table>
+  </div>
+</div>
+
+<div class="actions-row">
+  <button class="btn btn-reset" onclick="resetAll()">Reset all</button>
+</div>
+
+<footer>
+  <span class="cites">Labour Protection Act B.E. 2541, ss.9, 30, 60, 67, 70</span><br>
+  Reference tool only — not legal advice. Runs entirely in your browser.
+</footer>
+
+</div><!-- /container -->
+
+<script src="labour-core.js"></script>
+<script>
+var intOpen = false, lastPrincipal = 0;
+function toggleInterest() { intOpen = !intOpen; document.getElementById('intToggle').classList.toggle('open', intOpen); document.getElementById('intSection').classList.toggle('hidden', !intOpen); }
+
+// Shared dismissal-facts pattern: derive last day of employment + termination effective date.
+function dismissal() {
+  var d = LC.parseDate(document.getElementById('dismissDate').value);
+  var f = LC.dismissalFacts(d, document.getElementById('dismissWorked').value === 'yes');
+  var el = document.getElementById('dismissDerived');
+  if (!f) { el.classList.add('hidden'); return null; }
+  el.classList.remove('hidden'); el.innerHTML = LC.dismissalSummary(f);
+  return f;
+}
+
+// Daily rate for leave pay: time-based part (last rate per day) plus, for
+// piece-rate employees, the s.60 average of the last pay period.
+function leaveDailyRate() {
+  var payType = document.getElementById('payType').value;
+  var out = { rate: 0, parts: [] };
+  if (payType !== 'piece') {
+    var wage = parseFloat(document.getElementById('monthlyWage').value) || 0;
+    var per = document.getElementById('wagePer').value;
+    var n = Math.max(1, parseInt(document.getElementById('wageN').value, 10) || 1);
+    var t = LC.dailyRateFor(wage, per, n);
+    if (t > 0) { out.rate += t; out.parts.push(per === 'daily' ? 'daily wage' : 'wage ÷ ' + (per === 'weekly' ? 7 : per === 'perN' ? n : 30)); }
+  }
+  if (payType !== 'time') {
+    var amt = parseFloat(document.getElementById('pieceLastPeriod').value) || 0;
+    var wd = parseFloat(document.getElementById('pieceWorkDays').value) || 0;
+    var p = LC.avgDailyPieceRate(amt, wd);
+    if (p > 0) { out.rate += p; out.parts.push('piece avg ' + LC.fmt(amt) + ' ÷ ' + wd + ' d (s.60)'); }
+  }
+  return out;
+}
+
+function calculate() {
+  var dr = leaveDailyRate();
+  var reason = document.getElementById('reason').value;
+  var leaveYearStart = LC.parseDate(document.getElementById('leaveYearStart').value);
+  var f = dismissal();
+  // Leave accrues through the last working day, counted inclusively — so the
+  // worked span is measured to the termination effective date (its exclusive end).
+  var term = f && f.effectiveDate;
+  var annualEnt = parseFloat(document.getElementById('annualEnt').value);
+  var taken = parseFloat(document.getElementById('takenThisYear').value) || 0;
+  var carried = parseFloat(document.getElementById('carriedOver').value) || 0;
+  var override = document.getElementById('includeCurrentOverride').checked;
+
+  var includeCurrent = override || LC.leaveIncludesCurrentYear(reason);
+
+  var forkNote = document.getElementById('forkNote');
+  forkNote.innerHTML = includeCurrent
+    ? '<strong>s.67 ¶1:</strong> employer termination (no employee fault) — pays <strong>pro-rata current-year leave + carried-over</strong>.' + (override && !LC.leaveIncludesCurrentYear(reason) ? ' <em>(override active)</em>' : '')
+    : '<strong>s.67 ¶2:</strong> resignation / other — pays <strong>carried-over leave only</strong> (current-year pro-rata not included).';
+
+  var tbl = document.getElementById('leaveTable');
+  if (dr.rate <= 0 || isNaN(annualEnt)) {
+    tbl.innerHTML = '<tr class="muted"><td>Enter the wage details and annual entitlement.</td></tr>';
+    document.getElementById('payableAmount').textContent = '—';
+    document.getElementById('payableSub').textContent = '';
+    lastPrincipal = 0; updateInterest(0); saveState(); return;
+  }
+
+  var r = LC.computeUnusedLeave({
+    dailyRate: dr.rate, annualEntitlement: annualEnt, leaveYearStart: leaveYearStart,
+    terminationDate: term, takenThisYear: taken, carriedOver: carried, includeCurrentYear: includeCurrent,
+    proRataBasis: document.getElementById('proRataBasis').value
+  });
+
+  var rows = '';
+  rows += '<tr><td>Leave-year worked</td><td class="num">' + r.proRataDetail + ' = ' + (r.fraction * 100).toFixed(1) + '%</td></tr>';
+  rows += '<tr><td>Earned this year (pro-rata)</td><td class="num">' + LC.fmtDays(r.earnedThisYear) + ' days</td></tr>';
+  rows += '<tr><td>Less taken this year</td><td class="num">− ' + LC.fmtDays(taken) + ' days</td></tr>';
+  rows += '<tr><td>Current-year unused' + (includeCurrent ? '' : ' (excluded)') + '</td><td class="num">' + LC.fmtDays(r.payableCurrent) + ' days</td></tr>';
+  rows += '<tr><td>Carried-over unused</td><td class="num">' + LC.fmtDays(r.carriedDays) + ' days</td></tr>';
+  rows += '<tr><td>Daily rate (' + dr.parts.join(' + ') + ')</td><td class="num">' + LC.fmt(dr.rate) + '</td></tr>';
+  rows += '<tr class="total"><td>Payable (' + LC.fmtDays(r.payableDays) + ' days × daily rate)</td><td class="num">' + LC.fmt(r.amount) + '</td></tr>';
+  tbl.innerHTML = rows;
+
+  document.getElementById('payableAmount').textContent = LC.fmt(r.amount) + ' THB';
+  document.getElementById('payableSub').textContent = LC.fmtDays(r.payableDays) + ' unused days × ' + LC.fmt(dr.rate) + ' /day';
+
+  lastPrincipal = r.amount;
+  updateInterest(r.amount);
+  saveState();
+}
+
+// ─── Interest ─────────────────────────────────────────────────────────────────
+var lastAutoDue = '';
+function syncDue(autoDate) {
+  var el = document.getElementById('intDue'), iso = autoDate ? LC.toISO(autoDate) : '';
+  if (el.value === '' || el.value === lastAutoDue) el.value = iso;
+  lastAutoDue = iso;
+}
+function updateInterest(principal) {
+  var f = dismissal();
+  syncDue(LC.dueDateFor('unusedLeave', { effectiveDate: f && f.effectiveDate }));
+  document.getElementById('intPrincipal').value = principal ? principal.toFixed(2) : '';
+  var due = LC.parseDate(document.getElementById('intDue').value);
+  var asOf = LC.parseDate(document.getElementById('intAsOf').value);
+  var rate = parseFloat(document.getElementById('intRate').value);
+  var basis = document.getElementById('intBasis').value;
+  var surOn = document.getElementById('intSurcharge').checked;
+  var ord = LC.computeInterest(principal, rate, due, asOf, basis);
+  var sur = surOn ? LC.computeSurcharge(principal, due, asOf) : { amount: 0, rounds: 0 };
+  var rows = '';
+  rows += '<tr><td>Principal</td><td class="num">' + LC.fmt(principal || 0) + '</td></tr>';
+  rows += '<tr class="muted"><td>Interest (' + (rate || 0) + '%/yr · ' + (ord.detail || '—') + ')</td><td class="num">' + LC.fmt(ord.interest) + '</td></tr>';
+  if (surOn) rows += '<tr class="muted"><td>เงินเพิ่ม (15% × ' + sur.rounds + ' × 7-day periods)</td><td class="num">' + LC.fmt(sur.amount) + '</td></tr>';
+  rows += '<tr class="total"><td>Total payable</td><td class="num">' + LC.fmt((principal || 0) + ord.interest + sur.amount) + '</td></tr>';
+  document.getElementById('intTable').innerHTML = rows;
+}
+
+// ─── Profile ──────────────────────────────────────────────────────────────────
+function showBanner(p) {
+  var b = document.getElementById('profileBanner');
+  if (!p) { b.classList.add('hidden'); return; }
+  b.classList.remove('hidden');
+  b.querySelector('.pb-text').innerHTML = 'Shared profile in use.';
+}
+function applyProfileToPage() {
+  var p = LC.loadProfile(); if (!p) return;
+  if (p.monthlyWage) document.getElementById('monthlyWage').value = p.monthlyWage;
+  if (p.reason) document.getElementById('reason').value = p.reason;
+  if (p.dismissalDate) {
+    document.getElementById('dismissDate').value = p.dismissalDate;
+    var t = LC.parseDate(p.dismissalDate);
+    document.getElementById('leaveYearStart').value = LC.toISO(new Date(t.getFullYear(), 0, 1));
+  }
+  if (p.workedThatDay) document.getElementById('dismissWorked').value = p.workedThatDay;
+  showBanner(p); calculate();
+}
+function saveProfileFromPage() {
+  var p = LC.loadProfile() || {};
+  // Shared profile stores a monthly figure: convert non-monthly rates via daily × 30.
+  var w = parseFloat(document.getElementById('monthlyWage').value);
+  var per = document.getElementById('wagePer').value;
+  var n = Math.max(1, parseInt(document.getElementById('wageN').value, 10) || 1);
+  if (!isNaN(w) && w > 0) p.monthlyWage = per === 'monthly' ? w : Math.round(LC.dailyRateFor(w, per, n) * 30 * 100) / 100;
+  p.reason = document.getElementById('reason').value;
+  var dd = document.getElementById('dismissDate').value; if (dd) p.dismissalDate = dd;
+  p.workedThatDay = document.getElementById('dismissWorked').value;
+  LC.saveProfile(p); showBanner(p);
+}
+
+// ─── Persistence ──────────────────────────────────────────────────────────────
+function saveState() {
+  try {
+    localStorage.setItem('unusedLeave_v1', JSON.stringify({
+      monthlyWage: document.getElementById('monthlyWage').value, reason: document.getElementById('reason').value,
+      payType: document.getElementById('payType').value, wagePer: document.getElementById('wagePer').value, wageN: document.getElementById('wageN').value,
+      pieceLastPeriod: document.getElementById('pieceLastPeriod').value, pieceWorkDays: document.getElementById('pieceWorkDays').value,
+      leaveYearStart: document.getElementById('leaveYearStart').value,
+      dismissDate: document.getElementById('dismissDate').value, dismissWorked: document.getElementById('dismissWorked').value,
+      annualEnt: document.getElementById('annualEnt').value, takenThisYear: document.getElementById('takenThisYear').value,
+      carriedOver: document.getElementById('carriedOver').value, includeCurrentOverride: document.getElementById('includeCurrentOverride').checked,
+      proRataBasis: document.getElementById('proRataBasis').value,
+      intRate: document.getElementById('intRate').value, intBasis: document.getElementById('intBasis').value
+    }));
+  } catch (e) {}
+}
+function loadState() {
+  try {
+    var st = JSON.parse(localStorage.getItem('unusedLeave_v1') || 'null'); if (!st) return;
+    ['monthlyWage', 'payType', 'wagePer', 'wageN', 'pieceLastPeriod', 'pieceWorkDays', 'reason', 'leaveYearStart', 'dismissDate', 'dismissWorked', 'annualEnt', 'takenThisYear', 'carriedOver', 'proRataBasis', 'intRate', 'intBasis'].forEach(function (k) {
+      if (st[k] != null && st[k] !== '' && document.getElementById(k)) document.getElementById(k).value = st[k];
+    });
+    document.getElementById('includeCurrentOverride').checked = !!st.includeCurrentOverride;
+  } catch (e) {}
+}
+function resetAll() { localStorage.removeItem('unusedLeave_v1'); location.reload(); }
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+function init() {
+  var reasonSel = document.getElementById('reason');
+  LC.REASONS.forEach(function (r) { var o = document.createElement('option'); o.value = r.value; o.textContent = r.label + ' — ' + r.th; reasonSel.appendChild(o); });
+  var basisSel = document.getElementById('intBasis');
+  LC.INTEREST_BASES.forEach(function (b) { var o = document.createElement('option'); o.value = b.value; o.textContent = b.label; basisSel.appendChild(o); });
+  var prSel = document.getElementById('proRataBasis');
+  LC.LEAVE_BASES.forEach(function (b) { var o = document.createElement('option'); o.value = b.value; o.textContent = b.label; prSel.appendChild(o); });
+
+  var now = new Date();
+  document.getElementById('intAsOf').value = LC.toISO(now);
+  document.getElementById('leaveYearStart').value = LC.toISO(new Date(now.getFullYear(), 0, 1));
+
+  loadState();
+  var p = LC.loadProfile(); if (p) applyProfileToPage();
+
+  ['monthlyWage', 'wageN', 'pieceLastPeriod', 'pieceWorkDays', 'reason', 'leaveYearStart', 'dismissDate', 'dismissWorked', 'annualEnt', 'takenThisYear', 'carriedOver', 'proRataBasis', 'includeCurrentOverride'].forEach(function (id) {
+    document.getElementById(id).addEventListener('change', calculate);
+    document.getElementById(id).addEventListener('input', calculate);
+  });
+  function updatePayFields() {
+    var t = document.getElementById('payType').value;
+    document.getElementById('timeWageWrap').classList.toggle('hidden', t === 'piece');
+    document.getElementById('pieceWrap').classList.toggle('hidden', t === 'time');
+    document.getElementById('wageNWrap').classList.toggle('hidden', document.getElementById('wagePer').value !== 'perN');
+    calculate();
+  }
+  document.getElementById('payType').addEventListener('change', updatePayFields);
+  document.getElementById('wagePer').addEventListener('change', updatePayFields);
+  updatePayFields();
+  ['intDue', 'intAsOf', 'intRate', 'intBasis', 'intSurcharge'].forEach(function (id) {
+    document.getElementById(id).addEventListener('change', function () { updateInterest(lastPrincipal); });
+    document.getElementById(id).addEventListener('input', function () { updateInterest(lastPrincipal); });
+  });
+
+  calculate();
+}
+init();
+</script>
+</body>
+</html>

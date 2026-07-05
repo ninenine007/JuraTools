@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interest &amp; เงินเพิ่ม Calculator — JuraTools</title>
+<link rel="stylesheet" href="labour-core.css">
+<style>
+  .container { max-width: 680px; }
+  .explain { background: var(--info-light); border: 1px solid var(--info-border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 20px; font-size: 13px; line-height: 1.6; color: #155e75; }
+  .explain strong { font-weight: 700; }
+  .big-total { font-size: 26px; font-weight: 700; color: var(--green); line-height: 1.1; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="index.html">JuraTools</a>
+  <span class="sep">/</span>
+  <a href="thai-labour-tools.html">Thai Labour Law Tools</a>
+  <span class="sep">/</span>
+  <span class="current">Interest &amp; เงินเพิ่ม</span>
+  <a class="back" href="thai-labour-tools.html">← All</a>
+</nav>
+
+<div class="container">
+
+<header>
+  <h1>Interest &amp; เงินเพิ่ม Calculator</h1>
+  <div class="th">ดอกเบี้ยและเงินเพิ่มระหว่างผิดนัด</div>
+</header>
+
+<div class="explain">
+  Default interest runs from the <strong>due date</strong> until paid. Use <strong>15%/yr</strong> for the LPA s.9 ¶1 items (severance, pay-in-lieu, holiday pay) or <strong>5%/yr</strong> for ordinary debts (CCC s.224). <strong>เงินเพิ่ม</strong> (s.9 ¶2) adds 15% of the principal per completed 7-day period, but only on willful non-payment without reasonable cause.
+</div>
+
+<div class="card">
+  <div class="card-title">Inputs</div>
+
+  <div class="field">
+    <label for="principal">Principal owed (THB)</label>
+    <input type="number" id="principal" min="0" step="0.01" placeholder="e.g. 15000">
+  </div>
+
+  <div class="field">
+    <label for="rate">Interest rate (%/yr)</label>
+    <input type="number" id="rate" min="0" step="0.01" value="15">
+    <div class="chips" style="margin-top:8px">
+      <button class="chip" data-rate="15">LPA s.9 · 15%</button>
+      <button class="chip" data-rate="5">CCC s.224 · 5%</button>
+      <button class="chip" data-rate="7.5">Old default · 7.5%</button>
+    </div>
+  </div>
+
+  <div class="field-row">
+    <div class="field"><label for="dueDate">Due date <span class="hint">(default begins)</span></label><input type="date" id="dueDate"></div>
+    <div class="field"><label for="asOf">Paid / calculate up to</label><input type="date" id="asOf"></div>
+  </div>
+
+  <div class="field">
+    <label for="basis">Day-count basis</label>
+    <select id="basis"></select>
+  </div>
+
+  <div class="check-row">
+    <input type="checkbox" id="surcharge">
+    <label for="surcharge">Add <strong>เงินเพิ่ม</strong> (s.9 ¶2): 15% of principal per completed 7-day period. Requires willful non-payment without reasonable cause.</label>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Result</div>
+  <table class="data" id="resultTable"></table>
+  <div class="amount-box" style="margin-top:14px">
+    <div class="amount-label">Total payable</div>
+    <div class="big-total" id="totalValue">—</div>
+    <div class="amount-sub" id="totalSub"></div>
+  </div>
+</div>
+
+<div class="actions-row">
+  <button class="btn btn-reset" onclick="resetAll()">Reset</button>
+</div>
+
+<footer>
+  <span class="cites">Labour Protection Act B.E. 2541, s.9 · Civil &amp; Commercial Code s.224</span><br>
+  Reference tool only, not legal advice. Runs entirely in your browser.
+</footer>
+
+</div><!-- /container -->
+
+<script src="labour-core.js"></script>
+<script>
+function calc() {
+  var principal = parseFloat(document.getElementById('principal').value);
+  var rate = parseFloat(document.getElementById('rate').value);
+  var due = LC.parseDate(document.getElementById('dueDate').value);
+  var asOf = LC.parseDate(document.getElementById('asOf').value);
+  var basis = document.getElementById('basis').value;
+  var surOn = document.getElementById('surcharge').checked;
+
+  // highlight matching preset chip
+  document.querySelectorAll('.chip').forEach(function (c) { c.classList.toggle('active', parseFloat(c.dataset.rate) === rate); });
+
+  var tbl = document.getElementById('resultTable');
+  if (isNaN(principal) || !due || !asOf) {
+    tbl.innerHTML = '<tr class="muted"><td>Enter the principal, due date, and as-of date.</td></tr>';
+    document.getElementById('totalValue').textContent = '—';
+    document.getElementById('totalSub').textContent = '';
+    save(); return;
+  }
+  if (LC.toLocal(asOf) <= LC.toLocal(due)) {
+    tbl.innerHTML = '<tr class="muted"><td>The as-of date must be after the due date (no default yet).</td></tr>';
+    document.getElementById('totalValue').textContent = LC.fmt(principal) + ' THB';
+    document.getElementById('totalSub').textContent = 'No interest accrued.';
+    save(); return;
+  }
+
+  var ord = LC.computeInterest(principal, rate, due, asOf, basis);
+  var sur = surOn ? LC.computeSurcharge(principal, due, asOf) : { amount: 0, rounds: 0, days: ord.days };
+  var total = principal + ord.interest + sur.amount;
+
+  var rows = '';
+  rows += '<tr><td>Principal</td><td class="num">' + LC.fmt(principal) + '</td></tr>';
+  rows += '<tr><td>Days in default</td><td class="num">' + ord.days + ' (' + LC.formatShort(due) + ' → ' + LC.formatShort(asOf) + ')</td></tr>';
+  rows += '<tr class="muted"><td>Interest (' + rate + '%/yr · ' + ord.detail + ')</td><td class="num">' + LC.fmt(ord.interest) + '</td></tr>';
+  if (surOn) rows += '<tr class="muted"><td>เงินเพิ่ม (15% × ' + sur.rounds + ' completed 7-day periods)</td><td class="num">' + LC.fmt(sur.amount) + '</td></tr>';
+  rows += '<tr class="total"><td>Total</td><td class="num">' + LC.fmt(total) + '</td></tr>';
+  tbl.innerHTML = rows;
+
+  document.getElementById('totalValue').textContent = LC.fmt(total) + ' THB';
+  document.getElementById('totalSub').textContent = 'Principal ' + LC.fmt(principal) + ' + interest ' + LC.fmt(ord.interest) + (surOn ? ' + เงินเพิ่ม ' + LC.fmt(sur.amount) : '');
+  save();
+}
+
+function save() {
+  try {
+    localStorage.setItem('interestCalc_v1', JSON.stringify({
+      principal: document.getElementById('principal').value, rate: document.getElementById('rate').value,
+      dueDate: document.getElementById('dueDate').value, asOf: document.getElementById('asOf').value,
+      basis: document.getElementById('basis').value, surcharge: document.getElementById('surcharge').checked
+    }));
+  } catch (e) {}
+}
+function load() {
+  try {
+    var st = JSON.parse(localStorage.getItem('interestCalc_v1') || 'null'); if (!st) return;
+    ['principal', 'rate', 'dueDate', 'asOf', 'basis'].forEach(function (k) { if (st[k] != null && st[k] !== '') document.getElementById(k).value = st[k]; });
+    document.getElementById('surcharge').checked = !!st.surcharge;
+  } catch (e) {}
+}
+function resetAll() { localStorage.removeItem('interestCalc_v1'); location.reload(); }
+
+function init() {
+  var basisSel = document.getElementById('basis');
+  LC.INTEREST_BASES.forEach(function (b) { var o = document.createElement('option'); o.value = b.value; o.textContent = b.label; basisSel.appendChild(o); });
+  document.getElementById('asOf').value = LC.toISO(new Date());
+
+  load();
+
+  document.querySelectorAll('.chip').forEach(function (c) {
+    c.addEventListener('click', function () { document.getElementById('rate').value = c.dataset.rate; calc(); });
+  });
+  ['principal', 'rate', 'dueDate', 'asOf', 'basis', 'surcharge'].forEach(function (id) {
+    document.getElementById(id).addEventListener('change', calc);
+    document.getElementById(id).addEventListener('input', calc);
+  });
+  calc();
+}
+init();
+</script>
+</body>
+</html>

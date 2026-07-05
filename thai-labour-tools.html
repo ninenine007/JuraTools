@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Thai Labour Law Tools — JuraTools</title>
+  <meta name="description" content="Calculators for Thai termination payments — payment in lieu of notice, severance, unused annual leave, and unfair-termination damages, with interest. By Kornrawee Chanchom." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", sans-serif;
+      -webkit-font-smoothing: antialiased; color: #1c1c1e; min-height: 100vh; background: #f2f2f7;
+      background-image:
+        radial-gradient(ellipse 1100px 700px at 10% 0%,   rgba(165,243,252,0.5)  0%, transparent 60%),
+        radial-gradient(ellipse  700px 700px at 95% 10%,  rgba(167,243,208,0.42) 0%, transparent 55%),
+        radial-gradient(ellipse  800px 600px at 0%  90%,  rgba(191,219,254,0.35) 0%, transparent 55%),
+        radial-gradient(ellipse  900px 500px at 100% 95%, rgba(204,251,241,0.4)  0%, transparent 55%);
+    }
+    a { color: inherit; text-decoration: none; }
+
+    .nav {
+      position: sticky; top: 0; z-index: 200; height: 52px;
+      display: flex; align-items: center; gap: 12px; padding: 0 24px;
+      background: rgba(242,242,247,0.82); backdrop-filter: blur(24px) saturate(200%);
+      -webkit-backdrop-filter: blur(24px) saturate(200%); border-bottom: 1px solid rgba(0,0,0,0.08);
+    }
+    .nav-brand { display: flex; align-items: center; gap: 9px; flex-shrink: 0; user-select: none; }
+    .nav-icon {
+      width: 30px; height: 30px; border-radius: 7px; flex-shrink: 0;
+      background: linear-gradient(145deg, #0891b2, #0e7490); display: grid; place-items: center; font-size: 15px;
+      box-shadow: 0 2px 6px rgba(8,145,178,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    .nav-wordmark { font-size: 15px; font-weight: 700; letter-spacing: -0.4px; color: #1c1c1e; }
+    .nav-sep { color: #c7c7cc; font-size: 15px; }
+    .nav-current { font-size: 15px; font-weight: 600; color: #6e6e73; }
+    .nav-back {
+      margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+      font-size: 13px; font-weight: 500; color: #3c3c43; background: rgba(0,0,0,0.055);
+      border: 1px solid rgba(0,0,0,0.1); padding: 6px 12px; border-radius: 9px; transition: background .14s;
+    }
+    .nav-back:hover { background: rgba(0,0,0,0.09); }
+
+    .hero { padding: 56px 24px 28px; text-align: center; max-width: 720px; margin: 0 auto; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(8,145,178,0.1); border: 1px solid rgba(8,145,178,0.22);
+      border-radius: 999px; padding: 4px 12px; font-size: 12px; font-weight: 600; color: #0e7490; margin-bottom: 18px;
+    }
+    .hero-dot { width: 6px; height: 6px; border-radius: 50%; background: #0891b2; animation: pulse 2.5s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.55;transform:scale(.8)} }
+    .hero h1 {
+      font-size: clamp(34px, 5vw, 48px); font-weight: 800; letter-spacing: -1.5px; line-height: 1.08;
+      background: linear-gradient(135deg, #1c1c1e 0%, #0891b2 55%, #0d9488 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 12px;
+    }
+    .hero p { font-size: 16px; color: #6e6e73; line-height: 1.55; max-width: 520px; margin: 0 auto 18px; }
+    .hero-meta { display: flex; justify-content: center; align-items: center; gap: 14px; font-size: 13px; color: #aeaeb2; flex-wrap: wrap; }
+    .hero-meta span { display: flex; align-items: center; gap: 5px; }
+
+    .content { max-width: 920px; margin: 0 auto; padding: 16px 24px 64px; }
+    .grid { display: grid; gap: 14px; grid-template-columns: repeat(2, 1fr); }
+    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: rgba(255,255,255,0.82); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.9); border-radius: 18px; padding: 22px;
+      display: flex; flex-direction: column; gap: 10px;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.07); transition: transform .2s ease, box-shadow .2s ease;
+    }
+    .card.live:hover { transform: translateY(-2px); box-shadow: 0 1px 1px rgba(0,0,0,0.04), 0 10px 32px rgba(0,0,0,0.11), 0 6px 24px rgba(8,145,178,0.14); }
+    .card.featured { grid-column: 1 / -1; border-color: rgba(8,145,178,0.3); }
+
+    .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+    .card-icon {
+      width: 48px; height: 48px; border-radius: 12px; flex-shrink: 0; display: grid; place-items: center; font-size: 24px;
+      background: linear-gradient(145deg, #cffafe, #a5f3fc); box-shadow: 0 1px 4px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.7);
+    }
+    .card-badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .badge-live { background: rgba(52,199,89,0.13);  color: #1a7a35; border: 1px solid rgba(52,199,89,.22); }
+    .badge-master { background: rgba(8,145,178,0.13); color: #0e7490; border: 1px solid rgba(8,145,178,.25); }
+    .card-sub { font-size: 12px; color: #aeaeb2; font-weight: 500; letter-spacing: .1px; text-transform: uppercase; margin-top: 2px; }
+    .card-title { font-size: 16px; font-weight: 700; letter-spacing: -.3px; line-height: 1.25; color: #1c1c1e; margin-top: -2px; }
+    .card-th { font-size: 12.5px; color: #8e8e93; font-weight: 500; margin-top: -6px; }
+    .card-desc { font-size: 13px; color: #6e6e73; line-height: 1.6; flex: 1; }
+
+    .card-actions { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 6px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.06); }
+    .btn { display: inline-flex; align-items: center; gap: 4px; padding: 8px 16px; border-radius: 9px; font-size: 13px; font-weight: 500; font-family: inherit; cursor: pointer; border: none; transition: all .14s; white-space: nowrap; }
+    .btn-open { background: #0891b2; color: #fff; box-shadow: 0 1px 4px rgba(8,145,178,.38), inset 0 1px 0 rgba(255,255,255,.18); }
+    .btn-open:hover { background: #0e7490; box-shadow: 0 3px 10px rgba(8,145,178,.45); }
+    .btn-source { background: rgba(0,0,0,0.055); color: #3c3c43; border: 1px solid rgba(0,0,0,0.1); }
+    .btn-source:hover { background: rgba(0,0,0,0.09); }
+
+    .footer { text-align: center; margin-top: 40px; font-size: 12px; color: #c7c7cc; }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <a class="nav-brand" href="index.html">
+      <div class="nav-icon">⚖️</div>
+      <span class="nav-wordmark">JuraTools</span>
+    </a>
+    <span class="nav-sep">/</span>
+    <span class="nav-current">Thai Labour Law Tools</span>
+    <a class="nav-back" href="index.html">← All tools</a>
+  </nav>
+
+  <div class="hero">
+    <div class="hero-badge"><span class="hero-dot"></span> Runs entirely in your browser</div>
+    <h1>Thai Labour Law Tools</h1>
+    <p>Calculate the money claims that arise on termination of employment — payment in lieu of notice, severance, unused annual leave, and unfair-termination damages — with statutory interest.</p>
+    <div class="hero-meta">
+      <span>👷 Termination payments</span>
+      <span style="color:#d1d1d6">·</span>
+      <span>🔒 No data sent anywhere</span>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="grid">
+
+      <!-- Payment in lieu -->
+      <article class="card live">
+        <div class="card-head"><div class="card-icon">📣</div><span class="card-badge badge-live">Live</span></div>
+        <div class="card-sub">Notice · s.17/1</div>
+        <h3 class="card-title">Payment in Lieu of Advance Notice</h3>
+        <p class="card-th">สินจ้างแทนการบอกกล่าวล่วงหน้า</p>
+        <p class="card-desc">Compute the s.17 notice deadline / effective termination date from the wage-payment cycle (with the 3-month cap), then the s.17/1 pay-in-lieu amount and 15% interest.</p>
+        <div class="card-actions">
+          <a class="btn btn-open" href="labour-pay-in-lieu.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/labour-pay-in-lieu.html" target="_blank" rel="noopener">Source</a>
+        </div>
+      </article>
+
+      <!-- Severance -->
+      <article class="card live">
+        <div class="card-head"><div class="card-icon">💼</div><span class="card-badge badge-live">Live</span></div>
+        <div class="card-sub">Severance · s.118</div>
+        <h3 class="card-title">Severance Pay</h3>
+        <p class="card-th">ค่าชดเชย</p>
+        <p class="card-desc">Continuous-service tiers under s.118 (incl. the 400-day / 20-year tier), s.119 disqualification, fixed-term notes, and 15% interest + เงินเพิ่ม.</p>
+        <div class="card-actions">
+          <a class="btn btn-open" href="labour-severance.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/labour-severance.html" target="_blank" rel="noopener">Source</a>
+        </div>
+      </article>
+
+      <!-- Unused annual leave -->
+      <article class="card live">
+        <div class="card-head"><div class="card-icon">🌴</div><span class="card-badge badge-live">Live</span></div>
+        <div class="card-sub">Leave · s.67</div>
+        <h3 class="card-title">Unused Annual Leave</h3>
+        <p class="card-th">ค่าจ้างสำหรับวันหยุดพักผ่อนประจำปี</p>
+        <p class="card-desc">Pro-rata current-year leave + carried-over balance, with the s.67 employer-vs-resignation fork. Daily rate at wage ÷ 30, plus 15% interest.</p>
+        <div class="card-actions">
+          <a class="btn btn-open" href="labour-unused-leave.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/labour-unused-leave.html" target="_blank" rel="noopener">Source</a>
+        </div>
+      </article>
+
+      <!-- Unfair termination -->
+      <article class="card live">
+        <div class="card-head"><div class="card-icon">⚖️</div><span class="card-badge badge-live">Live</span></div>
+        <div class="card-sub">Damages · s.49</div>
+        <h3 class="card-title">Unfair Termination Estimator</h3>
+        <p class="card-th">ค่าเสียหายจากการเลิกจ้างไม่เป็นธรรม</p>
+        <p class="card-desc">Discretionary s.49 benchmark — months-of-wages per year of service with low/mid/high presets producing an indicative range. Non-binding; 5% interest.</p>
+        <div class="card-actions">
+          <a class="btn btn-open" href="labour-unfair-termination.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/labour-unfair-termination.html" target="_blank" rel="noopener">Source</a>
+        </div>
+      </article>
+
+      <!-- Interest -->
+      <article class="card live">
+        <div class="card-head"><div class="card-icon">📈</div><span class="card-badge badge-live">Live</span></div>
+        <div class="card-sub">Utility · s.9 / s.224</div>
+        <h3 class="card-title">Interest &amp; เงินเพิ่ม Calculator</h3>
+        <p class="card-th">ดอกเบี้ยและเงินเพิ่มระหว่างผิดนัด</p>
+        <p class="card-desc">Default interest on any amount: 15%/yr (LPA s.9) or 5%/yr (CCC s.224), with four day-count bases and the optional 15%-per-7-days เงินเพิ่ม penalty (s.9 ¶2).</p>
+        <div class="card-actions">
+          <a class="btn btn-open" href="labour-interest.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/labour-interest.html" target="_blank" rel="noopener">Source</a>
+        </div>
+      </article>
+
+      <!-- Master -->
+      <article class="card live featured">
+        <div class="card-head"><div class="card-icon">🧮</div><span class="card-badge badge-master">Master</span></div>
+        <div class="card-sub">Combined · all claims</div>
+        <h3 class="card-title">Termination Settlement</h3>
+        <p class="card-th">สรุปเงินที่ลูกจ้างมีสิทธิได้รับเมื่อเลิกจ้าง</p>
+        <p class="card-desc">Enter the employee's facts once — drives all four calculations, shows a per-item breakdown and grand total, and generates a printable / copyable settlement statement for negotiation or filing.</p>
+        <div class="card-actions">
+          <a class="btn btn-open" href="labour-settlement.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/labour-settlement.html" target="_blank" rel="noopener">Source</a>
+        </div>
+      </article>
+
+    </div>
+
+    <div class="footer">
+      © 2026 Kornrawee Chanchom &nbsp;—&nbsp; JuraTools · Thai Labour Law Tools &nbsp;·&nbsp; Reference only, not legal advice
+    </div>
+  </div>
+
+</body>
+</html>

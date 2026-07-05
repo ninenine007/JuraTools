@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Termination Settlement (Master) — JuraTools</title>
+<link rel="stylesheet" href="labour-core.css">
+<style>
+  .statement { white-space: pre-wrap; font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 12.5px; line-height: 1.6; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 16px; color: var(--text); }
+  td.claim-include { width: 28px; text-align: center; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="index.html">JuraTools</a>
+  <span class="sep">/</span>
+  <a href="thai-labour-tools.html">Thai Labour Law Tools</a>
+  <span class="sep">/</span>
+  <span class="current">Termination Settlement</span>
+  <a class="back" href="thai-labour-tools.html">← All</a>
+</nav>
+
+<div class="container">
+
+<header>
+  <h1>Termination Settlement — Master</h1>
+  <div class="th">สรุปเงินที่ลูกจ้างมีสิทธิได้รับเมื่อเลิกจ้าง</div>
+  <p>Enter the facts once; computes all four claims, a grand total, and a settlement statement. For schedule-precise pay-in-lieu, use the <a href="labour-pay-in-lieu.html">dedicated tool</a>.</p>
+</header>
+
+<div id="profileBanner" class="profile-banner hidden">
+  <span class="pb-text"></span>
+  <span class="pb-actions">
+    <button class="btn btn-small" onclick="saveProfileFromPage()">Save to shared profile</button>
+    <button class="btn btn-small" onclick="applyProfileToPage()">Reset to shared</button>
+  </span>
+</div>
+
+<!-- Facts -->
+<div class="card">
+  <div class="card-title">Employee Facts</div>
+  <div class="field-row">
+    <div class="field"><label for="startDate">Start date <span class="hint">(first day, counted as day 1)</span></label><input type="date" id="startDate"></div>
+    <div class="field">
+      <label for="dismissDate">Dismissal date <span class="hint">(the day the employment ends — for notice or garden leave, the day the notice takes effect)</span></label>
+      <input type="date" id="dismissDate">
+    </div>
+  </div>
+  <div class="field">
+    <label for="dismissWorked">Did the employee work, or get paid wages, for that day?</label>
+    <select id="dismissWorked">
+      <option value="yes">Yes — worked or was paid wages for that day</option>
+      <option value="no">No — no work and no wages from that day</option>
+    </select>
+  </div>
+  <div class="derived-facts hidden" id="dismissDerived"></div>
+  <div class="field-note" style="margin:-8px 0 0">Termination (s.118 ¶2) happens only when the employer stops both the work and the wages. Garden leave (released from work, wages still paid): employment runs on — enter the day the notice takes effect and answer No.</div>
+  <div class="field-row">
+    <div class="field" style="flex:2"><label for="monthlyWage">Time-based wage — last rate (ค่าจ้าง, THB)</label><input type="number" id="monthlyWage" min="0" step="0.01" placeholder="e.g. 30000"></div>
+    <div class="field"><label for="wagePer">Per</label>
+      <select id="wagePer">
+        <option value="monthly">Month</option>
+        <option value="weekly">Week</option>
+        <option value="daily">Day</option>
+        <option value="perN">N days</option>
+      </select>
+    </div>
+    <div class="field hidden" id="wageNWrap"><label for="wageN">N (days)</label><input type="number" id="wageN" min="1" step="1" value="10"></div>
+  </div>
+  <div class="field"><label for="reason">Reason for leaving</label><select id="reason"></select></div>
+  <div class="field-note" style="margin-top:-6px">Wage = the last rate at dismissal, counting only ค่าจ้าง items (a fixed cost-of-living allowance counts; welfare items like utility or child allowances do not). Daily rate: monthly ÷ 30, weekly ÷ 7, per-period ÷ its days. Piece-rate wages are entered per claim below — each claim treats them differently.</div>
+</div>
+
+<!-- Claim-specific facts -->
+<div class="card">
+  <div class="card-title">Claim Details</div>
+  <div class="field-row-3">
+    <div class="field"><label for="paidThrough">Unpaid wages: paid through (date)</label><input type="date" id="paidThrough"></div>
+    <div class="field"><label for="unpaidDays">Unpaid days</label><input type="number" id="unpaidDays" min="0" step="1"></div>
+    <div class="field"><label for="stubPiece">Unpaid piece output (THB)</label><input type="number" id="stubPiece" min="0" step="0.01" placeholder="0"></div>
+  </div>
+  <div class="field hidden" id="stubBasisWrap">
+    <label for="stubBasis">Stub time-wage measure (monthly wage)</label>
+    <select id="stubBasis">
+      <option value="per30">Monthly ÷ 30 per day (default)</option>
+      <option value="actualDays">Monthly ÷ actual days in the month</option>
+    </select>
+  </div>
+  <div class="hint" style="margin-top:-10px;margin-bottom:16px">Work after the last settled pay day is still owed as <strong>wages</strong> (ค่าจ้างค้างจ่าย): time wages run from the day after "paid through" to the last day of employment (auto-counted in calendar days — override for a daily-paid employee who did not work every day), plus piece output produced in that stub. For monthly staff the default measure is monthly ÷ 30 per day; monthly ÷ actual days in the month is selectable below. Due within 3 days of termination (s.70 ¶2). Where the stub falls inside the s.118 window, the same piece wages also count in the severance look-back.</div>
+  <div class="field">
+    <label for="noticeDays">Pay-in-lieu: notice period skipped (days)</label>
+    <input type="number" id="noticeDays" min="0" step="1" value="0">
+    <div class="hint">Days from the termination effective date through the date lawful notice would end (s.17), both counted. Use the dedicated pay-in-lieu tool to derive this from the wage cycle. Computed on the <strong>time-based wage only</strong> — piece-rate output cannot be projected forward.</div>
+  </div>
+  <div class="check-row" style="margin-bottom:16px">
+    <input type="checkbox" id="pilAnalogy">
+    <label for="pilAnalogy">Pay-in-lieu: add a piece-rate <strong>estimate</strong> by analogy to s.60, using the last-pay-period fields below. Strictly the piece part is uncomputable; a labour court may analogize.</label>
+  </div>
+  <div class="field">
+    <label for="pieceRate">Severance: performance-based wages (ค่าจ้างตามผลงาน, THB)</label>
+    <input type="number" id="pieceRate" min="0" step="0.01" value="0">
+    <div class="hint" id="pieceHint">Commission or output pay actually earned in the tier period before the termination effective date. Added to the time-based severance.</div>
+  </div>
+  <div class="field-row">
+    <div class="field">
+      <label for="leavePieceAmt">Leave, piece-rate: wages in last pay period (THB)</label>
+      <input type="number" id="leavePieceAmt" min="0" step="0.01" placeholder="optional">
+    </div>
+    <div class="field">
+      <label for="leavePieceDays">Working days in that period</label>
+      <input type="number" id="leavePieceDays" min="0" step="1" placeholder="optional">
+    </div>
+  </div>
+  <div class="hint" style="margin-top:-10px;margin-bottom:16px">Piece-rate employees: leave pay adds the average daily wage of the last pay period before termination (ค่าจ้างโดยเฉลี่ยในวันทำงานในงวดการจ่ายค่าจ้างก่อนวันหยุด, s.60) to the time-based daily rate.</div>
+  <div class="field-row-3">
+    <div class="field"><label for="annualEnt">Leave entitlement (days/yr)</label><input type="number" id="annualEnt" min="0" step="0.5" value="6"></div>
+    <div class="field"><label for="takenThisYear">Leave taken this year</label><input type="number" id="takenThisYear" min="0" step="0.5" value="0"></div>
+    <div class="field"><label for="carriedOver">Carried-over leave days</label><input type="number" id="carriedOver" min="0" step="0.5" value="0"></div>
+  </div>
+  <div class="field">
+    <label for="leaveBasis">Leave pro-rata basis</label>
+    <select id="leaveBasis"></select>
+  </div>
+  <div class="field">
+    <label for="s49mpy">Unfair-termination benchmark (months/yr)</label>
+    <input type="number" id="s49mpy" min="0" step="0.1" value="1">
+    <div class="hint">Discretionary s.49 estimate only — off by default below.</div>
+  </div>
+</div>
+
+<!-- Interest controls -->
+<div class="card">
+  <div class="card-title">Interest</div>
+  <div class="check-row" style="margin-bottom:12px">
+    <input type="checkbox" id="includeInterest">
+    <label for="includeInterest">Include accrued interest (15%/yr LPA s.9 items; 5%/yr s.49 — CCC s.224)</label>
+  </div>
+  <div class="field-row">
+    <div class="field"><label for="intAsOf">Calculate up to (as-of)</label><input type="date" id="intAsOf"></div>
+    <div class="field"><label for="intBasis">Day-count basis</label><select id="intBasis"></select></div>
+  </div>
+  <div class="check-row">
+    <input type="checkbox" id="willful">
+    <label for="willful">Add เงินเพิ่ม on LPA items — 15% per 7-day period (s.9 ¶2); requires willful non-payment without reasonable cause</label>
+  </div>
+</div>
+
+<!-- Settlement -->
+<div class="card">
+  <div class="card-title">Settlement Breakdown</div>
+  <table class="data" id="settleTable"></table>
+  <div class="amount-box" style="margin-top:14px">
+    <div class="amount-label">Grand total (selected claims)</div>
+    <div class="amount-value" id="grandTotal">—</div>
+    <div class="amount-sub">Tick a claim to include it. Defaults follow the reason for leaving.</div>
+  </div>
+</div>
+
+<!-- Statement -->
+<div class="card">
+  <div class="card-title">Settlement Statement</div>
+  <div class="actions-row no-print" style="justify-content:flex-start;margin-bottom:12px">
+    <button class="btn btn-primary" onclick="copyStatement()">Copy</button>
+    <button class="btn" onclick="window.print()">Print / PDF</button>
+    <span id="copyMsg" class="muted" style="align-self:center;font-size:12px"></span>
+  </div>
+  <div class="statement" id="statement"></div>
+</div>
+
+<div class="actions-row no-print">
+  <button class="btn btn-reset" onclick="resetAll()">Reset all</button>
+</div>
+
+<footer>
+  <span class="cites">LPA B.E. 2541 ss.9, 17/1, 30, 60, 67, 70, 118, 119 — Labour Court Act B.E. 2522 s.49 — CCC ss.224, 582–583</span><br>
+  Reference tool only — not legal advice. Runs entirely in your browser.
+</footer>
+
+</div><!-- /container -->
+
+<script src="labour-core.js"></script>
+<script>
+var includeFlags = {}; // claimKey -> bool (user override of "applies")
+var userTouched = {};  // claimKey -> bool
+
+var CLAIMS = [
+  { key: 'unpaidWages', name: 'Unpaid wages to the last day of employment', cite: 's.70', claimType: 'wages' },
+  { key: 'payInLieu',   name: 'Payment in lieu of advance notice', cite: 's.17/1', claimType: 'payInLieu' },
+  { key: 'severance',   name: 'Severance pay',                     cite: 's.118',  claimType: 'severance' },
+  { key: 'unusedLeave', name: 'Unused annual leave',               cite: 's.67',   claimType: 'unusedLeave' },
+  { key: 's49',         name: 'Unfair termination (estimate)',     cite: 's.49',   claimType: 's49' }
+];
+
+// Shared dismissal-facts pattern: derive last day of employment + termination effective date.
+function dismissal() {
+  var d = LC.parseDate(document.getElementById('dismissDate').value);
+  var f = LC.dismissalFacts(d, document.getElementById('dismissWorked').value === 'yes');
+  var el = document.getElementById('dismissDerived');
+  if (!f) { el.classList.add('hidden'); return null; }
+  el.classList.remove('hidden'); el.innerHTML = LC.dismissalSummary(f);
+  return f;
+}
+
+function readFacts() {
+  var start = LC.parseDate(document.getElementById('startDate').value);
+  var dis = dismissal();
+  var lastWorkingDay = dis && dis.lastWorkingDay;
+  var effectiveDate = dis && dis.effectiveDate;
+  var wage = parseFloat(document.getElementById('monthlyWage').value);
+  if (isNaN(wage)) wage = 0;
+  var wagePer = document.getElementById('wagePer').value;
+  var wageN = Math.max(1, parseInt(document.getElementById('wageN').value, 10) || 1);
+  var dailyRate = LC.dailyRateFor(wage, wagePer, wageN);
+  var reason = document.getElementById('reason').value;
+  var service = (start && lastWorkingDay && lastWorkingDay >= start) ? LC.continuousService(start, lastWorkingDay) : { years: 0, months: 0, days: 0, totalDays: 0 };
+  return {
+    start: start, lastWorkingDay: lastWorkingDay, effectiveDate: effectiveDate,
+    wage: wage, wagePer: wagePer, wageN: wageN, dailyRate: dailyRate,
+    monthlyEquiv: wagePer === 'monthly' ? wage : dailyRate * 30,
+    reason: reason, service: service
+  };
+}
+
+function defaultApplies(key, f) {
+  if (key === 'unpaidWages') return computeClaim('unpaidWages', f).principal > 0;
+  if (key === 'payInLieu')   return f.reason === 'employer_no_fault' && parseFloat(document.getElementById('noticeDays').value) > 0;
+  if (key === 'severance')   return LC.severanceEligibility(f.reason).eligible;
+  if (key === 'unusedLeave') return true;
+  if (key === 's49')         return false;
+  return false;
+}
+
+// Unpaid-days field auto-fills from the dates but stays user-overridable
+// (calendar days by default; a daily-paid employee may need days worked).
+var lastAutoUnpaid = '';
+function syncUnpaidDays(autoDays) {
+  var el = document.getElementById('unpaidDays');
+  var v = autoDays > 0 ? String(autoDays) : '';
+  if (el.value === '' || el.value === lastAutoUnpaid) el.value = v;
+  lastAutoUnpaid = v;
+}
+
+function computeClaim(key, f) {
+  if (key === 'unpaidWages') {
+    var pt = LC.parseDate(document.getElementById('paidThrough').value);
+    var stubPiece = parseFloat(document.getElementById('stubPiece').value) || 0;
+    var basis = f.wagePer === 'monthly' ? document.getElementById('stubBasis').value : 'per30';
+    var auto = LC.computeUnpaidWages({ dailyRate: f.dailyRate, paidThrough: pt, lastWorkingDay: f.lastWorkingDay });
+    syncUnpaidDays(auto.autoDays);
+    var uDays = parseFloat(document.getElementById('unpaidDays').value) || 0;
+    var uw = LC.computeUnpaidWages({ dailyRate: f.dailyRate, monthlyWage: f.wage, basis: basis, paidThrough: pt, lastWorkingDay: f.lastWorkingDay, daysOverride: uDays, pieceStub: stubPiece });
+    var rateDesc = basis === 'actualDays' ? 'wage ÷ actual month days' : LC.fmt(f.dailyRate) + ' /day';
+    var detail = (uw.days > 0 ? uw.days + ' days × ' + rateDesc : '')
+      + (stubPiece > 0 ? (uw.days > 0 ? ' + ' : '') + LC.fmt(stubPiece) + ' piece output' : '');
+    return { principal: uw.amount, due: LC.dueDateFor('wages', { effectiveDate: f.effectiveDate }), detail: detail || 'wages owed for the final stub period' };
+  }
+  if (key === 'payInLieu') {
+    var days = parseFloat(document.getElementById('noticeDays').value) || 0;
+    // Time wage only, strictly; optional s.60 analogy estimate for the piece part.
+    var pieceAvg = document.getElementById('pilAnalogy').checked
+      ? LC.avgDailyPieceRate(parseFloat(document.getElementById('leavePieceAmt').value) || 0, parseFloat(document.getElementById('leavePieceDays').value) || 0) : 0;
+    return { principal: (f.dailyRate + pieceAvg) * days, due: LC.dueDateFor('payInLieu', { effectiveDate: f.effectiveDate }), detail: days + ' days × ' + LC.fmt(f.dailyRate + pieceAvg) + ' /day' + (pieceAvg > 0 ? ' incl. piece avg (s.60 analogy, estimate)' : ', time wage only') };
+  }
+  if (key === 'severance') {
+    var piece = parseFloat(document.getElementById('pieceRate').value) || 0;
+    var sev = LC.computeSeverance(f.wage, f.service, piece, f.dailyRate);
+    // The s.118 piece-rate window equals the tier: state it once known.
+    document.getElementById('pieceHint').innerHTML = sev.days > 0
+      ? 'Commission or output pay actually earned in the last ' + sev.days + ' days of work (ค่าจ้างของการทำงาน ' + sev.days + ' วันสุดท้าย, s.118). Added to the time-based severance. If a pay period straddles that window, compute the exact figure in the <a href="labour-severance.html">severance tool</a> (per-day apportionment) and enter it here.'
+      : 'Commission or output pay actually earned in the tier period before the termination effective date. Added to the time-based severance. If a pay period straddles the window, compute the exact figure in the <a href="labour-severance.html">severance tool</a>.';
+    return { principal: sev.amount, due: LC.dueDateFor('severance', { effectiveDate: f.effectiveDate }), detail: sev.days + ' days (' + sev.tierLabel + ')' + (sev.pieceAmount > 0 ? ' + ' + LC.fmt(sev.pieceAmount) + ' piece-rate' : '') };
+  }
+  if (key === 'unusedLeave') {
+    var include = LC.leaveIncludesCurrentYear(f.reason);
+    // Piece-rate employees: add the s.60 average of the last pay period.
+    var pieceAvg = LC.avgDailyPieceRate(parseFloat(document.getElementById('leavePieceAmt').value) || 0, parseFloat(document.getElementById('leavePieceDays').value) || 0);
+    var leave = LC.computeUnusedLeave({
+      dailyRate: f.dailyRate + pieceAvg, annualEntitlement: parseFloat(document.getElementById('annualEnt').value),
+      // Worked span counted inclusively: measure to the effective date (exclusive end).
+      leaveYearStart: f.lastWorkingDay ? new Date(f.lastWorkingDay.getFullYear(), 0, 1) : null, terminationDate: f.effectiveDate,
+      takenThisYear: parseFloat(document.getElementById('takenThisYear').value) || 0,
+      carriedOver: parseFloat(document.getElementById('carriedOver').value) || 0, includeCurrentYear: include,
+      proRataBasis: document.getElementById('leaveBasis').value
+    });
+    return { principal: leave.amount, due: LC.dueDateFor('unusedLeave', { effectiveDate: f.effectiveDate }), detail: LC.fmtDays(leave.payableDays) + ' days' + (include ? ' (incl. current-year)' : ' (carried only)') + (pieceAvg > 0 ? ' + piece avg ' + LC.fmt(pieceAvg) + ' /day (s.60)' : '') };
+  }
+  if (key === 's49') {
+    // Benchmark counts full completed years of service only.
+    var years = f.service.years;
+    var mpy = parseFloat(document.getElementById('s49mpy').value) || 0;
+    var s = LC.computeS49({ monthlyWage: f.monthlyEquiv, years: years, monthsPerYear: mpy });
+    return { principal: s.amount, due: LC.dueDateFor('s49', { effectiveDate: f.effectiveDate }), detail: mpy + ' mo/yr × ' + years + ' full yrs' };
+  }
+}
+
+function calculate() {
+  var f = readFacts();
+  var asOf = LC.parseDate(document.getElementById('intAsOf').value);
+  var basis = document.getElementById('intBasis').value;
+  var withInterest = document.getElementById('includeInterest').checked;
+  var willful = document.getElementById('willful').checked;
+
+  // Interest (s.9 ¶1, 15%/yr; s.49 → CCC s.224 5%) and เงินเพิ่ม (s.9 ¶2 penalty,
+  // 15% of principal per completed 7-day period) are distinct claims — computed,
+  // shown, and totalled separately.
+  var withSurcharge = withInterest && willful;
+  var head = '<tr><th class="claim-include"></th><th>Claim</th><th class="num">Principal</th>'
+    + (withInterest ? '<th class="num">Interest</th>' : '')
+    + (withSurcharge ? '<th class="num">เงินเพิ่ม</th>' : '')
+    + '<th class="num">Subtotal</th></tr>';
+  var body = '';
+  var grand = 0;
+  var lines = [];
+
+  CLAIMS.forEach(function (c) {
+    var r = computeClaim(c.key, f);
+    var applies = userTouched[c.key] ? includeFlags[c.key] : defaultApplies(c.key, f);
+    includeFlags[c.key] = applies;
+
+    var rate = LC.defaultRateFor(c.claimType);
+    var interest = 0;
+    var sur = null;
+    if (withInterest && applies) {
+      var ord = LC.computeInterest(r.principal, rate, r.due, asOf, basis);
+      interest = ord.interest;
+      if (willful && c.claimType !== 's49') sur = LC.computeSurcharge(r.principal, r.due, asOf);
+    }
+    var surAmount = sur ? sur.amount : 0;
+    var subtotal = applies ? (r.principal + interest + surAmount) : 0;
+    if (applies) grand += subtotal;
+
+    var checkbox = '<input type="checkbox" data-claim="' + c.key + '" ' + (applies ? 'checked' : '') + ' onchange="toggleClaim(this)">';
+    body += '<tr' + (applies ? '' : ' class="muted"') + '>';
+    body += '<td class="claim-include">' + checkbox + '</td>';
+    body += '<td>' + c.name + ' <span class="muted">(' + c.cite + ')</span><br><span class="muted" style="font-size:11px">' + r.detail + '</span></td>';
+    body += '<td class="num">' + LC.fmt(r.principal) + '</td>';
+    if (withInterest) body += '<td class="num">' + (applies ? LC.fmt(interest) : '—') + '</td>';
+    if (withSurcharge) {
+      if (applies && sur) body += '<td class="num">' + LC.fmt(surAmount) + '<br><span class="muted" style="font-size:11px">15% × ' + sur.rounds + ' × 7 d</span></td>';
+      else body += '<td class="num">' + (applies ? 'n/a' : '—') + '</td>';
+    }
+    body += '<td class="num">' + (applies ? LC.fmt(subtotal) : '—') + '</td>';
+    body += '</tr>';
+
+    if (applies) lines.push({ c: c, r: r, interest: interest, sur: sur, subtotal: subtotal, rate: rate });
+  });
+
+  body += '<tr class="total"><td></td><td>Grand total</td><td class="num"></td>'
+    + (withInterest ? '<td class="num"></td>' : '')
+    + (withSurcharge ? '<td class="num"></td>' : '')
+    + '<td class="num">' + LC.fmt(grand) + '</td></tr>';
+  document.getElementById('settleTable').innerHTML = head + body;
+  document.getElementById('grandTotal').textContent = LC.fmt(grand) + ' THB';
+
+  buildStatement(f, lines, grand, withInterest, asOf, willful);
+  saveState();
+}
+
+function toggleClaim(el) {
+  var key = el.dataset.claim;
+  userTouched[key] = true;
+  includeFlags[key] = el.checked;
+  calculate();
+}
+
+function buildStatement(f, lines, grand, withInterest, asOf, willful) {
+  var reasonLabel = (LC.REASONS.filter(function (r) { return r.value === f.reason; })[0] || {}).label || f.reason;
+  var s = '';
+  s += 'TERMINATION SETTLEMENT STATEMENT\n';
+  s += '(เงินที่ลูกจ้างมีสิทธิได้รับเมื่อเลิกจ้าง)\n';
+  s += '────────────────────────────────────────\n';
+  s += 'Start date        : ' + (f.start ? LC.formatDate(f.start) : '—') + '\n';
+  s += 'Last day of empl. : ' + (f.lastWorkingDay ? LC.formatDate(f.lastWorkingDay) : '—') + '\n';
+  s += 'Termination eff.  : ' + (f.effectiveDate ? LC.formatDate(f.effectiveDate) : '—') + '\n';
+  s += 'Continuous service: ' + f.service.years + ' yr ' + f.service.months + ' mo ' + f.service.days + ' d (' + f.service.totalDays + ' days)\n';
+  var perLabel = { monthly: 'month', weekly: 'week', daily: 'day', perN: f.wageN + '-day period' }[f.wagePer] || 'month';
+  s += 'Wage (time-based) : ' + LC.fmt(f.wage) + ' THB / ' + perLabel + (f.wagePer !== 'monthly' ? '  (daily rate ' + LC.fmt(f.dailyRate) + ')' : '') + '\n';
+  s += 'Reason for leaving: ' + reasonLabel + '\n';
+  if (withInterest) s += 'Interest as-of    : ' + (asOf ? LC.formatDate(asOf) : '—') + (willful ? ' (+ เงินเพิ่ม, s.9 ¶2, shown separately)' : '') + '\n';
+  s += '────────────────────────────────────────\n';
+  if (!lines.length) {
+    s += '(No claims selected.)\n';
+  } else {
+    lines.forEach(function (L, i) {
+      s += (i + 1) + '. ' + L.c.name + ' (' + L.c.cite + ')\n';
+      s += '   Principal : ' + LC.fmt(L.r.principal) + ' THB  [' + L.r.detail + ']\n';
+      if (withInterest) s += '   Interest  : ' + LC.fmt(L.interest) + ' THB  (' + L.rate + '%/yr from ' + (L.r.due ? LC.formatShort(L.r.due) : '—') + (L.c.claimType === 's49' ? ', CCC s.224' : ', LPA s.9 ¶1') + ')\n';
+      if (L.sur) s += '   เงินเพิ่ม  : ' + LC.fmt(L.sur.amount) + ' THB  (15% × ' + L.sur.rounds + ' completed 7-day periods; ' + L.sur.days + ' days in default — s.9 ¶2)\n';
+      s += '   Subtotal  : ' + LC.fmt(L.subtotal) + ' THB\n';
+    });
+  }
+  s += '────────────────────────────────────────\n';
+  s += 'GRAND TOTAL       : ' + LC.fmt(grand) + ' THB\n';
+  s += '────────────────────────────────────────\n';
+  s += 'Generated ' + LC.formatDate(new Date()) + '. Reference only — not legal advice.\n';
+  s += 'The s.49 item, if shown, is a discretionary, non-binding estimate.';
+  if (document.getElementById('pilAnalogy').checked) s += '\nThe pay-in-lieu piece-rate component is an estimate by analogy to s.60, not the strict statutory measure.';
+  if (willful && withInterest) s += '\nเงินเพิ่ม (s.9 ¶2) is a statutory penalty distinct from interest; it requires willful non-payment without reasonable cause.';
+  document.getElementById('statement').textContent = s;
+}
+
+function copyStatement() {
+  var txt = document.getElementById('statement').textContent;
+  var msg = document.getElementById('copyMsg');
+  function ok() { msg.textContent = 'Copied ✓'; setTimeout(function () { msg.textContent = ''; }, 2000); }
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok, fallback);
+  else fallback();
+  function fallback() {
+    var ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); ok(); } catch (e) { msg.textContent = 'Copy failed'; }
+    document.body.removeChild(ta);
+  }
+}
+
+// ─── Profile ──────────────────────────────────────────────────────────────────
+function showBanner(p) {
+  var b = document.getElementById('profileBanner');
+  if (!p) { b.classList.add('hidden'); return; }
+  b.classList.remove('hidden');
+  b.querySelector('.pb-text').innerHTML = 'Shared profile in use.';
+}
+function applyProfileToPage() {
+  var p = LC.loadProfile(); if (!p) return;
+  if (p.startDate) document.getElementById('startDate').value = p.startDate;
+  if (p.dismissalDate) document.getElementById('dismissDate').value = p.dismissalDate;
+  if (p.workedThatDay) document.getElementById('dismissWorked').value = p.workedThatDay;
+  if (p.monthlyWage) document.getElementById('monthlyWage').value = p.monthlyWage;
+  if (p.reason) document.getElementById('reason').value = p.reason;
+  userTouched = {};
+  showBanner(p); calculate();
+}
+function saveProfileFromPage() {
+  var p = LC.loadProfile() || {};
+  var s = document.getElementById('startDate').value; if (s) p.startDate = s;
+  var dd = document.getElementById('dismissDate').value; if (dd) p.dismissalDate = dd;
+  p.workedThatDay = document.getElementById('dismissWorked').value;
+  // Shared profile stores a monthly figure: convert non-monthly rates via daily × 30.
+  var f = readFacts();
+  if (f.wage > 0) p.monthlyWage = Math.round(f.monthlyEquiv * 100) / 100;
+  p.reason = document.getElementById('reason').value;
+  LC.saveProfile(p); showBanner(p);
+}
+
+// ─── Persistence ──────────────────────────────────────────────────────────────
+var FIELDS = ['startDate', 'dismissDate', 'dismissWorked', 'monthlyWage', 'wagePer', 'wageN', 'reason', 'paidThrough', 'unpaidDays', 'stubPiece', 'stubBasis', 'noticeDays', 'pieceRate', 'leavePieceAmt', 'leavePieceDays', 'annualEnt', 'takenThisYear', 'carriedOver', 'leaveBasis', 's49mpy', 'intAsOf', 'intBasis'];
+function saveState() {
+  try {
+    var o = {};
+    FIELDS.forEach(function (k) { o[k] = document.getElementById(k).value; });
+    o.includeInterest = document.getElementById('includeInterest').checked;
+    o.willful = document.getElementById('willful').checked;
+    o.pilAnalogy = document.getElementById('pilAnalogy').checked;
+    o.includeFlags = includeFlags; o.userTouched = userTouched;
+    localStorage.setItem('settlement_v1', JSON.stringify(o));
+  } catch (e) {}
+}
+function loadState() {
+  try {
+    var st = JSON.parse(localStorage.getItem('settlement_v1') || 'null'); if (!st) return;
+    FIELDS.forEach(function (k) { if (st[k] != null && st[k] !== '') document.getElementById(k).value = st[k]; });
+    document.getElementById('includeInterest').checked = !!st.includeInterest;
+    document.getElementById('willful').checked = !!st.willful;
+    document.getElementById('pilAnalogy').checked = !!st.pilAnalogy;
+    if (st.includeFlags) includeFlags = st.includeFlags;
+    if (st.userTouched) userTouched = st.userTouched;
+  } catch (e) {}
+}
+function resetAll() { localStorage.removeItem('settlement_v1'); location.reload(); }
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+function init() {
+  var reasonSel = document.getElementById('reason');
+  LC.REASONS.forEach(function (r) { var o = document.createElement('option'); o.value = r.value; o.textContent = r.label; reasonSel.appendChild(o); });
+  var basisSel = document.getElementById('intBasis');
+  LC.INTEREST_BASES.forEach(function (b) { var o = document.createElement('option'); o.value = b.value; o.textContent = b.label; basisSel.appendChild(o); });
+  var leaveSel = document.getElementById('leaveBasis');
+  LC.LEAVE_BASES.forEach(function (b) { var o = document.createElement('option'); o.value = b.value; o.textContent = b.label; leaveSel.appendChild(o); });
+
+  document.getElementById('intAsOf').value = LC.toISO(new Date());
+
+  loadState();
+  var p = LC.loadProfile(); if (p && !document.getElementById('monthlyWage').value) applyProfileToPage();
+
+  FIELDS.forEach(function (id) {
+    document.getElementById(id).addEventListener('change', calculate);
+    document.getElementById(id).addEventListener('input', calculate);
+  });
+  ['includeInterest', 'willful', 'pilAnalogy'].forEach(function (id) {
+    document.getElementById(id).addEventListener('change', calculate);
+  });
+  function syncWageN() {
+    var per = document.getElementById('wagePer').value;
+    document.getElementById('wageNWrap').classList.toggle('hidden', per !== 'perN');
+    document.getElementById('stubBasisWrap').classList.toggle('hidden', per !== 'monthly');
+  }
+  document.getElementById('wagePer').addEventListener('change', syncWageN);
+  syncWageN();
+
+  calculate();
+}
+init();
+</script>
+</body>
+</html>

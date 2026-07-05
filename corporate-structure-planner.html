@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Corporate Structure Planner</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      background: #f2f2f7;
+      background-image:
+        radial-gradient(ellipse 1100px 700px at 10% 0%,  rgba(194,221,255,0.45) 0%, transparent 60%),
+        radial-gradient(ellipse  700px 700px at 95% 10%, rgba(218,205,255,0.4)  0%, transparent 55%),
+        radial-gradient(ellipse  800px 600px at 0%  90%, rgba(167,243,208,0.3)  0%, transparent 55%),
+        radial-gradient(ellipse  900px 500px at 100% 95%,rgba(255,220,180,0.25) 0%, transparent 55%);
+      color: #1c1c1e;
+      min-height: 100vh;
+    }
+
+    /* ── Nav ── */
+    .nav {
+      position: sticky; top: 0; z-index: 200;
+      height: 52px; display: flex; align-items: center; gap: 12px; padding: 0 24px;
+      background: rgba(242,242,247,0.82);
+      backdrop-filter: blur(24px) saturate(200%);
+      -webkit-backdrop-filter: blur(24px) saturate(200%);
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+    }
+    .nav-icon {
+      width: 30px; height: 30px; border-radius: 7px; flex-shrink: 0;
+      background: linear-gradient(145deg, #2979ff, #1565c0);
+      display: grid; place-items: center; font-size: 15px;
+      box-shadow: 0 2px 6px rgba(41,121,255,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    .nav-title { font-size: 15px; font-weight: 700; letter-spacing: -0.4px; }
+    .nav-back {
+      margin-left: auto; font-size: 13px; color: #2979ff; text-decoration: none; font-weight: 500;
+    }
+    .nav-back:hover { text-decoration: underline; }
+
+    /* ── Layout ── */
+    .page { max-width: 1080px; margin: 0 auto; padding: 28px 20px 60px; }
+
+    .page-header { margin-bottom: 28px; }
+    .page-header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; color: #1c1c1e; }
+    .page-header p  { font-size: 14px; color: #636366; margin-top: 4px; }
+
+    /* ── Cards ── */
+    .card {
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(0,0,0,0.07);
+      border-radius: 16px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      padding: 24px;
+    }
+    .card + .card, .card + .tab-bar, .tab-bar + .tab-content { margin-top: 16px; }
+    .card-title {
+      font-size: 14px; font-weight: 600; color: #1c1c1e; letter-spacing: -0.2px;
+      margin-bottom: 18px; display: flex; align-items: center; gap: 8px;
+    }
+    .card-title .badge {
+      background: #2979ff; color: #fff; font-size: 11px; font-weight: 700;
+      padding: 2px 7px; border-radius: 20px;
+    }
+
+    /* ── Setup grid ── */
+    .setup-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    @media (max-width: 640px) { .setup-grid { grid-template-columns: 1fr; } }
+
+    .field-group label {
+      display: block; font-size: 12px; font-weight: 600; color: #636366;
+      text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;
+    }
+    .field-group .hint { font-size: 11px; color: #aeaeb2; margin-top: 4px; }
+    .field-group .quick-vals { margin-top: 5px; display: flex; gap: 6px; flex-wrap: wrap; }
+    .field-group .quick-vals button {
+      font-size: 11px; color: #2979ff; background: rgba(41,121,255,0.08);
+      border: none; border-radius: 20px; padding: 2px 8px; cursor: pointer;
+      font-family: inherit; font-weight: 500;
+    }
+    .field-group .quick-vals button:hover { background: rgba(41,121,255,0.16); }
+
+    input[type="number"], input[type="text"] {
+      width: 100%; padding: 10px 12px;
+      border: 1.5px solid #e5e5ea; border-radius: 10px;
+      font-size: 15px; font-family: 'Inter', sans-serif; color: #1c1c1e;
+      background: rgba(255,255,255,0.9);
+      transition: border-color 0.15s, box-shadow 0.15s;
+      -webkit-appearance: none;
+    }
+    input:focus { outline: none; border-color: #2979ff; box-shadow: 0 0 0 3px rgba(41,121,255,0.12); }
+    input.derived {
+      background: rgba(41,121,255,0.05); border-color: rgba(41,121,255,0.3);
+      color: #2563eb; font-weight: 600;
+    }
+    input.field-error { border-color: #ff3b30; box-shadow: 0 0 0 3px rgba(255,59,48,0.1); }
+    input.field-ok    { border-color: #30d158; }
+
+    .setup-status {
+      margin-top: 14px; padding: 10px 14px; border-radius: 10px;
+      font-size: 13px; font-weight: 500;
+    }
+    .setup-status.ok   { background: rgba(48,209,88,0.1);  color: #1a7a37; }
+    .setup-status.warn { background: rgba(255,149,0,0.12); color: #9a5000; }
+    .setup-status.err  { background: rgba(255,59,48,0.1);  color: #c0392b; }
+    .setup-status.hint { background: rgba(142,142,147,0.1); color: #636366; }
+
+    .summary-chips {
+      display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px;
+    }
+    .chip {
+      padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600;
+      border: 1px solid transparent;
+    }
+    .chip.blue   { background: rgba(41,121,255,0.1);  color: #2563eb; border-color: rgba(41,121,255,0.2); }
+    .chip.green  { background: rgba(48,209,88,0.1);   color: #1a7a37; border-color: rgba(48,209,88,0.2); }
+    .chip.purple { background: rgba(175,82,222,0.1);  color: #7c3aed; border-color: rgba(175,82,222,0.2); }
+
+    /* ── Tabs ── */
+    .tab-bar {
+      display: flex; gap: 4px; background: rgba(255,255,255,0.7);
+      border: 1px solid rgba(0,0,0,0.07); border-radius: 12px;
+      padding: 4px; width: fit-content;
+    }
+    .tab-btn {
+      padding: 8px 18px; border-radius: 9px; font-size: 13px; font-weight: 600;
+      border: none; cursor: pointer; font-family: inherit; transition: all 0.15s;
+      color: #636366; background: transparent;
+    }
+    .tab-btn.active {
+      background: #2979ff; color: #fff;
+      box-shadow: 0 2px 8px rgba(41,121,255,0.3);
+    }
+    .tab-btn:not(.active):hover { background: rgba(0,0,0,0.05); color: #1c1c1e; }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ── Planner layout ── */
+    .planner-grid {
+      display: grid; grid-template-columns: 1fr 340px; gap: 16px; align-items: start;
+    }
+    @media (max-width: 780px) { .planner-grid { grid-template-columns: 1fr; } }
+
+    /* ── Shareholders table ── */
+    .sh-controls {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 14px; gap: 10px; flex-wrap: wrap;
+    }
+    .sh-controls-right { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .btn {
+      padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+      border: none; cursor: pointer; font-family: inherit; transition: all 0.15s;
+    }
+    .btn-primary { background: #2979ff; color: #fff; }
+    .btn-primary:hover { background: #1d6ae0; }
+    .btn-secondary { background: #f2f2f7; color: #3c3c43; border: 1px solid #e5e5ea; }
+    .btn-secondary:hover { background: #e5e5ea; }
+    .btn-sm { padding: 5px 10px; font-size: 11px; }
+    .btn-danger { background: rgba(255,59,48,0.08); color: #ff3b30; border: 1px solid rgba(255,59,48,0.2); }
+    .btn-danger:hover { background: rgba(255,59,48,0.15); }
+
+    .toggle-pill {
+      display: inline-flex; border-radius: 8px; overflow: hidden;
+      border: 1px solid #e5e5ea; background: #f2f2f7;
+    }
+    .toggle-pill button {
+      padding: 5px 12px; font-size: 11px; font-weight: 600; border: none;
+      cursor: pointer; font-family: inherit; color: #636366; background: transparent;
+      transition: all 0.15s;
+    }
+    .toggle-pill button.on { background: #2979ff; color: #fff; }
+
+    .sh-table-wrap { overflow-x: auto; }
+    table.sh-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table.sh-table thead th {
+      text-align: left; padding: 6px 8px;
+      font-size: 11px; font-weight: 600; color: #aeaeb2;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      border-bottom: 1px solid #e5e5ea;
+    }
+    table.sh-table thead th.r { text-align: right; }
+    table.sh-table tbody td { padding: 6px 8px; border-bottom: 1px solid #f2f2f7; vertical-align: middle; }
+    table.sh-table tbody tr:last-child td { border-bottom: none; }
+    table.sh-table tbody tr:hover td { background: rgba(41,121,255,0.03); }
+
+    .sh-table input[type="text"]   { padding: 6px 8px; font-size: 13px; min-width: 120px; }
+    .sh-table input[type="number"] { padding: 6px 8px; font-size: 13px; text-align: right; width: 120px; font-family: 'Courier New', monospace; }
+    .sh-table .color-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+
+    .mono { font-family: 'Courier New', monospace; font-size: 12px; }
+    .text-right { text-align: right; }
+    .text-muted { color: #aeaeb2; }
+
+    .alloc-footer {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e5ea;
+    }
+    .alloc-status { font-size: 12px; font-weight: 600; }
+    .alloc-status.ok   { color: #30d158; }
+    .alloc-status.warn { color: #ff9500; }
+    .alloc-status.err  { color: #ff3b30; }
+    .alloc-total { font-size: 12px; color: #636366; }
+    .alloc-total .val { font-weight: 700; font-family: 'Courier New', monospace; color: #1c1c1e; }
+
+    .alloc-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+    /* ── Chart card ── */
+    .chart-wrap { position: relative; height: 240px; }
+    .chart-legend { margin-top: 14px; display: flex; flex-direction: column; gap: 5px; }
+    .legend-row {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 12px; padding: 3px 0;
+    }
+    .legend-left  { display: flex; align-items: center; gap: 8px; }
+    .legend-name  { color: #3c3c43; max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .legend-pct   { font-weight: 700; color: #1c1c1e; font-family: 'Courier New', monospace; }
+
+    /* ── Certificate table ── */
+    .cert-table-wrap { overflow-x: auto; }
+    table.cert-table {
+      width: 100%; border-collapse: collapse; font-size: 13px;
+    }
+    table.cert-table thead th {
+      padding: 10px 14px; background: #1c1c1e; color: #fff;
+      text-align: left; font-size: 12px; font-weight: 600;
+    }
+    table.cert-table thead th:first-child { border-radius: 10px 0 0 0; }
+    table.cert-table thead th:last-child  { border-radius: 0 10px 0 0; }
+    table.cert-table thead th.r { text-align: right; }
+    table.cert-table tbody td { padding: 10px 14px; border-bottom: 1px solid #f2f2f7; vertical-align: middle; }
+    table.cert-table tbody tr:nth-child(even) td { background: rgba(0,0,0,0.015); }
+    table.cert-table tbody tr:hover td { background: rgba(41,121,255,0.04); }
+    table.cert-table tfoot td { padding: 10px 14px; font-weight: 700; background: #f2f2f7; }
+
+    .cert-range {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: 'Courier New', monospace; font-size: 12px; font-weight: 700;
+    }
+    .cert-num {
+      background: #e8f1ff; color: #2563eb;
+      border: 1px solid rgba(41,121,255,0.2);
+      padding: 2px 8px; border-radius: 5px;
+    }
+    .cert-sep { color: #aeaeb2; font-size: 11px; }
+
+    .rank-controls { display: flex; gap: 4px; }
+    .btn-rank {
+      width: 26px; height: 26px; border-radius: 6px; border: 1px solid #e5e5ea;
+      background: #f2f2f7; color: #636366; cursor: pointer; font-size: 12px;
+      display: grid; place-items: center; font-family: inherit; font-weight: 700;
+      transition: all 0.1s;
+    }
+    .btn-rank:hover { background: #e5e5ea; }
+
+    .cert-rank-controls {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px;
+    }
+    .cert-rank-controls label { font-size: 12px; font-weight: 600; color: #636366; }
+    .cert-rank-controls select {
+      padding: 5px 10px; border-radius: 8px; border: 1.5px solid #e5e5ea;
+      font-size: 12px; font-family: inherit; background: #fff; cursor: pointer;
+    }
+
+    /* ── Solver ── */
+    .solver-grid { display: grid; grid-template-columns: 380px 1fr; gap: 16px; align-items: start; }
+    @media (max-width: 780px) { .solver-grid { grid-template-columns: 1fr; } }
+
+    .solver-field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 480px) { .solver-field-grid { grid-template-columns: 1fr; } }
+
+    .radio-group { display: flex; gap: 16px; flex-wrap: wrap; }
+    .radio-label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; }
+    .radio-label input { width: auto; }
+
+    .solver-run-btn {
+      width: 100%; padding: 12px; margin-top: 16px;
+      background: linear-gradient(135deg, #2979ff, #1565c0);
+      color: #fff; border: none; border-radius: 12px;
+      font-size: 14px; font-weight: 700; font-family: inherit;
+      cursor: pointer; letter-spacing: -0.2px;
+      box-shadow: 0 4px 12px rgba(41,121,255,0.3);
+      transition: all 0.15s;
+    }
+    .solver-run-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(41,121,255,0.4); }
+    .solver-run-btn:active { transform: none; }
+
+    .solver-summary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+    .solver-summary-item {
+      padding: 12px 14px; border-radius: 12px; border: 1px solid transparent;
+    }
+    .solver-summary-item.blue   { background: rgba(41,121,255,0.07); border-color: rgba(41,121,255,0.15); }
+    .solver-summary-item.green  { background: rgba(48,209,88,0.07);  border-color: rgba(48,209,88,0.15); }
+    .solver-summary-item.purple { background: rgba(175,82,222,0.07); border-color: rgba(175,82,222,0.15); }
+    .solver-summary-item.amber  { background: rgba(255,149,0,0.07);  border-color: rgba(255,149,0,0.15); }
+    .solver-summary-item .s-label { font-size: 11px; font-weight: 600; color: #636366; margin-bottom: 4px; }
+    .solver-summary-item .s-val   { font-size: 18px; font-weight: 700; }
+    .solver-summary-item.blue   .s-val { color: #2563eb; }
+    .solver-summary-item.green  .s-val { color: #1a7a37; }
+    .solver-summary-item.purple .s-val { color: #7c3aed; }
+    .solver-summary-item.amber  .s-val { color: #9a5000; }
+    .solver-summary-item .s-sub { font-size: 11px; color: #aeaeb2; margin-top: 2px; font-family: 'Courier New', monospace; }
+
+    table.sol-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table.sol-table thead th {
+      padding: 8px 12px; background: #1c1c1e; color: rgba(255,255,255,0.7);
+      font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px;
+      text-align: left;
+    }
+    table.sol-table thead th:first-child { border-radius: 8px 0 0 0; }
+    table.sol-table thead th:last-child  { border-radius: 0 8px 0 0; }
+    table.sol-table thead th.r { text-align: right; }
+    table.sol-table tbody td { padding: 9px 12px; border-bottom: 1px solid #f2f2f7; }
+    table.sol-table tbody tr:nth-child(even) td { background: rgba(0,0,0,0.015); }
+    table.sol-table tbody tr:hover td { background: rgba(41,121,255,0.05); cursor: pointer; }
+    table.sol-table .load-btn {
+      font-size: 11px; font-weight: 600; color: #2979ff;
+      background: rgba(41,121,255,0.08); border: none; border-radius: 6px;
+      padding: 3px 8px; cursor: pointer; font-family: inherit;
+    }
+    table.sol-table .load-btn:hover { background: rgba(41,121,255,0.16); }
+
+    .sol-row-best-high td { background: rgba(175,82,222,0.06) !important; }
+    .sol-row-best-low  td { background: rgba(48,209,88,0.06) !important; }
+
+    .badge-tag {
+      display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px;
+      border-radius: 4px; margin-left: 5px; vertical-align: middle;
+    }
+    .badge-tag.high  { background: rgba(175,82,222,0.15); color: #7c3aed; }
+    .badge-tag.low   { background: rgba(48,209,88,0.15);  color: #1a7a37; }
+
+    .empty-state { text-align: center; padding: 40px 20px; color: #aeaeb2; font-size: 14px; }
+    .empty-state .icon { font-size: 36px; margin-bottom: 10px; }
+
+    .divider { height: 1px; background: #e5e5ea; margin: 16px 0; }
+
+    /* ── Move arrows in cert table ── */
+    td.move-cell { white-space: nowrap; width: 60px; }
+
+    @media print {
+      .nav, .tab-bar, .alloc-actions, .sh-controls-right, .cert-rank-controls, .solver-grid { display: none !important; }
+      .card { box-shadow: none; border: 1px solid #ccc; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-icon">📐</div>
+  <span class="nav-title">Corporate Structure Planner</span>
+  <a href="index.html" class="nav-back">← JuraTools</a>
+</nav>
+
+<main class="page">
+  <div class="page-header">
+    <h1>Corporate Structure Planner</h1>
+    <p>Plan shareholding, allocate share certificates, and solve valid capital structures for Thai company formation.</p>
+  </div>
+
+  <!-- ── Company Setup ── -->
+  <div class="card">
+    <div class="card-title">
+      <span>The Four Numbers</span>
+      <span class="badge">Setup</span>
+    </div>
+    <div class="setup-grid">
+      <div class="field-group">
+        <label>Registered Capital (฿)</label>
+        <input type="number" id="inp-capital" placeholder="e.g. 10,000,000" min="1" step="1">
+        <div class="hint">Total company value at incorporation</div>
+      </div>
+      <div class="field-group">
+        <label>Par Value per Share (฿)</label>
+        <input type="number" id="inp-par" placeholder="e.g. 10" min="1" step="1">
+        <div class="quick-vals">
+          <span style="font-size:11px;color:#aeaeb2">Common:</span>
+          <button onclick="setQuickPar(1)">฿1</button>
+          <button onclick="setQuickPar(5)">฿5</button>
+          <button onclick="setQuickPar(10)">฿10</button>
+          <button onclick="setQuickPar(100)">฿100</button>
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Total Number of Shares</label>
+        <input type="number" id="inp-shares" placeholder="= Capital ÷ Par Value" min="1" step="1">
+        <div class="hint">Enter any two fields; the third is calculated</div>
+      </div>
+    </div>
+    <div id="setup-status" class="setup-status hint" style="display:none"></div>
+    <div id="setup-chips" class="summary-chips" style="display:none">
+      <span class="chip blue"  id="chip-capital"></span>
+      <span class="chip green" id="chip-par"></span>
+      <span class="chip purple" id="chip-shares"></span>
+    </div>
+  </div>
+
+  <!-- ── Tabs ── -->
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tab-planner" onclick="switchTab('planner')">📊 Shareholder Planner</button>
+    <button class="tab-btn"        id="tab-solver"  onclick="switchTab('solver')">🔍 Structure Solver</button>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       PLANNER TAB
+  ═══════════════════════════════════════════ -->
+  <div class="tab-content active" id="pane-planner">
+    <div class="planner-grid">
+
+      <!-- Left: Shareholders -->
+      <div class="card">
+        <div class="sh-controls">
+          <div class="card-title" style="margin:0">Shareholders</div>
+          <div class="sh-controls-right">
+            <div class="toggle-pill">
+              <button id="mode-shares" class="on" onclick="setInputMode('shares')">by Shares</button>
+              <button id="mode-pct"               onclick="setInputMode('pct')">by %</button>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="addShareholder()">+ Add</button>
+          </div>
+        </div>
+        <div class="sh-table-wrap">
+          <table class="sh-table">
+            <thead>
+              <tr>
+                <th style="width:14px"></th>
+                <th>Name</th>
+                <th class="r" id="th-input">Shares</th>
+                <th class="r">%</th>
+                <th class="r">Value (฿)</th>
+                <th style="width:28px"></th>
+              </tr>
+            </thead>
+            <tbody id="sh-tbody"></tbody>
+          </table>
+        </div>
+        <div class="alloc-footer">
+          <span class="alloc-status" id="alloc-status">—</span>
+          <span class="alloc-total">
+            Total: <span class="val" id="total-shares-disp">0</span> shares
+            &nbsp;/&nbsp; <span class="val" id="total-pct-disp">0.0000</span>%
+          </span>
+        </div>
+        <div class="alloc-actions">
+          <button class="btn btn-secondary btn-sm" onclick="distributeEqually()">↔ Distribute Equally</button>
+          <button class="btn btn-secondary btn-sm" onclick="fillLastRemaining()">⚖ Fill Last to 100%</button>
+          <button class="btn btn-secondary btn-sm" onclick="sortBySharesDesc()">↕ Sort by Shares</button>
+        </div>
+      </div>
+
+      <!-- Right: Pie chart -->
+      <div class="card">
+        <div class="card-title" style="margin-bottom:14px">Ownership Structure</div>
+        <div class="chart-wrap"><canvas id="ownership-chart"></canvas></div>
+        <div class="chart-legend" id="chart-legend"></div>
+      </div>
+    </div>
+
+    <!-- Certificate Allocation -->
+    <div class="card" style="margin-top:16px" id="cert-card">
+      <div class="cert-rank-controls">
+        <div class="card-title" style="margin:0">Share Certificate Allocation</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap">
+          <label>Rank order:</label>
+          <select id="cert-order" onchange="renderCertificates()">
+            <option value="list">Current list order</option>
+            <option value="desc">Largest holder first</option>
+            <option value="asc">Smallest holder first</option>
+          </select>
+          <button class="btn btn-secondary btn-sm" onclick="copyCertTable()">Copy Table</button>
+        </div>
+      </div>
+      <div class="cert-table-wrap" id="cert-table-wrap">
+        <div class="empty-state"><div class="icon">📜</div>Add shareholders with shares to see certificate allocations.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SOLVER TAB
+  ═══════════════════════════════════════════ -->
+  <div class="tab-content" id="pane-solver">
+    <div class="solver-grid">
+
+      <!-- Constraints -->
+      <div class="card">
+        <div class="card-title">Solver Constraints</div>
+
+        <div class="field-group">
+          <label>Registered Capital (฿) <span style="color:#ff3b30">*</span></label>
+          <input type="number" id="sv-capital" placeholder="e.g. 500,000,000" min="1">
+          <div class="hint">
+            <a href="#" onclick="syncSolverCapital();return false" style="color:#2979ff;font-size:11px">↗ Use value from Setup</a>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="solver-field-grid">
+          <div class="field-group">
+            <label>Max Total Shares</label>
+            <input type="number" id="sv-max-shares" placeholder="No limit" min="1">
+          </div>
+          <div class="field-group">
+            <label>Min Total Shares</label>
+            <input type="number" id="sv-min-shares" placeholder="No limit" min="1">
+          </div>
+          <div class="field-group">
+            <label>Min Par Value (฿)</label>
+            <input type="number" id="sv-min-par" placeholder="1" min="1">
+          </div>
+          <div class="field-group">
+            <label>Max Par Value (฿)</label>
+            <input type="number" id="sv-max-par" placeholder="No limit" min="1">
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="field-group">
+          <label>Number of Shareholders</label>
+          <input type="number" id="sv-holders" placeholder="e.g. 5" min="1" max="200">
+        </div>
+
+        <div class="field-group" style="margin-top:12px">
+          <label>Distribution</label>
+          <div class="radio-group" style="margin-top:8px">
+            <label class="radio-label">
+              <input type="radio" name="sv-dist" id="sv-equal" value="equal" checked onchange="toggleSvDist()">
+              Equal (each holder same %)
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="sv-dist" id="sv-custom" value="custom" onchange="toggleSvDist()">
+              Custom percentages
+            </label>
+          </div>
+        </div>
+
+        <div class="field-group" id="sv-custom-panel" style="display:none;margin-top:10px">
+          <label>Percentages (comma-separated)</label>
+          <input type="text" id="sv-custom-pct" placeholder="e.g. 40, 35, 25">
+          <div class="hint">Count must match shareholder number. Must sum to 100.</div>
+        </div>
+
+        <button class="solver-run-btn" onclick="runSolver()">🔍 Find All Valid Configurations</button>
+      </div>
+
+      <!-- Results -->
+      <div class="card">
+        <div class="card-title">Valid Configurations</div>
+        <div id="solver-results">
+          <div class="empty-state">
+            <div class="icon">🔍</div>
+            Configure constraints and click "Find All Valid Configurations"
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ══════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════
+const COLORS = [
+  '#2979ff','#ff3b30','#30d158','#ff9500','#af52de',
+  '#00c7be','#ff2d55','#a2845e','#5e5ce6','#34c759',
+  '#ff6b00','#007aff','#ff2d8f','#4cd964','#ff3a2d',
+];
+
+let S = {
+  capital: null,
+  parValue: null,
+  totalShares: null,
+  shareholders: [],
+  inputMode: 'shares', // 'shares' | 'pct'
+  nextId: 1,
+};
+
+let ownerChart = null;
+let _solverData = { solutions: [], capital: 0, numHolders: 0, percentages: [] };
+
+// ══════════════════════════════════════════════════
+//  NUMBER UTILS
+// ══════════════════════════════════════════════════
+const fmtN   = (n, d=0)  => n == null || isNaN(n) ? '—' : Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtPct = (n, d=4)  => n == null || isNaN(n) ? '—' : (+n).toFixed(d).replace(/\.?0+$/,'') + '%';
+
+function getDivisors(n) {
+  if (!n || n <= 0 || !Number.isFinite(n)) return [];
+  const divs = [];
+  for (let i = 1; i <= Math.sqrt(n); i++) {
+    if (n % i < 1e-9) {
+      divs.push(Math.round(i));
+      if (Math.abs(i - n / i) > 0.5) divs.push(Math.round(n / i));
+    }
+  }
+  return divs.sort((a, b) => a - b);
+}
+
+function padCert(n, padLen) {
+  return String(Math.round(n)).padStart(padLen, '0');
+}
+
+// ══════════════════════════════════════════════════
+//  COMPANY SETUP
+// ══════════════════════════════════════════════════
+function setQuickPar(v) {
+  document.getElementById('inp-par').value = v;
+  onSetupInput();
+}
+
+function onSetupInput() {
+  const capEl    = document.getElementById('inp-capital');
+  const parEl    = document.getElementById('inp-par');
+  const sharesEl = document.getElementById('inp-shares');
+  const statusEl = document.getElementById('setup-status');
+  const chipsEl  = document.getElementById('setup-chips');
+
+  const rawCap    = capEl.value    !== '' ? parseFloat(capEl.value)    : null;
+  const rawPar    = parEl.value    !== '' ? parseFloat(parEl.value)    : null;
+  const rawShares = sharesEl.value !== '' ? parseFloat(sharesEl.value) : null;
+
+  // Clear derived styles
+  [capEl, parEl, sharesEl].forEach(el => el.classList.remove('derived','field-ok','field-error'));
+
+  const filled = [rawCap, rawPar, rawShares].filter(v => v !== null).length;
+
+  statusEl.style.display = 'block';
+
+  if (filled < 2) {
+    statusEl.className = 'setup-status hint';
+    statusEl.textContent = 'Enter at least two of the three values to calculate the third.';
+    chipsEl.style.display = 'none';
+    S.capital = null; S.parValue = null; S.totalShares = null;
+    return;
+  }
+
+  let cap = rawCap, par = rawPar, shares = rawShares;
+
+  // Derive the missing field
+  if (cap !== null && par !== null && shares === null) {
+    shares = cap / par;
+    sharesEl.value = Number.isInteger(shares) ? shares : '';
+    sharesEl.classList.add('derived');
+  } else if (cap !== null && shares !== null && par === null) {
+    par = cap / shares;
+    parEl.value = Number.isInteger(par) ? par : par.toFixed(6).replace(/\.?0+$/, '');
+    parEl.classList.add('derived');
+  } else if (par !== null && shares !== null && cap === null) {
+    cap = par * shares;
+    capEl.value = cap;
+    capEl.classList.add('derived');
+  }
+
+  // Validate consistency when all three present
+  if (rawCap !== null && rawPar !== null && rawShares !== null) {
+    const expected = rawCap / rawPar;
+    if (Math.abs(expected - rawShares) > 0.5) {
+      statusEl.className = 'setup-status err';
+      statusEl.textContent = `⚠ Inconsistent: ฿${fmtN(rawCap)} ÷ ฿${fmtN(rawPar)} = ${fmtN(expected,4)} shares, not ${fmtN(rawShares)}. Adjust one value.`;
+      chipsEl.style.display = 'none';
+      S.capital = null; S.parValue = null; S.totalShares = null;
+      return;
+    }
+  }
+
+  if (!Number.isInteger(shares)) {
+    statusEl.className = 'setup-status warn';
+    statusEl.textContent = `⚠ Non-integer shares (${fmtN(shares,6)}). The capital must be exactly divisible by the par value.`;
+    chipsEl.style.display = 'none';
+    S.capital = null; S.parValue = null; S.totalShares = null;
+    return;
+  }
+
+  if (cap <= 0 || par <= 0 || shares <= 0) {
+    statusEl.className = 'setup-status err';
+    statusEl.textContent = 'All values must be greater than zero.';
+    chipsEl.style.display = 'none';
+    S.capital = null; S.parValue = null; S.totalShares = null;
+    return;
+  }
+
+  // All good
+  S.capital = cap; S.parValue = par; S.totalShares = shares;
+
+  statusEl.className = 'setup-status ok';
+  statusEl.textContent = `✓  ฿${fmtN(cap)} ÷ ฿${fmtN(par)}/share = ${fmtN(shares)} shares`;
+
+  document.getElementById('chip-capital').textContent = `Capital: ฿${fmtN(cap)}`;
+  document.getElementById('chip-par').textContent     = `Par: ฿${fmtN(par)}/share`;
+  document.getElementById('chip-shares').textContent  = `${fmtN(shares)} shares total`;
+  chipsEl.style.display = 'flex';
+
+  // Propagate to shareholders (recalculate their share counts if using % mode)
+  if (S.inputMode === 'pct') {
+    S.shareholders.forEach(sh => {
+      if (sh.pct !== null) sh.shares = Math.round(S.totalShares * sh.pct / 100);
+    });
+  } else {
+    S.shareholders.forEach(sh => {
+      if (sh.shares !== null && S.totalShares) sh.pct = (sh.shares / S.totalShares) * 100;
+    });
+  }
+
+  renderShareholders();
+  renderChart();
+  renderCertificates();
+}
+
+// ══════════════════════════════════════════════════
+//  SHAREHOLDERS
+// ══════════════════════════════════════════════════
+function addShareholder() {
+  S.shareholders.push({ id: S.nextId++, name: `Shareholder ${S.shareholders.length + 1}`, shares: null, pct: null });
+  renderShareholders();
+}
+
+function removeShareholder(id) {
+  S.shareholders = S.shareholders.filter(s => s.id !== id);
+  renderShareholders();
+  renderChart();
+  renderCertificates();
+}
+
+function moveShareholder(id, dir) {
+  const idx = S.shareholders.findIndex(s => s.id === id);
+  if (idx < 0) return;
+  const target = idx + dir;
+  if (target < 0 || target >= S.shareholders.length) return;
+  [S.shareholders[idx], S.shareholders[target]] = [S.shareholders[target], S.shareholders[idx]];
+  renderShareholders();
+  renderCertificates();
+}
+
+function setInputMode(mode) {
+  S.inputMode = mode;
+  document.getElementById('mode-shares').classList.toggle('on', mode === 'shares');
+  document.getElementById('mode-pct').classList.toggle('on', mode === 'pct');
+  document.getElementById('th-input').textContent = mode === 'shares' ? 'Shares' : 'Percentage (%)';
+  renderShareholders();
+}
+
+function onShInput(id, field, value) {
+  const sh = S.shareholders.find(s => s.id === id);
+  if (!sh) return;
+  const v = value === '' ? null : parseFloat(value);
+
+  if (field === 'name') {
+    sh.name = value;
+    renderChart();
+    renderCertificates();
+    return;
+  }
+
+  if (field === 'shares') {
+    sh.shares = v !== null ? Math.round(v) : null;
+    sh.pct    = (sh.shares !== null && S.totalShares) ? (sh.shares / S.totalShares) * 100 : null;
+  } else {
+    sh.pct    = v;
+    sh.shares = (v !== null && S.totalShares) ? Math.round(S.totalShares * v / 100) : null;
+  }
+
+  updateTotalsDisplay();
+  updateRowDerived(id);
+  renderChart();
+  renderCertificates();
+}
+
+function updateRowDerived(id) {
+  const sh = S.shareholders.find(s => s.id === id);
+  if (!sh) return;
+  const pctCell = document.getElementById(`pct-${id}`);
+  const valCell = document.getElementById(`val-${id}`);
+  const sharesCell = document.getElementById(`shares-disp-${id}`);
+  if (pctCell) pctCell.textContent = sh.pct !== null ? fmtPct(sh.pct) : '—';
+  if (valCell) valCell.textContent = (sh.shares !== null && S.parValue) ? '฿' + fmtN(sh.shares * S.parValue) : '—';
+  if (sharesCell) sharesCell.textContent = sh.shares !== null ? fmtN(sh.shares) : '—';
+}
+
+function renderShareholders() {
+  const tbody = document.getElementById('sh-tbody');
+  tbody.innerHTML = '';
+  S.shareholders.forEach((sh, idx) => {
+    const color = COLORS[idx % COLORS.length];
+    const val   = (sh.shares !== null && S.parValue) ? sh.shares * S.parValue : null;
+    const tr    = document.createElement('tr');
+    tr.id = `sh-row-${sh.id}`;
+
+    const inputCell = S.inputMode === 'shares'
+      ? `<input type="number" value="${sh.shares ?? ''}" min="0" step="1"
+              oninput="onShInput(${sh.id},'shares',this.value)"
+              style="width:120px;text-align:right;font-family:'Courier New',monospace">`
+      : `<input type="number" value="${sh.pct !== null ? +sh.pct.toFixed(6) : ''}" min="0" max="100" step="0.0001"
+              oninput="onShInput(${sh.id},'pct',this.value)"
+              style="width:110px;text-align:right;font-family:'Courier New',monospace">`;
+
+    tr.innerHTML = `
+      <td><span class="color-dot" style="background:${color}"></span></td>
+      <td><input type="text" value="${sh.name}" oninput="onShInput(${sh.id},'name',this.value)" style="min-width:130px"></td>
+      <td class="text-right">${inputCell}</td>
+      <td class="text-right mono" id="pct-${sh.id}">${sh.pct !== null ? fmtPct(sh.pct) : '—'}</td>
+      <td class="text-right mono" id="val-${sh.id}">${val !== null ? '฿'+fmtN(val) : '—'}</td>
+      <td>
+        <div class="rank-controls">
+          <button class="btn-rank" onclick="moveShareholder(${sh.id},-1)" title="Move up">↑</button>
+          <button class="btn-rank" onclick="moveShareholder(${sh.id},1)"  title="Move down">↓</button>
+          <button class="btn-rank btn-danger" style="border-color:rgba(255,59,48,0.25);color:#ff3b30"
+                  onclick="removeShareholder(${sh.id})" title="Remove">×</button>
+        </div>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+  updateTotalsDisplay();
+}
+
+function updateTotalsDisplay() {
+  const totalShares = S.shareholders.reduce((s, h) => s + (h.shares || 0), 0);
+  const totalPct    = S.totalShares
+    ? (totalShares / S.totalShares) * 100
+    : S.shareholders.reduce((s, h) => s + (h.pct || 0), 0);
+
+  document.getElementById('total-shares-disp').textContent = fmtN(totalShares);
+  document.getElementById('total-pct-disp').textContent    = totalPct.toFixed(4);
+
+  const statusEl = document.getElementById('alloc-status');
+
+  if (S.totalShares) {
+    const diff = S.totalShares - totalShares;
+    if (Math.abs(diff) < 0.5) {
+      statusEl.className = 'alloc-status ok';
+      statusEl.textContent = '✓ Fully allocated';
+    } else if (diff > 0) {
+      statusEl.className = 'alloc-status warn';
+      statusEl.textContent = `⚠ ${fmtN(diff)} shares unallocated`;
+    } else {
+      statusEl.className = 'alloc-status err';
+      statusEl.textContent = `✗ Over by ${fmtN(Math.abs(diff))} shares`;
+    }
+  } else {
+    const diff = 100 - totalPct;
+    if (Math.abs(diff) < 0.0001) {
+      statusEl.className = 'alloc-status ok';
+      statusEl.textContent = '✓ 100% allocated';
+    } else if (diff > 0) {
+      statusEl.className = 'alloc-status warn';
+      statusEl.textContent = `⚠ ${diff.toFixed(4)}% unallocated`;
+    } else {
+      statusEl.className = 'alloc-status err';
+      statusEl.textContent = `✗ Over by ${Math.abs(diff).toFixed(4)}%`;
+    }
+  }
+}
+
+function distributeEqually() {
+  if (!S.shareholders.length) return;
+  const n = S.shareholders.length;
+  if (S.totalShares) {
+    const base = Math.floor(S.totalShares / n);
+    const rem  = S.totalShares - base * n;
+    S.shareholders.forEach((sh, i) => {
+      sh.shares = base + (i < rem ? 1 : 0);
+      sh.pct    = (sh.shares / S.totalShares) * 100;
+    });
+  } else {
+    const pctEach = 100 / n;
+    S.shareholders.forEach(sh => { sh.pct = pctEach; sh.shares = null; });
+  }
+  renderShareholders(); renderChart(); renderCertificates();
+}
+
+function fillLastRemaining() {
+  if (S.shareholders.length < 2) return;
+  const last = S.shareholders[S.shareholders.length - 1];
+  if (S.totalShares) {
+    const used = S.shareholders.slice(0,-1).reduce((s,h) => s+(h.shares||0), 0);
+    last.shares = S.totalShares - used;
+    last.pct    = (last.shares / S.totalShares) * 100;
+  } else {
+    const used = S.shareholders.slice(0,-1).reduce((s,h) => s+(h.pct||0), 0);
+    last.pct    = 100 - used;
+    if (S.totalShares) last.shares = Math.round(S.totalShares * last.pct / 100);
+  }
+  renderShareholders(); renderChart(); renderCertificates();
+}
+
+function sortBySharesDesc() {
+  S.shareholders.sort((a,b) => (b.shares||b.pct||0) - (a.shares||a.pct||0));
+  renderShareholders(); renderCertificates();
+}
+
+// ══════════════════════════════════════════════════
+//  PIE CHART
+// ══════════════════════════════════════════════════
+function renderChart() {
+  const canvas = document.getElementById('ownership-chart');
+  const valid  = S.shareholders.filter(sh => (sh.pct||0) > 0 || (sh.shares||0) > 0);
+
+  if (ownerChart) { ownerChart.destroy(); ownerChart = null; }
+
+  if (!valid.length) {
+    document.getElementById('chart-legend').innerHTML = '';
+    return;
+  }
+
+  const labels = valid.map(sh => sh.name);
+  const data   = valid.map(sh => sh.pct !== null ? sh.pct : (S.totalShares ? (sh.shares/S.totalShares*100) : 0));
+  const colors = valid.map(sh => COLORS[S.shareholders.indexOf(sh) % COLORS.length]);
+
+  ownerChart = new Chart(canvas.getContext('2d'), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor:'#fff', hoverBorderWidth:0 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '62%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const sh = valid[ctx.dataIndex];
+              const sharesStr = sh.shares ? ` — ${fmtN(sh.shares)} shares` : '';
+              return ` ${fmtPct(ctx.parsed)}${sharesStr}`;
+            }
+          }
+        }
+      }
+    }
+  });
+
+  const legend = document.getElementById('chart-legend');
+  legend.innerHTML = valid.map((sh, i) => `
+    <div class="legend-row">
+      <div class="legend-left">
+        <span class="color-dot" style="background:${colors[i]}"></span>
+        <span class="legend-name">${sh.name}</span>
+      </div>
+      <span class="legend-pct">${sh.pct !== null ? fmtPct(sh.pct) : (S.totalShares ? fmtPct(sh.shares/S.totalShares*100) : '—')}</span>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════════
+//  SHARE CERTIFICATES
+// ══════════════════════════════════════════════════
+function getCertOrdered() {
+  const order = document.getElementById('cert-order').value;
+  let arr = [...S.shareholders].filter(sh => (sh.shares||0) > 0);
+  if (order === 'desc') arr.sort((a,b) => (b.shares||0)-(a.shares||0));
+  if (order === 'asc')  arr.sort((a,b) => (a.shares||0)-(b.shares||0));
+  return arr;
+}
+
+function renderCertificates() {
+  const wrap = document.getElementById('cert-table-wrap');
+  const ordered = getCertOrdered();
+
+  if (!ordered.length || !S.totalShares) {
+    wrap.innerHTML = '<div class="empty-state"><div class="icon">📜</div>Add shareholders with share allocations to see certificate ranges.</div>';
+    return;
+  }
+
+  // Determine zero-pad length based on total shares
+  const padLen = Math.max(6, String(Math.round(S.totalShares)).length);
+
+  let cur = 1;
+  const rows = ordered.map((sh, i) => {
+    const start  = cur;
+    const end    = cur + sh.shares - 1;
+    cur = end + 1;
+    const origIdx = S.shareholders.indexOf(sh);
+    const color   = COLORS[origIdx % COLORS.length];
+    const pct     = S.totalShares ? (sh.shares / S.totalShares) * 100 : (sh.pct || 0);
+    const value   = S.parValue ? sh.shares * S.parValue : null;
+    return `
+      <tr>
+        <td><b>${i + 1}</b></td>
+        <td><span class="color-dot" style="background:${color};margin-right:8px"></span><b>${sh.name}</b></td>
+        <td class="text-right mono">${fmtN(sh.shares)}</td>
+        <td class="text-right mono">${fmtPct(pct)}</td>
+        <td class="text-right">${value !== null ? '฿'+fmtN(value) : '—'}</td>
+        <td class="text-right">
+          <div class="cert-range">
+            <span class="cert-num">${padCert(start, padLen)}</span>
+            <span class="cert-sep">to</span>
+            <span class="cert-num">${padCert(end, padLen)}</span>
+          </div>
+        </td>
+      </tr>`;
+  });
+
+  const totValue = S.parValue ? S.totalShares * S.parValue : null;
+  wrap.innerHTML = `
+    <table class="cert-table">
+      <thead>
+        <tr>
+          <th style="width:40px">No.</th>
+          <th>Shareholder</th>
+          <th class="r">Shares</th>
+          <th class="r">%</th>
+          <th class="r">Capital Value</th>
+          <th class="r">Certificate Numbers</th>
+        </tr>
+      </thead>
+      <tbody>${rows.join('')}</tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2">Total</td>
+          <td class="text-right mono">${fmtN(S.totalShares)}</td>
+          <td class="text-right mono">100%</td>
+          <td class="text-right mono">${totValue !== null ? '฿'+fmtN(totValue) : '—'}</td>
+          <td class="text-right">
+            <div class="cert-range">
+              <span class="cert-num">${padCert(1, padLen)}</span>
+              <span class="cert-sep">to</span>
+              <span class="cert-num">${padCert(S.totalShares, padLen)}</span>
+            </div>
+          </td>
+        </tr>
+      </tfoot>
+    </table>`;
+}
+
+function copyCertTable() {
+  const table = document.querySelector('.cert-table');
+  if (!table) return;
+  const sel = window.getSelection();
+  const range = document.createRange();
+  range.selectNode(table);
+  sel.removeAllRanges();
+  sel.addRange(range);
+  document.execCommand('copy');
+  sel.removeAllRanges();
+  alert('Certificate table copied to clipboard!');
+}
+
+// ══════════════════════════════════════════════════
+//  SOLVER
+// ══════════════════════════════════════════════════
+function syncSolverCapital() {
+  const v = document.getElementById('inp-capital').value;
+  if (v) document.getElementById('sv-capital').value = v;
+}
+
+function toggleSvDist() {
+  const isCustom = document.getElementById('sv-custom').checked;
+  document.getElementById('sv-custom-panel').style.display = isCustom ? 'block' : 'none';
+}
+
+function runSolver() {
+  const capital   = parseFloat(document.getElementById('sv-capital').value);
+  const maxShares = parseFloat(document.getElementById('sv-max-shares').value) || Infinity;
+  const minShares = parseFloat(document.getElementById('sv-min-shares').value) || 1;
+  const minPar    = parseFloat(document.getElementById('sv-min-par').value)    || 1;
+  const maxPar    = parseFloat(document.getElementById('sv-max-par').value)    || Infinity;
+  const nHolders  = parseInt(document.getElementById('sv-holders').value)      || 1;
+  const isEqual   = document.getElementById('sv-equal').checked;
+  const resEl     = document.getElementById('solver-results');
+
+  if (!capital || capital <= 0) {
+    resEl.innerHTML = '<div class="setup-status err" style="margin:0">Please enter a registered capital value.</div>';
+    return;
+  }
+
+  let targetPcts;
+  if (isEqual) {
+    targetPcts = Array(nHolders).fill(100 / nHolders);
+  } else {
+    const raw = document.getElementById('sv-custom-pct').value;
+    targetPcts = raw.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+    if (targetPcts.length !== nHolders) {
+      resEl.innerHTML = `<div class="setup-status err" style="margin:0">Custom percentage count (${targetPcts.length}) ≠ shareholder count (${nHolders}).</div>`;
+      return;
+    }
+    const pctSum = targetPcts.reduce((a,b) => a+b, 0);
+    if (Math.abs(pctSum - 100) > 0.01) {
+      resEl.innerHTML = `<div class="setup-status err" style="margin:0">Percentages sum to ${pctSum.toFixed(4)}%, must equal 100%.</div>`;
+      return;
+    }
+  }
+
+  const divisors = getDivisors(capital);
+  const solutions = [];
+
+  for (const par of divisors) {
+    if (par < minPar - 0.001 || par > maxPar + 0.001) continue;
+    const total = capital / par;
+    if (total < minShares - 0.5 || total > maxShares + 0.5) continue;
+    const sharesEach = targetPcts.map(p => total * p / 100);
+    if (!sharesEach.every(s => Math.abs(s - Math.round(s)) < 0.001)) continue;
+    solutions.push({ par, total: Math.round(total), sharesEach: sharesEach.map(Math.round), pcts: targetPcts });
+  }
+
+  _solverData = { solutions, capital, numHolders: nHolders, percentages: targetPcts };
+  renderSolverResults(solutions, capital, nHolders, targetPcts);
+}
+
+function renderSolverResults(solutions, capital, nHolders, percentages) {
+  const el = document.getElementById('solver-results');
+
+  if (!solutions.length) {
+    el.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">🚫</div>
+        No valid configurations found.<br>
+        <span style="font-size:12px">Try relaxing constraints — increase max shares, widen par value range, or adjust percentages.</span>
+      </div>`;
+    return;
+  }
+
+  const isEqual = percentages.every(p => Math.abs(p - percentages[0]) < 0.001);
+
+  // Stats
+  const minEach = Math.min(...solutions.map(s => Math.min(...s.sharesEach)));
+  const maxEach = Math.max(...solutions.map(s => Math.max(...s.sharesEach)));
+  const bestLow  = solutions[solutions.length - 1]; // highest par → fewest shares
+  const bestHigh = solutions[0];                    // lowest par → most shares
+
+  let summaryHtml = `<div class="solver-summary">
+    <div class="solver-summary-item blue">
+      <div class="s-label">Valid Configurations</div>
+      <div class="s-val">${solutions.length}</div>
+    </div>
+    <div class="solver-summary-item green">
+      <div class="s-label">Par Value Range</div>
+      <div class="s-val">฿${fmtN(solutions[0].par)} – ฿${fmtN(solutions[solutions.length-1].par)}</div>
+    </div>`;
+
+  if (isEqual) {
+    summaryHtml += `
+    <div class="solver-summary-item purple">
+      <div class="s-label">Max shares each holder</div>
+      <div class="s-val">${fmtN(maxEach)}</div>
+      <div class="s-sub">@ ฿${fmtN(bestHigh.par)}/share par value</div>
+    </div>
+    <div class="solver-summary-item amber">
+      <div class="s-label">Min shares each holder</div>
+      <div class="s-val">${fmtN(minEach)}</div>
+      <div class="s-sub">@ ฿${fmtN(bestLow.par)}/share par value</div>
+    </div>`;
+  }
+  summaryHtml += '</div>';
+
+  const rows = solutions.map((sol, idx) => {
+    const isHighRow = idx === 0;
+    const isLowRow  = idx === solutions.length - 1;
+    const rowClass  = isHighRow ? 'sol-row-best-high' : (isLowRow ? 'sol-row-best-low' : '');
+    const badge     = isHighRow ? '<span class="badge-tag high">most shares</span>'
+                    : isLowRow  ? '<span class="badge-tag low">fewest shares</span>'
+                    : '';
+
+    const sharesDisplay = isEqual
+      ? fmtN(sol.sharesEach[0]) + ' each'
+      : sol.sharesEach.map((s,i) => `${fmtN(s)} (${fmtPct(sol.pcts[i],2)})`).join(' / ');
+
+    return `
+      <tr class="${rowClass}" onclick="loadSolution(${idx})">
+        <td class="mono">฿${fmtN(sol.par)}${badge}</td>
+        <td class="mono text-right">${fmtN(sol.total)}</td>
+        <td class="mono">${sharesDisplay}</td>
+        <td><button class="load-btn" onclick="loadSolution(${idx});event.stopPropagation()">Load →</button></td>
+      </tr>`;
+  }).join('');
+
+  el.innerHTML = summaryHtml + `
+    <div style="overflow-x:auto">
+      <table class="sol-table">
+        <thead><tr>
+          <th>Par Value</th>
+          <th class="r">Total Shares</th>
+          <th>Shares per Holder</th>
+          <th></th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <p style="font-size:11px;color:#aeaeb2;margin-top:8px;text-align:center">
+        Click any row to load the configuration into the Shareholder Planner
+      </p>
+    </div>`;
+}
+
+function loadSolution(idx) {
+  const sol = _solverData.solutions[idx];
+  if (!sol) return;
+
+  // Update setup fields
+  document.getElementById('inp-capital').value = _solverData.capital;
+  document.getElementById('inp-par').value     = sol.par;
+  document.getElementById('inp-shares').value  = sol.total;
+
+  S.capital = _solverData.capital;
+  S.parValue = sol.par;
+  S.totalShares = sol.total;
+
+  // Build shareholders
+  S.shareholders = sol.sharesEach.map((shares, i) => ({
+    id:     S.nextId++,
+    name:   `Shareholder ${i + 1}`,
+    shares,
+    pct:    sol.pcts[i],
+  }));
+
+  // Refresh setup status
+  document.getElementById('chip-capital').textContent = `Capital: ฿${fmtN(S.capital)}`;
+  document.getElementById('chip-par').textContent     = `Par: ฿${fmtN(S.parValue)}/share`;
+  document.getElementById('chip-shares').textContent  = `${fmtN(S.totalShares)} shares total`;
+  document.getElementById('setup-chips').style.display = 'flex';
+  document.getElementById('setup-status').className   = 'setup-status ok';
+  document.getElementById('setup-status').textContent = `✓  ฿${fmtN(S.capital)} ÷ ฿${fmtN(S.parValue)}/share = ${fmtN(S.totalShares)} shares`;
+  document.getElementById('setup-status').style.display = 'block';
+  document.getElementById('inp-capital').value = S.capital;
+  document.getElementById('inp-par').value     = S.parValue;
+  document.getElementById('inp-shares').value  = S.totalShares;
+  [document.getElementById('inp-capital'),
+   document.getElementById('inp-par'),
+   document.getElementById('inp-shares')].forEach(el => el.classList.remove('derived'));
+
+  switchTab('planner');
+  renderShareholders();
+  renderChart();
+  renderCertificates();
+}
+
+// ══════════════════════════════════════════════════
+//  TABS
+// ══════════════════════════════════════════════════
+function switchTab(tab) {
+  ['planner','solver'].forEach(t => {
+    document.getElementById(`pane-${t}`).classList.toggle('active', t === tab);
+    document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+  });
+}
+
+// ══════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  ['inp-capital','inp-par','inp-shares'].forEach(id =>
+    document.getElementById(id).addEventListener('input', onSetupInput)
+  );
+
+  // Start with two example shareholders
+  addShareholder();
+  addShareholder();
+
+  renderChart();
+  renderCertificates();
+});
+</script>
+</body>
+</html>

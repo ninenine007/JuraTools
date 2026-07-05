@@ -181,6 +181,7 @@
     .card[data-cat="math"]      { --glow: 0 6px 24px rgba(234,88,12,0.14);  }
     .card[data-cat="script"]    { --glow: 0 6px 24px rgba(22,163,74,0.14);  }
     .card[data-cat="tax"]       { --glow: 0 6px 24px rgba(225,29,72,0.14);  }
+    .card[data-cat="labour"]    { --glow: 0 6px 24px rgba(8,145,178,0.14);  }
 
     .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
     .card-icon {
@@ -194,6 +195,7 @@
     .card[data-cat="math"]      .card-icon { background: linear-gradient(145deg, #fef3c7, #fed7aa); }
     .card[data-cat="script"]    .card-icon { background: linear-gradient(145deg, #dcfce7, #bbf7d0); }
     .card[data-cat="tax"]       .card-icon { background: linear-gradient(145deg, #ffe4e6, #fecdd3); }
+    .card[data-cat="labour"]    .card-icon { background: linear-gradient(145deg, #cffafe, #a5f3fc); }
 
     .card-badge {
       display: inline-flex; align-items: center;
@@ -333,7 +335,7 @@
   <div class="tabs-wrap">
     <div class="tabs" role="tablist">
       <button class="tab active" data-filter="" role="tab" aria-selected="true">
-        All <span class="tab-count" id="tab-count">14</span>
+        All <span class="tab-count" id="tab-count">15</span>
       </button>
       <button class="tab" data-filter="legal" role="tab">
         <span class="tab-dot" style="background:linear-gradient(135deg,#2979ff,#64b5f6)"></span>
@@ -346,6 +348,10 @@
       <button class="tab" data-filter="tax" role="tab">
         <span class="tab-dot" style="background:linear-gradient(135deg,#e11d48,#fb7185)"></span>
         Tax
+      </button>
+      <button class="tab" data-filter="labour" role="tab">
+        <span class="tab-dot" style="background:linear-gradient(135deg,#0891b2,#22d3ee)"></span>
+        Labour
       </button>
       <button class="tab" data-filter="text" role="tab">
         <span class="tab-dot" style="background:linear-gradient(135deg,#0d9488,#34d399)"></span>
@@ -500,6 +506,22 @@
           <a class="btn btn-open" href="thai-tax-tools.html">Open →</a>
           <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/thai-tax-tools.html" target="_blank" rel="noopener">Source</a>
           <button class="btn btn-copy" data-copy="thai-tax-tools.html">Copy link</button>
+        </div>
+      </article>
+
+      <!-- Labour cards -->
+      <article class="card" data-cat="labour" data-tags="thai labour law employment termination payment in lieu advance notice severance pay unused annual leave unfair termination compensation damages interest s.17 s.118 s.119 s.67 s.49 settlement collection hub LPA labour protection act civil commercial code labour court">
+        <div class="card-head">
+          <div class="card-icon">👷</div>
+          <span class="card-badge badge-new">New</span>
+        </div>
+        <div class="card-sub">Labour / Collection</div>
+        <h3 class="card-title">Thai Labour Law Tools</h3>
+        <p class="card-desc">A collection of calculators for Thai termination payments. Opens a hub linking to each tool — <strong>payment in lieu of advance notice</strong> (s.17/1), <strong>severance</strong> (s.118), <strong>unused annual leave</strong> (s.67), an <strong>unfair-termination</strong> estimator (s.49), and a combined <strong>settlement</strong> tool — with statutory interest.</p>
+        <div class="card-actions">
+          <a class="btn btn-open" href="thai-labour-tools.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/thai-labour-tools.html" target="_blank" rel="noopener">Source</a>
+          <button class="btn btn-copy" data-copy="thai-labour-tools.html">Copy link</button>
         </div>
       </article>
 

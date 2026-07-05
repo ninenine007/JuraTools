@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payment in Lieu of Advance Notice — JuraTools</title>
+<link rel="stylesheet" href="labour-core.css">
+<style>
+  .container { max-width: 680px; }
+
+  .explain { background: var(--info-light); border: 1px solid var(--info-border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 20px; font-size: 13px; line-height: 1.6; color: #155e75; }
+  .explain strong { font-weight: 700; }
+
+  .mode-help { font-size: 13px; color: var(--text-muted); margin: -4px 0 16px; }
+  .mode-help strong { color: var(--text); font-weight: 600; }
+
+  /* Result answer */
+  .answer { background: var(--green-light); border: 1px solid var(--green-border); border-radius: var(--radius); padding: 18px; margin-bottom: 14px; }
+  .answer-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); margin-bottom: 6px; }
+  .answer-value { font-size: 24px; font-weight: 700; color: var(--green); line-height: 1.15; }
+  .answer-sub { font-size: 13px; color: var(--text-muted); margin-top: 10px; line-height: 1.55; }
+  .answer-sub strong { color: var(--text); font-weight: 600; }
+
+  .timeline-wrap { margin: 16px 0 2px; }
+  .timeline-svg { width: 100%; display: block; }
+
+  .pil-amount { font-size: 26px; font-weight: 700; color: var(--green); line-height: 1.1; }
+  .pil-breakdown { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="index.html">JuraTools</a>
+  <span class="sep">/</span>
+  <a href="thai-labour-tools.html">Thai Labour Law Tools</a>
+  <span class="sep">/</span>
+  <span class="current">Payment in Lieu</span>
+  <a class="back" href="thai-labour-tools.html">← All</a>
+</nav>
+
+<div class="container">
+
+<header>
+  <h1>Payment in Lieu of Advance Notice</h1>
+  <div class="th">สินจ้างแทนการบอกกล่าวล่วงหน้า</div>
+</header>
+
+<div class="explain">
+  Under <strong>s.17</strong>, notice on an indefinite contract is tied to the <strong>wage-payment cycle</strong>: notice given on or before a pay day takes effect on the <strong>next</strong> pay day, capped at <strong>3 months</strong>. End the job without that notice and the employer owes <strong>pay-in-lieu</strong> for the missing period (s.17/1).
+</div>
+
+<!-- Shared profile -->
+<div id="profileBanner" class="profile-banner hidden">
+  <span class="pb-text"></span>
+  <span class="pb-actions">
+    <button class="btn btn-small" onclick="saveProfileFromPage()">Save to shared profile</button>
+    <button class="btn btn-small" onclick="applyProfileToPage()">Reset to shared</button>
+  </span>
+</div>
+
+<!-- STEP 1: Fixed pay-cycle facts -->
+<div class="card">
+  <div class="step"><span class="step-n">1</span><h2>The employee's pay cycle</h2></div>
+  <div class="step-note">Fixed facts about how this employee is paid. Set them once.</div>
+
+  <div class="field">
+    <label for="scheduleType">When are wages paid?</label>
+    <select id="scheduleType">
+      <optgroup label="Monthly salary">
+        <option value="monthly-fixed">On a fixed date each month (e.g. 26th)</option>
+        <option value="monthly-last">On the last day of the month</option>
+        <option value="monthly-last-working">On the last working day (Mon–Fri)</option>
+      </optgroup>
+      <optgroup label="Weekly / bi-weekly">
+        <option value="weekly">Weekly, on a set weekday</option>
+        <option value="biweekly">Every two weeks</option>
+      </optgroup>
+      <optgroup label="Daily / every N days">
+        <option value="daily">Every day (daily wages)</option>
+        <option value="every-n">Every N days</option>
+      </optgroup>
+      <optgroup label="Other">
+        <option value="twice-monthly">Twice a month (two dates)</option>
+      </optgroup>
+    </select>
+
+    <div class="sub-fields" id="sf-monthly-fixed">
+      <div class="field" style="margin-top:12px">
+        <label for="fixedDay">Day of month</label>
+        <input type="number" id="fixedDay" min="1" max="31" value="26">
+        <div class="warn-small hidden" id="fixedDayWarn">Days 29–31 shift to the last day in shorter months.</div>
+      </div>
+    </div>
+    <div class="sub-fields hidden" id="sf-monthly-last"></div>
+    <div class="sub-fields hidden" id="sf-monthly-last-working">
+      <div class="callout callout-info" style="margin-top:12px;margin-bottom:0">Public holidays are not accounted for; verify manually.</div>
+    </div>
+    <div class="sub-fields hidden" id="sf-weekly">
+      <div class="field" style="margin-top:12px">
+        <label for="weeklyDay">Pay weekday</label>
+        <select id="weeklyDay">
+          <option value="1">Monday</option><option value="2">Tuesday</option>
+          <option value="3">Wednesday</option><option value="4">Thursday</option>
+          <option value="5" selected>Friday</option>
+        </select>
+      </div>
+    </div>
+    <div class="sub-fields hidden" id="sf-biweekly">
+      <div class="field-row" style="margin-top:12px">
+        <div class="field">
+          <label for="biweeklyDay">Pay weekday</label>
+          <select id="biweeklyDay">
+            <option value="1">Monday</option><option value="2">Tuesday</option>
+            <option value="3">Wednesday</option><option value="4">Thursday</option>
+            <option value="5" selected>Friday</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="biweeklyAnchor">A known pay date</label>
+          <input type="date" id="biweeklyAnchor">
+        </div>
+      </div>
+    </div>
+    <div class="sub-fields hidden" id="sf-daily">
+      <div class="callout callout-info" style="margin-top:12px;margin-bottom:0">Every day is a pay day: notice given today takes effect on the next pay day, tomorrow (s.17).</div>
+    </div>
+    <div class="sub-fields hidden" id="sf-every-n">
+      <div class="field-row" style="margin-top:12px">
+        <div class="field">
+          <label for="everyNDays">Days per pay cycle (N)</label>
+          <input type="number" id="everyNDays" min="1" step="1" value="10">
+        </div>
+        <div class="field">
+          <label for="everyNAnchor">A known pay date</label>
+          <input type="date" id="everyNAnchor">
+        </div>
+      </div>
+    </div>
+    <div class="sub-fields hidden" id="sf-twice-monthly">
+      <div class="field-row" style="margin-top:12px">
+        <div class="field">
+          <label for="twiceDay1">First pay date</label>
+          <input type="number" id="twiceDay1" min="1" max="31" value="15">
+        </div>
+        <div class="field">
+          <label for="twiceDay2">Second pay date</label>
+          <select id="twiceDay2Select">
+            <option value="last">Last day of month</option>
+            <option value="fixed">Fixed date</option>
+          </select>
+          <input type="number" id="twiceDay2Fixed" min="1" max="31" value="28" style="margin-top:6px" class="hidden">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="field-row" style="margin-top:4px">
+    <div class="field">
+      <label for="wageAmount">Wage (THB)</label>
+      <input type="number" id="wageAmount" min="0" step="0.01" placeholder="e.g. 30000">
+    </div>
+    <div class="field">
+      <label for="wagePeriod">Per</label>
+      <select id="wagePeriod">
+        <option value="monthly">Month</option>
+        <option value="weekly">Week</option>
+        <option value="daily">Day</option>
+        <option value="perN" id="optPerN" hidden>Pay period (N days)</option>
+      </select>
+    </div>
+  </div>
+  <div class="field-note" style="margin:-4px 0 0">Enter the <strong>time-based wage only</strong>. Piece-rate wages (ค่าจ้างตามผลงาน) are strictly excluded from pay-in-lieu: it covers the wages the employee <strong>would have earned</strong> through the notice period, and future output cannot be known — unlike severance, which looks back at output actually earned. Strictly the piece part is uncomputable, but a labour court may analogize the s.60 last-period average — choose below.</div>
+
+  <div class="field" style="margin-top:12px">
+    <label for="pilPieceMode">Piece-rate wages (ค่าจ้างตามผลงาน)</label>
+    <select id="pilPieceMode">
+      <option value="exclude">Exclude — strict position: future output cannot be projected</option>
+      <option value="analogy">Estimate by analogy to s.60 — average of the last pay period</option>
+    </select>
+  </div>
+  <div class="field-row hidden" id="pilPieceFields">
+    <div class="field"><label for="pilPieceAmt">Piece wages received in the last pay period (THB)</label><input type="number" id="pilPieceAmt" min="0" step="0.01" placeholder="e.g. 12000"></div>
+    <div class="field"><label for="pilPieceDays">Working days in that period</label><input type="number" id="pilPieceDays" min="0" step="1" placeholder="e.g. 24"></div>
+  </div>
+  <div class="callout callout-amber hidden" id="pilPieceWarn" style="margin-bottom:0"><strong>Estimate only.</strong> The strict statutory position is that no piece-rate amount is computable. A labour court may analogize the s.60 average of the last pay period, but that is not guaranteed.</div>
+</div>
+
+<!-- STEP 2: The termination scenario -->
+<div class="card">
+  <div class="step"><span class="step-n">2</span><h2>The termination</h2></div>
+  <div class="step-note">The scenario you're working out. This changes case to case.</div>
+
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="btnForward" onclick="setMode('forward')">I know the notice date</button>
+    <button class="mode-btn" id="btnBackward" onclick="setMode('backward')">I have a target last day</button>
+  </div>
+  <div class="mode-help" id="modeHelp"></div>
+
+  <div id="inputForward" class="field">
+    <label for="forwardDate">Notice date <span class="hint">(when notice is given)</span></label>
+    <input type="date" id="forwardDate">
+  </div>
+  <div id="inputBackward" class="field hidden">
+    <label for="backwardDate">Target last day <span class="hint">(the termination date you want)</span></label>
+    <input type="date" id="backwardDate">
+  </div>
+</div>
+
+<!-- RESULT: dates -->
+<div id="snapNote" class="callout callout-info hidden" style="margin-bottom:14px"></div>
+
+<div class="answer" id="answerCard">
+  <div class="answer-label" id="answerLabel">Result</div>
+  <div class="answer-value" id="answerValue">—</div>
+  <div class="answer-sub" id="answerSub">Fill in steps 1 and 2 to see the result.</div>
+</div>
+
+<div class="timeline-wrap" id="timelineWrap">
+  <svg class="timeline-svg" id="timelineSvg" height="64" viewBox="0 0 560 64" preserveAspectRatio="xMidYMid meet"></svg>
+</div>
+
+<div id="threeMonthCallout" class="callout callout-amber hidden" style="margin-bottom:16px"></div>
+
+<!-- STEP 3: Pay-in-lieu -->
+<div class="card">
+  <div class="step"><span class="step-n">3</span><h2>Pay-in-lieu, if notice is skipped</h2></div>
+  <div class="step-note">Wages from the termination effective date through the step 2 date (when lawful notice would end), both days counted (s.17/1).</div>
+
+  <div class="field-row">
+    <div class="field">
+      <label for="dismissDate">Dismissal date <span class="hint">(the day the employment ends — for notice or garden leave, the day the notice takes effect)</span></label>
+      <input type="date" id="dismissDate">
+    </div>
+    <div class="field">
+      <label for="dismissWorked">Did the employee work, or get paid wages, for that day?</label>
+      <select id="dismissWorked">
+        <option value="yes">Yes — worked or was paid wages for that day</option>
+        <option value="no">No — no work and no wages from that day</option>
+      </select>
+    </div>
+  </div>
+  <div class="derived-facts hidden" id="dismissDerived"></div>
+  <div class="field-note" style="margin:-8px 0 16px">A day worked or paid is owed as <strong>wage</strong>, never pay-in-lieu: termination (s.118 ¶2) happens only when the employer stops both the work and the wages, so if the dismissal day was worked or paid the termination effective date is the next day even when the letter names that day. Pay-in-lieu day 1 = the termination effective date. Garden leave with wages running to the notice date needs no pay-in-lieu at all. This one rule reproduces both ฎีกา lines (43, 53, 30, 18 days when sent away unpaid; 23, 44 days when the dismissal day was worked).</div>
+
+  <div id="pilResult" class="amount-box hidden">
+    <div class="amount-label">Pay-in-lieu owed</div>
+    <div class="pil-amount" id="pilAmount"></div>
+    <div class="pil-breakdown" id="pilBreakdown"></div>
+    <div class="amount-sub">Payable on the termination effective date (s.17/1).</div>
+  </div>
+  <div id="pilHint" class="callout callout-info" style="margin-bottom:0">Enter the wage (step 1) and the dismissal date to see the amount.</div>
+  <div id="pilError" class="callout callout-amber hidden" style="margin-bottom:0"></div>
+</div>
+
+<!-- Interest -->
+<div class="card" id="interestCard">
+  <div class="section-toggle" id="intToggle" onclick="toggleInterest()">Interest &amp; เงินเพิ่ม on unpaid pay-in-lieu (LPA s.9)</div>
+  <div id="intSection" class="hidden" style="margin-top:16px">
+    <p class="muted" style="font-size:13px;margin-bottom:14px">Unpaid s.17/1 pay-in-lieu bears <strong>15%/yr</strong> interest during default (s.9 ¶1). The due date defaults to the exit date; all fields are editable.</p>
+    <div class="field-row">
+      <div class="field"><label for="intDue">Due date <span class="hint">(payable)</span></label><input type="date" id="intDue"></div>
+      <div class="field"><label for="intAsOf">Calculate up to (as-of)</label><input type="date" id="intAsOf"></div>
+    </div>
+    <div class="field-row-3">
+      <div class="field"><label for="intRate">Rate (%/yr)</label><input type="number" id="intRate" step="0.01" value="15"></div>
+      <div class="field"><label for="intBasis">Day-count basis</label><select id="intBasis"></select></div>
+      <div class="field"><label for="intPrincipal">Principal (THB)</label><input type="number" id="intPrincipal" readonly></div>
+    </div>
+    <div class="check-row" style="margin-bottom:12px">
+      <input type="checkbox" id="intSurcharge">
+      <label for="intSurcharge">Add <strong>เงินเพิ่ม</strong>: 15% of principal per completed 7-day period (s.9 ¶2). Requires willful non-payment without reasonable cause.</label>
+    </div>
+    <table class="data" id="intTable"></table>
+  </div>
+</div>
+
+<div class="actions-row">
+  <button class="btn btn-reset" onclick="resetAll()">Reset all</button>
+</div>
+
+<footer>
+  <span class="cites">Labour Protection Act B.E. 2541, ss.9, 17, 17/1, 70 · Civil &amp; Commercial Code ss.582–583</span><br>
+  Reference tool only, not legal advice. Runs entirely in your browser.
+</footer>
+
+</div><!-- /container -->
+
+<script src="labour-core.js"></script>
+<script>
+// ─── schedule-specific helpers (generic date math lives in labour-core.js) ──
+function lastWorkingDayOfMonth(year, month) {
+  var d = new Date(year, month, LC.lastDayOfMonth(year, month));
+  while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() - 1);
+  return d;
+}
+function getSchedule() {
+  var type = document.getElementById('scheduleType').value;
+  var s = { type: type };
+  if (type === 'monthly-fixed') s.day = parseInt(document.getElementById('fixedDay').value, 10) || 26;
+  else if (type === 'weekly') s.weekday = parseInt(document.getElementById('weeklyDay').value, 10);
+  else if (type === 'biweekly') { s.weekday = parseInt(document.getElementById('biweeklyDay').value, 10); s.anchor = LC.parseDate(document.getElementById('biweeklyAnchor').value); }
+  else if (type === 'every-n') { s.n = Math.max(1, parseInt(document.getElementById('everyNDays').value, 10) || 1); s.anchor = LC.parseDate(document.getElementById('everyNAnchor').value); }
+  else if (type === 'twice-monthly') {
+    s.day1 = parseInt(document.getElementById('twiceDay1').value, 10) || 15;
+    s.useLastDay2 = document.getElementById('twiceDay2Select').value === 'last';
+    s.day2 = s.useLastDay2 ? null : (parseInt(document.getElementById('twiceDay2Fixed').value, 10) || 28);
+  }
+  return s;
+}
+function paymentDatesInMonth(s, year, month) {
+  var dates = [];
+  if (s.type === 'monthly-fixed') { var md = LC.lastDayOfMonth(year, month); dates.push(new Date(year, month, Math.min(s.day, md))); }
+  else if (s.type === 'monthly-last') dates.push(new Date(year, month, LC.lastDayOfMonth(year, month)));
+  else if (s.type === 'monthly-last-working') dates.push(lastWorkingDayOfMonth(year, month));
+  else if (s.type === 'twice-monthly') {
+    var maxDay = LC.lastDayOfMonth(year, month);
+    var d1 = Math.min(s.day1, maxDay); dates.push(new Date(year, month, d1));
+    if (s.useLastDay2) dates.push(new Date(year, month, maxDay));
+    else { var d2 = Math.min(s.day2, maxDay); if (d2 !== d1) dates.push(new Date(year, month, d2)); }
+    dates.sort(function (a, b) { return a - b; });
+  }
+  return dates;
+}
+function getNextPaymentDate(s, fromDate, inclusive) {
+  var from = LC.toLocal(fromDate);
+  if (s.type === 'daily') {
+    var dd = new Date(from); if (!inclusive) dd.setDate(dd.getDate() + 1); return dd;
+  }
+  if (s.type === 'every-n') {
+    if (!s.anchor) return null;
+    var dn = new Date(from); if (!inclusive) dn.setDate(dn.getDate() + 1);
+    var remN = ((LC.daysDiff(LC.toLocal(s.anchor), dn) % s.n) + s.n) % s.n;
+    if (remN !== 0) dn.setDate(dn.getDate() + (s.n - remN));
+    return dn;
+  }
+  if (s.type === 'weekly') {
+    var d = new Date(from); if (!inclusive) d.setDate(d.getDate() + 1);
+    while (d.getDay() !== s.weekday) d.setDate(d.getDate() + 1); return d;
+  }
+  if (s.type === 'biweekly') {
+    if (!s.anchor) return null; var anchor = LC.toLocal(s.anchor); var d2 = new Date(from);
+    if (!inclusive) d2.setDate(d2.getDate() + 1);
+    while (d2.getDay() !== s.weekday) d2.setDate(d2.getDate() + 1);
+    var rem = ((LC.daysDiff(anchor, d2) % 14) + 14) % 14;
+    if (rem !== 0) d2.setDate(d2.getDate() + (14 - rem)); return d2;
+  }
+  var year = from.getFullYear(), month = from.getMonth();
+  for (var i = 0; i < 24; i++) {
+    var dates = paymentDatesInMonth(s, year, month);
+    for (var j = 0; j < dates.length; j++) { var pd = dates[j]; if (inclusive ? pd >= from : pd > from) return pd; }
+    month++; if (month > 11) { month = 0; year++; }
+  }
+  return null;
+}
+function getPrevPaymentDate(s, fromDate) {
+  var from = LC.toLocal(fromDate);
+  if (s.type === 'daily') { var dp = new Date(from); dp.setDate(dp.getDate() - 1); return dp; }
+  if (s.type === 'every-n') {
+    if (!s.anchor) return null;
+    var dq = new Date(from); dq.setDate(dq.getDate() - 1);
+    var remP = ((LC.daysDiff(LC.toLocal(s.anchor), dq) % s.n) + s.n) % s.n;
+    if (remP !== 0) dq.setDate(dq.getDate() - remP);
+    return dq;
+  }
+  if (s.type === 'weekly') { var d = new Date(from); d.setDate(d.getDate() - 1); while (d.getDay() !== s.weekday) d.setDate(d.getDate() - 1); return d; }
+  if (s.type === 'biweekly') {
+    if (!s.anchor) return null; var anchor = LC.toLocal(s.anchor); var d2 = new Date(from); d2.setDate(d2.getDate() - 1);
+    while (d2.getDay() !== s.weekday) d2.setDate(d2.getDate() - 1);
+    var rem = ((LC.daysDiff(anchor, d2) % 14) + 14) % 14; if (rem !== 0) d2.setDate(d2.getDate() - rem); return d2;
+  }
+  var year = from.getFullYear(), month = from.getMonth();
+  for (var i = 0; i < 24; i++) {
+    var m = month - i, y = year + Math.floor(m / 12), mon = ((m % 12) + 12) % 12;
+    var dates = paymentDatesInMonth(s, y, mon).reverse();
+    for (var j = 0; j < dates.length; j++) { if (dates[j] < from) return dates[j]; }
+  }
+  return null;
+}
+function isPaymentDate(s, date) { var d = LC.toLocal(date); var p = getNextPaymentDate(s, d, true); return p && LC.sameDay(p, d); }
+
+// ─── UI state ───────────────────────────────────────────────────────────────
+var mode = 'forward', intOpen = false, lastPil = 0, lastT = null;
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('btnForward').classList.toggle('active', m === 'forward');
+  document.getElementById('btnBackward').classList.toggle('active', m === 'backward');
+  document.getElementById('inputForward').classList.toggle('hidden', m !== 'forward');
+  document.getElementById('inputBackward').classList.toggle('hidden', m !== 'backward');
+  document.getElementById('modeHelp').innerHTML = m === 'forward'
+    ? 'Enter the date notice is given. I’ll find <strong>when termination takes effect</strong>.'
+    : 'Enter the last day you want. I’ll find the <strong>latest date to give notice</strong>.';
+  calculate();
+}
+function toggleInterest() { intOpen = !intOpen; document.getElementById('intToggle').classList.toggle('open', intOpen); document.getElementById('intSection').classList.toggle('hidden', !intOpen); }
+
+var allSf = ['monthly-fixed', 'monthly-last', 'monthly-last-working', 'weekly', 'biweekly', 'daily', 'every-n', 'twice-monthly'];
+function updateScheduleFields() {
+  var type = document.getElementById('scheduleType').value;
+  allSf.forEach(function (t) { var el = document.getElementById('sf-' + t); if (el) el.classList.toggle('hidden', t !== type); });
+  var day = parseInt(document.getElementById('fixedDay').value, 10);
+  document.getElementById('fixedDayWarn').classList.toggle('hidden', day < 29);
+  // "Per pay period" wage entry only makes sense for the every-N-days cycle.
+  var perN = document.getElementById('optPerN'), wp = document.getElementById('wagePeriod');
+  if (type === 'every-n') {
+    var n = Math.max(1, parseInt(document.getElementById('everyNDays').value, 10) || 1);
+    perN.hidden = false; perN.textContent = 'Pay period (' + n + ' days)';
+  } else {
+    perN.hidden = true;
+    if (wp.value === 'perN') wp.value = 'monthly';
+  }
+  calculate();
+}
+
+// ─── Main calculation ─────────────────────────────────────────────────────────
+function calculate() {
+  var s = getSchedule();
+  if (s.type === 'biweekly' && !s.anchor) { clearResults('Enter a known pay date for the bi-weekly schedule.'); return; }
+  if (s.type === 'every-n' && !s.anchor) { clearResults('Enter a known pay date for the every-N-days schedule.'); return; }
+  var P, T, snapped = false, snapOriginal = null, noticeDate = null;
+
+  if (mode === 'forward') {
+    noticeDate = LC.parseDate(document.getElementById('forwardDate').value);
+    if (!noticeDate) { clearResults(); return; }
+    P = getNextPaymentDate(s, noticeDate, true); if (!P) { clearResults(); return; }
+    T = getNextPaymentDate(s, P, false); if (!T) { clearResults(); return; }
+  } else {
+    var desiredDate = LC.parseDate(document.getElementById('backwardDate').value);
+    if (!desiredDate) { clearResults(); return; }
+    // Termination takes effect on the latest pay day ON OR BEFORE the target last day,
+    // so the employee is gone by the target. Notice is the pay day before that.
+    if (isPaymentDate(s, desiredDate)) { T = desiredDate; }
+    else { T = getPrevPaymentDate(s, desiredDate); snapped = true; snapOriginal = desiredDate; }
+    if (!T) { clearResults('No wage-payment date on or before that target.'); return; }
+    P = getPrevPaymentDate(s, T); if (!P) { clearResults(); return; }
+  }
+  renderResults(P, T, noticeDate, snapOriginal, snapped);
+  calcPil(T);
+  saveState();
+}
+
+function renderResults(P, T, noticeDate, snapOriginal, snapped) {
+  var label = document.getElementById('answerLabel');
+  var value = document.getElementById('answerValue');
+  var sub = document.getElementById('answerSub');
+
+  if (mode === 'forward') {
+    var days = LC.daysDiff(noticeDate, T);
+    label.textContent = 'Termination takes effect';
+    value.textContent = LC.formatDate(T);
+    sub.innerHTML = '<strong>' + days + ' days</strong> of notice (' + LC.formatShort(noticeDate) + ' → ' + LC.formatShort(T) + '). '
+      + 'You may give notice as late as <strong>' + LC.formatShort(P) + '</strong> for this same date.';
+  } else {
+    var gap = LC.daysDiff(P, T);
+    label.textContent = 'Give notice on or before';
+    value.textContent = LC.formatDate(P);
+    sub.innerHTML = 'Termination then takes effect <strong>' + LC.formatShort(T) + '</strong>' + (snapped ? ' (the latest pay day on or before your target)' : '') + ', ' + gap + ' days later.';
+  }
+
+  // Snap note
+  var snapEl = document.getElementById('snapNote');
+  if (snapped && snapOriginal) {
+    snapEl.classList.remove('hidden');
+    snapEl.innerHTML = '<strong>Adjusted:</strong> ' + LC.formatShort(snapOriginal) + ' isn’t a wage-payment date, so termination is taken on the latest pay day on or before it, <strong>' + LC.formatShort(T) + '</strong>.';
+  } else snapEl.classList.add('hidden');
+
+  // 3-month cap
+  var threeMonthEl = document.getElementById('threeMonthCallout');
+  var refDate = noticeDate || P;
+  var threeMonthMark = LC.addMonths(refDate, 3);
+  if (T > threeMonthMark) {
+    threeMonthEl.classList.remove('hidden');
+    threeMonthEl.innerHTML = '<strong>3-month cap (s.17 ¶2):</strong> this notice period exceeds 3 months. The employer may instead set termination on <strong>' + LC.formatShort(threeMonthMark) + '</strong>.';
+  } else threeMonthEl.classList.add('hidden');
+
+  renderTimeline(P, T, noticeDate);
+}
+
+function renderTimeline(P, T, noticeDate) {
+  var svg = document.getElementById('timelineSvg'), W = 560, padL = 12, padR = 12, lineY = 32;
+  var points = [];
+  if (mode === 'forward' && noticeDate && !LC.sameDay(noticeDate, P)) points.push({ d: noticeDate, label: 'Notice given', color: '#6b6762' });
+  points.push({ d: P, label: mode === 'forward' ? 'Latest notice' : 'Give notice by', color: '#2563eb' });
+  points.push({ d: T, label: 'Termination', color: '#15803d' });
+  var minD = points[0].d, maxD = points[points.length - 1].d, range = Math.max(LC.daysDiff(minD, maxD), 1);
+  function xFor(d) { return padL + (LC.daysDiff(minD, d) / range) * (W - padL - padR); }
+  var html = '<line x1="' + padL + '" y1="' + lineY + '" x2="' + (W - padR) + '" y2="' + lineY + '" stroke="#e2e0db" stroke-width="2"/>';
+  points.forEach(function (pt, i) {
+    var x = xFor(pt.d);
+    html += '<circle cx="' + x + '" cy="' + lineY + '" r="6" fill="' + pt.color + '"/>';
+    var anchor = i === 0 ? 'start' : i === points.length - 1 ? 'end' : 'middle';
+    var labelX = i === 0 ? Math.max(x, padL + 2) : i === points.length - 1 ? Math.min(x, W - padR - 2) : x;
+    html += '<text x="' + labelX + '" y="' + (lineY - 13) + '" text-anchor="' + anchor + '" font-size="11" fill="' + pt.color + '" font-weight="600">' + pt.label + '</text>';
+    html += '<text x="' + labelX + '" y="' + (lineY + 19) + '" text-anchor="' + anchor + '" font-size="10" fill="#6b6762">' + LC.formatShort(pt.d) + '</text>';
+  });
+  svg.innerHTML = html;
+}
+
+function clearResults(msg) {
+  document.getElementById('answerLabel').textContent = 'Result';
+  document.getElementById('answerValue').textContent = '—';
+  document.getElementById('answerSub').textContent = msg || 'Fill in steps 1 and 2 to see the result.';
+  document.getElementById('snapNote').classList.add('hidden');
+  document.getElementById('threeMonthCallout').classList.add('hidden');
+  document.getElementById('timelineSvg').innerHTML = '';
+  document.getElementById('pilResult').classList.add('hidden');
+  document.getElementById('pilError').classList.add('hidden');
+  document.getElementById('pilHint').classList.remove('hidden');
+  lastT = null; lastPil = 0; updateInterest(0);
+}
+
+// ─── Dismissal facts (shared pattern) ─────────────────────────────────────────
+function dismissal() {
+  var d = LC.parseDate(document.getElementById('dismissDate').value);
+  var f = LC.dismissalFacts(d, document.getElementById('dismissWorked').value === 'yes');
+  var el = document.getElementById('dismissDerived');
+  if (!f) { el.classList.add('hidden'); return null; }
+  el.classList.remove('hidden'); el.innerHTML = LC.dismissalSummary(f);
+  return f;
+}
+
+// ─── Pay-in-lieu ──────────────────────────────────────────────────────────────
+// Piece-rate: strictly excluded (future output unknowable). Optional estimate
+// by analogy to the s.60 last-period average, per the user's expert.
+function pilPieceDaily() {
+  if (document.getElementById('pilPieceMode').value !== 'analogy') return 0;
+  return LC.avgDailyPieceRate(parseFloat(document.getElementById('pilPieceAmt').value) || 0, parseFloat(document.getElementById('pilPieceDays').value) || 0);
+}
+function updatePieceFields() {
+  var analogy = document.getElementById('pilPieceMode').value === 'analogy';
+  document.getElementById('pilPieceFields').classList.toggle('hidden', !analogy);
+  document.getElementById('pilPieceWarn').classList.toggle('hidden', !analogy);
+}
+function calcPil(T) {
+  lastT = T;
+  var f = dismissal();
+  var wageAmount = parseFloat(document.getElementById('wageAmount').value) || 0;
+  var wagePeriod = document.getElementById('wagePeriod').value;
+  var pieceDaily = pilPieceDaily();
+  var pilResult = document.getElementById('pilResult'), pilError = document.getElementById('pilError'), pilHint = document.getElementById('pilHint');
+
+  if (!f || !T || (wageAmount <= 0 && pieceDaily <= 0)) { pilResult.classList.add('hidden'); pilError.classList.add('hidden'); pilHint.classList.remove('hidden'); lastPil = 0; updateInterest(0); return; }
+  var payStart = f.effectiveDate; // pay-in-lieu day 1 = termination effective date
+  if (payStart > T) { pilResult.classList.add('hidden'); pilHint.classList.add('hidden'); pilError.classList.remove('hidden'); pilError.innerHTML = 'The termination effective date (' + LC.formatShort(payStart) + ') must be on or before the step 2 date (' + LC.formatShort(T) + ').'; lastPil = 0; updateInterest(0); return; }
+
+  var days = LC.daysDiff(payStart, T) + 1; // count both the effective date and the step 2 date
+  var s = getSchedule();
+  var cycleN = s.type === 'every-n' ? s.n : 1;
+  var amount = (LC.dailyRateFor(wageAmount, wagePeriod, cycleN) + pieceDaily) * days;
+  var span = '(' + LC.formatShort(payStart) + ' → ' + LC.formatShort(T) + ', both counted)';
+  var breakdown;
+  if (wageAmount <= 0) breakdown = days + ' day' + (days !== 1 ? 's' : '') + ' ' + span;
+  else if (wagePeriod === 'daily') breakdown = LC.fmt(wageAmount) + ' /day × ' + days + ' day' + (days !== 1 ? 's' : '') + ' ' + span;
+  else if (wagePeriod === 'weekly') breakdown = LC.fmt(wageAmount) + ' /week ÷ 7 × ' + days + ' days ' + span;
+  else if (wagePeriod === 'perN') breakdown = LC.fmt(wageAmount) + ' /period ÷ ' + cycleN + ' × ' + days + ' day' + (days !== 1 ? 's' : '') + ' ' + span;
+  else breakdown = LC.fmt(wageAmount) + ' /month ÷ 30 × ' + days + ' day' + (days !== 1 ? 's' : '') + ' ' + span;
+  if (pieceDaily > 0) breakdown += ' + piece avg ' + LC.fmt(pieceDaily) + ' /day (s.60 analogy, estimate)';
+
+  pilError.classList.add('hidden'); pilHint.classList.add('hidden'); pilResult.classList.remove('hidden');
+  document.getElementById('pilAmount').textContent = LC.fmt(amount) + ' THB';
+  document.getElementById('pilBreakdown').textContent = breakdown;
+  lastPil = amount;
+  updateInterest(amount);
+}
+
+// ─── Interest ───────────────────────────────────────────────────────────────
+var lastAutoDue = '';
+function syncDue(autoDate) {
+  var el = document.getElementById('intDue'), iso = autoDate ? LC.toISO(autoDate) : '';
+  if (el.value === '' || el.value === lastAutoDue) el.value = iso;
+  lastAutoDue = iso;
+}
+function updateInterest(principal) {
+  var f = dismissal();
+  syncDue(LC.dueDateFor('payInLieu', { effectiveDate: f && f.effectiveDate })); // s.17/1 — due on the termination effective date
+  document.getElementById('intPrincipal').value = principal ? principal.toFixed(2) : '';
+  var due = LC.parseDate(document.getElementById('intDue').value);
+  var asOf = LC.parseDate(document.getElementById('intAsOf').value);
+  var rate = parseFloat(document.getElementById('intRate').value);
+  var basis = document.getElementById('intBasis').value;
+  var surOn = document.getElementById('intSurcharge').checked;
+  var ord = LC.computeInterest(principal, rate, due, asOf, basis);
+  var sur = surOn ? LC.computeSurcharge(principal, due, asOf) : { amount: 0, rounds: 0 };
+  var rows = '';
+  rows += '<tr><td>Principal</td><td class="num">' + LC.fmt(principal || 0) + '</td></tr>';
+  rows += '<tr class="muted"><td>Interest (' + (rate || 0) + '%/yr · ' + (ord.detail || '—') + ')</td><td class="num">' + LC.fmt(ord.interest) + '</td></tr>';
+  if (surOn) rows += '<tr class="muted"><td>เงินเพิ่ม (15% × ' + sur.rounds + ' × 7-day periods)</td><td class="num">' + LC.fmt(sur.amount) + '</td></tr>';
+  rows += '<tr class="total"><td>Total payable</td><td class="num">' + LC.fmt((principal || 0) + ord.interest + sur.amount) + '</td></tr>';
+  document.getElementById('intTable').innerHTML = rows;
+}
+
+// ─── Profile ──────────────────────────────────────────────────────────────────
+function showBanner(p) {
+  var b = document.getElementById('profileBanner');
+  if (!p) { b.classList.add('hidden'); return; }
+  b.classList.remove('hidden');
+  b.querySelector('.pb-text').innerHTML = 'Shared profile in use: wage ' + (p.monthlyWage ? LC.fmt(p.monthlyWage) : '—') + ' THB/mo, dismissal ' + (p.dismissalDate ? LC.formatShort(LC.parseDate(p.dismissalDate)) : '—') + '.';
+}
+function applyProfileToPage() {
+  var p = LC.loadProfile(); if (!p) return;
+  if (p.monthlyWage) { document.getElementById('wageAmount').value = p.monthlyWage; document.getElementById('wagePeriod').value = 'monthly'; }
+  if (p.dismissalDate) { document.getElementById('dismissDate').value = p.dismissalDate; document.getElementById('backwardDate').value = p.dismissalDate; }
+  if (p.workedThatDay) document.getElementById('dismissWorked').value = p.workedThatDay;
+  showBanner(p); calculate();
+}
+function saveProfileFromPage() {
+  var p = LC.loadProfile() || {};
+  var w = parseFloat(document.getElementById('wageAmount').value);
+  if (!isNaN(w)) p.monthlyWage = w;
+  var dd = document.getElementById('dismissDate').value; if (dd) p.dismissalDate = dd;
+  p.workedThatDay = document.getElementById('dismissWorked').value;
+  LC.saveProfile(p); showBanner(p);
+}
+
+// ─── Persistence ────────────────────────────────────────────────────────────
+function saveState() {
+  try {
+    localStorage.setItem('payInLieu_v1', JSON.stringify({
+      scheduleType: document.getElementById('scheduleType').value, fixedDay: document.getElementById('fixedDay').value,
+      weeklyDay: document.getElementById('weeklyDay').value, biweeklyDay: document.getElementById('biweeklyDay').value,
+      biweeklyAnchor: document.getElementById('biweeklyAnchor').value, twiceDay1: document.getElementById('twiceDay1').value,
+      everyNDays: document.getElementById('everyNDays').value, everyNAnchor: document.getElementById('everyNAnchor').value,
+      twiceDay2Select: document.getElementById('twiceDay2Select').value, twiceDay2Fixed: document.getElementById('twiceDay2Fixed').value,
+      mode: mode, wageAmount: document.getElementById('wageAmount').value, wagePeriod: document.getElementById('wagePeriod').value,
+      pilPieceMode: document.getElementById('pilPieceMode').value, pilPieceAmt: document.getElementById('pilPieceAmt').value, pilPieceDays: document.getElementById('pilPieceDays').value,
+      dismissDate: document.getElementById('dismissDate').value, dismissWorked: document.getElementById('dismissWorked').value,
+      intRate: document.getElementById('intRate').value, intBasis: document.getElementById('intBasis').value
+    }));
+  } catch (e) {}
+}
+function loadState() {
+  try {
+    var st = JSON.parse(localStorage.getItem('payInLieu_v1') || 'null'); if (!st) return;
+    ['scheduleType', 'fixedDay', 'weeklyDay', 'biweeklyDay', 'biweeklyAnchor', 'everyNDays', 'everyNAnchor', 'twiceDay1', 'twiceDay2Select', 'twiceDay2Fixed', 'wageAmount', 'wagePeriod', 'pilPieceMode', 'pilPieceAmt', 'pilPieceDays', 'dismissDate', 'dismissWorked', 'intRate', 'intBasis'].forEach(function (k) {
+      if (st[k] != null && st[k] !== '' && document.getElementById(k)) document.getElementById(k).value = st[k];
+    });
+    if (st.mode) mode = st.mode;
+  } catch (e) {}
+}
+function resetAll() { localStorage.removeItem('payInLieu_v1'); location.reload(); }
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+function init() {
+  var basisSel = document.getElementById('intBasis');
+  LC.INTEREST_BASES.forEach(function (b) { var o = document.createElement('option'); o.value = b.value; o.textContent = b.label; basisSel.appendChild(o); });
+
+  var today = LC.toISO(new Date());
+  ['forwardDate', 'backwardDate', 'dismissDate', 'biweeklyAnchor', 'everyNAnchor', 'intAsOf'].forEach(function (id) { document.getElementById(id).value = today; });
+
+  loadState();
+
+  document.getElementById('scheduleType').addEventListener('change', updateScheduleFields);
+  document.getElementById('fixedDay').addEventListener('input', updateScheduleFields);
+  document.getElementById('everyNDays').addEventListener('input', updateScheduleFields);
+  document.getElementById('everyNAnchor').addEventListener('change', calculate);
+  document.getElementById('twiceDay2Select').addEventListener('change', function () {
+    document.getElementById('twiceDay2Fixed').classList.toggle('hidden', this.value !== 'fixed'); calculate();
+  });
+  ['weeklyDay', 'biweeklyDay', 'biweeklyAnchor', 'twiceDay1', 'twiceDay2Fixed', 'forwardDate', 'backwardDate', 'dismissDate', 'wageAmount', 'wagePeriod', 'dismissWorked', 'pilPieceAmt', 'pilPieceDays'].forEach(function (id) {
+    document.getElementById(id).addEventListener('change', calculate);
+    document.getElementById(id).addEventListener('input', calculate);
+  });
+  document.getElementById('pilPieceMode').addEventListener('change', function () { updatePieceFields(); calculate(); });
+  updatePieceFields();
+  ['intDue', 'intAsOf', 'intRate', 'intBasis', 'intSurcharge'].forEach(function (id) {
+    document.getElementById(id).addEventListener('change', function () { updateInterest(lastPil); });
+    document.getElementById(id).addEventListener('input', function () { updateInterest(lastPil); });
+  });
+
+  var p = LC.loadProfile();
+  if (p) applyProfileToPage();
+
+  setMode(mode);
+  updateScheduleFields();
+}
+init();
+</script>
+</body>
+</html>

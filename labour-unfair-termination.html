@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unfair Termination Estimator (s.49) — JuraTools</title>
+<link rel="stylesheet" href="labour-core.css">
+</head>
+<body>
+
+<nav class="nav">
+  <a href="index.html">JuraTools</a>
+  <span class="sep">/</span>
+  <a href="thai-labour-tools.html">Thai Labour Law Tools</a>
+  <span class="sep">/</span>
+  <span class="current">Unfair Termination</span>
+  <a class="back" href="thai-labour-tools.html">← All</a>
+</nav>
+
+<div class="container">
+
+<header>
+  <h1>Unfair Termination — Damages Estimator</h1>
+  <div class="th">ค่าเสียหายจากการเลิกจ้างไม่เป็นธรรม</div>
+  <p>Act for the Establishment of and Procedure for Labour Court B.E. 2522, s.49.</p>
+</header>
+
+<div class="callout callout-amber">
+  <strong>No statutory formula.</strong> Under s.49 the Labour Court has discretion to order reinstatement or — if the parties can no longer work together — damages, weighing the employee's <strong>age</strong>, <strong>length of service</strong>, <strong>hardship</strong> on termination, the <strong>cause</strong> of termination, and <strong>compensation otherwise due</strong>. The figures below are a non-binding benchmark only.
+</div>
+
+<div id="profileBanner" class="profile-banner hidden">
+  <span class="pb-text"></span>
+  <span class="pb-actions">
+    <button class="btn btn-small" onclick="saveProfileFromPage()">Save to shared profile</button>
+    <button class="btn btn-small" onclick="applyProfileToPage()">Reset to shared</button>
+  </span>
+</div>
+
+<!-- STEP 1: The employment -->
+<div class="card">
+  <div class="step"><span class="step-n">1</span><h2>The employment</h2></div>
+  <div class="step-note">Who worked, until when, and for what wage.</div>
+  <div class="field">
+    <label for="monthlyWage">Monthly wage (ค่าจ้าง, THB)</label>
+    <input type="number" id="monthlyWage" min="0" step="0.01" placeholder="e.g. 30000">
+  </div>
+  <div class="field-row">
+    <div class="field"><label for="startDate">Start date <span class="hint">(first day, counted as day 1)</span></label><input type="date" id="startDate"></div>
+    <div class="field">
+      <label for="dismissDate">Dismissal date <span class="hint">(the day the employment ends — for notice or garden leave, the day the notice takes effect)</span></label>
+      <input type="date" id="dismissDate">
+    </div>
+  </div>
+  <div class="field">
+    <label for="dismissWorked">Did the employee work, or get paid wages, for that day?</label>
+    <select id="dismissWorked">
+      <option value="yes">Yes — worked or was paid wages for that day</option>
+      <option value="no">No — no work and no wages from that day</option>
+    </select>
+  </div>
+  <div class="derived-facts hidden" id="dismissDerived"></div>
+  <div class="field">
+    <label for="years">Years of service <span class="hint">(full completed years, auto through the last day of employment; editable)</span></label>
+    <input type="number" id="years" min="0" step="0.01">
+  </div>
+</div>
+
+<!-- STEP 2: The benchmark -->
+<div class="card">
+  <div class="step"><span class="step-n">2</span><h2>The benchmark</h2></div>
+  <div class="step-note">Months of wages per year of service. Court discretion; not a formula.</div>
+  <div class="field">
+    <label for="monthsPerYear">Months of wages per year of service</label>
+    <input type="number" id="monthsPerYear" min="0" step="0.1" value="1">
+    <div class="chips" style="margin-top:8px">
+      <button class="chip" data-mpy="0.5">Low · 0.5/yr</button>
+      <button class="chip active" data-mpy="1">Mid · 1/yr</button>
+      <button class="chip" data-mpy="2">High · 2/yr</button>
+    </div>
+  </div>
+</div>
+
+<!-- Result -->
+<div class="card">
+  <div class="card-title">Indicative Range</div>
+  <table class="data" id="rangeTable"></table>
+  <div class="amount-box purple" style="margin-top:14px">
+    <div class="amount-label">Selected benchmark estimate</div>
+    <div class="amount-value" id="selAmount">—</div>
+    <div class="amount-sub" id="selSub"></div>
+  </div>
+</div>
+
+<!-- Interest -->
+<div class="card" id="interestCard">
+  <div class="section-toggle" id="intToggle" onclick="toggleInterest()">Interest (CCC s.224)</div>
+  <div id="intSection" class="hidden" style="margin-top:16px">
+    <p class="muted" style="font-size:13px;margin-bottom:14px">s.49 damages are not an LPA s.9 item, so interest runs at the general <strong>CCC s.224 default rate (5%/yr)</strong> from default (commonly the date of the court's judgment or demand). No เงินเพิ่ม applies. All fields editable.</p>
+    <div class="field-row">
+      <div class="field"><label for="intDue">From date <span class="hint">(default / judgment)</span></label><input type="date" id="intDue"></div>
+      <div class="field"><label for="intAsOf">Calculate up to (as-of)</label><input type="date" id="intAsOf"></div>
+    </div>
+    <div class="field-row-3">
+      <div class="field"><label for="intRate">Rate (%/yr)</label><input type="number" id="intRate" step="0.01" value="5"></div>
+      <div class="field"><label for="intBasis">Day-count basis</label><select id="intBasis"></select></div>
+      <div class="field"><label for="intPrincipal">Principal (THB)</label><input type="number" id="intPrincipal" readonly></div>
+    </div>
+    <table class="data" id="intTable"></table>
+  </div>
+</div>
+
+<div class="actions-row">
+  <button class="btn btn-reset" onclick="resetAll()">Reset all</button>
+</div>
+
+<footer>
+  <span class="cites">Act for the Establishment of and Procedure for Labour Court B.E. 2522, s.49 — Civil &amp; Commercial Code s.224</span><br>
+  Reference tool only — not legal advice. Benchmark multipliers are illustrative.
+</footer>
+
+</div><!-- /container -->
+
+<script src="labour-core.js"></script>
+<script>
+var intOpen = false, lastPrincipal = 0;
+var PRESETS = { low: 0.5, mid: 1, high: 2 };
+function toggleInterest() { intOpen = !intOpen; document.getElementById('intToggle').classList.toggle('open', intOpen); document.getElementById('intSection').classList.toggle('hidden', !intOpen); }
+
+// Shared dismissal-facts pattern: derive last day of employment + termination effective date.
+function dismissal() {
+  var d = LC.parseDate(document.getElementById('dismissDate').value);
+  var f = LC.dismissalFacts(d, document.getElementById('dismissWorked').value === 'yes');
+  var el = document.getElementById('dismissDerived');
+  if (!f) { el.classList.add('hidden'); return null; }
+  el.classList.remove('hidden'); el.innerHTML = LC.dismissalSummary(f);
+  return f;
+}
+
+function syncYearsFromDates() {
+  var start = LC.parseDate(document.getElementById('startDate').value);
+  var f = dismissal();
+  if (start && f && f.lastWorkingDay >= start) {
+    // Benchmark counts full completed years of service only (editable below).
+    document.getElementById('years').value = LC.continuousService(start, f.lastWorkingDay).years;
+  }
+}
+
+function calculate() {
+  var wage = parseFloat(document.getElementById('monthlyWage').value);
+  var years = parseFloat(document.getElementById('years').value);
+  var mpy = parseFloat(document.getElementById('monthsPerYear').value);
+
+  var tbl = document.getElementById('rangeTable');
+  if (isNaN(wage) || isNaN(years)) {
+    tbl.innerHTML = '<tr class="muted"><td>Enter wage and years of service.</td></tr>';
+    document.getElementById('selAmount').textContent = '—';
+    document.getElementById('selSub').textContent = '';
+    lastPrincipal = 0; updateInterest(0); saveState(); return;
+  }
+
+  var range = LC.s49Range({ monthlyWage: wage, years: years, presets: PRESETS });
+  var rows = '';
+  rows += '<tr><th>Benchmark</th><th class="num">Months</th><th class="num">Estimate (THB)</th></tr>';
+  rows += '<tr><td>Low · ' + PRESETS.low + '/yr</td><td class="num">' + LC.fmtDays(range.low.months) + '</td><td class="num">' + LC.fmt(range.low.amount) + '</td></tr>';
+  rows += '<tr><td>Mid · ' + PRESETS.mid + '/yr</td><td class="num">' + LC.fmtDays(range.mid.months) + '</td><td class="num">' + LC.fmt(range.mid.amount) + '</td></tr>';
+  rows += '<tr><td>High · ' + PRESETS.high + '/yr</td><td class="num">' + LC.fmtDays(range.high.months) + '</td><td class="num">' + LC.fmt(range.high.amount) + '</td></tr>';
+  tbl.innerHTML = rows;
+
+  var sel = LC.computeS49({ monthlyWage: wage, years: years, monthsPerYear: isNaN(mpy) ? 0 : mpy });
+  document.getElementById('selAmount').textContent = LC.fmt(sel.amount) + ' THB';
+  document.getElementById('selSub').textContent = (isNaN(mpy) ? 0 : mpy) + ' months/yr × ' + (Math.round(years * 100) / 100) + ' yrs = ' + LC.fmtDays(sel.months) + ' months × ' + LC.fmt(wage) + '/mo';
+
+  // sync preset chip highlight
+  document.querySelectorAll('.chip').forEach(function (c) { c.classList.toggle('active', parseFloat(c.dataset.mpy) === mpy); });
+
+  lastPrincipal = sel.amount;
+  updateInterest(sel.amount);
+  saveState();
+}
+
+// ─── Interest ─────────────────────────────────────────────────────────────────
+var lastAutoDue = '';
+function syncDue(autoDate) {
+  var el = document.getElementById('intDue'), iso = autoDate ? LC.toISO(autoDate) : '';
+  if (el.value === '' || el.value === lastAutoDue) el.value = iso;
+  lastAutoDue = iso;
+}
+function updateInterest(principal) {
+  var f = dismissal();
+  syncDue(LC.dueDateFor('s49', { effectiveDate: f && f.effectiveDate }));
+  document.getElementById('intPrincipal').value = principal ? principal.toFixed(2) : '';
+  var due = LC.parseDate(document.getElementById('intDue').value);
+  var asOf = LC.parseDate(document.getElementById('intAsOf').value);
+  var rate = parseFloat(document.getElementById('intRate').value);
+  var basis = document.getElementById('intBasis').value;
+  var ord = LC.computeInterest(principal, rate, due, asOf, basis);
+  var rows = '';
+  rows += '<tr><td>Principal (selected estimate)</td><td class="num">' + LC.fmt(principal || 0) + '</td></tr>';
+  rows += '<tr class="muted"><td>Interest (' + (rate || 0) + '%/yr · ' + (ord.detail || '—') + ')</td><td class="num">' + LC.fmt(ord.interest) + '</td></tr>';
+  rows += '<tr class="total"><td>Total</td><td class="num">' + LC.fmt((principal || 0) + ord.interest) + '</td></tr>';
+  document.getElementById('intTable').innerHTML = rows;
+}
+
+// ─── Profile ──────────────────────────────────────────────────────────────────
+function showBanner(p) {
+  var b = document.getElementById('profileBanner');
+  if (!p) { b.classList.add('hidden'); return; }
+  b.classList.remove('hidden');
+  b.querySelector('.pb-text').innerHTML = 'Shared profile in use.';
+}
+function applyProfileToPage() {
+  var p = LC.loadProfile(); if (!p) return;
+  if (p.monthlyWage) document.getElementById('monthlyWage').value = p.monthlyWage;
+  if (p.startDate) document.getElementById('startDate').value = p.startDate;
+  if (p.dismissalDate) document.getElementById('dismissDate').value = p.dismissalDate;
+  if (p.workedThatDay) document.getElementById('dismissWorked').value = p.workedThatDay;
+  syncYearsFromDates();
+  showBanner(p); calculate();
+}
+function saveProfileFromPage() {
+  var p = LC.loadProfile() || {};
+  var w = parseFloat(document.getElementById('monthlyWage').value); if (!isNaN(w)) p.monthlyWage = w;
+  var s = document.getElementById('startDate').value; if (s) p.startDate = s;
+  var dd = document.getElementById('dismissDate').value; if (dd) p.dismissalDate = dd;
+  p.workedThatDay = document.getElementById('dismissWorked').value;
+  LC.saveProfile(p); showBanner(p);
+}
+
+// ─── Persistence ──────────────────────────────────────────────────────────────
+function saveState() {
+  try {
+    localStorage.setItem('unfairTerm_v1', JSON.stringify({
+      monthlyWage: document.getElementById('monthlyWage').value, startDate: document.getElementById('startDate').value,
+      dismissDate: document.getElementById('dismissDate').value, dismissWorked: document.getElementById('dismissWorked').value,
+      years: document.getElementById('years').value,
+      monthsPerYear: document.getElementById('monthsPerYear').value, intRate: document.getElementById('intRate').value,
+      intBasis: document.getElementById('intBasis').value
+    }));
+  } catch (e) {}
+}
+function loadState() {
+  try {
+    var st = JSON.parse(localStorage.getItem('unfairTerm_v1') || 'null'); if (!st) return;
+    ['monthlyWage', 'startDate', 'dismissDate', 'dismissWorked', 'years', 'monthsPerYear', 'intRate', 'intBasis'].forEach(function (k) {
+      if (st[k] != null && st[k] !== '' && document.getElementById(k)) document.getElementById(k).value = st[k];
+    });
+  } catch (e) {}
+}
+function resetAll() { localStorage.removeItem('unfairTerm_v1'); location.reload(); }
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+function init() {
+  var basisSel = document.getElementById('intBasis');
+  LC.INTEREST_BASES.forEach(function (b) { var o = document.createElement('option'); o.value = b.value; o.textContent = b.label; basisSel.appendChild(o); });
+
+  document.getElementById('intAsOf').value = LC.toISO(new Date());
+
+  loadState();
+  var p = LC.loadProfile(); if (p) applyProfileToPage();
+
+  document.querySelectorAll('.chip').forEach(function (c) {
+    c.addEventListener('click', function () { document.getElementById('monthsPerYear').value = c.dataset.mpy; calculate(); });
+  });
+  ['startDate', 'dismissDate', 'dismissWorked'].forEach(function (id) {
+    document.getElementById(id).addEventListener('change', function () { syncYearsFromDates(); calculate(); });
+    document.getElementById(id).addEventListener('input', function () { syncYearsFromDates(); calculate(); });
+  });
+  ['monthlyWage', 'years', 'monthsPerYear'].forEach(function (id) {
+    document.getElementById(id).addEventListener('change', calculate);
+    document.getElementById(id).addEventListener('input', calculate);
+  });
+  ['intDue', 'intAsOf', 'intRate', 'intBasis'].forEach(function (id) {
+    document.getElementById(id).addEventListener('change', function () { updateInterest(lastPrincipal); });
+    document.getElementById(id).addEventListener('input', function () { updateInterest(lastPrincipal); });
+  });
+
+  if (!document.getElementById('years').value) syncYearsFromDates();
+  calculate();
+}
+init();
+</script>
+</body>
+</html>
