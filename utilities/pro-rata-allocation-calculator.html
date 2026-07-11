@@ -1,0 +1,1211 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Pro-Rata Allocation Calculator — JuraTools</title>
+  <meta name="description" content="Allocate money or whole units by weights, percentages, or holdings using an exact largest-remainder method.">
+  <style>
+    :root {
+      --blue: #2979ff;
+      --blue-dark: #1565c0;
+      --blue-soft: rgba(41,121,255,.09);
+      --blue-ring: rgba(41,121,255,.16);
+      --purple: #7c3aed;
+      --orange: #d85b00;
+      --orange-soft: rgba(216,91,0,.08);
+      --green: #047857;
+      --green-soft: rgba(4,120,87,.08);
+      --red: #b91c1c;
+      --red-soft: #fef2f2;
+      --bg: #f2f2f7;
+      --surface: rgba(255,255,255,.9);
+      --surface-soft: rgba(255,255,255,.64);
+      --text: #1c1c1e;
+      --text-2: #636366;
+      --text-3: #8e8e93;
+      --border: rgba(0,0,0,.09);
+      --border-solid: #dfe3ea;
+      --shadow: 0 1px 1px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.07);
+      --radius: 16px;
+      --radius-sm: 8px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, system-ui, "SF Pro Text", "Helvetica Neue", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(ellipse 1000px 620px at 8% 0%, rgba(194,221,255,.48), transparent 60%),
+        radial-gradient(ellipse 660px 620px at 96% 8%, rgba(218,205,255,.4), transparent 56%),
+        radial-gradient(ellipse 760px 520px at 0% 96%, rgba(167,243,208,.26), transparent 58%),
+        radial-gradient(ellipse 820px 440px at 100% 96%, rgba(255,220,180,.25), transparent 58%);
+    }
+    button, input, select, textarea { font: inherit; }
+    button { touch-action: manipulation; }
+    a { color: inherit; }
+
+    .jt-nav {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 24px;
+      background: rgba(242,242,247,.84);
+      backdrop-filter: blur(24px) saturate(190%);
+      -webkit-backdrop-filter: blur(24px) saturate(190%);
+      border-bottom: 1px solid rgba(0,0,0,.08);
+    }
+    .nav-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 9px;
+      border-radius: 8px;
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .nav-back:hover { background: rgba(41,121,255,.1); }
+    .nav-divider { width: 1px; height: 20px; background: var(--border); }
+    .nav-icon {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      border-radius: 7px;
+      background: linear-gradient(145deg, #f47b20, #c94d00);
+      box-shadow: 0 2px 6px rgba(216,91,0,.3), inset 0 1px 0 rgba(255,255,255,.22);
+      font-size: 15px;
+    }
+    .nav-title {
+      min-width: 0;
+      overflow: hidden;
+      font-size: 14px;
+      font-weight: 650;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .page {
+      width: min(100%, 1080px);
+      margin: 0 auto;
+      padding: 28px 20px 68px;
+    }
+    .page-header { margin-bottom: 24px; }
+    .page-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-bottom: 10px;
+      padding: 3px 10px;
+      border: 1px solid rgba(216,91,0,.2);
+      border-radius: 999px;
+      color: var(--orange);
+      background: var(--orange-soft);
+      font-size: 11px;
+      font-weight: 700;
+    }
+    h1 {
+      margin: 0 0 7px;
+      font-size: clamp(24px, 3vw, 32px);
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+    .intro {
+      max-width: 840px;
+      margin: 0;
+      color: var(--text-2);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .privacy-line {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      margin-top: 12px;
+      color: var(--text-3);
+      font-size: 11.5px;
+    }
+    .privacy-line strong { color: var(--green); font-weight: 650; }
+
+    .card {
+      margin-bottom: 16px;
+      padding: 22px;
+      background: var(--surface);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,.92);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .card-title {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin: 0 0 17px;
+      color: var(--text-2);
+      font-size: 13px;
+      font-weight: 750;
+    }
+    .card-title::after { content: ""; height: 1px; flex: 1; background: var(--border); }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      align-items: start;
+    }
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .field-grid .full { grid-column: 1 / -1; }
+    .field {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      gap: 5px;
+    }
+    label, .label {
+      color: var(--text-2);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .2px;
+      text-transform: uppercase;
+    }
+    input, select {
+      width: 100%;
+      min-width: 0;
+      padding: 9px 11px;
+      border: 1px solid var(--border-solid);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      background: rgba(255,255,255,.84);
+      font-size: 14px;
+      transition: border-color .14s, box-shadow .14s, background .14s;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px var(--blue-ring);
+      background: #fff;
+    }
+    input:disabled, select:disabled {
+      cursor: not-allowed;
+      color: var(--text-3);
+      background: rgba(118,118,128,.07);
+    }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .field-note { color: var(--text-3); font-size: 11px; line-height: 1.45; }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 3px;
+      width: 100%;
+      padding: 3px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(118,118,128,.08);
+    }
+    .segmented button {
+      min-height: 35px;
+      padding: 6px 9px;
+      border: 0;
+      border-radius: 7px;
+      color: var(--text-2);
+      background: transparent;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 650;
+    }
+    .segmented button.active {
+      color: var(--text);
+      background: #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,.12);
+    }
+    .segmented button:focus-visible,
+    .btn:focus-visible,
+    .icon-btn:focus-visible {
+      outline: 3px solid var(--blue-ring);
+      outline-offset: 2px;
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-top: 16px;
+    }
+    .btn {
+      min-height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 8px 15px;
+      border: 1px solid transparent;
+      border-radius: 9px;
+      color: #fff;
+      background: var(--blue);
+      box-shadow: 0 1px 4px rgba(41,121,255,.3);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 650;
+    }
+    .btn:hover { background: #1c6ef3; }
+    .btn:active { transform: translateY(1px); }
+    .btn-secondary {
+      color: #3c3c43;
+      background: rgba(0,0,0,.045);
+      border-color: rgba(0,0,0,.09);
+      box-shadow: none;
+    }
+    .btn-secondary:hover { background: rgba(0,0,0,.075); }
+    .btn-danger {
+      color: var(--red);
+      background: rgba(185,28,28,.07);
+      border-color: rgba(185,28,28,.15);
+      box-shadow: none;
+    }
+    .btn-danger:hover { background: rgba(185,28,28,.12); }
+    .btn[disabled] { opacity: .45; cursor: not-allowed; transform: none; }
+
+    .recipient-list {
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(255,255,255,.58);
+    }
+    .recipient-head, .recipient-row {
+      display: grid;
+      grid-template-columns: 92px minmax(160px, 1.25fr) minmax(140px, .85fr) 42px;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 12px;
+    }
+    .recipient-head {
+      color: var(--text-3);
+      background: rgba(0,0,0,.035);
+      font-size: 10px;
+      font-weight: 750;
+      text-transform: uppercase;
+    }
+    .recipient-row { border-top: 1px solid rgba(0,0,0,.06); }
+    .priority-controls {
+      display: grid;
+      grid-template-columns: 30px 26px 26px;
+      gap: 3px;
+      align-items: center;
+    }
+    .priority-number {
+      color: var(--text-3);
+      font-size: 11px;
+      font-weight: 750;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+    .icon-btn {
+      width: 26px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      color: var(--text-2);
+      background: rgba(0,0,0,.035);
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .icon-btn:hover { color: var(--blue); background: var(--blue-soft); }
+    .icon-btn.delete { width: 34px; height: 34px; color: var(--red); }
+    .icon-btn.delete:hover { background: var(--red-soft); }
+    .icon-btn[disabled] { opacity: .28; cursor: not-allowed; }
+    .basis-total {
+      margin-top: 10px;
+      color: var(--text-3);
+      font-size: 11.5px;
+      font-variant-numeric: tabular-nums;
+    }
+    .basis-total strong { color: var(--text-2); }
+
+    .method-note {
+      padding: 14px;
+      border: 1px solid rgba(216,91,0,.18);
+      border-radius: 10px;
+      color: #7a4100;
+      background: var(--orange-soft);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .method-note strong { display: block; margin-bottom: 3px; color: var(--orange); font-size: 13px; }
+    .warning {
+      margin-top: 13px;
+      padding: 11px 13px;
+      border: 1px solid rgba(185,28,28,.2);
+      border-radius: 8px;
+      color: var(--red);
+      background: var(--red-soft);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .hidden { display: none !important; }
+
+    .result-card {
+      padding: 23px;
+      border-radius: var(--radius);
+      color: #fff;
+      background: linear-gradient(140deg, #1a4fa0 0%, #0d2b5e 100%);
+      box-shadow: 0 4px 20px rgba(15,60,130,.25);
+    }
+    .result-summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1px;
+      overflow: hidden;
+      margin-bottom: 17px;
+      border: 1px solid rgba(255,255,255,.13);
+      border-radius: 10px;
+      background: rgba(255,255,255,.13);
+    }
+    .result-metric {
+      min-width: 0;
+      padding: 13px;
+      background: rgba(8,30,70,.56);
+    }
+    .result-label {
+      color: rgba(255,255,255,.58);
+      font-size: 9.5px;
+      font-weight: 750;
+      text-transform: uppercase;
+    }
+    .result-value {
+      margin-top: 5px;
+      overflow-wrap: anywhere;
+      font-size: 15px;
+      font-weight: 750;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.35;
+    }
+    .allocation-list {
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 10px;
+    }
+    .allocation-head, .allocation-row {
+      display: grid;
+      grid-template-columns: minmax(150px, 1.2fr) .65fr 1fr .8fr 1fr;
+      gap: 11px;
+      align-items: center;
+      padding: 11px 13px;
+    }
+    .allocation-head {
+      color: rgba(255,255,255,.55);
+      background: rgba(0,0,0,.16);
+      font-size: 9.5px;
+      font-weight: 750;
+      text-transform: uppercase;
+    }
+    .allocation-row {
+      min-height: 60px;
+      border-top: 1px solid rgba(255,255,255,.1);
+      font-size: 12px;
+    }
+    .allocation-row.bonus { background: rgba(90,185,255,.08); }
+    .recipient-name { overflow-wrap: anywhere; font-weight: 700; line-height: 1.4; }
+    .result-sub { margin-top: 3px; color: rgba(255,255,255,.55); font-size: 10px; line-height: 1.35; }
+    .result-number { font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1.4; }
+    .final-number { color: #bfe4ff; font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .bonus-tag {
+      display: inline-block;
+      margin-top: 3px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      color: #d8efff;
+      background: rgba(90,185,255,.18);
+      font-size: 9px;
+      font-weight: 750;
+      text-transform: uppercase;
+    }
+    .empty {
+      padding: 42px 20px;
+      color: var(--text-3);
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .status {
+      min-height: 18px;
+      margin-top: 10px;
+      color: var(--green);
+      font-size: 11.5px;
+      font-weight: 600;
+    }
+    .tool-footer {
+      margin-top: 34px;
+      color: var(--text-3);
+      font-size: 11.5px;
+      line-height: 1.6;
+      text-align: center;
+    }
+    .tool-footer a { color: var(--blue); }
+
+    @media (max-width: 820px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      .result-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 680px) {
+      .jt-nav { padding: 0 12px; }
+      .page { padding: 22px 12px 56px; }
+      .card { padding: 18px 15px; }
+      .field-grid { grid-template-columns: 1fr; }
+      .field-grid .full { grid-column: auto; }
+      .recipient-head { display: none; }
+      .recipient-row {
+        grid-template-columns: 92px 1fr 34px;
+        gap: 8px;
+        align-items: start;
+      }
+      .recipient-row .recipient-name-input { grid-column: 2; }
+      .recipient-row .recipient-value-input { grid-column: 2; }
+      .recipient-row .delete { grid-column: 3; grid-row: 1 / span 2; }
+      .priority-controls { grid-column: 1; grid-row: 1 / span 2; }
+      .allocation-head { display: none; }
+      .allocation-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        padding: 14px;
+      }
+      .allocation-row > div::before {
+        display: block;
+        margin-bottom: 2px;
+        color: rgba(255,255,255,.48);
+        font-size: 9px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+      .allocation-row > div:nth-child(2)::before { content: "Share"; }
+      .allocation-row > div:nth-child(3)::before { content: "Raw quota"; }
+      .allocation-row > div:nth-child(4)::before { content: "Remainder"; }
+      .allocation-row > div:nth-child(5)::before { content: "Final allocation"; }
+    }
+    @media (max-width: 450px) {
+      .nav-title { display: none; }
+      .result-summary { grid-template-columns: 1fr; }
+      .btn-row .btn { flex: 1 1 42%; }
+    }
+    @media print {
+      body { background: #fff; }
+      .jt-nav, .input-area, .btn-row, .tool-footer, #status { display: none !important; }
+      .page { width: 100%; padding: 0; }
+      .card { border: 1px solid #ddd; box-shadow: none; background: #fff; }
+      .result-card { color-adjust: exact; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .allocation-row { break-inside: avoid; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="jt-nav" aria-label="JuraTools">
+    <a class="nav-back" href="../index.html">‹ JuraTools</a>
+    <span class="nav-divider" aria-hidden="true"></span>
+    <span class="nav-icon" aria-hidden="true">⚖️</span>
+    <span class="nav-title">Pro-Rata Allocation Calculator</span>
+  </nav>
+
+  <main class="page">
+    <header class="page-header">
+      <div class="page-badge">🧮 Math / Allocation</div>
+      <h1>Pro-Rata Allocation Calculator</h1>
+      <p class="intro">Allocate money or indivisible units by relative weights, percentages, or holdings. Exact integer arithmetic and the largest-remainder method ensure that every displayed allocation reconciles to the entered total.</p>
+      <div class="privacy-line">
+        <span><strong>Private by default</strong> · entries stay in this browser</span>
+        <span>Exact decimal parsing</span>
+        <span>Visible tie priority and remainder award</span>
+      </div>
+    </header>
+
+    <div class="input-area">
+      <div class="grid-2">
+        <section class="card" aria-labelledby="total-title">
+          <h2 class="card-title" id="total-title">1 · Total to allocate</h2>
+          <div class="segmented" role="group" aria-label="Allocation type">
+            <button type="button" class="active" data-type="money" aria-pressed="true">Money</button>
+            <button type="button" data-type="units" aria-pressed="false">Whole units</button>
+          </div>
+          <div class="field-grid" style="margin-top:16px">
+            <div class="field full">
+              <label for="totalAmount" id="totalAmountLabel">Total amount</label>
+              <input id="totalAmount" class="num" type="text" inputmode="decimal" placeholder="e.g. 100,000.00">
+              <span class="field-note">Grouping commas and negative totals are accepted. Extra non-zero decimal places are rejected.</span>
+            </div>
+            <div class="field">
+              <label for="unitLabel">Currency or unit label</label>
+              <input id="unitLabel" type="text" maxlength="20" value="THB">
+            </div>
+            <div class="field">
+              <label for="decimalPlaces">Decimal places</label>
+              <select id="decimalPlaces">
+                <option value="0">0</option><option value="1">1</option>
+                <option value="2" selected>2</option><option value="3">3</option>
+                <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="basis-title">
+          <h2 class="card-title" id="basis-title">2 · Allocation basis</h2>
+          <div class="field">
+            <label for="basisMode">Recipient values represent</label>
+            <select id="basisMode">
+              <option value="weights">Relative weights</option>
+              <option value="percentages">Percentages totaling exactly 100%</option>
+              <option value="holdings">Holdings or shares</option>
+            </select>
+          </div>
+          <div class="method-note" style="margin-top:14px">
+            <strong>Largest-remainder method</strong>
+            Each raw quota is floored to the smallest distributable unit. Remaining units go to the largest fractional remainders; equal remainders follow the editable row priority.
+          </div>
+        </section>
+      </div>
+
+      <section class="card" aria-labelledby="recipients-title">
+        <h2 class="card-title" id="recipients-title">3 · Recipients and tie priority</h2>
+        <div class="recipient-list">
+          <div class="recipient-head">
+            <div>Priority</div><div>Recipient</div><div id="valueHead">Weight</div><div></div>
+          </div>
+          <div id="recipientRows"></div>
+        </div>
+        <div id="basisTotal" class="basis-total" aria-live="polite"></div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" type="button" id="addRecipientBtn">+ Add recipient</button>
+          <button class="btn btn-secondary" type="button" id="equalBtn">Set equal values</button>
+          <button class="btn btn-secondary" type="button" id="exampleBtn">Load example</button>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="calculate-title">
+        <h2 class="card-title" id="calculate-title">4 · Calculate</h2>
+        <div id="formError" class="warning hidden" role="alert"></div>
+        <div class="btn-row" style="margin-top:0">
+          <button class="btn" type="button" id="calculateBtn">Calculate allocation</button>
+          <button class="btn btn-secondary" type="button" id="csvBtn" disabled>Export CSV</button>
+          <button class="btn btn-secondary" type="button" id="copyBtn" disabled>Copy result</button>
+          <button class="btn btn-secondary" type="button" id="printBtn" disabled>Print</button>
+          <button class="btn btn-danger" type="button" id="resetBtn">Reset</button>
+        </div>
+        <div id="status" class="status" aria-live="polite"></div>
+      </section>
+    </div>
+
+    <section class="card" aria-labelledby="result-title">
+      <h2 class="card-title" id="result-title">Allocation result</h2>
+      <div id="resultArea">
+        <div class="empty">Enter the total and recipient values, then calculate the allocation.</div>
+      </div>
+    </section>
+
+    <footer class="tool-footer">
+      The calculator applies the displayed largest-remainder method and tie priority; it does not determine entitlement.
+      All calculations run in your browser. · <a href="../index.html">Back to JuraTools</a>
+    </footer>
+  </main>
+
+  <script>
+  (function () {
+    "use strict";
+
+    var STORAGE_KEY = "juratools.pro-rata-allocation.v1";
+    var allocationType = "money";
+    var recipients = [];
+    var nextId = 1;
+    var lastCalculation = null;
+    var statusTimer = null;
+
+    function byId(id) { return document.getElementById(id); }
+    function escapeHtml(value) {
+      return String(value == null ? "" : value).replace(/[&<>"']/g, function (char) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char];
+      });
+    }
+    function csvCell(value) {
+      return '"' + String(value == null ? "" : value).replace(/"/g, '""') + '"';
+    }
+    function power10(exponent) { return BigInt("1" + "0".repeat(exponent)); }
+    function parseDecimal(value, allowNegative, maxDecimals) {
+      var cleaned = String(value == null ? "" : value).replace(/[,\s]/g, "");
+      if (!cleaned || !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(cleaned)) return { error: "Enter a valid number." };
+      var negative = cleaned.charAt(0) === "-";
+      if (negative && !allowNegative) return { error: "Negative values are not allowed here." };
+      cleaned = cleaned.replace(/^[+-]/, "");
+      var parts = cleaned.split(".");
+      var integer = parts[0] || "0";
+      var fraction = parts[1] || "";
+      if (integer.length > 30) return { error: "Number is too large." };
+      if (fraction.length > maxDecimals) return { error: "Use no more than " + maxDecimals + " decimal places." };
+      var digits = BigInt((integer.replace(/^0+(?=\d)/, "") || "0") + fraction);
+      if (negative) digits = -digits;
+      return { integer: digits, scale: fraction.length, text: cleaned };
+    }
+    function parseScaledAmount(value, decimalPlaces) {
+      var parsed = parseDecimal(value, true, 20);
+      if (parsed.error) return parsed;
+      if (parsed.scale > decimalPlaces) {
+        var extra = parsed.text.split(".")[1].slice(decimalPlaces);
+        if (/[^0]/.test(extra)) return { error: "Total has more than " + decimalPlaces + " non-zero decimal places." };
+      }
+      var absoluteText = parsed.text;
+      var parts = absoluteText.split(".");
+      var integerText = parts[0] || "0";
+      var fraction = (parts[1] || "").slice(0, decimalPlaces).padEnd(decimalPlaces, "0");
+      var units = BigInt((integerText.replace(/^0+(?=\d)/, "") || "0") + fraction);
+      if (String(value).replace(/[,\s]/g, "").trim().charAt(0) === "-") units = -units;
+      return { units: units, decimalPlaces: decimalPlaces };
+    }
+    function normalizeWeightValues(values) {
+      var parsed = [];
+      var maximumScale = 0;
+      for (var i = 0; i < values.length; i += 1) {
+        var item = parseDecimal(values[i], false, 9);
+        if (item.error) return { error: "Recipient " + (i + 1) + ": " + item.error };
+        maximumScale = Math.max(maximumScale, item.scale);
+        parsed.push(item);
+      }
+      var normalized = parsed.map(function (item) {
+        return item.integer * power10(maximumScale - item.scale);
+      });
+      return { weights: normalized, scale: maximumScale };
+    }
+    function allocateLargestRemainder(totalUnits, weights) {
+      var totalWeight = weights.reduce(function (sum, value) { return sum + value; }, 0n);
+      if (totalWeight <= 0n) return { error: "At least one recipient value must be greater than zero." };
+      var sign = totalUnits < 0n ? -1n : 1n;
+      var magnitude = totalUnits < 0n ? -totalUnits : totalUnits;
+      var rows = weights.map(function (weight, index) {
+        var numerator = magnitude * weight;
+        var floorUnits = numerator / totalWeight;
+        var remainder = numerator % totalWeight;
+        return {
+          index: index,
+          weight: weight,
+          numerator: numerator,
+          floorUnits: floorUnits,
+          remainder: remainder,
+          finalUnits: floorUnits,
+          awarded: false,
+          rank: 0
+        };
+      });
+      var floorTotal = rows.reduce(function (sum, row) { return sum + row.floorUnits; }, 0n);
+      var unitsLeft = magnitude - floorTotal;
+      var ranked = rows.slice().sort(function (a, b) {
+        if (a.remainder === b.remainder) return a.index - b.index;
+        return a.remainder > b.remainder ? -1 : 1;
+      });
+      ranked.forEach(function (row, rankIndex) { row.rank = rankIndex + 1; });
+      for (var cursor = 0n; cursor < unitsLeft; cursor += 1n) {
+        var recipient = ranked[Number(cursor)];
+        recipient.finalUnits += 1n;
+        recipient.awarded = true;
+      }
+      rows.forEach(function (row) {
+        row.finalUnits *= sign;
+        row.signedNumerator = row.numerator * sign;
+      });
+      return {
+        totalUnits: totalUnits,
+        totalWeight: totalWeight,
+        floorTotal: floorTotal * sign,
+        unitsLeft: unitsLeft,
+        rows: rows
+      };
+    }
+    function groupInteger(value) {
+      return value.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+    function formatScaledInteger(value, decimalPlaces) {
+      var negative = value < 0n;
+      var magnitude = negative ? -value : value;
+      var text = magnitude.toString().padStart(decimalPlaces + 1, "0");
+      var integer = decimalPlaces ? text.slice(0, -decimalPlaces) : text;
+      var fraction = decimalPlaces ? text.slice(-decimalPlaces) : "";
+      return (negative ? "-" : "") + groupInteger(integer) + (decimalPlaces ? "." + fraction : "");
+    }
+    function roundedRationalDecimal(numerator, denominator, places) {
+      if (denominator === 0n) return "—";
+      var negative = numerator < 0n;
+      var magnitude = negative ? -numerator : numerator;
+      var factor = power10(places);
+      var scaledNumerator = magnitude * factor;
+      var quotient = scaledNumerator / denominator;
+      var remainder = scaledNumerator % denominator;
+      if (remainder * 2n >= denominator) quotient += 1n;
+      var text = formatScaledInteger(quotient, places);
+      if (places) text = text.replace(/(\.\d*?[1-9])0+$/, "$1").replace(/\.0+$/, "");
+      return (negative ? "-" : "") + text;
+    }
+    function formatPercent(weight, totalWeight) {
+      return roundedRationalDecimal(weight * 100n, totalWeight, 6) + "%";
+    }
+    function formatWeightTotal(weights, scale) {
+      var total = weights.reduce(function (sum, value) { return sum + value; }, 0n);
+      return formatScaledInteger(total, scale);
+    }
+    function percentageTotalIsExact(weights, scale) {
+      return weights.reduce(function (sum, value) { return sum + value; }, 0n) === 100n * power10(scale);
+    }
+
+    function defaultRecipients() {
+      return [
+        { id: nextId++, name: "", value: "" },
+        { id: nextId++, name: "", value: "" }
+      ];
+    }
+    function defaultState() {
+      nextId = 1;
+      allocationType = "money";
+      recipients = defaultRecipients();
+      return {
+        version: 1,
+        allocationType: "money",
+        totalAmount: "",
+        unitLabel: "THB",
+        decimalPlaces: "2",
+        basisMode: "weights",
+        recipients: recipients,
+        nextId: nextId
+      };
+    }
+    function currentState() {
+      return {
+        version: 1,
+        allocationType: allocationType,
+        totalAmount: byId("totalAmount").value,
+        unitLabel: byId("unitLabel").value,
+        decimalPlaces: byId("decimalPlaces").value,
+        basisMode: byId("basisMode").value,
+        recipients: recipients,
+        nextId: nextId
+      };
+    }
+    function persist() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(currentState())); } catch (error) {}
+    }
+    function load() {
+      var initial = defaultState();
+      try {
+        var saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (saved && saved.version === 1 && Array.isArray(saved.recipients) && saved.recipients.length) {
+          allocationType = saved.allocationType === "units" ? "units" : "money";
+          var usedIds = new Set();
+          recipients = saved.recipients.slice(0, 200).map(function (recipient) {
+            var candidateId = Number(recipient.id);
+            if (!Number.isInteger(candidateId) || candidateId < 1 || usedIds.has(candidateId)) candidateId = nextId++;
+            usedIds.add(candidateId);
+            return {
+              id: candidateId,
+              name: String(recipient.name || "").slice(0, 140),
+              value: String(recipient.value || "").slice(0, 80)
+            };
+          });
+          nextId = Math.max(Number(saved.nextId) || 1, recipients.reduce(function (maximum, recipient) { return Math.max(maximum, recipient.id + 1); }, 1));
+          return {
+            version: 1,
+            allocationType: allocationType,
+            totalAmount: typeof saved.totalAmount === "string" ? saved.totalAmount.slice(0, 100) : "",
+            unitLabel: typeof saved.unitLabel === "string" ? saved.unitLabel.slice(0, 20) : (allocationType === "money" ? "THB" : "units"),
+            decimalPlaces: ["0", "1", "2", "3", "4", "5", "6"].indexOf(String(saved.decimalPlaces)) !== -1 ? String(saved.decimalPlaces) : (allocationType === "money" ? "2" : "0"),
+            basisMode: ["weights", "percentages", "holdings"].indexOf(saved.basisMode) !== -1 ? saved.basisMode : "weights",
+            recipients: recipients,
+            nextId: nextId
+          };
+        }
+      } catch (error) {}
+      return initial;
+    }
+    function applyState(saved) {
+      byId("totalAmount").value = saved.totalAmount || "";
+      byId("unitLabel").value = saved.unitLabel || (allocationType === "money" ? "THB" : "units");
+      byId("decimalPlaces").value = saved.decimalPlaces || "2";
+      byId("basisMode").value = saved.basisMode || "weights";
+      setAllocationType(allocationType, false);
+      renderRecipients();
+      updateBasisLabels();
+      updateBasisTotal();
+    }
+
+    function setStatus(message, isError) {
+      clearTimeout(statusTimer);
+      byId("status").textContent = message;
+      byId("status").style.color = isError ? "var(--red)" : "var(--green)";
+      statusTimer = setTimeout(function () { byId("status").textContent = ""; }, 2800);
+    }
+    function showFormError(message) {
+      byId("formError").textContent = message;
+      byId("formError").classList.toggle("hidden", !message);
+    }
+    function invalidateResult() {
+      lastCalculation = null;
+      ["csvBtn", "copyBtn", "printBtn"].forEach(function (id) { byId(id).disabled = true; });
+      byId("resultArea").innerHTML = '<div class="empty">Inputs changed. Calculate to produce a reconciled allocation.</div>';
+    }
+    function setAllocationType(type, invalidate) {
+      allocationType = type;
+      document.querySelectorAll("[data-type]").forEach(function (button) {
+        var active = button.getAttribute("data-type") === type;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-pressed", String(active));
+      });
+      var money = type === "money";
+      byId("decimalPlaces").disabled = !money;
+      if (!money) byId("decimalPlaces").value = "0";
+      else if (byId("decimalPlaces").value === "0") byId("decimalPlaces").value = "2";
+      byId("totalAmountLabel").textContent = money ? "Total amount" : "Total whole units";
+      if (invalidate !== false) {
+        invalidateResult();
+        persist();
+      }
+    }
+    function basisLabel() {
+      return { weights: "Weight", percentages: "Percentage (%)", holdings: "Holdings / shares" }[byId("basisMode").value];
+    }
+    function updateBasisLabels() {
+      byId("valueHead").textContent = basisLabel();
+      document.querySelectorAll(".recipient-value-input").forEach(function (input) {
+        input.setAttribute("aria-label", basisLabel());
+        input.placeholder = byId("basisMode").value === "percentages" ? "e.g. 25" : "e.g. 100";
+      });
+    }
+    function renderRecipients() {
+      var html = "";
+      recipients.forEach(function (recipient, index) {
+        var name = recipient.name || "Recipient " + (index + 1);
+        html += '<div class="recipient-row" data-row-id="' + recipient.id + '">' +
+          '<div class="priority-controls">' +
+          '<span class="priority-number">' + (index + 1) + "</span>" +
+          '<button class="icon-btn" type="button" data-move="-1" data-id="' + recipient.id + '" title="Move up in tie priority" aria-label="Move ' + escapeHtml(name) + ' up" ' + (index === 0 ? "disabled" : "") + ">↑</button>" +
+          '<button class="icon-btn" type="button" data-move="1" data-id="' + recipient.id + '" title="Move down in tie priority" aria-label="Move ' + escapeHtml(name) + ' down" ' + (index === recipients.length - 1 ? "disabled" : "") + ">↓</button>" +
+          "</div>" +
+          '<input class="recipient-name-input" data-field="name" data-id="' + recipient.id + '" type="text" maxlength="140" value="' + escapeHtml(recipient.name) + '" placeholder="Recipient ' + (index + 1) + '" aria-label="Recipient name">' +
+          '<input class="recipient-value-input num" data-field="value" data-id="' + recipient.id + '" type="text" inputmode="decimal" value="' + escapeHtml(recipient.value) + '" placeholder="' + (byId("basisMode").value === "percentages" ? "e.g. 25" : "e.g. 100") + '" aria-label="' + escapeHtml(basisLabel()) + '">' +
+          '<button class="icon-btn delete" type="button" data-delete="' + recipient.id + '" title="Remove recipient" aria-label="Remove ' + escapeHtml(name) + '">×</button>' +
+          "</div>";
+      });
+      byId("recipientRows").innerHTML = html;
+    }
+    function updateBasisTotal() {
+      var values = recipients.map(function (recipient) { return recipient.value; });
+      if (values.some(function (value) { return !String(value).trim(); })) {
+        byId("basisTotal").innerHTML = "Enter a value for every recipient.";
+        return;
+      }
+      var normalized = normalizeWeightValues(values);
+      if (normalized.error) {
+        byId("basisTotal").innerHTML = escapeHtml(normalized.error);
+        return;
+      }
+      var total = formatWeightTotal(normalized.weights, normalized.scale);
+      if (byId("basisMode").value === "percentages") {
+        var ready = percentageTotalIsExact(normalized.weights, normalized.scale);
+        byId("basisTotal").innerHTML = "Percentage total: <strong>" + escapeHtml(total) + "%</strong>" + (ready ? " · ready" : " · must equal 100%");
+      } else {
+        byId("basisTotal").innerHTML = "Combined " + escapeHtml(basisLabel().toLowerCase()) + ": <strong>" + escapeHtml(total) + "</strong>";
+      }
+    }
+    function addRecipient() {
+      if (recipients.length >= 200) {
+        setStatus("A maximum of 200 recipients is supported.", true);
+        return;
+      }
+      recipients.push({ id: nextId++, name: "", value: "" });
+      renderRecipients();
+      updateBasisTotal();
+      invalidateResult();
+      persist();
+      var input = byId("recipientRows").querySelector('[data-row-id="' + recipients[recipients.length - 1].id + '"] .recipient-name-input');
+      if (input) input.focus();
+    }
+    function removeRecipient(id) {
+      if (recipients.length <= 1) {
+        setStatus("At least one recipient is required.", true);
+        return;
+      }
+      recipients = recipients.filter(function (recipient) { return recipient.id !== id; });
+      renderRecipients();
+      updateBasisTotal();
+      invalidateResult();
+      persist();
+    }
+    function moveRecipient(id, direction) {
+      var index = recipients.findIndex(function (recipient) { return recipient.id === id; });
+      var target = index + direction;
+      if (index < 0 || target < 0 || target >= recipients.length) return;
+      var temporary = recipients[index];
+      recipients[index] = recipients[target];
+      recipients[target] = temporary;
+      renderRecipients();
+      updateBasisTotal();
+      invalidateResult();
+      persist();
+    }
+    function setEqualValues() {
+      var count = recipients.length;
+      if (!count) return;
+      if (byId("basisMode").value === "percentages") {
+        var scale = 6;
+        var total = 100000000n;
+        var base = total / BigInt(count);
+        var remainder = total - base * BigInt(count);
+        recipients.forEach(function (recipient, index) {
+          var value = base + (BigInt(index) < remainder ? 1n : 0n);
+          recipient.value = formatScaledInteger(value, scale).replace(/(\.\d*?[1-9])0+$/, "$1").replace(/\.0+$/, "");
+        });
+      } else {
+        recipients.forEach(function (recipient) { recipient.value = "1"; });
+      }
+      renderRecipients();
+      updateBasisTotal();
+      invalidateResult();
+      persist();
+    }
+
+    function calculate() {
+      var decimalPlaces = allocationType === "units" ? 0 : Number(byId("decimalPlaces").value);
+      var totalResult = parseScaledAmount(byId("totalAmount").value, decimalPlaces);
+      if (totalResult.error) {
+        showFormError("Total: " + totalResult.error);
+        return;
+      }
+      if (!recipients.length) {
+        showFormError("Add at least one recipient.");
+        return;
+      }
+      var weightResult = normalizeWeightValues(recipients.map(function (recipient) { return recipient.value; }));
+      if (weightResult.error) {
+        showFormError(weightResult.error);
+        return;
+      }
+      if (byId("basisMode").value === "percentages") {
+        var actual = weightResult.weights.reduce(function (sum, value) { return sum + value; }, 0n);
+        if (!percentageTotalIsExact(weightResult.weights, weightResult.scale)) {
+          showFormError("Percentages total " + formatScaledInteger(actual, weightResult.scale) + "%; they must total exactly 100%.");
+          return;
+        }
+      }
+      var allocation = allocateLargestRemainder(totalResult.units, weightResult.weights);
+      if (allocation.error) {
+        showFormError(allocation.error);
+        return;
+      }
+      showFormError("");
+      var unitLabel = byId("unitLabel").value.trim() || (allocationType === "money" ? "currency units" : "units");
+      lastCalculation = {
+        decimalPlaces: decimalPlaces,
+        unitLabel: unitLabel,
+        allocationType: allocationType,
+        basisMode: byId("basisMode").value,
+        recipients: recipients.map(function (recipient) { return { id: recipient.id, name: recipient.name, value: recipient.value }; }),
+        weightScale: weightResult.scale,
+        allocation: allocation
+      };
+      renderCalculation(lastCalculation);
+      ["csvBtn", "copyBtn", "printBtn"].forEach(function (id) { byId(id).disabled = false; });
+      persist();
+      setStatus("Allocation calculated and reconciled exactly.");
+    }
+    function resultMetric(label, value) {
+      return '<div class="result-metric"><div class="result-label">' + escapeHtml(label) + '</div><div class="result-value">' + escapeHtml(value) + "</div></div>";
+    }
+    function amountWithUnit(value, calculation) {
+      return formatScaledInteger(value, calculation.decimalPlaces) + " " + calculation.unitLabel;
+    }
+    function renderCalculation(calculation) {
+      var allocation = calculation.allocation;
+      var finalTotal = allocation.rows.reduce(function (sum, row) { return sum + row.finalUnits; }, 0n);
+      var summary =
+        resultMetric("Entered total", amountWithUnit(allocation.totalUnits, calculation)) +
+        resultMetric("Allocated total", amountWithUnit(finalTotal, calculation)) +
+        resultMetric("Smallest units awarded", allocation.unitsLeft.toString()) +
+        resultMetric("Difference", amountWithUnit(allocation.totalUnits - finalTotal, calculation));
+      var html = '<div class="result-card"><div class="result-summary">' + summary + "</div>" +
+        '<div class="allocation-list"><div class="allocation-head"><div>Recipient</div><div>Normalized share</div><div>Raw quota</div><div>Remainder rank</div><div>Final allocation</div></div>';
+      allocation.rows.forEach(function (row, index) {
+        var recipient = calculation.recipients[index];
+        var name = recipient.name.trim() || "Recipient " + (index + 1);
+        var rawDenominator = allocation.totalWeight * power10(calculation.decimalPlaces);
+        var raw = roundedRationalDecimal(row.signedNumerator, rawDenominator, calculation.decimalPlaces + 6);
+        var remainderFraction = roundedRationalDecimal(row.remainder, allocation.totalWeight, 6);
+        html += '<div class="allocation-row ' + (row.awarded ? "bonus" : "") + '">' +
+          '<div><div class="recipient-name">' + escapeHtml(name) + '</div><div class="result-sub">Priority ' + (index + 1) + " · entered " + escapeHtml(recipient.value) + "</div></div>" +
+          '<div class="result-number">' + escapeHtml(formatPercent(row.weight, allocation.totalWeight)) + "</div>" +
+          '<div><div class="result-number">≈ ' + escapeHtml(raw + " " + calculation.unitLabel) + '</div><div class="result-sub">Floor: ' + escapeHtml(amountWithUnit(row.floorUnits * (allocation.totalUnits < 0n ? -1n : 1n), calculation)) + "</div></div>" +
+          '<div><div class="result-number">Rank ' + row.rank + '</div><div class="result-sub">' + escapeHtml(remainderFraction) + " of a smallest unit</div></div>" +
+          '<div><div class="final-number">' + escapeHtml(amountWithUnit(row.finalUnits, calculation)) + '</div>' + (row.awarded ? '<span class="bonus-tag">Remainder unit awarded</span>' : "") + "</div>" +
+          "</div>";
+      });
+      html += "</div></div>";
+      byId("resultArea").innerHTML = html;
+    }
+
+    function safeFilename() {
+      return "pro-rata-allocation";
+    }
+    function download(filename, type, content) {
+      var blob = new Blob([content], { type: type });
+      var url = URL.createObjectURL(blob);
+      var link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 0);
+    }
+    function exportCsv() {
+      if (!lastCalculation) return;
+      var allocation = lastCalculation.allocation;
+      var rows = [["Priority", "Recipient", "Entered Value", "Normalized Share", "Raw Quota", "Floor Allocation", "Remainder Rank", "Remainder Fraction of Smallest Unit", "Remainder Awarded", "Final Allocation", "Unit"]];
+      allocation.rows.forEach(function (row, index) {
+        var recipient = lastCalculation.recipients[index];
+        var rawDenominator = allocation.totalWeight * power10(lastCalculation.decimalPlaces);
+        rows.push([
+          index + 1,
+          recipient.name.trim() || "Recipient " + (index + 1),
+          recipient.value,
+          formatPercent(row.weight, allocation.totalWeight),
+          roundedRationalDecimal(row.signedNumerator, rawDenominator, lastCalculation.decimalPlaces + 6),
+          formatScaledInteger(row.floorUnits * (allocation.totalUnits < 0n ? -1n : 1n), lastCalculation.decimalPlaces),
+          row.rank,
+          roundedRationalDecimal(row.remainder, allocation.totalWeight, 9),
+          row.awarded ? "Yes" : "No",
+          formatScaledInteger(row.finalUnits, lastCalculation.decimalPlaces),
+          lastCalculation.unitLabel
+        ]);
+      });
+      rows.push(["", "TOTAL", "", "100%", "", "", "", "", "", formatScaledInteger(allocation.totalUnits, lastCalculation.decimalPlaces), lastCalculation.unitLabel]);
+      download(safeFilename() + ".csv", "text/csv;charset=utf-8", "\ufeff" + rows.map(function (row) { return row.map(csvCell).join(","); }).join("\r\n"));
+      setStatus("CSV exported.");
+    }
+    function copyResult() {
+      if (!lastCalculation) return;
+      var allocation = lastCalculation.allocation;
+      var lines = ["Pro-Rata Allocation", "Total: " + amountWithUnit(allocation.totalUnits, lastCalculation)];
+      allocation.rows.forEach(function (row, index) {
+        var recipient = lastCalculation.recipients[index];
+        lines.push((index + 1) + ". " + (recipient.name.trim() || "Recipient " + (index + 1)) + ": " + amountWithUnit(row.finalUnits, lastCalculation) + " (" + formatPercent(row.weight, allocation.totalWeight) + ")" + (row.awarded ? " [remainder unit]" : ""));
+      });
+      lines.push("Method: largest remainder; equal remainders follow row priority.");
+      navigator.clipboard.writeText(lines.join("\n")).then(function () {
+        setStatus("Allocation copied.");
+      }).catch(function () {
+        setStatus("Clipboard access was unavailable.", true);
+      });
+    }
+    function loadExample() {
+      allocationType = "money";
+      byId("totalAmount").value = "100.00";
+      byId("unitLabel").value = "THB";
+      byId("decimalPlaces").value = "2";
+      byId("basisMode").value = "weights";
+      recipients = [
+        { id: nextId++, name: "Claimant A", value: "1" },
+        { id: nextId++, name: "Claimant B", value: "1" },
+        { id: nextId++, name: "Claimant C", value: "1" }
+      ];
+      setAllocationType("money", false);
+      renderRecipients();
+      updateBasisLabels();
+      updateBasisTotal();
+      invalidateResult();
+      persist();
+      calculate();
+    }
+    function resetAll() {
+      if (!window.confirm("Reset the calculator and delete its locally saved entries?")) return;
+      try { localStorage.removeItem(STORAGE_KEY); } catch (error) {}
+      var initial = defaultState();
+      applyState(initial);
+      showFormError("");
+      invalidateResult();
+      setStatus("Calculator reset.");
+    }
+
+    document.querySelectorAll("[data-type]").forEach(function (button) {
+      button.addEventListener("click", function () { setAllocationType(button.getAttribute("data-type"), true); });
+    });
+    ["totalAmount", "unitLabel", "decimalPlaces"].forEach(function (id) {
+      byId(id).addEventListener("input", function () { invalidateResult(); persist(); });
+      byId(id).addEventListener("change", function () { invalidateResult(); persist(); });
+    });
+    byId("basisMode").addEventListener("change", function () {
+      updateBasisLabels();
+      renderRecipients();
+      updateBasisTotal();
+      invalidateResult();
+      persist();
+    });
+    byId("recipientRows").addEventListener("input", function (event) {
+      var input = event.target.closest("[data-field]");
+      if (!input) return;
+      var recipient = recipients.find(function (item) { return item.id === Number(input.getAttribute("data-id")); });
+      if (!recipient) return;
+      recipient[input.getAttribute("data-field")] = input.value;
+      updateBasisTotal();
+      invalidateResult();
+      persist();
+    });
+    byId("recipientRows").addEventListener("click", function (event) {
+      var move = event.target.closest("[data-move]");
+      var remove = event.target.closest("[data-delete]");
+      if (move) moveRecipient(Number(move.getAttribute("data-id")), Number(move.getAttribute("data-move")));
+      if (remove) removeRecipient(Number(remove.getAttribute("data-delete")));
+    });
+    byId("addRecipientBtn").addEventListener("click", addRecipient);
+    byId("equalBtn").addEventListener("click", setEqualValues);
+    byId("exampleBtn").addEventListener("click", loadExample);
+    byId("calculateBtn").addEventListener("click", calculate);
+    byId("csvBtn").addEventListener("click", exportCsv);
+    byId("copyBtn").addEventListener("click", copyResult);
+    byId("printBtn").addEventListener("click", function () { window.print(); });
+    byId("resetBtn").addEventListener("click", resetAll);
+
+    window.__JT_PRORATA_TEST__ = {
+      parseDecimal: parseDecimal,
+      parseScaledAmount: parseScaledAmount,
+      normalizeWeightValues: normalizeWeightValues,
+      allocateLargestRemainder: allocateLargestRemainder,
+      formatScaledInteger: formatScaledInteger,
+      roundedRationalDecimal: roundedRationalDecimal,
+      percentageTotalIsExact: percentageTotalIsExact
+    };
+
+    var saved = load();
+    applyState(saved);
+  }());
+  </script>
+</body>
+</html>

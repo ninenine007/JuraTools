@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Corporate Tools for Legal — JuraTools</title>
+  <meta name="description" content="Corporate legal tools — shareholder voting, share certificates, dividends and legal reserve, share register workbench, and instrument checklists. By Kornrawee Chanchom." />
+  <style>
+    /* ── Reset & Tokens ───────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      color: #1c1c1e;
+      min-height: 100vh;
+      background: #f2f2f7;
+      background-image:
+        radial-gradient(ellipse 1100px 700px at 10% 0%,   rgba(218,205,255,0.5)   0%, transparent 60%),
+        radial-gradient(ellipse  700px 700px at 95% 10%,  rgba(194,221,255,0.45)  0%, transparent 55%),
+        radial-gradient(ellipse  800px 600px at 0%  90%,  rgba(255,220,180,0.3)   0%, transparent 55%),
+        radial-gradient(ellipse  900px 500px at 100% 95%, rgba(167,243,208,0.3)   0%, transparent 55%);
+    }
+    a { color: inherit; text-decoration: none; }
+
+    /* ── Sticky Nav ───────────────────────────────── */
+    .nav {
+      position: sticky; top: 0; z-index: 200;
+      height: 52px;
+      display: flex; align-items: center; gap: 12px;
+      padding: 0 24px;
+      background: rgba(242,242,247,0.82);
+      backdrop-filter: blur(24px) saturate(200%);
+      -webkit-backdrop-filter: blur(24px) saturate(200%);
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+    }
+    .nav-brand { display: flex; align-items: center; gap: 9px; flex-shrink: 0; user-select: none; }
+    .nav-icon {
+      width: 30px; height: 30px; border-radius: 7px; flex-shrink: 0;
+      background: linear-gradient(145deg, #2979ff, #1565c0);
+      display: grid; place-items: center; font-size: 15px;
+      box-shadow: 0 2px 6px rgba(41,121,255,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    .nav-wordmark { font-size: 15px; font-weight: 700; letter-spacing: -0.4px; color: #1c1c1e; }
+    .nav-sep { color: #c7c7cc; font-size: 15px; }
+    .nav-current { font-size: 15px; font-weight: 600; color: #6e6e73; }
+    .nav-back {
+      margin-left: auto;
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 13px; font-weight: 500; color: #3c3c43;
+      background: rgba(0,0,0,0.055); border: 1px solid rgba(0,0,0,0.1);
+      padding: 6px 12px; border-radius: 9px;
+      transition: background .14s;
+    }
+    .nav-back:hover { background: rgba(0,0,0,0.09); }
+
+    /* ── Hero ─────────────────────────────────────── */
+    .hero { padding: 56px 24px 28px; text-align: center; max-width: 680px; margin: 0 auto; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.22);
+      border-radius: 999px; padding: 4px 12px;
+      font-size: 12px; font-weight: 600; color: #6d28d9;
+      margin-bottom: 18px;
+    }
+    .hero-dot { width: 6px; height: 6px; border-radius: 50%; background: #7c3aed; animation: pulse 2.5s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.55;transform:scale(.8)} }
+    .hero h1 {
+      font-size: clamp(34px, 5vw, 48px);
+      font-weight: 800; letter-spacing: -1.5px; line-height: 1.08;
+      background: linear-gradient(135deg, #1c1c1e 0%, #7c3aed 55%, #2979ff 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      margin-bottom: 12px;
+    }
+    .hero p { font-size: 16px; color: #6e6e73; line-height: 1.55; max-width: 480px; margin: 0 auto 18px; }
+    .hero-meta { display: flex; justify-content: center; align-items: center; gap: 14px; font-size: 13px; color: #aeaeb2; flex-wrap: wrap; }
+    .hero-meta span { display: flex; align-items: center; gap: 5px; }
+
+    /* ── Content ──────────────────────────────────── */
+    .content { max-width: 920px; margin: 0 auto; padding: 16px 24px 64px; }
+    .grid { display: grid; gap: 14px; grid-template-columns: repeat(2, 1fr); }
+    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: rgba(255,255,255,0.82);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.9);
+      border-radius: 18px; padding: 22px;
+      display: flex; flex-direction: column; gap: 10px;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.07);
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+    .card.live:hover { transform: translateY(-2px); box-shadow: 0 1px 1px rgba(0,0,0,0.04), 0 10px 32px rgba(0,0,0,0.11), 0 6px 24px rgba(124,58,237,0.13); }
+
+    .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+    .card-icon {
+      width: 48px; height: 48px; border-radius: 12px; flex-shrink: 0;
+      display: grid; place-items: center; font-size: 24px;
+      background: linear-gradient(145deg, #ede9fe, #ddd6fe);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.7);
+    }
+    .card-badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .badge-live { background: rgba(52,199,89,0.13);  color: #1a7a35; border: 1px solid rgba(52,199,89,.22); }
+    .card-sub { font-size: 12px; color: #aeaeb2; font-weight: 500; letter-spacing: .1px; text-transform: uppercase; margin-top: 2px; }
+    .card-title { font-size: 16px; font-weight: 700; letter-spacing: -.3px; line-height: 1.25; color: #1c1c1e; margin-top: -2px; }
+    .card-th { font-size: 12.5px; color: #8e8e93; font-weight: 500; margin-top: -6px; }
+    .card-desc { font-size: 13px; color: #6e6e73; line-height: 1.6; flex: 1; }
+
+    .card-actions { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 6px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.06); }
+    .btn { display: inline-flex; align-items: center; gap: 4px; padding: 8px 16px; border-radius: 9px; font-size: 13px; font-weight: 500; font-family: inherit; cursor: pointer; border: none; transition: all .14s; white-space: nowrap; }
+    .btn-open { background: #7c3aed; color: #fff; box-shadow: 0 1px 4px rgba(124,58,237,.38), inset 0 1px 0 rgba(255,255,255,.18); }
+    .btn-open:hover { background: #6d28d9; box-shadow: 0 3px 10px rgba(124,58,237,.45); }
+    .btn-source { background: rgba(0,0,0,0.055); color: #3c3c43; border: 1px solid rgba(0,0,0,0.1); }
+    .btn-source:hover { background: rgba(0,0,0,0.09); }
+
+    .footer { text-align: center; margin-top: 40px; font-size: 12px; color: #c7c7cc; }
+  </style>
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav class="nav">
+    <a class="nav-brand" href="../index.html">
+      <div class="nav-icon">⚖️</div>
+      <span class="nav-wordmark">JuraTools</span>
+    </a>
+    <span class="nav-sep">/</span>
+    <span class="nav-current">Corporate Tools for Legal</span>
+    <a class="nav-back" href="../index.html">← All tools</a>
+  </nav>
+
+  <!-- ── Hero ── -->
+  <div class="hero">
+    <div class="hero-badge">
+      <span class="hero-dot"></span> Runs entirely in your browser
+    </div>
+    <h1>Corporate Tools for Legal</h1>
+    <p>Shareholder meetings, share registers, dividends, and closing checklists — the company-secretarial toolkit for Thai limited companies.</p>
+    <div class="hero-meta">
+      <span>🏢 Corporate calculators &amp; registers</span>
+      <span style="color:#d1d1d6">·</span>
+      <span>🔒 No data sent anywhere</span>
+    </div>
+  </div>
+
+  <!-- ── Tool Grid ── -->
+  <div class="content">
+    <div class="grid">
+
+      <!-- Shareholder Voting Simulator -->
+      <article class="card live">
+        <div class="card-head">
+          <div class="card-icon">🗳️</div>
+          <span class="card-badge badge-live">Live</span>
+        </div>
+        <div class="card-sub">Voting</div>
+        <h3 class="card-title">Shareholder Voting Simulator</h3>
+        <p class="card-th">จำลองการลงมติที่ประชุมผู้ถือหุ้น</p>
+        <p class="card-desc">Simulate voting outcomes across all combinations per shareholder. Checks pass/fail for majority (&gt;50%), two-thirds, and three-quarters thresholds.</p>
+        <div class="card-actions">
+          <a class="btn btn-open" href="shareholder-voting-simulator.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/corporate-tools/shareholder-voting-simulator.html" target="_blank" rel="noopener">Source</a>
+        </div>
+      </article>
+
+      <!-- Share Certificate Calculator -->
+      <article class="card live">
+        <div class="card-head">
+          <div class="card-icon">📜</div>
+          <span class="card-badge badge-live">Live</span>
+        </div>
+        <div class="card-sub">Registers</div>
+        <h3 class="card-title">Share Certificate Calculator</h3>
+        <p class="card-th">คำนวณเลขที่ใบหุ้น</p>
+        <p class="card-desc">Manage shareholders and auto-generate certificate start/end ranges from share counts. One-click copy of the full register table.</p>
+        <div class="card-actions">
+          <a class="btn btn-open" href="share-certificate-calculator.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/corporate-tools/share-certificate-calculator.html" target="_blank" rel="noopener">Source</a>
+        </div>
+      </article>
+
+      <!-- Dividend & Legal Reserve Calculator -->
+      <article class="card live">
+        <div class="card-head">
+          <div class="card-icon">💰</div>
+          <span class="card-badge badge-live">Live</span>
+        </div>
+        <div class="card-sub">Finance · CCC §1200</div>
+        <h3 class="card-title">Dividend &amp; Legal Reserve Calculator</h3>
+        <p class="card-th">เงินปันผลและทุนสำรองตามกฎหมาย</p>
+        <p class="card-desc">Calculates gross/net dividend per share and statutory legal reserve for any payout. Supports two legal interpretations and partially-paid share structures (CCC §1200).</p>
+        <div class="card-actions">
+          <a class="btn btn-open" href="dividend-calculator.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/corporate-tools/dividend-calculator.html" target="_blank" rel="noopener">Source</a>
+        </div>
+      </article>
+
+      <!-- CorpDesk -->
+      <article class="card live">
+        <div class="card-head">
+          <div class="card-icon">🏢</div>
+          <span class="card-badge badge-live">Live</span>
+        </div>
+        <div class="card-sub">Registers · CCC §§1222 · 1224</div>
+        <h3 class="card-title">CorpDesk — Share Register Workbench</h3>
+        <p class="card-th">สมุดทะเบียนผู้ถือหุ้นแบบ replay</p>
+        <p class="card-desc">Full share-register lifecycle in one file. Set up the initial cap table, then drop transaction cards on a pile — transfers, capital increases (§1222 pro-rata rights), capital decreases (§1224), paid-up updates, and renumbering. The replay engine derives the current shareholding, certificate history, and per-shareholder ledgers. Exports master-data JSON for Thai share documents.</p>
+        <div class="card-actions">
+          <a class="btn btn-open" href="corpdesk.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/corporate-tools/corpdesk.html" target="_blank" rel="noopener">Source</a>
+        </div>
+      </article>
+
+      <!-- Instrument Checklist -->
+      <article class="card live">
+        <div class="card-head">
+          <div class="card-icon">📋</div>
+          <span class="card-badge badge-live">Live</span>
+        </div>
+        <div class="card-sub">Documents &amp; signings</div>
+        <h3 class="card-title">Instrument Checklist</h3>
+        <p class="card-th">เช็กลิสต์เอกสารประกอบการลงนาม</p>
+        <p class="card-desc">Build a document checklist for any instrument or signing. Add parties (individuals or companies with directors), witnesses, and instrument-level documents. Track required IDs, registration certificates, and custom docs per person — then export a checklist PDF.</p>
+        <div class="card-actions">
+          <a class="btn btn-open" href="instrument-checklist.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/corporate-tools/instrument-checklist.html" target="_blank" rel="noopener">Source</a>
+        </div>
+      </article>
+
+    </div>
+
+    <div class="footer">
+      © 2026 Kornrawee Chanchom &nbsp;—&nbsp; JuraTools · Corporate Tools for Legal
+    </div>
+  </div>
+
+</body>
+</html>

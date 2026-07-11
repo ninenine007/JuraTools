@@ -1,0 +1,1620 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Chronology &amp; Interval Workbench — JuraTools</title>
+  <meta name="description" content="Build a private legal chronology, compare intervals, and create linked deadlines with transparent counting rules.">
+  <style>
+    :root {
+      --blue: #2979ff;
+      --blue-dark: #1565c0;
+      --blue-soft: rgba(41,121,255,.09);
+      --blue-ring: rgba(41,121,255,.16);
+      --purple: #7c3aed;
+      --green: #047857;
+      --green-soft: rgba(4,120,87,.08);
+      --amber: #a15c00;
+      --amber-soft: #fff8e6;
+      --red: #b91c1c;
+      --red-soft: #fef2f2;
+      --bg: #f2f2f7;
+      --surface: rgba(255,255,255,.9);
+      --surface-soft: rgba(255,255,255,.64);
+      --text: #1c1c1e;
+      --text-2: #636366;
+      --text-3: #8e8e93;
+      --border: rgba(0,0,0,.09);
+      --border-solid: #dfe3ea;
+      --shadow: 0 1px 1px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.07);
+      --radius: 16px;
+      --radius-sm: 8px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, system-ui, "SF Pro Text", "Helvetica Neue", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(ellipse 1000px 620px at 8% 0%, rgba(194,221,255,.48), transparent 60%),
+        radial-gradient(ellipse 660px 620px at 96% 8%, rgba(218,205,255,.4), transparent 56%),
+        radial-gradient(ellipse 760px 520px at 0% 96%, rgba(167,243,208,.26), transparent 58%),
+        radial-gradient(ellipse 820px 440px at 100% 96%, rgba(255,220,180,.25), transparent 58%);
+    }
+    button, input, select, textarea { font: inherit; }
+    button { touch-action: manipulation; }
+    a { color: inherit; }
+
+    .jt-nav {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 24px;
+      background: rgba(242,242,247,.84);
+      backdrop-filter: blur(24px) saturate(190%);
+      -webkit-backdrop-filter: blur(24px) saturate(190%);
+      border-bottom: 1px solid rgba(0,0,0,.08);
+    }
+    .nav-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 9px;
+      border-radius: 8px;
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .nav-back:hover { background: rgba(41,121,255,.1); }
+    .nav-divider { width: 1px; height: 20px; background: var(--border); }
+    .nav-icon {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      border-radius: 7px;
+      background: linear-gradient(145deg, var(--blue), var(--blue-dark));
+      box-shadow: 0 2px 6px rgba(41,121,255,.35), inset 0 1px 0 rgba(255,255,255,.22);
+      font-size: 15px;
+    }
+    .nav-title {
+      min-width: 0;
+      overflow: hidden;
+      font-size: 14px;
+      font-weight: 650;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .page {
+      width: min(100%, 1120px);
+      margin: 0 auto;
+      padding: 28px 20px 68px;
+    }
+    .page-header { margin-bottom: 22px; }
+    .page-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-bottom: 10px;
+      padding: 3px 10px;
+      border: 1px solid rgba(124,58,237,.2);
+      border-radius: 999px;
+      color: var(--purple);
+      background: rgba(124,58,237,.09);
+      font-size: 11px;
+      font-weight: 700;
+    }
+    h1 {
+      margin: 0 0 7px;
+      font-size: clamp(24px, 3vw, 32px);
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+    .intro {
+      max-width: 850px;
+      margin: 0;
+      color: var(--text-2);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .privacy-line {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      margin-top: 12px;
+      color: var(--text-3);
+      font-size: 11.5px;
+    }
+    .privacy-line strong { color: var(--green); font-weight: 650; }
+
+    .card {
+      margin-bottom: 16px;
+      padding: 22px;
+      background: var(--surface);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,.92);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .card-title {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin: 0 0 17px;
+      color: var(--text-2);
+      font-size: 13px;
+      font-weight: 750;
+    }
+    .card-title::after {
+      content: "";
+      height: 1px;
+      flex: 1;
+      background: var(--border);
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: minmax(0, 1.04fr) minmax(300px, .96fr);
+      gap: 16px;
+      align-items: start;
+    }
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .field-grid .full { grid-column: 1 / -1; }
+    .field {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      gap: 5px;
+    }
+    label, .label {
+      color: var(--text-2);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .2px;
+      text-transform: uppercase;
+    }
+    input, select, textarea {
+      width: 100%;
+      min-width: 0;
+      padding: 9px 11px;
+      border: 1px solid var(--border-solid);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      background: rgba(255,255,255,.84);
+      font-size: 14px;
+      transition: border-color .14s, box-shadow .14s, background .14s;
+    }
+    textarea { min-height: 70px; resize: vertical; line-height: 1.45; }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px var(--blue-ring);
+      background: #fff;
+    }
+    input:disabled, select:disabled {
+      cursor: not-allowed;
+      color: var(--text-3);
+      background: rgba(118,118,128,.07);
+    }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .field-note {
+      color: var(--text-3);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+    .check-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 18px;
+      align-items: center;
+    }
+    .check {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--text-2);
+      font-size: 13px;
+      font-weight: 500;
+      text-transform: none;
+      cursor: pointer;
+    }
+    .check input { width: 16px; height: 16px; margin: 0; accent-color: var(--blue); }
+
+    .segmented {
+      display: inline-grid;
+      grid-auto-flow: column;
+      grid-auto-columns: 1fr;
+      gap: 3px;
+      width: 100%;
+      padding: 3px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(118,118,128,.08);
+    }
+    .segmented button {
+      min-height: 34px;
+      padding: 6px 10px;
+      border: 0;
+      border-radius: 7px;
+      color: var(--text-2);
+      background: transparent;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 650;
+    }
+    .segmented button.active {
+      color: var(--text);
+      background: #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,.12);
+    }
+    .segmented button:focus-visible,
+    .btn:focus-visible,
+    .icon-btn:focus-visible {
+      outline: 3px solid var(--blue-ring);
+      outline-offset: 2px;
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-top: 16px;
+    }
+    .btn {
+      min-height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 8px 15px;
+      border: 1px solid transparent;
+      border-radius: 9px;
+      color: #fff;
+      background: var(--blue);
+      box-shadow: 0 1px 4px rgba(41,121,255,.3);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 650;
+    }
+    .btn:hover { background: #1c6ef3; }
+    .btn:active { transform: translateY(1px); }
+    .btn-secondary {
+      color: #3c3c43;
+      background: rgba(0,0,0,.045);
+      border-color: rgba(0,0,0,.09);
+      box-shadow: none;
+    }
+    .btn-secondary:hover { background: rgba(0,0,0,.075); }
+    .btn-danger {
+      color: var(--red);
+      background: rgba(185,28,28,.07);
+      border-color: rgba(185,28,28,.15);
+      box-shadow: none;
+    }
+    .btn-danger:hover { background: rgba(185,28,28,.12); }
+    .btn[disabled] { opacity: .45; cursor: not-allowed; transform: none; }
+
+    details.settings {
+      margin-top: 14px;
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+    }
+    details.settings summary {
+      cursor: pointer;
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 650;
+    }
+    details.settings[open] summary { margin-bottom: 14px; }
+
+    .preview {
+      margin-top: 14px;
+      padding: 13px 14px;
+      border: 1px solid rgba(4,120,87,.18);
+      border-radius: 10px;
+      color: var(--green);
+      background: var(--green-soft);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .preview strong { font-size: 14px; }
+    .warning {
+      margin-top: 12px;
+      padding: 11px 13px;
+      border: 1px solid rgba(185,28,28,.2);
+      border-radius: 8px;
+      color: var(--red);
+      background: var(--red-soft);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .hidden { display: none !important; }
+
+    .workspace-bar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: end;
+    }
+    .workspace-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      justify-content: flex-end;
+    }
+    .workspace-actions .btn { min-height: 36px; padding: 7px 11px; }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 30px 0 14px;
+    }
+    .section-head h2 {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.2;
+    }
+    .count-badge {
+      padding: 2px 8px;
+      border-radius: 999px;
+      color: var(--blue);
+      background: var(--blue-soft);
+      font-size: 11px;
+      font-weight: 750;
+    }
+    .section-line { height: 1px; flex: 1; background: var(--border); }
+
+    .timeline-card { padding: 0; overflow: hidden; }
+    .timeline-empty {
+      padding: 42px 22px;
+      color: var(--text-3);
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .event-row {
+      display: grid;
+      grid-template-columns: 145px 18px minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 17px 18px;
+    }
+    .event-date {
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.45;
+    }
+    .event-date .be {
+      color: var(--text-3);
+      font-size: 10.5px;
+      font-weight: 550;
+    }
+    .node {
+      width: 12px;
+      height: 12px;
+      border: 3px solid #fff;
+      border-radius: 50%;
+      background: var(--blue);
+      box-shadow: 0 0 0 2px rgba(41,121,255,.26);
+    }
+    .node.deadline { background: var(--purple); box-shadow: 0 0 0 2px rgba(124,58,237,.24); }
+    .event-main { min-width: 0; }
+    .event-name {
+      overflow-wrap: anywhere;
+      font-size: 14px;
+      font-weight: 720;
+      line-height: 1.35;
+    }
+    .event-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px 9px;
+      margin-top: 4px;
+      color: var(--text-3);
+      font-size: 11px;
+      line-height: 1.4;
+    }
+    .event-note {
+      margin-top: 5px;
+      color: var(--text-2);
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    .event-actions { display: flex; gap: 5px; }
+    .icon-btn {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-2);
+      background: rgba(0,0,0,.035);
+      cursor: pointer;
+      font-size: 15px;
+    }
+    .icon-btn:hover { color: var(--blue); background: var(--blue-soft); }
+    .icon-btn.delete:hover { color: var(--red); background: var(--red-soft); }
+    .gap-row {
+      display: grid;
+      grid-template-columns: 145px 18px minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+      min-height: 46px;
+      padding: 5px 18px;
+      border-top: 1px solid rgba(0,0,0,.045);
+      border-bottom: 1px solid rgba(0,0,0,.045);
+      background: rgba(41,121,255,.035);
+    }
+    .gap-line {
+      width: 2px;
+      height: 34px;
+      justify-self: center;
+      background: rgba(41,121,255,.28);
+    }
+    .gap-summary {
+      color: var(--text-2);
+      font-size: 11.5px;
+      line-height: 1.5;
+      font-variant-numeric: tabular-nums;
+    }
+    .gap-summary strong { color: var(--blue-dark); }
+
+    .compare-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .compare-result {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 2px;
+    }
+    .metric {
+      min-width: 0;
+      padding: 13px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(255,255,255,.62);
+    }
+    .metric-label {
+      color: var(--text-3);
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .metric-value {
+      margin-top: 5px;
+      overflow-wrap: anywhere;
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 750;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.35;
+    }
+    .metric-note { margin-top: 3px; color: var(--text-3); font-size: 10.5px; line-height: 1.35; }
+
+    .status {
+      min-height: 18px;
+      margin-top: 10px;
+      color: var(--green);
+      font-size: 11.5px;
+      font-weight: 600;
+    }
+    .tool-footer {
+      margin-top: 34px;
+      color: var(--text-3);
+      font-size: 11.5px;
+      line-height: 1.6;
+      text-align: center;
+    }
+    .tool-footer a { color: var(--blue); }
+
+    @media (max-width: 860px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      .compare-result { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 680px) {
+      .jt-nav { padding: 0 12px; }
+      .page { padding: 22px 12px 56px; }
+      .card { padding: 18px 15px; }
+      .field-grid, .compare-grid { grid-template-columns: 1fr; }
+      .field-grid .full, .compare-result { grid-column: auto; }
+      .workspace-bar { grid-template-columns: 1fr; }
+      .workspace-actions { justify-content: flex-start; }
+      .event-row {
+        grid-template-columns: 14px minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: start;
+        padding: 16px 14px;
+      }
+      .event-date {
+        grid-column: 2 / 4;
+        grid-row: 1;
+      }
+      .node { grid-column: 1; grid-row: 2; margin-top: 4px; }
+      .event-main { grid-column: 2; grid-row: 2; }
+      .event-actions { grid-column: 3; grid-row: 2; }
+      .gap-row {
+        grid-template-columns: 14px minmax(0, 1fr);
+        gap: 10px;
+        padding: 6px 14px;
+      }
+      .gap-row > :first-child { display: none; }
+      .gap-line { grid-column: 1; }
+      .gap-summary { grid-column: 2; }
+    }
+    @media (max-width: 450px) {
+      .nav-title { display: none; }
+      .compare-result { grid-template-columns: 1fr; }
+      .workspace-actions .btn { flex: 1 1 42%; }
+      .event-actions { flex-direction: column; }
+    }
+    @media print {
+      body { background: #fff; }
+      .jt-nav, .editor-panel, .workspace-actions, .event-actions, .tool-footer, #status { display: none !important; }
+      .page { width: 100%; padding: 0; }
+      .card { border: 1px solid #ddd; box-shadow: none; background: #fff; }
+      .timeline-card { break-inside: avoid; }
+      .page-header { margin-bottom: 18px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="jt-nav" aria-label="JuraTools">
+    <a class="nav-back" href="../index.html">‹ JuraTools</a>
+    <span class="nav-divider" aria-hidden="true"></span>
+    <span class="nav-icon" aria-hidden="true">🕰️</span>
+    <span class="nav-title">Chronology &amp; Interval Workbench</span>
+  </nav>
+
+  <main class="page">
+    <header class="page-header">
+      <div class="page-badge">⚖️ Legal / Dates · Asia/Bangkok</div>
+      <h1>Chronology &amp; Interval Workbench</h1>
+      <p class="intro">Build a sortable chronology, measure the gap between every event, compare any two entries, and create deadlines linked to source events. Counting choices and adjustments remain visible in each result.</p>
+      <div class="privacy-line">
+        <span><strong>Private by default</strong> · data stays in this browser</span>
+        <span>Gregorian dates · optional Buddhist Era display</span>
+        <span>Times use Asia/Bangkok (UTC+7)</span>
+      </div>
+    </header>
+
+    <section class="card" aria-labelledby="workspace-title">
+      <div class="workspace-bar">
+        <div class="field">
+          <label for="workspaceTitle" id="workspace-title">Chronology title</label>
+          <input id="workspaceTitle" type="text" maxlength="140" placeholder="Matter, transaction, or project name">
+        </div>
+        <div class="workspace-actions">
+          <button class="btn btn-secondary" type="button" id="exampleBtn">Load example</button>
+          <button class="btn btn-secondary" type="button" id="csvBtn">Export CSV</button>
+          <button class="btn btn-secondary" type="button" id="jsonBtn">Export JSON</button>
+          <button class="btn btn-secondary" type="button" id="importBtn">Import JSON</button>
+          <button class="btn btn-secondary" type="button" id="printBtn">Print</button>
+          <button class="btn btn-danger" type="button" id="resetBtn">Reset</button>
+          <input id="importFile" class="hidden" type="file" accept="application/json,.json">
+        </div>
+      </div>
+      <div id="status" class="status" aria-live="polite"></div>
+    </section>
+
+    <div class="grid-2">
+      <section class="card editor-panel" aria-labelledby="editor-title">
+        <h2 class="card-title" id="editor-title">Add or edit an entry</h2>
+        <div class="segmented" role="group" aria-label="Entry type">
+          <button type="button" class="active" data-editor-mode="event" aria-pressed="true">Ordinary event</button>
+          <button type="button" data-editor-mode="deadline" aria-pressed="false">Linked deadline</button>
+        </div>
+
+        <form id="eventForm" novalidate>
+          <div class="field-grid" style="margin-top:16px">
+            <div class="field full">
+              <label for="eventName">Event name</label>
+              <input id="eventName" type="text" maxlength="180" required placeholder="e.g. Notice received">
+            </div>
+
+            <div id="ordinaryFields" class="full">
+              <div class="field-grid">
+                <div class="field">
+                  <label for="eventDate">Date</label>
+                  <input id="eventDate" type="date" required>
+                </div>
+                <div class="field">
+                  <label for="eventTime">Time (optional)</label>
+                  <input id="eventTime" type="time">
+                  <span class="field-note">Leave blank for a date-only event.</span>
+                </div>
+              </div>
+            </div>
+
+            <div id="deadlineFields" class="full hidden">
+              <div class="field-grid">
+                <div class="field full">
+                  <label for="sourceEvent">Source event</label>
+                  <select id="sourceEvent"></select>
+                </div>
+                <div class="field">
+                  <label for="direction">Direction</label>
+                  <select id="direction">
+                    <option value="after">After source event</option>
+                    <option value="before">Before source event</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="offsetValue">Period</label>
+                  <input id="offsetValue" class="num" type="number" min="0" step="1" value="14">
+                </div>
+                <div class="field">
+                  <label for="offsetUnit">Unit</label>
+                  <select id="offsetUnit">
+                    <option value="days">Days</option>
+                    <option value="weeks">Weeks</option>
+                    <option value="months">Months</option>
+                    <option value="years">Years</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="countMode">Counting method</label>
+                  <select id="countMode">
+                    <option value="calendar">Calendar period</option>
+                    <option value="clear">Clear days</option>
+                    <option value="working">Working days</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="endpointRule">Source-day rule</label>
+                  <select id="endpointRule">
+                    <option value="exclude">Exclude source day</option>
+                    <option value="include">Include source day</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="shiftRule">Final-day adjustment</label>
+                  <select id="shiftRule">
+                    <option value="none">No adjustment</option>
+                    <option value="next">Next working day</option>
+                    <option value="previous">Previous working day</option>
+                  </select>
+                </div>
+              </div>
+              <div id="deadlinePreview" class="preview" aria-live="polite"></div>
+            </div>
+
+            <div class="field">
+              <label for="eventCategory">Category</label>
+              <input id="eventCategory" type="text" maxlength="60" list="categoryList" placeholder="e.g. Correspondence">
+              <datalist id="categoryList">
+                <option value="Correspondence">
+                <option value="Evidence">
+                <option value="Filing">
+                <option value="Hearing">
+                <option value="Meeting">
+                <option value="Notice">
+                <option value="Payment">
+                <option value="Deadline">
+              </datalist>
+            </div>
+            <div class="field">
+              <label for="eventReference">Reference (optional)</label>
+              <input id="eventReference" type="text" maxlength="100" placeholder="Document or exhibit number">
+            </div>
+            <div class="field full">
+              <label for="eventNotes">Notes (optional)</label>
+              <textarea id="eventNotes" maxlength="1200" placeholder="Material details, source, or uncertainty"></textarea>
+            </div>
+          </div>
+          <div id="formError" class="warning hidden" role="alert"></div>
+          <div class="btn-row">
+            <button class="btn" type="submit" id="saveEventBtn">Add event</button>
+            <button class="btn btn-secondary hidden" type="button" id="cancelEditBtn">Cancel edit</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card" aria-labelledby="settings-title">
+        <h2 class="card-title" id="settings-title">Display &amp; counting settings</h2>
+        <div class="field">
+          <label for="eraMode">Date display</label>
+          <select id="eraMode">
+            <option value="gregorian-be">Gregorian + Buddhist Era</option>
+            <option value="gregorian">Gregorian only</option>
+          </select>
+        </div>
+        <details class="settings" open>
+          <summary>Working-day calendar</summary>
+          <div class="check-row">
+            <label class="check" for="offSaturday"><input id="offSaturday" type="checkbox" checked> Saturday is non-working</label>
+            <label class="check" for="offSunday"><input id="offSunday" type="checkbox" checked> Sunday is non-working</label>
+          </div>
+          <div class="field" style="margin-top:14px">
+            <label for="holidays">Additional non-working dates</label>
+            <textarea id="holidays" placeholder="2026-01-01&#10;2026-04-13"></textarea>
+            <span class="field-note">Use YYYY-MM-DD, one date per line. No holiday dates are assumed automatically.</span>
+            <div id="holidayWarning" class="warning hidden" role="alert"></div>
+          </div>
+        </details>
+        <div class="preview">
+          <strong>Interval definitions</strong><br>
+          Calendar span is the date difference. Clear days exclude both endpoints. Working days exclude the starting event and include the ending date when it is a working day.
+        </div>
+      </section>
+    </div>
+
+    <div class="section-head">
+      <h2>Timeline</h2>
+      <span class="count-badge" id="eventCount">0 events</span>
+      <span class="section-line"></span>
+    </div>
+    <section class="card timeline-card" aria-label="Chronology timeline">
+      <div id="timeline" aria-live="polite"></div>
+    </section>
+
+    <section class="card" aria-labelledby="compare-title">
+      <h2 class="card-title" id="compare-title">Compare two events</h2>
+      <div class="compare-grid">
+        <div class="field">
+          <label for="compareFrom">From</label>
+          <select id="compareFrom"></select>
+        </div>
+        <div class="field">
+          <label for="compareTo">To</label>
+          <select id="compareTo"></select>
+        </div>
+        <div id="compareResult" class="compare-result" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <footer class="tool-footer">
+      This utility applies only the options selected on this page and is not legal advice.
+      All data remains in your browser. · <a href="../index.html">Back to JuraTools</a>
+    </footer>
+  </main>
+
+  <script>
+  (function () {
+    "use strict";
+
+    var DAY_MS = 86400000;
+    var STORAGE_KEY = "juratools.chronology-workbench.v1";
+    var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    var WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    var state = defaultState();
+    var editorMode = "event";
+    var editingId = null;
+    var statusTimer = null;
+
+    function defaultState() {
+      return {
+        version: 1,
+        title: "",
+        eraMode: "gregorian-be",
+        offSaturday: true,
+        offSunday: true,
+        holidays: "",
+        events: []
+      };
+    }
+
+    function byId(id) { return document.getElementById(id); }
+    function pad2(value) { return String(value).padStart(2, "0"); }
+    function uid() {
+      return "evt-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+    }
+    function escapeHtml(value) {
+      return String(value == null ? "" : value).replace(/[&<>"']/g, function (char) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char];
+      });
+    }
+    function csvCell(value) {
+      var text = String(value == null ? "" : value);
+      return '"' + text.replace(/"/g, '""') + '"';
+    }
+    function parseISODate(value) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(value || "")) return null;
+      var parts = value.split("-").map(Number);
+      var date = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+      if (date.getUTCFullYear() !== parts[0] || date.getUTCMonth() !== parts[1] - 1 || date.getUTCDate() !== parts[2]) return null;
+      return date;
+    }
+    function parseDateTime(dateValue, timeValue) {
+      var date = parseISODate(dateValue);
+      if (!date) return null;
+      var hour = 0;
+      var minute = 0;
+      var hasTime = Boolean(timeValue);
+      if (hasTime) {
+        if (!/^\d{2}:\d{2}$/.test(timeValue)) return null;
+        var parts = timeValue.split(":").map(Number);
+        hour = parts[0];
+        minute = parts[1];
+        if (hour > 23 || minute > 59) return null;
+      }
+      return {
+        date: new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), hour, minute)),
+        hasTime: hasTime
+      };
+    }
+    function toISODate(date) {
+      return date.getUTCFullYear() + "-" + pad2(date.getUTCMonth() + 1) + "-" + pad2(date.getUTCDate());
+    }
+    function bangkokToday() {
+      var shifted = new Date(Date.now() + 7 * 60 * 60 * 1000);
+      return new Date(Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate()));
+    }
+    function toTime(date) { return pad2(date.getUTCHours()) + ":" + pad2(date.getUTCMinutes()); }
+    function dateOnly(date) { return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())); }
+    function addDays(date, amount) { return new Date(date.getTime() + amount * DAY_MS); }
+    function daysInMonth(year, monthIndex) { return new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate(); }
+    function addMonthsClamped(date, amount) {
+      var monthIndex = date.getUTCMonth() + amount;
+      var year = date.getUTCFullYear() + Math.floor(monthIndex / 12);
+      var month = ((monthIndex % 12) + 12) % 12;
+      var day = Math.min(date.getUTCDate(), daysInMonth(year, month));
+      return new Date(Date.UTC(year, month, day, date.getUTCHours(), date.getUTCMinutes()));
+    }
+    function addYearsClamped(date, amount) { return addMonthsClamped(date, amount * 12); }
+    function holidaySet(text) {
+      var set = new Set();
+      String(text || "").split(/\r?\n/).forEach(function (line) {
+        var value = line.trim();
+        if (parseISODate(value)) set.add(value);
+      });
+      return set;
+    }
+    function invalidHolidayLines(text) {
+      return String(text || "").split(/\r?\n/).map(function (line) {
+        return line.trim();
+      }).filter(function (value) {
+        return value && !parseISODate(value);
+      });
+    }
+    function calendarConfig() {
+      return {
+        offSaturday: state.offSaturday,
+        offSunday: state.offSunday,
+        holidays: holidaySet(state.holidays)
+      };
+    }
+    function isWorkingDay(date, config) {
+      var day = date.getUTCDay();
+      if (config.offSaturday && day === 6) return false;
+      if (config.offSunday && day === 0) return false;
+      if (config.holidays.has(toISODate(date))) return false;
+      return true;
+    }
+    function moveToWorkingDay(date, direction, config) {
+      var current = new Date(date.getTime());
+      var guard = 0;
+      while (!isWorkingDay(current, config) && guard < 370) {
+        current = addDays(current, direction);
+        guard += 1;
+      }
+      return current;
+    }
+    function addWorkingDays(date, amount, direction, includeSource, config) {
+      var current = new Date(date.getTime());
+      var remaining = amount;
+      if (includeSource && remaining > 0 && isWorkingDay(current, config)) remaining -= 1;
+      var guard = 0;
+      while (remaining > 0 && guard < 200000) {
+        current = addDays(current, direction);
+        if (isWorkingDay(current, config)) remaining -= 1;
+        guard += 1;
+      }
+      return current;
+    }
+    function countWorkingDays(start, end, config) {
+      var direction = end >= start ? 1 : -1;
+      var current = dateOnly(start);
+      var target = dateOnly(end);
+      var count = 0;
+      var guard = 0;
+      while (current.getTime() !== target.getTime() && guard < 200000) {
+        current = addDays(current, direction);
+        if (isWorkingDay(current, config)) count += direction;
+        guard += 1;
+      }
+      return count;
+    }
+    function calculateLinked(source, spec, config) {
+      var amount = Number(spec.offset);
+      if (!Number.isInteger(amount) || amount < 0) return { error: "Period must be a whole number of zero or more." };
+      var direction = spec.direction === "before" ? -1 : 1;
+      var result = new Date(source.date.getTime());
+      var steps = ["Source: " + toISODate(source.date) + (source.hasTime ? " " + toTime(source.date) : "")];
+
+      if (spec.countMode === "clear") {
+        if (spec.unit !== "days") return { error: "Clear-day counting is available only for days." };
+        result = addDays(result, direction * (amount + 1));
+        steps.push(amount + " clear day" + (amount === 1 ? "" : "s") + " " + spec.direction + " source; both endpoints excluded");
+      } else if (spec.countMode === "working") {
+        if (spec.unit !== "days") return { error: "Working-day counting is available only for days." };
+        result = addWorkingDays(result, amount, direction, spec.endpoint === "include", config);
+        steps.push(amount + " working day" + (amount === 1 ? "" : "s") + " " + spec.direction + " source; source " + (spec.endpoint === "include" ? "included when working" : "excluded"));
+      } else {
+        var endpointAdjustment = spec.endpoint === "include" && amount > 0 ? 1 : 0;
+        if (spec.unit === "days") result = addDays(result, direction * (amount - endpointAdjustment));
+        if (spec.unit === "weeks") result = addDays(result, direction * (amount * 7 - endpointAdjustment));
+        if (spec.unit === "months") result = addMonthsClamped(result, direction * amount);
+        if (spec.unit === "years") result = addYearsClamped(result, direction * amount);
+        steps.push(amount + " calendar " + spec.unit + " " + spec.direction + " source" + ((spec.unit === "days" || spec.unit === "weeks") ? "; source " + (spec.endpoint === "include" ? "included" : "excluded") : "; corresponding-date rule with month-end clamping"));
+      }
+
+      var unadjusted = new Date(result.getTime());
+      if (spec.shift === "next" && !isWorkingDay(result, config)) {
+        result = moveToWorkingDay(result, 1, config);
+        steps.push("Final date moved to next working day: " + toISODate(result));
+      } else if (spec.shift === "previous" && !isWorkingDay(result, config)) {
+        result = moveToWorkingDay(result, -1, config);
+        steps.push("Final date moved to previous working day: " + toISODate(result));
+      } else {
+        steps.push("No final-day adjustment applied");
+      }
+      return {
+        date: result,
+        hasTime: source.hasTime,
+        unadjusted: unadjusted,
+        steps: steps
+      };
+    }
+    function resolvedEvent(event, stack) {
+      stack = stack || [];
+      if (!event) return { error: "Event not found." };
+      if (stack.indexOf(event.id) !== -1) return { error: "Linked deadline cycle detected." };
+      if (event.kind !== "deadline") {
+        var parsed = parseDateTime(event.date, event.time);
+        return parsed ? { date: parsed.date, hasTime: parsed.hasTime, event: event, steps: [] } : { error: "Invalid date.", event: event };
+      }
+      var source = state.events.find(function (item) { return item.id === event.sourceId; });
+      if (!source) return { error: "Source event is missing.", event: event };
+      var resolvedSource = resolvedEvent(source, stack.concat(event.id));
+      if (resolvedSource.error) return { error: resolvedSource.error, event: event };
+      var result = calculateLinked(resolvedSource, event, calendarConfig());
+      if (result.error) return { error: result.error, event: event };
+      result.event = event;
+      result.source = source;
+      return result;
+    }
+    function resolvedEvents() {
+      return state.events.map(function (event) {
+        return resolvedEvent(event, []);
+      }).sort(function (a, b) {
+        if (a.error && b.error) return String(a.event.name).localeCompare(String(b.event.name));
+        if (a.error) return 1;
+        if (b.error) return -1;
+        if (a.date.getTime() !== b.date.getTime()) return a.date - b.date;
+        return String(a.event.name).localeCompare(String(b.event.name));
+      });
+    }
+    function intervalBetween(from, to, config) {
+      var calendarDays = Math.round((dateOnly(to.date) - dateOnly(from.date)) / DAY_MS);
+      var sign = calendarDays < 0 ? -1 : 1;
+      var clearDays = sign * Math.max(0, Math.abs(calendarDays) - 1);
+      var workingDays = countWorkingDays(from.date, to.date, config);
+      var exactMs = from.hasTime && to.hasTime ? to.date - from.date : null;
+      return {
+        calendarDays: calendarDays,
+        clearDays: clearDays,
+        workingDays: workingDays,
+        exactMs: exactMs
+      };
+    }
+    function formatExact(milliseconds) {
+      if (milliseconds == null) return "Time unavailable";
+      var sign = milliseconds < 0 ? "-" : "";
+      var minutes = Math.floor(Math.abs(milliseconds) / 60000);
+      var days = Math.floor(minutes / 1440);
+      minutes -= days * 1440;
+      var hours = Math.floor(minutes / 60);
+      minutes -= hours * 60;
+      var parts = [];
+      if (days) parts.push(days + "d");
+      if (hours || days) parts.push(hours + "h");
+      parts.push(minutes + "m");
+      return sign + parts.join(" ");
+    }
+    function formatDisplayDate(date, hasTime) {
+      var main = WEEKDAYS[date.getUTCDay()] + ", " + date.getUTCDate() + " " + MONTHS[date.getUTCMonth()] + " " + date.getUTCFullYear();
+      if (hasTime) main += " · " + toTime(date);
+      var be = date.getUTCDate() + " " + MONTHS[date.getUTCMonth()] + " " + (date.getUTCFullYear() + 543) + " B.E.";
+      return '<div>' + escapeHtml(main) + '</div>' + (state.eraMode === "gregorian-be" ? '<div class="be">' + escapeHtml(be) + '</div>' : "");
+    }
+    function formatSignedNumber(value, singular, plural) {
+      return value + " " + (Math.abs(value) === 1 ? singular : plural);
+    }
+    function eventLabel(resolved) {
+      if (resolved.error) return resolved.event.name + " (invalid)";
+      return toISODate(resolved.date) + " — " + resolved.event.name;
+    }
+
+    function persist() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (error) {}
+    }
+    function load() {
+      try {
+        var saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        var validated = validateImport(saved);
+        if (validated) state = validated;
+      } catch (error) {
+        state = defaultState();
+      }
+    }
+    function syncSettingsToDom() {
+      byId("workspaceTitle").value = state.title;
+      byId("eraMode").value = state.eraMode;
+      byId("offSaturday").checked = state.offSaturday;
+      byId("offSunday").checked = state.offSunday;
+      byId("holidays").value = state.holidays;
+    }
+    function updateHolidayWarning() {
+      var invalid = invalidHolidayLines(state.holidays);
+      var warning = byId("holidayWarning");
+      warning.textContent = invalid.length ? "Correct invalid date" + (invalid.length === 1 ? "" : "s") + ": " + invalid.join(", ") + ". Working-day results currently use only the valid dates." : "";
+      warning.classList.toggle("hidden", !invalid.length);
+    }
+    function setStatus(message, isError) {
+      clearTimeout(statusTimer);
+      var status = byId("status");
+      status.textContent = message;
+      status.style.color = isError ? "var(--red)" : "var(--green)";
+      statusTimer = setTimeout(function () { status.textContent = ""; }, 2800);
+    }
+    function showFormError(message) {
+      var element = byId("formError");
+      element.textContent = message;
+      element.classList.toggle("hidden", !message);
+    }
+
+    function setEditorMode(mode) {
+      editorMode = mode;
+      document.querySelectorAll("[data-editor-mode]").forEach(function (button) {
+        var active = button.getAttribute("data-editor-mode") === mode;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-pressed", String(active));
+      });
+      byId("ordinaryFields").classList.toggle("hidden", mode !== "event");
+      byId("deadlineFields").classList.toggle("hidden", mode !== "deadline");
+      byId("saveEventBtn").textContent = editingId ? "Save changes" : (mode === "deadline" ? "Add linked deadline" : "Add event");
+      refreshSourceOptions();
+      updateDeadlineControls();
+      updateDeadlinePreview();
+      updateHolidayWarning();
+      showFormError("");
+    }
+    function clearForm() {
+      editingId = null;
+      byId("eventForm").reset();
+      byId("offsetValue").value = "14";
+      byId("eventDate").value = toISODate(bangkokToday());
+      byId("eventCategory").value = "";
+      byId("cancelEditBtn").classList.add("hidden");
+      setEditorMode("event");
+    }
+    function refreshSourceOptions() {
+      var select = byId("sourceEvent");
+      var current = select.value;
+      var options = state.events.filter(function (event) { return event.id !== editingId; }).map(function (event) {
+        var resolved = resolvedEvent(event, []);
+        return '<option value="' + escapeHtml(event.id) + '">' + escapeHtml(eventLabel(resolved)) + '</option>';
+      });
+      select.innerHTML = options.length ? options.join("") : '<option value="">Add an ordinary event first</option>';
+      if (state.events.some(function (event) { return event.id === current && event.id !== editingId; })) select.value = current;
+      updateDeadlinePreview();
+    }
+    function updateDeadlineControls() {
+      var mode = byId("countMode").value;
+      var unit = byId("offsetUnit");
+      if (mode !== "calendar") unit.value = "days";
+      Array.from(unit.options).forEach(function (option) {
+        option.disabled = mode !== "calendar" && option.value !== "days";
+      });
+      var endpoint = byId("endpointRule");
+      endpoint.disabled = mode === "clear" || (mode === "calendar" && (unit.value === "months" || unit.value === "years"));
+      if (mode === "clear") endpoint.value = "exclude";
+    }
+    function deadlineSpecFromForm() {
+      return {
+        sourceId: byId("sourceEvent").value,
+        direction: byId("direction").value,
+        offset: Number(byId("offsetValue").value),
+        unit: byId("offsetUnit").value,
+        countMode: byId("countMode").value,
+        endpoint: byId("endpointRule").value,
+        shift: byId("shiftRule").value
+      };
+    }
+    function updateDeadlinePreview() {
+      if (editorMode !== "deadline") return;
+      var preview = byId("deadlinePreview");
+      var source = state.events.find(function (event) { return event.id === byId("sourceEvent").value; });
+      if (!source) {
+        preview.innerHTML = "Add an ordinary event before creating a linked deadline.";
+        return;
+      }
+      var resolvedSource = resolvedEvent(source, []);
+      if (resolvedSource.error) {
+        preview.innerHTML = '<span style="color:var(--red)">' + escapeHtml(resolvedSource.error) + '</span>';
+        return;
+      }
+      var result = calculateLinked(resolvedSource, deadlineSpecFromForm(), calendarConfig());
+      if (result.error) {
+        preview.innerHTML = '<span style="color:var(--red)">' + escapeHtml(result.error) + '</span>';
+        return;
+      }
+      preview.innerHTML = "<strong>" + formatDisplayDate(result.date, result.hasTime) + "</strong><br>" + result.steps.map(escapeHtml).join("<br>");
+    }
+    function wouldCreateCycle(eventId, sourceId) {
+      if (!eventId) return false;
+      var current = state.events.find(function (event) { return event.id === sourceId; });
+      var visited = new Set();
+      while (current && current.kind === "deadline" && !visited.has(current.id)) {
+        if (current.id === eventId) return true;
+        visited.add(current.id);
+        current = state.events.find(function (event) { return event.id === current.sourceId; });
+      }
+      return Boolean(current && current.id === eventId);
+    }
+    function formEvent() {
+      var name = byId("eventName").value.trim();
+      if (!name) return { error: "Enter an event name." };
+      var base = {
+        id: editingId || uid(),
+        kind: editorMode,
+        name: name,
+        category: byId("eventCategory").value.trim(),
+        reference: byId("eventReference").value.trim(),
+        notes: byId("eventNotes").value.trim()
+      };
+      if (editorMode === "event") {
+        var parsed = parseDateTime(byId("eventDate").value, byId("eventTime").value);
+        if (!parsed) return { error: "Enter a valid event date and optional time." };
+        base.date = byId("eventDate").value;
+        base.time = byId("eventTime").value;
+      } else {
+        var spec = deadlineSpecFromForm();
+        if (!spec.sourceId) return { error: "Choose a source event." };
+        if (!Number.isInteger(spec.offset) || spec.offset < 0) return { error: "Period must be a whole number of zero or more." };
+        if (wouldCreateCycle(base.id, spec.sourceId)) return { error: "This source would create a linked-deadline cycle." };
+        Object.assign(base, spec);
+        var source = state.events.find(function (event) { return event.id === spec.sourceId; });
+        var resolvedSource = resolvedEvent(source, []);
+        var preview = resolvedSource.error ? resolvedSource : calculateLinked(resolvedSource, spec, calendarConfig());
+        if (preview.error) return { error: preview.error };
+      }
+      return { event: base };
+    }
+    function saveEvent(event) {
+      var index = state.events.findIndex(function (item) { return item.id === event.id; });
+      if (index === -1) state.events.push(event);
+      else state.events[index] = event;
+      persist();
+      clearForm();
+      renderAll();
+      setStatus(index === -1 ? "Entry added and saved locally." : "Changes saved locally.");
+    }
+    function editEvent(id) {
+      var event = state.events.find(function (item) { return item.id === id; });
+      if (!event) return;
+      editingId = id;
+      byId("eventName").value = event.name || "";
+      byId("eventCategory").value = event.category || "";
+      byId("eventReference").value = event.reference || "";
+      byId("eventNotes").value = event.notes || "";
+      if (event.kind === "deadline") {
+        setEditorMode("deadline");
+        byId("sourceEvent").value = event.sourceId;
+        byId("direction").value = event.direction;
+        byId("offsetValue").value = event.offset;
+        byId("offsetUnit").value = event.unit;
+        byId("countMode").value = event.countMode;
+        byId("endpointRule").value = event.endpoint;
+        byId("shiftRule").value = event.shift;
+      } else {
+        setEditorMode("event");
+        byId("eventDate").value = event.date;
+        byId("eventTime").value = event.time || "";
+      }
+      byId("cancelEditBtn").classList.remove("hidden");
+      byId("saveEventBtn").textContent = "Save changes";
+      updateDeadlineControls();
+      updateDeadlinePreview();
+      byId("eventName").focus();
+      window.scrollTo({ top: byId("editor-title").getBoundingClientRect().top + window.scrollY - 70, behavior: "smooth" });
+    }
+    function dependentIds(id) {
+      var result = [];
+      function collect(sourceId) {
+        state.events.filter(function (event) {
+          return event.kind === "deadline" && event.sourceId === sourceId;
+        }).forEach(function (event) {
+          if (result.indexOf(event.id) === -1) {
+            result.push(event.id);
+            collect(event.id);
+          }
+        });
+      }
+      collect(id);
+      return result;
+    }
+    function removeEvent(id) {
+      var event = state.events.find(function (item) { return item.id === id; });
+      if (!event) return;
+      var dependents = dependentIds(id);
+      var message = 'Delete "' + event.name + '"?';
+      if (dependents.length) message += " This also deletes " + dependents.length + " linked deadline" + (dependents.length === 1 ? "" : "s") + ".";
+      if (!window.confirm(message)) return;
+      var remove = new Set([id].concat(dependents));
+      state.events = state.events.filter(function (item) { return !remove.has(item.id); });
+      if (editingId && remove.has(editingId)) clearForm();
+      persist();
+      renderAll();
+      setStatus("Entry deleted.");
+    }
+
+    function renderTimeline() {
+      var resolved = resolvedEvents();
+      byId("eventCount").textContent = resolved.length + " event" + (resolved.length === 1 ? "" : "s");
+      if (!resolved.length) {
+        byId("timeline").innerHTML = '<div class="timeline-empty">No events yet. Add an ordinary event to begin the chronology.</div>';
+        return;
+      }
+      var html = "";
+      var config = calendarConfig();
+      resolved.forEach(function (item, index) {
+        if (index > 0 && !item.error && !resolved[index - 1].error) {
+          var gap = intervalBetween(resolved[index - 1], item, config);
+          var exact = gap.exactMs == null ? "" : "<strong>" + escapeHtml(formatExact(gap.exactMs)) + " exact</strong> · ";
+          html += '<div class="gap-row"><div></div><div class="gap-line" aria-hidden="true"></div><div class="gap-summary">' +
+            exact + escapeHtml(formatSignedNumber(gap.calendarDays, "calendar day", "calendar days")) + " · " +
+            escapeHtml(formatSignedNumber(gap.clearDays, "clear day", "clear days")) + " · " +
+            escapeHtml(formatSignedNumber(gap.workingDays, "working day", "working days")) + "</div></div>";
+        }
+        var event = item.event;
+        var sourceName = item.source ? item.source.name : "";
+        var meta = [];
+        meta.push(event.kind === "deadline" ? "Linked deadline" : "Ordinary event");
+        if (event.category) meta.push(event.category);
+        if (event.reference) meta.push("Ref: " + event.reference);
+        if (sourceName) meta.push("Linked to: " + sourceName);
+        html += '<article class="event-row">' +
+          '<div class="event-date">' + (item.error ? '<span style="color:var(--red)">Date unavailable</span>' : formatDisplayDate(item.date, item.hasTime)) + "</div>" +
+          '<div class="node ' + (event.kind === "deadline" ? "deadline" : "") + '" aria-hidden="true"></div>' +
+          '<div class="event-main"><div class="event-name">' + escapeHtml(event.name) + "</div>" +
+          '<div class="event-meta">' + meta.map(function (value) { return "<span>" + escapeHtml(value) + "</span>"; }).join("<span>·</span>") + "</div>" +
+          (item.error ? '<div class="event-note" style="color:var(--red)">' + escapeHtml(item.error) + "</div>" : "") +
+          (event.notes ? '<div class="event-note">' + escapeHtml(event.notes) + "</div>" : "") +
+          "</div>" +
+          '<div class="event-actions">' +
+          '<button class="icon-btn" type="button" data-edit="' + escapeHtml(event.id) + '" title="Edit event" aria-label="Edit ' + escapeHtml(event.name) + '">✎</button>' +
+          '<button class="icon-btn delete" type="button" data-delete="' + escapeHtml(event.id) + '" title="Delete event" aria-label="Delete ' + escapeHtml(event.name) + '">×</button>' +
+          "</div></article>";
+      });
+      byId("timeline").innerHTML = html;
+    }
+    function renderCompare() {
+      var resolved = resolvedEvents().filter(function (item) { return !item.error; });
+      var fromSelect = byId("compareFrom");
+      var toSelect = byId("compareTo");
+      var previousFrom = fromSelect.value;
+      var previousTo = toSelect.value;
+      var options = resolved.map(function (item) {
+        return '<option value="' + escapeHtml(item.event.id) + '">' + escapeHtml(eventLabel(item)) + "</option>";
+      }).join("");
+      fromSelect.innerHTML = options || '<option value="">No event available</option>';
+      toSelect.innerHTML = options || '<option value="">No event available</option>';
+      if (resolved.some(function (item) { return item.event.id === previousFrom; })) fromSelect.value = previousFrom;
+      else if (resolved[0]) fromSelect.value = resolved[0].event.id;
+      if (resolved.some(function (item) { return item.event.id === previousTo; })) toSelect.value = previousTo;
+      else if (resolved.length) toSelect.value = resolved[resolved.length - 1].event.id;
+      renderComparisonResult();
+    }
+    function renderComparisonResult() {
+      var from = resolvedEvent(state.events.find(function (event) { return event.id === byId("compareFrom").value; }), []);
+      var to = resolvedEvent(state.events.find(function (event) { return event.id === byId("compareTo").value; }), []);
+      if (!from.event || !to.event || from.error || to.error) {
+        byId("compareResult").innerHTML = '<div class="metric" style="grid-column:1/-1"><div class="metric-value">Add at least two valid events to compare intervals.</div></div>';
+        return;
+      }
+      var result = intervalBetween(from, to, calendarConfig());
+      var exactNote = result.exactMs == null ? "Times are required on both events." : "Both event times included.";
+      byId("compareResult").innerHTML =
+        metricHtml("Exact elapsed", formatExact(result.exactMs), exactNote) +
+        metricHtml("Calendar span", formatSignedNumber(result.calendarDays, "day", "days"), "Date difference; starting date excluded.") +
+        metricHtml("Clear days", String(result.clearDays), "Both endpoint dates excluded.") +
+        metricHtml("Working days", String(result.workingDays), "Start excluded; end included if working.");
+    }
+    function metricHtml(label, value, note) {
+      return '<div class="metric"><div class="metric-label">' + escapeHtml(label) + '</div><div class="metric-value">' + escapeHtml(value) + '</div><div class="metric-note">' + escapeHtml(note) + "</div></div>";
+    }
+    function renderAll() {
+      syncSettingsToDom();
+      refreshSourceOptions();
+      renderTimeline();
+      renderCompare();
+      updateDeadlineControls();
+      updateDeadlinePreview();
+    }
+
+    function download(filename, type, content) {
+      var blob = new Blob([content], { type: type });
+      var url = URL.createObjectURL(blob);
+      var link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 0);
+    }
+    function safeFilename() {
+      var title = state.title.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      return title || "legal-chronology";
+    }
+    function exportCsv() {
+      var rows = [["No.", "Date", "Time", "Event", "Category", "Type", "Source event", "Reference", "Gap from previous", "Calendar days", "Clear days", "Working days", "Notes"]];
+      var resolved = resolvedEvents();
+      var previous = null;
+      resolved.forEach(function (item, index) {
+        var gap = previous && !previous.error && !item.error ? intervalBetween(previous, item, calendarConfig()) : null;
+        rows.push([
+          index + 1,
+          item.error ? "" : toISODate(item.date),
+          item.error || !item.hasTime ? "" : toTime(item.date),
+          item.event.name,
+          item.event.category || "",
+          item.event.kind === "deadline" ? "Linked deadline" : "Ordinary event",
+          item.source ? item.source.name : "",
+          item.event.reference || "",
+          gap ? (gap.exactMs == null ? gap.calendarDays + " calendar days" : formatExact(gap.exactMs)) : "",
+          gap ? gap.calendarDays : "",
+          gap ? gap.clearDays : "",
+          gap ? gap.workingDays : "",
+          item.event.notes || ""
+        ]);
+        previous = item;
+      });
+      var text = rows.map(function (row) { return row.map(csvCell).join(","); }).join("\r\n");
+      download(safeFilename() + ".csv", "text/csv;charset=utf-8", "\ufeff" + text);
+      setStatus("CSV exported.");
+    }
+    function exportJson() {
+      var payload = Object.assign({}, state, {
+        exportedAt: new Date().toISOString(),
+        tool: "Chronology & Interval Workbench"
+      });
+      download(safeFilename() + ".json", "application/json;charset=utf-8", JSON.stringify(payload, null, 2));
+      setStatus("JSON backup exported.");
+    }
+    function validateImport(value) {
+      if (!value || value.version !== 1 || !Array.isArray(value.events)) return null;
+      var next = defaultState();
+      next.title = typeof value.title === "string" ? value.title.slice(0, 140) : "";
+      next.eraMode = value.eraMode === "gregorian" ? "gregorian" : "gregorian-be";
+      next.offSaturday = value.offSaturday !== false;
+      next.offSunday = value.offSunday !== false;
+      next.holidays = typeof value.holidays === "string" ? value.holidays.slice(0, 20000) : "";
+      var ids = new Set();
+      var valid = value.events.length <= 5000 && value.events.every(function (event) {
+        if (!event || typeof event.id !== "string" || ids.has(event.id) || typeof event.name !== "string") return false;
+        ids.add(event.id);
+        if (event.kind === "deadline") {
+          return typeof event.sourceId === "string" &&
+            ["after", "before"].indexOf(event.direction) !== -1 &&
+            Number.isInteger(event.offset) && event.offset >= 0 &&
+            ["days", "weeks", "months", "years"].indexOf(event.unit) !== -1 &&
+            ["calendar", "clear", "working"].indexOf(event.countMode) !== -1 &&
+            ["exclude", "include"].indexOf(event.endpoint) !== -1 &&
+            ["none", "next", "previous"].indexOf(event.shift) !== -1;
+        }
+        return event.kind === "event" && typeof event.date === "string" && Boolean(parseDateTime(event.date, typeof event.time === "string" ? event.time : ""));
+      });
+      if (!valid) return null;
+      next.events = value.events.map(function (event) {
+        var clean = {
+          id: event.id,
+          kind: event.kind,
+          name: event.name.slice(0, 180),
+          category: typeof event.category === "string" ? event.category.slice(0, 60) : "",
+          reference: typeof event.reference === "string" ? event.reference.slice(0, 100) : "",
+          notes: typeof event.notes === "string" ? event.notes.slice(0, 1200) : ""
+        };
+        if (event.kind === "event") {
+          clean.date = event.date;
+          clean.time = typeof event.time === "string" ? event.time : "";
+        } else {
+          clean.sourceId = event.sourceId;
+          clean.direction = event.direction;
+          clean.offset = event.offset;
+          clean.unit = event.unit;
+          clean.countMode = event.countMode;
+          clean.endpoint = event.endpoint;
+          clean.shift = event.shift;
+        }
+        return clean;
+      });
+      var byEventId = new Map(next.events.map(function (event) { return [event.id, event]; }));
+      for (var index = 0; index < next.events.length; index += 1) {
+        var current = next.events[index];
+        var path = new Set();
+        while (current && current.kind === "deadline") {
+          if (!byEventId.has(current.sourceId) || path.has(current.id)) return null;
+          path.add(current.id);
+          current = byEventId.get(current.sourceId);
+        }
+      }
+      return next;
+    }
+    function importJson(file) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        try {
+          var imported = validateImport(JSON.parse(String(reader.result)));
+          if (!imported) throw new Error("Invalid chronology file");
+          if (state.events.length && !window.confirm("Replace the current chronology with the imported file?")) return;
+          state = imported;
+          persist();
+          clearForm();
+          renderAll();
+          setStatus("Chronology imported.");
+        } catch (error) {
+          setStatus("The selected file is not a valid chronology backup.", true);
+        }
+      };
+      reader.readAsText(file);
+    }
+    function loadExample() {
+      if (state.events.length && !window.confirm("Replace the current chronology with example events?")) return;
+      var first = "evt-example-1";
+      var second = "evt-example-2";
+      state = {
+        version: 1,
+        title: "Example matter chronology",
+        eraMode: state.eraMode,
+        offSaturday: true,
+        offSunday: true,
+        holidays: "2026-01-01",
+        events: [
+          { id: first, kind: "event", name: "Notice received", date: "2026-01-02", time: "09:00", category: "Notice", reference: "Email 1", notes: "Received by email." },
+          { id: second, kind: "event", name: "Response sent", date: "2026-01-09", time: "14:30", category: "Correspondence", reference: "Letter 2", notes: "" },
+          { id: "evt-example-3", kind: "deadline", name: "Follow-up deadline", sourceId: second, direction: "after", offset: 14, unit: "days", countMode: "calendar", endpoint: "exclude", shift: "next", category: "Deadline", reference: "", notes: "Automatically updates when the response date changes." }
+        ]
+      };
+      persist();
+      clearForm();
+      renderAll();
+      setStatus("Example chronology loaded.");
+    }
+    function resetAll() {
+      if (state.events.length && !window.confirm("Delete the current chronology and locally saved data?")) return;
+      state = defaultState();
+      try { localStorage.removeItem(STORAGE_KEY); } catch (error) {}
+      clearForm();
+      renderAll();
+      setStatus("Chronology reset.");
+    }
+
+    document.querySelectorAll("[data-editor-mode]").forEach(function (button) {
+      button.addEventListener("click", function () { setEditorMode(button.getAttribute("data-editor-mode")); });
+    });
+    byId("eventForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+      var result = formEvent();
+      if (result.error) {
+        showFormError(result.error);
+        return;
+      }
+      showFormError("");
+      saveEvent(result.event);
+    });
+    ["sourceEvent", "direction", "offsetValue", "offsetUnit", "countMode", "endpointRule", "shiftRule"].forEach(function (id) {
+      byId(id).addEventListener("input", function () {
+        updateDeadlineControls();
+        updateDeadlinePreview();
+      });
+      byId(id).addEventListener("change", function () {
+        updateDeadlineControls();
+        updateDeadlinePreview();
+      });
+    });
+    byId("cancelEditBtn").addEventListener("click", clearForm);
+    byId("timeline").addEventListener("click", function (event) {
+      var edit = event.target.closest("[data-edit]");
+      var remove = event.target.closest("[data-delete]");
+      if (edit) editEvent(edit.getAttribute("data-edit"));
+      if (remove) removeEvent(remove.getAttribute("data-delete"));
+    });
+    byId("compareFrom").addEventListener("change", renderComparisonResult);
+    byId("compareTo").addEventListener("change", renderComparisonResult);
+    byId("workspaceTitle").addEventListener("input", function () {
+      state.title = byId("workspaceTitle").value;
+      persist();
+    });
+    byId("eraMode").addEventListener("change", function () {
+      state.eraMode = byId("eraMode").value;
+      persist();
+      renderAll();
+    });
+    byId("offSaturday").addEventListener("change", function () {
+      state.offSaturday = byId("offSaturday").checked;
+      persist();
+      renderAll();
+    });
+    byId("offSunday").addEventListener("change", function () {
+      state.offSunday = byId("offSunday").checked;
+      persist();
+      renderAll();
+    });
+    byId("holidays").addEventListener("input", function () {
+      state.holidays = byId("holidays").value;
+      persist();
+      updateHolidayWarning();
+      renderTimeline();
+      renderComparisonResult();
+      updateDeadlinePreview();
+    });
+    byId("exampleBtn").addEventListener("click", loadExample);
+    byId("csvBtn").addEventListener("click", exportCsv);
+    byId("jsonBtn").addEventListener("click", exportJson);
+    byId("importBtn").addEventListener("click", function () { byId("importFile").click(); });
+    byId("importFile").addEventListener("change", function () {
+      if (byId("importFile").files[0]) importJson(byId("importFile").files[0]);
+      byId("importFile").value = "";
+    });
+    byId("printBtn").addEventListener("click", function () { window.print(); });
+    byId("resetBtn").addEventListener("click", resetAll);
+
+    window.__JT_CHRONOLOGY_TEST__ = {
+      parseISODate: parseISODate,
+      parseDateTime: parseDateTime,
+      toISODate: toISODate,
+      addMonthsClamped: addMonthsClamped,
+      addYearsClamped: addYearsClamped,
+      calculateLinked: calculateLinked,
+      intervalBetween: intervalBetween,
+      holidaySet: holidaySet,
+      invalidHolidayLines: invalidHolidayLines,
+      validateImport: validateImport
+    };
+
+    load();
+    syncSettingsToDom();
+    clearForm();
+    renderAll();
+  }());
+  </script>
+</body>
+</html>

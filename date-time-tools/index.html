@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Thai Tax Tools — JuraTools</title>
-  <meta name="description" content="A collection of calculators for Thai tax planning — land sale tax comparison, stamp duty, and more. By Kornrawee Chanchom." />
+  <title>Date &amp; Time Tools for Legal — JuraTools</title>
+  <meta name="description" content="Legal date and deadline tools — CCC time counting, GM notices, chronologies, recurring deadlines, and clear-days calculation. By Kornrawee Chanchom." />
   <style>
     /* ── Reset & Tokens ───────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -16,10 +16,10 @@
       min-height: 100vh;
       background: #f2f2f7;
       background-image:
-        radial-gradient(ellipse 1100px 700px at 10% 0%,   rgba(255,205,210,0.45)  0%, transparent 60%),
-        radial-gradient(ellipse  700px 700px at 95% 10%,  rgba(255,224,178,0.4)   0%, transparent 55%),
-        radial-gradient(ellipse  800px 600px at 0%  90%,  rgba(194,221,255,0.35)  0%, transparent 55%),
-        radial-gradient(ellipse  900px 500px at 100% 95%, rgba(218,205,255,0.3)   0%, transparent 55%);
+        radial-gradient(ellipse 1100px 700px at 10% 0%,   rgba(194,221,255,0.5)   0%, transparent 60%),
+        radial-gradient(ellipse  700px 700px at 95% 10%,  rgba(218,205,255,0.45)  0%, transparent 55%),
+        radial-gradient(ellipse  800px 600px at 0%  90%,  rgba(167,243,208,0.35)  0%, transparent 55%),
+        radial-gradient(ellipse  900px 500px at 100% 95%, rgba(255,220,180,0.3)   0%, transparent 55%);
     }
     a { color: inherit; text-decoration: none; }
 
@@ -58,17 +58,17 @@
     .hero { padding: 56px 24px 28px; text-align: center; max-width: 680px; margin: 0 auto; }
     .hero-badge {
       display: inline-flex; align-items: center; gap: 6px;
-      background: rgba(225,29,72,0.1); border: 1px solid rgba(225,29,72,0.22);
+      background: rgba(41,121,255,0.1); border: 1px solid rgba(41,121,255,0.22);
       border-radius: 999px; padding: 4px 12px;
-      font-size: 12px; font-weight: 600; color: #be123c;
+      font-size: 12px; font-weight: 600; color: #1c6ef3;
       margin-bottom: 18px;
     }
-    .hero-dot { width: 6px; height: 6px; border-radius: 50%; background: #e11d48; animation: pulse 2.5s ease-in-out infinite; }
+    .hero-dot { width: 6px; height: 6px; border-radius: 50%; background: #2979ff; animation: pulse 2.5s ease-in-out infinite; }
     @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.55;transform:scale(.8)} }
     .hero h1 {
       font-size: clamp(34px, 5vw, 48px);
       font-weight: 800; letter-spacing: -1.5px; line-height: 1.08;
-      background: linear-gradient(135deg, #1c1c1e 0%, #e11d48 55%, #ea580c 100%);
+      background: linear-gradient(135deg, #1c1c1e 0%, #2979ff 55%, #7c3aed 100%);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
       margin-bottom: 12px;
     }
@@ -90,20 +90,18 @@
       box-shadow: 0 1px 1px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.07);
       transition: transform .2s ease, box-shadow .2s ease;
     }
-    .card.live:hover { transform: translateY(-2px); box-shadow: 0 1px 1px rgba(0,0,0,0.04), 0 10px 32px rgba(0,0,0,0.11), 0 6px 24px rgba(225,29,72,0.13); }
-    .card.soon { opacity: .72; }
+    .card.live:hover { transform: translateY(-2px); box-shadow: 0 1px 1px rgba(0,0,0,0.04), 0 10px 32px rgba(0,0,0,0.11), 0 6px 24px rgba(41,121,255,0.13); }
 
     .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
     .card-icon {
       width: 48px; height: 48px; border-radius: 12px; flex-shrink: 0;
       display: grid; place-items: center; font-size: 24px;
-      background: linear-gradient(145deg, #ffe4e6, #fecdd3);
+      background: linear-gradient(145deg, #e0edff, #c7dcff);
       box-shadow: 0 1px 4px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.7);
     }
-    .card.soon .card-icon { background: linear-gradient(145deg, #ececf0, #e0e0e5); filter: grayscale(.3); }
     .card-badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; }
     .badge-live { background: rgba(52,199,89,0.13);  color: #1a7a35; border: 1px solid rgba(52,199,89,.22); }
-    .badge-soon { background: rgba(142,142,147,0.14); color: #6e6e73; border: 1px solid rgba(142,142,147,.25); }
+    .badge-new  { background: rgba(99,102,241,0.13); color: #4338ca; border: 1px solid rgba(99,102,241,.22); }
     .card-sub { font-size: 12px; color: #aeaeb2; font-weight: 500; letter-spacing: .1px; text-transform: uppercase; margin-top: 2px; }
     .card-title { font-size: 16px; font-weight: 700; letter-spacing: -.3px; line-height: 1.25; color: #1c1c1e; margin-top: -2px; }
     .card-th { font-size: 12.5px; color: #8e8e93; font-weight: 500; margin-top: -6px; }
@@ -111,9 +109,8 @@
 
     .card-actions { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 6px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.06); }
     .btn { display: inline-flex; align-items: center; gap: 4px; padding: 8px 16px; border-radius: 9px; font-size: 13px; font-weight: 500; font-family: inherit; cursor: pointer; border: none; transition: all .14s; white-space: nowrap; }
-    .btn-open { background: #e11d48; color: #fff; box-shadow: 0 1px 4px rgba(225,29,72,.38), inset 0 1px 0 rgba(255,255,255,.18); }
-    .btn-open:hover { background: #c81740; box-shadow: 0 3px 10px rgba(225,29,72,.45); }
-    .btn-disabled { background: rgba(0,0,0,0.05); color: #aeaeb2; cursor: not-allowed; border: 1px solid rgba(0,0,0,0.07); }
+    .btn-open { background: #2979ff; color: #fff; box-shadow: 0 1px 4px rgba(41,121,255,.38), inset 0 1px 0 rgba(255,255,255,.18); }
+    .btn-open:hover { background: #1c6ef3; box-shadow: 0 3px 10px rgba(41,121,255,.45); }
     .btn-source { background: rgba(0,0,0,0.055); color: #3c3c43; border: 1px solid rgba(0,0,0,0.1); }
     .btn-source:hover { background: rgba(0,0,0,0.09); }
 
@@ -124,13 +121,13 @@
 
   <!-- ── Navigation ── -->
   <nav class="nav">
-    <a class="nav-brand" href="index.html">
+    <a class="nav-brand" href="../index.html">
       <div class="nav-icon">⚖️</div>
       <span class="nav-wordmark">JuraTools</span>
     </a>
     <span class="nav-sep">/</span>
-    <span class="nav-current">Thai Tax Tools</span>
-    <a class="nav-back" href="index.html">← All tools</a>
+    <span class="nav-current">Date &amp; Time Tools for Legal</span>
+    <a class="nav-back" href="../index.html">← All tools</a>
   </nav>
 
   <!-- ── Hero ── -->
@@ -138,10 +135,10 @@
     <div class="hero-badge">
       <span class="hero-dot"></span> Runs entirely in your browser
     </div>
-    <h1>Thai Tax Tools</h1>
-    <p>A growing set of calculators for Thai tax planning — compare structures, estimate duties, and pressure-test scenarios before you advise.</p>
+    <h1>Date &amp; Time Tools for Legal</h1>
+    <p>Deadlines, notice periods, chronologies, and recurring schedules — counted the way the law counts them, with every step explained.</p>
     <div class="hero-meta">
-      <span>🧾 Tax calculators</span>
+      <span>📆 Legal date calculators</span>
       <span style="color:#d1d1d6">·</span>
       <span>🔒 No data sent anywhere</span>
     </div>
@@ -151,58 +148,90 @@
   <div class="content">
     <div class="grid">
 
-      <!-- Land Sale Tax Comparison -->
+      <!-- GM Notice & Registration -->
       <article class="card live">
         <div class="card-head">
-          <div class="card-icon">🏗️</div>
+          <div class="card-icon">📣</div>
           <span class="card-badge badge-live">Live</span>
         </div>
-        <div class="card-sub">Land disposal</div>
-        <h3 class="card-title">Land Sale Tax Comparison</h3>
-        <p class="card-th">เปรียบเทียบภาษีขายที่ดิน — ขายทรัพย์สิน vs ขายหุ้น</p>
-        <p class="card-desc">Compare the total tax burden of two ways to sell land: selling the asset directly vs. selling shares in a company (SPV) that holds it. Models income tax, transfer fee, SBT, stamp duty, and annual company cost — with a break-even analysis.</p>
+        <div class="card-sub">Meetings &amp; notices</div>
+        <h3 class="card-title">GM Notice &amp; Registration</h3>
+        <p class="card-th">คำบอกกล่าวเรียกประชุมใหญ่ — ป.พ.พ. ม.1175</p>
+        <p class="card-desc">Compute the earliest GM or latest notice date using 7/14 clear-days under CCC s.1175. Includes BOD ordering checks, the 14-day registration deadline, and <code>.ics</code> export.</p>
         <div class="card-actions">
-          <a class="btn btn-open" href="thai-land-tax-comparison.html">Open →</a>
-          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/thai-land-tax-comparison.html" target="_blank" rel="noopener">Source</a>
+          <a class="btn btn-open" href="gm-ccc.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/date-time-tools/gm-ccc.html" target="_blank" rel="noopener">Source</a>
         </div>
       </article>
 
-      <!-- Stamp Duty Calculator -->
+      <!-- CCC Time & Deadline Calculator -->
       <article class="card live">
         <div class="card-head">
-          <div class="card-icon">🪙</div>
-          <span class="card-badge badge-live">Live</span>
+          <div class="card-icon">📆</div>
+          <span class="card-badge badge-new">Updated</span>
         </div>
-        <div class="card-sub">Instruments &amp; duties</div>
-        <h3 class="card-title">Stamp Duty Calculator</h3>
-        <p class="card-th">เครื่องคำนวณอากรแสตมป์</p>
-        <p class="card-desc">Calculate Thai stamp duty across the Revenue Code stamp duty schedule — by instrument, with counterpart/duplicate duty and §§113–114 surcharges. Shows per-line basis, a liable-person summary, and CSV export.</p>
+        <div class="card-sub">Time counting · CCC §§193/2–193/8</div>
+        <h3 class="card-title">CCC Time &amp; Deadline Calculator</h3>
+        <p class="card-th">การนับระยะเวลาตาม ป.พ.พ.</p>
+        <p class="card-desc">Full §§193/2–193/8 engine: add periods to a start date, shift holidays (§193/8), extend deadlines (§193/7), measure durations (CCC, clear days, or <strong>working days</strong>), calculate sub-day time spans, and back-calculate start dates. Day periods can now be counted in working days linked to the §193/8 non-working-day settings.</p>
         <div class="card-actions">
-          <a class="btn btn-open" href="thai-stamp-duty-calculator.html">Open →</a>
-          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/thai-stamp-duty-calculator.html" target="_blank" rel="noopener">Source</a>
+          <a class="btn btn-open" href="CCC-datetime-calculator-v2.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/date-time-tools/CCC-datetime-calculator-v2.html" target="_blank" rel="noopener">Source</a>
         </div>
       </article>
 
-      <!-- Withholding Tax Calculator -->
+      <!-- Chronology & Interval Workbench -->
       <article class="card live">
         <div class="card-head">
-          <div class="card-icon">✂️</div>
+          <div class="card-icon">🕰️</div>
+          <span class="card-badge badge-new">New</span>
+        </div>
+        <div class="card-sub">Case chronology</div>
+        <h3 class="card-title">Chronology &amp; Interval Workbench</h3>
+        <p class="card-th">ลำดับเหตุการณ์และช่วงระยะเวลา</p>
+        <p class="card-desc">Build a sortable matter chronology with optional times, automatic gaps between events, two-event comparison, and linked deadlines using calendar, clear-day, or working-day rules. Saves locally and exports CSV/JSON.</p>
+        <div class="card-actions">
+          <a class="btn btn-open" href="chronology-interval-workbench.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/date-time-tools/chronology-interval-workbench.html" target="_blank" rel="noopener">Source</a>
+        </div>
+      </article>
+
+      <!-- Recurring Deadline Generator -->
+      <article class="card live">
+        <div class="card-head">
+          <div class="card-icon">🔁</div>
+          <span class="card-badge badge-new">New</span>
+        </div>
+        <div class="card-sub">Compliance schedules</div>
+        <h3 class="card-title">Recurring Deadline Generator</h3>
+        <p class="card-th">ตารางกำหนดเวลาแบบประจำ</p>
+        <p class="card-desc">Generate daily, weekly, monthly, or yearly schedules with explicit month-end policies and optional non-working-day adjustments. Shows original and adjusted dates and exports CSV or <code>.ics</code>.</p>
+        <div class="card-actions">
+          <a class="btn btn-open" href="recurring-deadline-generator.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/date-time-tools/recurring-deadline-generator.html" target="_blank" rel="noopener">Source</a>
+        </div>
+      </article>
+
+      <!-- Clear-Days Deadline Calculator -->
+      <article class="card live">
+        <div class="card-head">
+          <div class="card-icon">🗓️</div>
           <span class="card-badge badge-live">Live</span>
         </div>
-        <div class="card-sub">Withholding</div>
-        <h3 class="card-title">Withholding Tax Calculator</h3>
-        <p class="card-th">ภาษีหัก ณ ที่จ่าย — หักจากยอด / ออกภาษีแทน (gross-up)</p>
-        <p class="card-desc">Deduct WHT from a payment at any rate you enter, or gross-up when the payer absorbs the tax (ออกภาษีแทน). VAT-aware invoice math — WHT on the ex-VAT base — with a full breakdown and copyable summary.</p>
+        <div class="card-sub">Clear days</div>
+        <h3 class="card-title">Clear-Days Deadline Calculator</h3>
+        <p class="card-th">การนับวันแบบ clear days</p>
+        <p class="card-desc">Counts clear days (excluding start and event day). Shows earliest/latest anchors with manual move-back adjustments and a visual calendar.</p>
         <div class="card-actions">
-          <a class="btn btn-open" href="thai-wht-calculator.html">Open →</a>
-          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/thai-wht-calculator.html" target="_blank" rel="noopener">Source</a>
+          <a class="btn btn-open" href="clear-days.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/date-time-tools/clear-days.html" target="_blank" rel="noopener">Source</a>
         </div>
       </article>
 
     </div>
 
     <div class="footer">
-      © 2026 Kornrawee Chanchom &nbsp;—&nbsp; JuraTools · Thai Tax Tools
+      © 2026 Kornrawee Chanchom &nbsp;—&nbsp; JuraTools · Date &amp; Time Tools for Legal
     </div>
   </div>
 

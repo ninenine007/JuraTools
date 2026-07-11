@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>JuraTools — Page moved</title>
+  <meta name="robots" content="noindex" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      color: #1c1c1e; min-height: 100vh; background: #f2f2f7;
+      display: grid; place-items: center; text-align: center; padding: 24px;
+    }
+    .box { max-width: 420px; }
+    .icon { font-size: 44px; margin-bottom: 14px; }
+    h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px; }
+    p { font-size: 14px; color: #6e6e73; line-height: 1.6; margin-bottom: 18px; }
+    a.btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #2979ff; color: #fff; text-decoration: none;
+      padding: 9px 18px; border-radius: 10px; font-size: 13px; font-weight: 600;
+      box-shadow: 0 1px 4px rgba(41,121,255,0.35);
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <div class="icon">⚖️</div>
+    <h1 id="title">Page not found</h1>
+    <p id="msg">This page doesn't exist. It may have moved when JuraTools was reorganized into collections.</p>
+    <a class="btn" id="home" href="/">← JuraTools home</a>
+  </div>
+  <script>
+    // Tools were moved into collection folders (Jul 2026). Redirect old root-level URLs.
+    const MOVED = {
+      'gm-ccc.html':                        'date-time-tools/gm-ccc.html',
+      'ccc-datetime-calculator-v2.html':    'date-time-tools/CCC-datetime-calculator-v2.html',
+      'ccc-datetime-calculator.html':       'date-time-tools/CCC-datetime-calculator.html',
+      'clear-days.html':                    'date-time-tools/clear-days.html',
+      'chronology-interval-workbench.html': 'date-time-tools/chronology-interval-workbench.html',
+      'recurring-deadline-generator.html':  'date-time-tools/recurring-deadline-generator.html',
+      'shareholder-voting-simulator.html':  'corporate-tools/shareholder-voting-simulator.html',
+      'share-certificate-calculator.html':  'corporate-tools/share-certificate-calculator.html',
+      'dividend-calculator.html':           'corporate-tools/dividend-calculator.html',
+      'corpdesk.html':                      'corporate-tools/corpdesk.html',
+      'instrument-checklist.html':          'corporate-tools/instrument-checklist.html',
+      'thai-linebreak.html':                'utilities/thai-linebreak.html',
+      'thai-baht-text.html':                'utilities/thai-baht-text.html',
+      'text-sanitizer.html':                'utilities/text-sanitizer.html',
+      'subtitle-tool.html':                 'utilities/subtitle-tool.html',
+      'pro-rata-allocation-calculator.html':'utilities/pro-rata-allocation-calculator.html',
+      'rounding-lab.html':                  'utilities/rounding-lab.html',
+      'percentage-calculator.html':         'utilities/percentage-calculator.html',
+      'thai-tax-tools.html':                'tax-tools/',
+      'thai-land-tax-comparison.html':      'tax-tools/thai-land-tax-comparison.html',
+      'thai-stamp-duty-calculator.html':    'tax-tools/thai-stamp-duty-calculator.html',
+      'thai-wht-calculator.html':           'tax-tools/thai-wht-calculator.html',
+      'thai-labour-tools.html':             'labour-tools/',
+      'labour-pay-in-lieu.html':            'labour-tools/labour-pay-in-lieu.html',
+      'labour-severance.html':              'labour-tools/labour-severance.html',
+      'labour-unused-leave.html':           'labour-tools/labour-unused-leave.html',
+      'labour-unfair-termination.html':     'labour-tools/labour-unfair-termination.html',
+      'labour-settlement.html':             'labour-tools/labour-settlement.html',
+      'labour-interest.html':               'labour-tools/labour-interest.html',
+      'labour-core.js':                     'labour-tools/labour-core.js',
+      'labour-core.css':                    'labour-tools/labour-core.css'
+    };
+    const parts = location.pathname.split('/');
+    const last = decodeURIComponent(parts.pop() || '').toLowerCase();
+    const base = parts.join('/') + '/';   // e.g. "/JuraTools/" on GitHub Pages
+    document.getElementById('home').href = base;
+    const target = MOVED[last];
+    if (target) {
+      document.getElementById('title').textContent = 'This tool has moved';
+      document.getElementById('msg').textContent = 'Taking you to its new home…';
+      location.replace(base + target + location.search + location.hash);
+    }
+  </script>
+</body>
+</html>

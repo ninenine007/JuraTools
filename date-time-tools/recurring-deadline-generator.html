@@ -1,0 +1,1384 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Recurring Deadline Generator — JuraTools</title>
+  <meta name="description" content="Generate recurring daily, weekly, monthly, or yearly deadlines with transparent month-end and working-day adjustments.">
+  <style>
+    :root {
+      --blue: #2979ff;
+      --blue-dark: #1565c0;
+      --blue-soft: rgba(41,121,255,.09);
+      --blue-ring: rgba(41,121,255,.16);
+      --purple: #7c3aed;
+      --green: #047857;
+      --green-soft: rgba(4,120,87,.08);
+      --amber: #9a5800;
+      --amber-soft: #fff8e6;
+      --red: #b91c1c;
+      --red-soft: #fef2f2;
+      --bg: #f2f2f7;
+      --surface: rgba(255,255,255,.9);
+      --surface-soft: rgba(255,255,255,.64);
+      --text: #1c1c1e;
+      --text-2: #636366;
+      --text-3: #8e8e93;
+      --border: rgba(0,0,0,.09);
+      --border-solid: #dfe3ea;
+      --shadow: 0 1px 1px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.07);
+      --radius: 16px;
+      --radius-sm: 8px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, system-ui, "SF Pro Text", "Helvetica Neue", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(ellipse 1000px 620px at 8% 0%, rgba(194,221,255,.48), transparent 60%),
+        radial-gradient(ellipse 660px 620px at 96% 8%, rgba(218,205,255,.4), transparent 56%),
+        radial-gradient(ellipse 760px 520px at 0% 96%, rgba(167,243,208,.26), transparent 58%),
+        radial-gradient(ellipse 820px 440px at 100% 96%, rgba(255,220,180,.25), transparent 58%);
+    }
+    button, input, select, textarea { font: inherit; }
+    button { touch-action: manipulation; }
+    a { color: inherit; }
+
+    .jt-nav {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 24px;
+      background: rgba(242,242,247,.84);
+      backdrop-filter: blur(24px) saturate(190%);
+      -webkit-backdrop-filter: blur(24px) saturate(190%);
+      border-bottom: 1px solid rgba(0,0,0,.08);
+    }
+    .nav-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 9px;
+      border-radius: 8px;
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .nav-back:hover { background: rgba(41,121,255,.1); }
+    .nav-divider { width: 1px; height: 20px; background: var(--border); }
+    .nav-icon {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      border-radius: 7px;
+      background: linear-gradient(145deg, var(--blue), var(--blue-dark));
+      box-shadow: 0 2px 6px rgba(41,121,255,.35), inset 0 1px 0 rgba(255,255,255,.22);
+      font-size: 15px;
+    }
+    .nav-title {
+      min-width: 0;
+      overflow: hidden;
+      font-size: 14px;
+      font-weight: 650;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .page {
+      width: min(100%, 1080px);
+      margin: 0 auto;
+      padding: 28px 20px 68px;
+    }
+    .page-header { margin-bottom: 24px; }
+    .page-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-bottom: 10px;
+      padding: 3px 10px;
+      border: 1px solid rgba(124,58,237,.2);
+      border-radius: 999px;
+      color: var(--purple);
+      background: rgba(124,58,237,.09);
+      font-size: 11px;
+      font-weight: 700;
+    }
+    h1 {
+      margin: 0 0 7px;
+      font-size: clamp(24px, 3vw, 32px);
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+    .intro {
+      max-width: 820px;
+      margin: 0;
+      color: var(--text-2);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .privacy-line {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      margin-top: 12px;
+      color: var(--text-3);
+      font-size: 11.5px;
+    }
+    .privacy-line strong { color: var(--green); font-weight: 650; }
+
+    .card {
+      margin-bottom: 16px;
+      padding: 22px;
+      background: var(--surface);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,.92);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .card-title {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin: 0 0 17px;
+      color: var(--text-2);
+      font-size: 13px;
+      font-weight: 750;
+    }
+    .card-title::after { content: ""; height: 1px; flex: 1; background: var(--border); }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      align-items: start;
+    }
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .field-grid .full { grid-column: 1 / -1; }
+    .field {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      gap: 5px;
+    }
+    label, .label {
+      color: var(--text-2);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .2px;
+      text-transform: uppercase;
+    }
+    input, select, textarea {
+      width: 100%;
+      min-width: 0;
+      padding: 9px 11px;
+      border: 1px solid var(--border-solid);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      background: rgba(255,255,255,.84);
+      font-size: 14px;
+      transition: border-color .14s, box-shadow .14s, background .14s;
+    }
+    textarea { min-height: 72px; resize: vertical; line-height: 1.45; }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px var(--blue-ring);
+      background: #fff;
+    }
+    input:disabled, select:disabled {
+      cursor: not-allowed;
+      color: var(--text-3);
+      background: rgba(118,118,128,.07);
+    }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .field-note { color: var(--text-3); font-size: 11px; line-height: 1.45; }
+    .check-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 18px;
+      align-items: center;
+    }
+    .check {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--text-2);
+      font-size: 13px;
+      font-weight: 500;
+      text-transform: none;
+      cursor: pointer;
+    }
+    .check input { width: 16px; height: 16px; margin: 0; accent-color: var(--blue); }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 3px;
+      width: 100%;
+      padding: 3px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(118,118,128,.08);
+    }
+    .segmented button {
+      min-height: 35px;
+      padding: 6px 8px;
+      border: 0;
+      border-radius: 7px;
+      color: var(--text-2);
+      background: transparent;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 650;
+    }
+    .segmented button.active {
+      color: var(--text);
+      background: #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,.12);
+    }
+    .segmented button:focus-visible,
+    .btn:focus-visible {
+      outline: 3px solid var(--blue-ring);
+      outline-offset: 2px;
+    }
+
+    .weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+    }
+    .weekday {
+      position: relative;
+      min-width: 0;
+    }
+    .weekday input { position: absolute; opacity: 0; pointer-events: none; }
+    .weekday span {
+      min-height: 38px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--border-solid);
+      border-radius: 8px;
+      color: var(--text-2);
+      background: rgba(255,255,255,.68);
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .weekday input:checked + span {
+      color: #fff;
+      background: var(--blue);
+      border-color: var(--blue);
+    }
+    .weekday input:focus-visible + span { outline: 3px solid var(--blue-ring); outline-offset: 2px; }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-top: 16px;
+    }
+    .btn {
+      min-height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 8px 15px;
+      border: 1px solid transparent;
+      border-radius: 9px;
+      color: #fff;
+      background: var(--blue);
+      box-shadow: 0 1px 4px rgba(41,121,255,.3);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 650;
+    }
+    .btn:hover { background: #1c6ef3; }
+    .btn:active { transform: translateY(1px); }
+    .btn-secondary {
+      color: #3c3c43;
+      background: rgba(0,0,0,.045);
+      border-color: rgba(0,0,0,.09);
+      box-shadow: none;
+    }
+    .btn-secondary:hover { background: rgba(0,0,0,.075); }
+    .btn-danger {
+      color: var(--red);
+      background: rgba(185,28,28,.07);
+      border-color: rgba(185,28,28,.15);
+      box-shadow: none;
+    }
+    .btn-danger:hover { background: rgba(185,28,28,.12); }
+    .btn[disabled] { opacity: .45; cursor: not-allowed; transform: none; }
+
+    .warning, .success-note {
+      margin-top: 13px;
+      padding: 11px 13px;
+      border-radius: 8px;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .warning {
+      border: 1px solid rgba(185,28,28,.2);
+      color: var(--red);
+      background: var(--red-soft);
+    }
+    .success-note {
+      border: 1px solid rgba(4,120,87,.18);
+      color: var(--green);
+      background: var(--green-soft);
+    }
+    .hidden { display: none !important; }
+
+    .result-summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .metric {
+      min-width: 0;
+      padding: 13px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(255,255,255,.64);
+    }
+    .metric-label {
+      color: var(--text-3);
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .metric-value {
+      margin-top: 5px;
+      overflow-wrap: anywhere;
+      font-size: 15px;
+      font-weight: 750;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.35;
+    }
+    .schedule {
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(255,255,255,.58);
+    }
+    .schedule-head, .schedule-row {
+      display: grid;
+      grid-template-columns: 52px 1.15fr 1.15fr 1.2fr .75fr;
+      gap: 12px;
+      align-items: center;
+      padding: 11px 13px;
+    }
+    .schedule-head {
+      color: var(--text-3);
+      background: rgba(0,0,0,.035);
+      font-size: 10px;
+      font-weight: 750;
+      text-transform: uppercase;
+    }
+    .schedule-row {
+      min-height: 58px;
+      border-top: 1px solid rgba(0,0,0,.06);
+      font-size: 12px;
+    }
+    .schedule-row.changed { background: rgba(124,58,237,.035); }
+    .schedule-row.collision { background: var(--amber-soft); }
+    .schedule-no { color: var(--text-3); font-weight: 700; font-variant-numeric: tabular-nums; }
+    .date-main { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.45; }
+    .date-sub { color: var(--text-3); font-size: 10.5px; line-height: 1.4; }
+    .adjustment { color: var(--text-2); line-height: 1.45; }
+    .collision-tag {
+      display: inline-block;
+      margin-top: 4px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      color: var(--amber);
+      background: rgba(161,92,0,.1);
+      font-size: 9.5px;
+      font-weight: 750;
+      text-transform: uppercase;
+    }
+    .empty {
+      padding: 42px 20px;
+      color: var(--text-3);
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .status {
+      min-height: 18px;
+      margin-top: 10px;
+      color: var(--green);
+      font-size: 11.5px;
+      font-weight: 600;
+    }
+    .tool-footer {
+      margin-top: 34px;
+      color: var(--text-3);
+      font-size: 11.5px;
+      line-height: 1.6;
+      text-align: center;
+    }
+    .tool-footer a { color: var(--blue); }
+
+    @media (max-width: 820px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      .result-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 680px) {
+      .jt-nav { padding: 0 12px; }
+      .page { padding: 22px 12px 56px; }
+      .card { padding: 18px 15px; }
+      .field-grid { grid-template-columns: 1fr; }
+      .field-grid .full { grid-column: auto; }
+      .schedule-head { display: none; }
+      .schedule-row {
+        grid-template-columns: 38px 1fr;
+        gap: 5px 10px;
+        align-items: start;
+        padding: 13px;
+      }
+      .schedule-row > div:not(.schedule-no) { grid-column: 2; }
+      .schedule-no { grid-row: 1 / span 4; }
+      .schedule-row > div::before {
+        display: block;
+        margin-bottom: 2px;
+        color: var(--text-3);
+        font-size: 9px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+      .schedule-row > div:nth-child(2)::before { content: "Unadjusted"; }
+      .schedule-row > div:nth-child(3)::before { content: "Final date"; }
+      .schedule-row > div:nth-child(4)::before { content: "Adjustment"; }
+      .schedule-row > div:nth-child(5)::before { content: "Gap"; }
+    }
+    @media (max-width: 450px) {
+      .nav-title { display: none; }
+      .segmented { grid-template-columns: repeat(2, 1fr); }
+      .result-summary { grid-template-columns: 1fr; }
+      .weekdays { grid-template-columns: repeat(4, 1fr); }
+      .btn-row .btn { flex: 1 1 42%; }
+    }
+    @media print {
+      body { background: #fff; }
+      .jt-nav, .input-area, .btn-row, .tool-footer, #status { display: none !important; }
+      .page { width: 100%; padding: 0; }
+      .card { border: 1px solid #ddd; box-shadow: none; background: #fff; }
+      .schedule-row { break-inside: avoid; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="jt-nav" aria-label="JuraTools">
+    <a class="nav-back" href="../index.html">‹ JuraTools</a>
+    <span class="nav-divider" aria-hidden="true"></span>
+    <span class="nav-icon" aria-hidden="true">🔁</span>
+    <span class="nav-title">Recurring Deadline Generator</span>
+  </nav>
+
+  <main class="page">
+    <header class="page-header">
+      <div class="page-badge">⚖️ Legal / Dates · Asia/Bangkok</div>
+      <h1>Recurring Deadline Generator</h1>
+      <p class="intro">Generate daily, weekly, monthly, or yearly dates with explicit month-end behavior and optional working-day adjustments. The output preserves each unadjusted date for verification.</p>
+      <div class="privacy-line">
+        <span><strong>Private by default</strong> · settings stay in this browser</span>
+        <span>Up to 500 occurrences</span>
+        <span>CSV and calendar export</span>
+      </div>
+    </header>
+
+    <div class="input-area">
+      <div class="grid-2">
+        <section class="card" aria-labelledby="details-title">
+          <h2 class="card-title" id="details-title">1 · Schedule details</h2>
+          <div class="field-grid">
+            <div class="field full">
+              <label for="scheduleTitle">Deadline or event title</label>
+              <input id="scheduleTitle" type="text" maxlength="140" placeholder="e.g. Monthly compliance filing">
+            </div>
+            <div class="field">
+              <label for="startDate">Start date</label>
+              <input id="startDate" type="date">
+            </div>
+            <div class="field">
+              <label for="startTime">Time (optional)</label>
+              <input id="startTime" type="time">
+              <span class="field-note">Calendar export uses Asia/Bangkok. Blank creates all-day events.</span>
+            </div>
+            <div class="field">
+              <label for="eraMode">Date display</label>
+              <select id="eraMode">
+                <option value="gregorian-be">Gregorian + Buddhist Era</option>
+                <option value="gregorian">Gregorian only</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="end-title">
+          <h2 class="card-title" id="end-title">2 · Schedule limit</h2>
+          <div class="field-grid">
+            <div class="field">
+              <label for="endMode">Generate by</label>
+              <select id="endMode">
+                <option value="count">Number of occurrences</option>
+                <option value="until">Ending date</option>
+              </select>
+            </div>
+            <div class="field" id="countField">
+              <label for="occurrenceCount">Occurrences</label>
+              <input id="occurrenceCount" class="num" type="number" min="1" max="500" step="1" value="12">
+            </div>
+            <div class="field hidden" id="untilField">
+              <label for="untilDate">Generate through</label>
+              <input id="untilDate" type="date">
+            </div>
+          </div>
+          <div class="success-note">The ending date is inclusive. A schedule limited by date stops after 500 occurrences.</div>
+        </section>
+      </div>
+
+      <section class="card" aria-labelledby="pattern-title">
+        <h2 class="card-title" id="pattern-title">3 · Recurrence pattern</h2>
+        <div class="segmented" role="group" aria-label="Frequency">
+          <button type="button" data-frequency="daily" aria-pressed="false">Daily</button>
+          <button type="button" data-frequency="weekly" aria-pressed="false">Weekly</button>
+          <button type="button" class="active" data-frequency="monthly" aria-pressed="true">Monthly</button>
+          <button type="button" data-frequency="yearly" aria-pressed="false">Yearly</button>
+        </div>
+
+        <div class="field-grid" style="margin-top:16px">
+          <div class="field">
+            <label for="repeatInterval">Repeat every</label>
+            <input id="repeatInterval" class="num" type="number" min="1" max="999" step="1" value="1">
+          </div>
+          <div class="field">
+            <label for="intervalUnitLabel">Frequency unit</label>
+            <input id="intervalUnitLabel" type="text" value="month(s)" disabled>
+          </div>
+        </div>
+
+        <div id="weeklyOptions" class="hidden" style="margin-top:16px">
+          <div class="label" style="margin-bottom:7px">Days of week</div>
+          <div class="weekdays">
+            <label class="weekday"><input type="checkbox" data-weekday="1"><span>Mon</span></label>
+            <label class="weekday"><input type="checkbox" data-weekday="2"><span>Tue</span></label>
+            <label class="weekday"><input type="checkbox" data-weekday="3"><span>Wed</span></label>
+            <label class="weekday"><input type="checkbox" data-weekday="4"><span>Thu</span></label>
+            <label class="weekday"><input type="checkbox" data-weekday="5"><span>Fri</span></label>
+            <label class="weekday"><input type="checkbox" data-weekday="6"><span>Sat</span></label>
+            <label class="weekday"><input type="checkbox" data-weekday="0"><span>Sun</span></label>
+          </div>
+        </div>
+
+        <div id="monthlyOptions" class="field-grid" style="margin-top:16px">
+          <div class="field">
+            <label for="monthlyPattern">Monthly pattern</label>
+            <select id="monthlyPattern">
+              <option value="same">Same day number as start</option>
+              <option value="specific">Specific day of month</option>
+              <option value="last">Last calendar day</option>
+              <option value="nth">Nth weekday of month</option>
+            </select>
+          </div>
+          <div class="field hidden" id="monthlyDayField">
+            <label for="monthlyDay">Day of month</label>
+            <input id="monthlyDay" class="num" type="number" min="1" max="31" step="1" value="1">
+          </div>
+          <div class="field hidden nth-month-field">
+            <label for="monthlyOrdinal">Ordinal</label>
+            <select id="monthlyOrdinal">
+              <option value="1">First</option>
+              <option value="2">Second</option>
+              <option value="3">Third</option>
+              <option value="4">Fourth</option>
+              <option value="-1">Last</option>
+            </select>
+          </div>
+          <div class="field hidden nth-month-field">
+            <label for="monthlyWeekday">Weekday</label>
+            <select id="monthlyWeekday">
+              <option value="1">Monday</option>
+              <option value="2">Tuesday</option>
+              <option value="3">Wednesday</option>
+              <option value="4">Thursday</option>
+              <option value="5">Friday</option>
+              <option value="6">Saturday</option>
+              <option value="0">Sunday</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="yearlyOptions" class="field-grid hidden" style="margin-top:16px">
+          <div class="field">
+            <label for="yearlyPattern">Yearly pattern</label>
+            <select id="yearlyPattern">
+              <option value="date">Fixed month and date</option>
+              <option value="nth">Nth weekday of month</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="yearlyMonth">Month</label>
+            <select id="yearlyMonth">
+              <option value="1">January</option><option value="2">February</option>
+              <option value="3">March</option><option value="4">April</option>
+              <option value="5">May</option><option value="6">June</option>
+              <option value="7">July</option><option value="8">August</option>
+              <option value="9">September</option><option value="10">October</option>
+              <option value="11">November</option><option value="12">December</option>
+            </select>
+          </div>
+          <div class="field" id="yearlyDayField">
+            <label for="yearlyDay">Day</label>
+            <input id="yearlyDay" class="num" type="number" min="1" max="31" step="1" value="1">
+          </div>
+          <div class="field hidden nth-year-field">
+            <label for="yearlyOrdinal">Ordinal</label>
+            <select id="yearlyOrdinal">
+              <option value="1">First</option><option value="2">Second</option>
+              <option value="3">Third</option><option value="4">Fourth</option>
+              <option value="-1">Last</option>
+            </select>
+          </div>
+          <div class="field hidden nth-year-field">
+            <label for="yearlyWeekday">Weekday</label>
+            <select id="yearlyWeekday">
+              <option value="1">Monday</option><option value="2">Tuesday</option>
+              <option value="3">Wednesday</option><option value="4">Thursday</option>
+              <option value="5">Friday</option><option value="6">Saturday</option>
+              <option value="0">Sunday</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="rules-title">
+        <h2 class="card-title" id="rules-title">4 · Calendar rules</h2>
+        <div class="field-grid">
+          <div class="field">
+            <label for="invalidPolicy">Missing day in a month or year</label>
+            <select id="invalidPolicy">
+              <option value="preserve-eom">Preserve month-end when start is month-end</option>
+              <option value="clamp">Use last valid day</option>
+              <option value="skip">Skip that occurrence</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="adjustment">Non-working-day adjustment</label>
+            <select id="adjustment">
+              <option value="none">No adjustment</option>
+              <option value="following">Next working day</option>
+              <option value="preceding">Previous working day</option>
+              <option value="modified-following">Next working day unless month changes</option>
+              <option value="nearest">Nearest working day</option>
+            </select>
+          </div>
+          <div class="field full">
+            <div class="label">Weekly non-working days</div>
+            <div class="check-row">
+              <label class="check" for="offSaturday"><input id="offSaturday" type="checkbox" checked> Saturday</label>
+              <label class="check" for="offSunday"><input id="offSunday" type="checkbox" checked> Sunday</label>
+            </div>
+          </div>
+          <div class="field full">
+            <label for="holidays">Additional non-working dates</label>
+            <textarea id="holidays" placeholder="2026-01-01&#10;2026-04-13"></textarea>
+            <span class="field-note">Use YYYY-MM-DD, one date per line. Invalid lines block generation; no holidays are assumed automatically.</span>
+          </div>
+        </div>
+        <div id="formError" class="warning hidden" role="alert"></div>
+        <div class="btn-row">
+          <button class="btn" type="button" id="generateBtn">Generate schedule</button>
+          <button class="btn btn-secondary" type="button" id="exampleBtn">Load example</button>
+          <button class="btn btn-secondary" type="button" id="csvBtn" disabled>Export CSV</button>
+          <button class="btn btn-secondary" type="button" id="icsBtn" disabled>Export .ics</button>
+          <button class="btn btn-secondary" type="button" id="copyBtn" disabled>Copy schedule</button>
+          <button class="btn btn-secondary" type="button" id="printBtn" disabled>Print</button>
+          <button class="btn btn-danger" type="button" id="resetBtn">Reset</button>
+        </div>
+        <div id="status" class="status" aria-live="polite"></div>
+      </section>
+    </div>
+
+    <section class="card" aria-labelledby="results-title">
+      <h2 class="card-title" id="results-title">Generated schedule</h2>
+      <div id="resultSummary" class="result-summary hidden"></div>
+      <div id="resultWarning" class="warning hidden"></div>
+      <div id="schedule" class="schedule">
+        <div class="empty">Choose the recurrence and calendar rules, then generate the schedule.</div>
+      </div>
+    </section>
+
+    <footer class="tool-footer">
+      This utility simulates only the recurrence and adjustment rules selected above and is not legal advice.
+      All calculations run in your browser. · <a href="../index.html">Back to JuraTools</a>
+    </footer>
+  </main>
+
+  <script>
+  (function () {
+    "use strict";
+
+    var DAY_MS = 86400000;
+    var STORAGE_KEY = "juratools.recurring-deadline-generator.v1";
+    var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    var WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    var frequency = "monthly";
+    var lastResults = [];
+    var lastConfig = null;
+    var statusTimer = null;
+
+    function byId(id) { return document.getElementById(id); }
+    function pad2(value) { return String(value).padStart(2, "0"); }
+    function escapeHtml(value) {
+      return String(value == null ? "" : value).replace(/[&<>"']/g, function (char) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char];
+      });
+    }
+    function csvCell(value) {
+      return '"' + String(value == null ? "" : value).replace(/"/g, '""') + '"';
+    }
+    function parseISODate(value) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(value || "")) return null;
+      var parts = value.split("-").map(Number);
+      var date = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+      if (date.getUTCFullYear() !== parts[0] || date.getUTCMonth() !== parts[1] - 1 || date.getUTCDate() !== parts[2]) return null;
+      return date;
+    }
+    function toISODate(date) {
+      return date.getUTCFullYear() + "-" + pad2(date.getUTCMonth() + 1) + "-" + pad2(date.getUTCDate());
+    }
+    function addDays(date, amount) { return new Date(date.getTime() + amount * DAY_MS); }
+    function daysInMonth(year, monthIndex) { return new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate(); }
+    function makeDate(year, monthIndex, day) {
+      var date = new Date(Date.UTC(year, monthIndex, day));
+      return date.getUTCFullYear() === year && date.getUTCMonth() === monthIndex && date.getUTCDate() === day ? date : null;
+    }
+    function monthParts(start, monthOffset) {
+      var raw = start.getUTCMonth() + monthOffset;
+      return {
+        year: start.getUTCFullYear() + Math.floor(raw / 12),
+        month: ((raw % 12) + 12) % 12
+      };
+    }
+    function startOfMondayWeek(date) {
+      var mondayIndex = (date.getUTCDay() + 6) % 7;
+      return addDays(date, -mondayIndex);
+    }
+    function nthWeekdayOfMonth(year, monthIndex, ordinal, weekday) {
+      if (ordinal === -1) {
+        var last = new Date(Date.UTC(year, monthIndex + 1, 0));
+        var backwards = (last.getUTCDay() - weekday + 7) % 7;
+        return addDays(last, -backwards);
+      }
+      var first = new Date(Date.UTC(year, monthIndex, 1));
+      var forwards = (weekday - first.getUTCDay() + 7) % 7;
+      var day = 1 + forwards + (ordinal - 1) * 7;
+      return makeDate(year, monthIndex, day);
+    }
+    function dateWithPolicy(reference, year, monthIndex, desiredDay, policy, anchorIsMonthEnd) {
+      var maximum = daysInMonth(year, monthIndex);
+      if (policy === "preserve-eom" && anchorIsMonthEnd) return new Date(Date.UTC(year, monthIndex, maximum));
+      if (desiredDay <= maximum) return new Date(Date.UTC(year, monthIndex, desiredDay));
+      if (policy === "skip") return null;
+      return new Date(Date.UTC(year, monthIndex, maximum));
+    }
+    function parseHolidayList(text) {
+      var set = new Set();
+      var invalid = [];
+      String(text || "").split(/\r?\n/).forEach(function (line) {
+        var value = line.trim();
+        if (!value) return;
+        if (parseISODate(value)) set.add(value);
+        else invalid.push(value);
+      });
+      return { set: set, invalid: invalid };
+    }
+    function isWorkingDay(date, config) {
+      var weekday = date.getUTCDay();
+      if (config.offSaturday && weekday === 6) return false;
+      if (config.offSunday && weekday === 0) return false;
+      if (config.holidays.has(toISODate(date))) return false;
+      return true;
+    }
+    function findWorkingDay(date, direction, config) {
+      var current = new Date(date.getTime());
+      var distance = 0;
+      while (!isWorkingDay(current, config) && distance < 370) {
+        current = addDays(current, direction);
+        distance += 1;
+      }
+      return { date: current, distance: distance };
+    }
+    function adjustDate(date, method, config) {
+      if (method === "none" || isWorkingDay(date, config)) {
+        return { date: new Date(date.getTime()), changed: false, explanation: method === "none" ? "No adjustment selected" : "Already a working day" };
+      }
+      var next = findWorkingDay(date, 1, config);
+      var previous = findWorkingDay(date, -1, config);
+      var chosen;
+      var explanation;
+      if (method === "following") {
+        chosen = next;
+        explanation = "Moved " + next.distance + " day" + (next.distance === 1 ? "" : "s") + " forward";
+      } else if (method === "preceding") {
+        chosen = previous;
+        explanation = "Moved " + previous.distance + " day" + (previous.distance === 1 ? "" : "s") + " backward";
+      } else if (method === "modified-following") {
+        if (next.date.getUTCMonth() === date.getUTCMonth()) {
+          chosen = next;
+          explanation = "Moved forward within the same month";
+        } else {
+          chosen = previous;
+          explanation = "Forward shift crossed month; moved backward";
+        }
+      } else {
+        chosen = previous.distance < next.distance ? previous : next;
+        explanation = "Moved to nearest working day; forward wins an equal tie";
+      }
+      return { date: chosen.date, changed: true, explanation: explanation };
+    }
+    function formatDisplayDate(date, includeBe) {
+      var main = WEEKDAYS[date.getUTCDay()] + ", " + date.getUTCDate() + " " + MONTHS[date.getUTCMonth()] + " " + date.getUTCFullYear();
+      var be = date.getUTCDate() + " " + MONTHS[date.getUTCMonth()] + " " + (date.getUTCFullYear() + 543) + " B.E.";
+      return { main: main, sub: includeBe ? be : "" };
+    }
+    function bangkokToday() {
+      var shifted = new Date(Date.now() + 7 * 60 * 60 * 1000);
+      return new Date(Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate()));
+    }
+
+    function readConfig() {
+      var start = parseISODate(byId("startDate").value);
+      var interval = Number(byId("repeatInterval").value);
+      var count = Number(byId("occurrenceCount").value);
+      var until = parseISODate(byId("untilDate").value);
+      var holidayResult = parseHolidayList(byId("holidays").value);
+      var weekdays = Array.from(document.querySelectorAll("[data-weekday]:checked")).map(function (input) {
+        return Number(input.getAttribute("data-weekday"));
+      });
+      return {
+        title: byId("scheduleTitle").value.trim(),
+        start: start,
+        startTime: byId("startTime").value,
+        eraMode: byId("eraMode").value,
+        frequency: frequency,
+        interval: interval,
+        endMode: byId("endMode").value,
+        count: count,
+        until: until,
+        weekdays: weekdays,
+        monthlyPattern: byId("monthlyPattern").value,
+        monthlyDay: Number(byId("monthlyDay").value),
+        monthlyOrdinal: Number(byId("monthlyOrdinal").value),
+        monthlyWeekday: Number(byId("monthlyWeekday").value),
+        yearlyPattern: byId("yearlyPattern").value,
+        yearlyMonth: Number(byId("yearlyMonth").value),
+        yearlyDay: Number(byId("yearlyDay").value),
+        yearlyOrdinal: Number(byId("yearlyOrdinal").value),
+        yearlyWeekday: Number(byId("yearlyWeekday").value),
+        invalidPolicy: byId("invalidPolicy").value,
+        adjustment: byId("adjustment").value,
+        offSaturday: byId("offSaturday").checked,
+        offSunday: byId("offSunday").checked,
+        holidays: holidayResult.set,
+        invalidHolidays: holidayResult.invalid
+      };
+    }
+    function validateConfig(config) {
+      if (!config.title) return "Enter a deadline or event title.";
+      if (!config.start) return "Enter a valid start date.";
+      if (!Number.isInteger(config.interval) || config.interval < 1 || config.interval > 999) return "Repeat interval must be a whole number from 1 to 999.";
+      if (config.startTime && !/^\d{2}:\d{2}$/.test(config.startTime)) return "Enter a valid optional time.";
+      if (config.endMode === "count" && (!Number.isInteger(config.count) || config.count < 1 || config.count > 500)) return "Occurrences must be a whole number from 1 to 500.";
+      if (config.endMode === "until" && !config.until) return "Enter a valid ending date.";
+      if (config.endMode === "until" && config.until < config.start) return "Ending date cannot be before the start date.";
+      if (config.frequency === "weekly" && !config.weekdays.length) return "Select at least one weekday.";
+      if (config.monthlyPattern === "specific" && (!Number.isInteger(config.monthlyDay) || config.monthlyDay < 1 || config.monthlyDay > 31)) return "Monthly day must be from 1 to 31.";
+      if (config.yearlyPattern === "date" && (!Number.isInteger(config.yearlyDay) || config.yearlyDay < 1 || config.yearlyDay > 31)) return "Yearly day must be from 1 to 31.";
+      if (config.invalidHolidays.length) return "Invalid non-working date" + (config.invalidHolidays.length === 1 ? "" : "s") + ": " + config.invalidHolidays.join(", ");
+      return "";
+    }
+
+    function candidatesForCycle(config, cycle) {
+      var candidates = [];
+      if (config.frequency === "daily") {
+        candidates.push(addDays(config.start, cycle * config.interval));
+      } else if (config.frequency === "weekly") {
+        var weekStart = addDays(startOfMondayWeek(config.start), cycle * config.interval * 7);
+        config.weekdays.slice().sort(function (a, b) {
+          return ((a + 6) % 7) - ((b + 6) % 7);
+        }).forEach(function (weekday) {
+          candidates.push(addDays(weekStart, (weekday + 6) % 7));
+        });
+      } else if (config.frequency === "monthly") {
+        var parts = monthParts(config.start, cycle * config.interval);
+        var candidate = null;
+        var anchorIsMonthEnd = config.start.getUTCDate() === daysInMonth(config.start.getUTCFullYear(), config.start.getUTCMonth());
+        if (config.monthlyPattern === "same") {
+          candidate = dateWithPolicy(config.start, parts.year, parts.month, config.start.getUTCDate(), config.invalidPolicy, anchorIsMonthEnd);
+        } else if (config.monthlyPattern === "specific") {
+          candidate = dateWithPolicy(config.start, parts.year, parts.month, config.monthlyDay, config.invalidPolicy, anchorIsMonthEnd && config.monthlyDay === config.start.getUTCDate());
+        } else if (config.monthlyPattern === "last") {
+          candidate = new Date(Date.UTC(parts.year, parts.month, daysInMonth(parts.year, parts.month)));
+        } else {
+          candidate = nthWeekdayOfMonth(parts.year, parts.month, config.monthlyOrdinal, config.monthlyWeekday);
+        }
+        if (candidate) candidates.push(candidate);
+      } else {
+        var year = config.start.getUTCFullYear() + cycle * config.interval;
+        var month = config.yearlyMonth - 1;
+        var yearlyCandidate;
+        if (config.yearlyPattern === "nth") {
+          yearlyCandidate = nthWeekdayOfMonth(year, month, config.yearlyOrdinal, config.yearlyWeekday);
+        } else {
+          var yearlyAnchorEom = config.start.getUTCMonth() === month && config.start.getUTCDate() === daysInMonth(config.start.getUTCFullYear(), month) && config.yearlyDay === config.start.getUTCDate();
+          yearlyCandidate = dateWithPolicy(config.start, year, month, config.yearlyDay, config.invalidPolicy, yearlyAnchorEom);
+        }
+        if (yearlyCandidate) candidates.push(yearlyCandidate);
+      }
+      return candidates.filter(function (date) { return date >= config.start; }).sort(function (a, b) { return a - b; });
+    }
+    function generateBaseDates(config) {
+      var dates = [];
+      var cycle = 0;
+      var guard = 0;
+      while (guard < 20000 && dates.length < 500) {
+        var candidates = candidatesForCycle(config, cycle);
+        var shouldStop = false;
+        candidates.forEach(function (date) {
+          if (shouldStop) return;
+          if (config.endMode === "until" && date > config.until) {
+            shouldStop = true;
+            return;
+          }
+          dates.push(date);
+          if (config.endMode === "count" && dates.length >= config.count) shouldStop = true;
+        });
+        if (shouldStop) break;
+        if (config.endMode === "until") {
+          var probe = candidatesForCycle(config, cycle + 1);
+          if (probe.length && probe[0] > config.until) break;
+          if (!probe.length && config.frequency !== "monthly" && config.frequency !== "yearly") break;
+          if (config.frequency === "monthly") {
+            var nextMonth = monthParts(config.start, (cycle + 1) * config.interval);
+            if (new Date(Date.UTC(nextMonth.year, nextMonth.month, 1)) > config.until) break;
+          }
+          if (config.frequency === "yearly" && config.start.getUTCFullYear() + (cycle + 1) * config.interval > config.until.getUTCFullYear()) break;
+        }
+        cycle += 1;
+        guard += 1;
+      }
+      return dates.slice(0, config.endMode === "count" ? config.count : 500);
+    }
+    function generateSchedule(config) {
+      var base = generateBaseDates(config);
+      var results = base.map(function (date, index) {
+        var adjusted = adjustDate(date, config.adjustment, config);
+        return {
+          index: index + 1,
+          original: date,
+          final: adjusted.date,
+          changed: adjusted.changed,
+          explanation: adjusted.explanation,
+          intervalDays: null,
+          collision: false
+        };
+      });
+      results.sort(function (a, b) {
+        if (a.original.getTime() !== b.original.getTime()) return a.original - b.original;
+        return a.index - b.index;
+      });
+      results.forEach(function (item, index) {
+        if (index > 0) item.intervalDays = Math.round((item.final - results[index - 1].final) / DAY_MS);
+      });
+      var counts = new Map();
+      results.forEach(function (item) {
+        var key = toISODate(item.final);
+        counts.set(key, (counts.get(key) || 0) + 1);
+      });
+      results.forEach(function (item) { item.collision = counts.get(toISODate(item.final)) > 1; });
+      return results;
+    }
+
+    function setFrequency(next) {
+      frequency = next;
+      document.querySelectorAll("[data-frequency]").forEach(function (button) {
+        var active = button.getAttribute("data-frequency") === next;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-pressed", String(active));
+      });
+      byId("weeklyOptions").classList.toggle("hidden", next !== "weekly");
+      byId("monthlyOptions").classList.toggle("hidden", next !== "monthly");
+      byId("yearlyOptions").classList.toggle("hidden", next !== "yearly");
+      byId("intervalUnitLabel").value = { daily: "day(s)", weekly: "week(s)", monthly: "month(s)", yearly: "year(s)" }[next];
+      if (next === "weekly" && !document.querySelector("[data-weekday]:checked") && parseISODate(byId("startDate").value)) {
+        var weekday = parseISODate(byId("startDate").value).getUTCDay();
+        var input = document.querySelector('[data-weekday="' + weekday + '"]');
+        if (input) input.checked = true;
+      }
+      updatePatternVisibility();
+      persistSettings();
+    }
+    function updatePatternVisibility() {
+      var monthly = byId("monthlyPattern").value;
+      byId("monthlyDayField").classList.toggle("hidden", monthly !== "specific");
+      document.querySelectorAll(".nth-month-field").forEach(function (field) { field.classList.toggle("hidden", monthly !== "nth"); });
+      var yearly = byId("yearlyPattern").value;
+      byId("yearlyDayField").classList.toggle("hidden", yearly !== "date");
+      document.querySelectorAll(".nth-year-field").forEach(function (field) { field.classList.toggle("hidden", yearly !== "nth"); });
+      var byCount = byId("endMode").value === "count";
+      byId("countField").classList.toggle("hidden", !byCount);
+      byId("untilField").classList.toggle("hidden", byCount);
+    }
+    function showFormError(message) {
+      byId("formError").textContent = message;
+      byId("formError").classList.toggle("hidden", !message);
+    }
+    function setStatus(message, isError) {
+      clearTimeout(statusTimer);
+      byId("status").textContent = message;
+      byId("status").style.color = isError ? "var(--red)" : "var(--green)";
+      statusTimer = setTimeout(function () { byId("status").textContent = ""; }, 2800);
+    }
+    function metricHtml(label, value) {
+      return '<div class="metric"><div class="metric-label">' + escapeHtml(label) + '</div><div class="metric-value">' + escapeHtml(value) + "</div></div>";
+    }
+    function dateHtml(date, config) {
+      var formatted = formatDisplayDate(date, config.eraMode === "gregorian-be");
+      return '<div class="date-main">' + escapeHtml(formatted.main + (config.startTime ? " · " + config.startTime : "")) + '</div>' +
+        (formatted.sub ? '<div class="date-sub">' + escapeHtml(formatted.sub) + "</div>" : "");
+    }
+    function renderResults(results, config) {
+      lastResults = results;
+      lastConfig = config;
+      var changed = results.filter(function (item) { return item.changed; }).length;
+      var collisions = results.filter(function (item) { return item.collision; }).length;
+      var span = results.length > 1 ? Math.round((results[results.length - 1].final - results[0].final) / DAY_MS) + " days" : (results.length ? "Single date" : "—");
+      byId("resultSummary").innerHTML =
+        metricHtml("Occurrences", String(results.length)) +
+        metricHtml("Adjusted dates", String(changed)) +
+        metricHtml("Schedule span", span) +
+        metricHtml("Colliding rows", String(collisions));
+      byId("resultSummary").classList.toggle("hidden", !results.length);
+      byId("resultWarning").classList.toggle("hidden", !collisions);
+      byId("resultWarning").textContent = collisions ? "Two or more occurrences resolve to the same final date. They remain separate and are highlighted below." : "";
+
+      if (!results.length) {
+        byId("schedule").innerHTML = '<div class="empty">No occurrence falls within the selected schedule limit.</div>';
+      } else {
+        var html = '<div class="schedule-head"><div>No.</div><div>Unadjusted date</div><div>Final date</div><div>Adjustment</div><div>Gap</div></div>';
+        results.forEach(function (item) {
+          html += '<div class="schedule-row ' + (item.changed ? "changed " : "") + (item.collision ? "collision" : "") + '">' +
+            '<div class="schedule-no">' + item.index + "</div>" +
+            "<div>" + dateHtml(item.original, config) + "</div>" +
+            "<div>" + dateHtml(item.final, config) + (item.collision ? '<span class="collision-tag">Same final date</span>' : "") + "</div>" +
+            '<div class="adjustment">' + escapeHtml(item.explanation) + "</div>" +
+            '<div class="date-main">' + (item.intervalDays == null ? "—" : escapeHtml(item.intervalDays + " days")) + "</div>" +
+            "</div>";
+        });
+        byId("schedule").innerHTML = html;
+      }
+      ["csvBtn", "icsBtn", "copyBtn", "printBtn"].forEach(function (id) { byId(id).disabled = !results.length; });
+    }
+    function generate() {
+      var config = readConfig();
+      var error = validateConfig(config);
+      if (error) {
+        showFormError(error);
+        return;
+      }
+      showFormError("");
+      var results = generateSchedule(config);
+      renderResults(results, config);
+      persistSettings();
+      setStatus(results.length + " occurrence" + (results.length === 1 ? "" : "s") + " generated.");
+    }
+
+    function collectSettings() {
+      var fields = {};
+      document.querySelectorAll("input[id], select[id], textarea[id]").forEach(function (element) {
+        if (["intervalUnitLabel"].indexOf(element.id) !== -1) return;
+        fields[element.id] = element.type === "checkbox" ? element.checked : element.value;
+      });
+      fields.frequency = frequency;
+      fields.weekdays = Array.from(document.querySelectorAll("[data-weekday]:checked")).map(function (element) { return element.getAttribute("data-weekday"); });
+      return { version: 1, fields: fields };
+    }
+    function persistSettings() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(collectSettings())); } catch (error) {}
+    }
+    function loadSettings() {
+      try {
+        var saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (!saved || saved.version !== 1 || !saved.fields) return false;
+        Object.keys(saved.fields).forEach(function (id) {
+          if (id === "frequency" || id === "weekdays") return;
+          var element = byId(id);
+          if (!element) return;
+          if (element.type === "checkbox") element.checked = Boolean(saved.fields[id]);
+          else element.value = saved.fields[id];
+        });
+        document.querySelectorAll("[data-weekday]").forEach(function (element) {
+          element.checked = (saved.fields.weekdays || []).indexOf(element.getAttribute("data-weekday")) !== -1;
+        });
+        frequency = saved.fields.frequency || "monthly";
+        return true;
+      } catch (error) {
+        return false;
+      }
+    }
+    function setDefaults() {
+      var today = bangkokToday();
+      byId("scheduleTitle").value = "";
+      byId("startDate").value = toISODate(today);
+      byId("startTime").value = "";
+      byId("eraMode").value = "gregorian-be";
+      byId("endMode").value = "count";
+      byId("occurrenceCount").value = "12";
+      byId("untilDate").value = toISODate(new Date(Date.UTC(today.getUTCFullYear() + 1, today.getUTCMonth(), today.getUTCDate())));
+      byId("repeatInterval").value = "1";
+      byId("monthlyPattern").value = "same";
+      byId("monthlyDay").value = String(today.getUTCDate());
+      byId("monthlyOrdinal").value = "1";
+      byId("monthlyWeekday").value = "1";
+      byId("yearlyPattern").value = "date";
+      byId("yearlyMonth").value = String(today.getUTCMonth() + 1);
+      byId("yearlyDay").value = String(today.getUTCDate());
+      byId("yearlyOrdinal").value = "1";
+      byId("yearlyWeekday").value = "1";
+      byId("invalidPolicy").value = "preserve-eom";
+      byId("adjustment").value = "none";
+      byId("offSaturday").checked = true;
+      byId("offSunday").checked = true;
+      byId("holidays").value = "";
+      document.querySelectorAll("[data-weekday]").forEach(function (element) { element.checked = false; });
+      var weekday = document.querySelector('[data-weekday="' + today.getUTCDay() + '"]');
+      if (weekday) weekday.checked = true;
+      frequency = "monthly";
+    }
+    function loadExample() {
+      byId("scheduleTitle").value = "Monthly filing deadline";
+      byId("startDate").value = "2026-01-31";
+      byId("startTime").value = "16:30";
+      byId("endMode").value = "count";
+      byId("occurrenceCount").value = "8";
+      byId("repeatInterval").value = "1";
+      byId("monthlyPattern").value = "same";
+      byId("invalidPolicy").value = "preserve-eom";
+      byId("adjustment").value = "modified-following";
+      byId("offSaturday").checked = true;
+      byId("offSunday").checked = true;
+      byId("holidays").value = "2026-04-13\n2026-04-14\n2026-04-15";
+      setFrequency("monthly");
+      updatePatternVisibility();
+      generate();
+    }
+    function resetAll() {
+      if (!window.confirm("Reset the generator and delete its locally saved settings?")) return;
+      try { localStorage.removeItem(STORAGE_KEY); } catch (error) {}
+      setDefaults();
+      setFrequency("monthly");
+      updatePatternVisibility();
+      showFormError("");
+      lastResults = [];
+      lastConfig = null;
+      byId("resultSummary").classList.add("hidden");
+      byId("resultWarning").classList.add("hidden");
+      byId("schedule").innerHTML = '<div class="empty">Choose the recurrence and calendar rules, then generate the schedule.</div>';
+      ["csvBtn", "icsBtn", "copyBtn", "printBtn"].forEach(function (id) { byId(id).disabled = true; });
+      setStatus("Generator reset.");
+    }
+
+    function safeFilename() {
+      var name = (lastConfig ? lastConfig.title : "recurring-deadlines").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      return name || "recurring-deadlines";
+    }
+    function download(filename, type, content) {
+      var blob = new Blob([content], { type: type });
+      var url = URL.createObjectURL(blob);
+      var link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 0);
+    }
+    function exportCsv() {
+      if (!lastResults.length) return;
+      var rows = [["No.", "Title", "Unadjusted Date", "Final Date", "Time", "Adjustment", "Gap from Previous (days)", "Timezone"]];
+      lastResults.forEach(function (item) {
+        rows.push([item.index, lastConfig.title, toISODate(item.original), toISODate(item.final), lastConfig.startTime || "All day", item.explanation, item.intervalDays == null ? "" : item.intervalDays, "Asia/Bangkok"]);
+      });
+      download(safeFilename() + ".csv", "text/csv;charset=utf-8", "\ufeff" + rows.map(function (row) { return row.map(csvCell).join(","); }).join("\r\n"));
+      setStatus("CSV exported.");
+    }
+    function icsEscape(value) {
+      return String(value || "").replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/,/g, "\\,").replace(/;/g, "\\;");
+    }
+    function icsDate(date) { return toISODate(date).replace(/-/g, ""); }
+    function icsDateTime(date, time) { return icsDate(date) + "T" + time.replace(":", "") + "00"; }
+    function utcStamp() {
+      var now = new Date();
+      return now.getUTCFullYear() + pad2(now.getUTCMonth() + 1) + pad2(now.getUTCDate()) + "T" + pad2(now.getUTCHours()) + pad2(now.getUTCMinutes()) + pad2(now.getUTCSeconds()) + "Z";
+    }
+    function uidToken(value) {
+      var hash = 2166136261;
+      for (var index = 0; index < value.length; index += 1) {
+        hash ^= value.charCodeAt(index);
+        hash = Math.imul(hash, 16777619);
+      }
+      return (hash >>> 0).toString(36);
+    }
+    function foldIcs(line) {
+      var output = [];
+      var current = "";
+      var currentBytes = 0;
+      Array.from(line).forEach(function (character) {
+        var encoded = encodeURIComponent(character);
+        var bytes = encoded.charAt(0) === "%" ? (encoded.match(/%[0-9A-F]{2}/gi) || []).length : encoded.length;
+        var limit = output.length ? 74 : 75;
+        if (current && currentBytes + bytes > limit) {
+          output.push(current);
+          current = " " + character;
+          currentBytes = 1 + bytes;
+        } else {
+          current += character;
+          currentBytes += bytes;
+        }
+      });
+      output.push(current);
+      return output.join("\r\n");
+    }
+    function buildIcs(results, config) {
+      var lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//JuraTools//Recurring Deadline Generator//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH"];
+      if (config.startTime) {
+        lines.push("BEGIN:VTIMEZONE", "TZID:Asia/Bangkok", "BEGIN:STANDARD", "DTSTART:19700101T000000", "TZOFFSETFROM:+0700", "TZOFFSETTO:+0700", "TZNAME:ICT", "END:STANDARD", "END:VTIMEZONE");
+      }
+      var stamp = utcStamp();
+      results.forEach(function (item) {
+        lines.push("BEGIN:VEVENT");
+        lines.push("UID:juratools-" + uidToken(config.title + "|" + toISODate(config.start) + "|" + item.index + "|" + toISODate(item.final)) + "@juratools.local");
+        lines.push("DTSTAMP:" + stamp);
+        if (config.startTime) {
+          lines.push("DTSTART;TZID=Asia/Bangkok:" + icsDateTime(item.final, config.startTime));
+          var timeParts = config.startTime.split(":").map(Number);
+          var endMinutes = timeParts[0] * 60 + timeParts[1] + 60;
+          var endDate = new Date(item.final.getTime());
+          if (endMinutes >= 1440) {
+            endDate = addDays(endDate, 1);
+            endMinutes -= 1440;
+          }
+          lines.push("DTEND;TZID=Asia/Bangkok:" + icsDateTime(endDate, pad2(Math.floor(endMinutes / 60)) + ":" + pad2(endMinutes % 60)));
+        } else {
+          lines.push("DTSTART;VALUE=DATE:" + icsDate(item.final));
+          lines.push("DTEND;VALUE=DATE:" + icsDate(addDays(item.final, 1)));
+        }
+        lines.push(foldIcs("SUMMARY:" + icsEscape(config.title)));
+        lines.push(foldIcs("DESCRIPTION:" + icsEscape("Unadjusted: " + toISODate(item.original) + "\n" + item.explanation + "\nGenerated locally by JuraTools.")));
+        lines.push("END:VEVENT");
+      });
+      lines.push("END:VCALENDAR");
+      return lines.join("\r\n") + "\r\n";
+    }
+    function exportIcs() {
+      if (!lastResults.length) return;
+      download(safeFilename() + ".ics", "text/calendar;charset=utf-8", buildIcs(lastResults, lastConfig));
+      setStatus("Calendar file exported.");
+    }
+    function copySchedule() {
+      if (!lastResults.length) return;
+      var text = lastConfig.title + "\n" + lastResults.map(function (item) {
+        return item.index + ". " + toISODate(item.final) + (lastConfig.startTime ? " " + lastConfig.startTime : "") + (item.changed ? " (" + item.explanation + "; unadjusted " + toISODate(item.original) + ")" : "");
+      }).join("\n");
+      navigator.clipboard.writeText(text).then(function () {
+        setStatus("Schedule copied.");
+      }).catch(function () {
+        setStatus("Clipboard access was unavailable.", true);
+      });
+    }
+
+    document.querySelectorAll("[data-frequency]").forEach(function (button) {
+      button.addEventListener("click", function () { setFrequency(button.getAttribute("data-frequency")); });
+    });
+    ["monthlyPattern", "yearlyPattern", "endMode"].forEach(function (id) {
+      byId(id).addEventListener("change", function () { updatePatternVisibility(); persistSettings(); });
+    });
+    byId("startDate").addEventListener("change", function () {
+      var date = parseISODate(byId("startDate").value);
+      if (date) {
+        byId("monthlyDay").value = String(date.getUTCDate());
+        byId("yearlyMonth").value = String(date.getUTCMonth() + 1);
+        byId("yearlyDay").value = String(date.getUTCDate());
+        if (frequency === "weekly" && !document.querySelector("[data-weekday]:checked")) {
+          var weekday = document.querySelector('[data-weekday="' + date.getUTCDay() + '"]');
+          if (weekday) weekday.checked = true;
+        }
+      }
+      persistSettings();
+    });
+    document.querySelectorAll("input[id], select[id], textarea[id], [data-weekday]").forEach(function (element) {
+      element.addEventListener("change", persistSettings);
+    });
+    byId("generateBtn").addEventListener("click", generate);
+    byId("exampleBtn").addEventListener("click", loadExample);
+    byId("csvBtn").addEventListener("click", exportCsv);
+    byId("icsBtn").addEventListener("click", exportIcs);
+    byId("copyBtn").addEventListener("click", copySchedule);
+    byId("printBtn").addEventListener("click", function () { window.print(); });
+    byId("resetBtn").addEventListener("click", resetAll);
+
+    window.__JT_RECURRING_TEST__ = {
+      parseISODate: parseISODate,
+      toISODate: toISODate,
+      daysInMonth: daysInMonth,
+      nthWeekdayOfMonth: nthWeekdayOfMonth,
+      dateWithPolicy: dateWithPolicy,
+      adjustDate: adjustDate,
+      candidatesForCycle: candidatesForCycle,
+      generateBaseDates: generateBaseDates,
+      generateSchedule: generateSchedule,
+      parseHolidayList: parseHolidayList,
+      buildIcs: buildIcs,
+      foldIcs: foldIcs
+    };
+
+    setDefaults();
+    loadSettings();
+    setFrequency(frequency);
+    updatePatternVisibility();
+  }());
+  </script>
+</body>
+</html>
