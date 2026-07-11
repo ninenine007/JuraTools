@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Baht Text — Amount to Thai Words | JuraTools</title>
+  <meta name="description" content="Convert a baht amount to Thai words (สองแสนห้าหมื่นบาทถ้วน), English cheque words, Thai numerals, and ready-to-paste contract clauses. By Kornrawee Chanchom." />
+  <style>
+    :root {
+      --ink: #1c1c1e; --ink-2: #3c3c43; --muted: #6e6e73; --faint: #aeaeb2;
+      --line: rgba(0,0,0,0.08); --line-soft: rgba(0,0,0,0.05);
+      --teal: #0d9488; --teal-dark: #0f766e; --teal-light: #f0fdfa; --teal-border: #99f6e4;
+      --amber: #d97706; --amber-light: #fffbeb; --amber-border: #fde68a;
+      --card-bg: rgba(255,255,255,0.82);
+      --radius: 16px; --radius-sm: 10px;
+      --shadow: 0 1px 1px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06);
+      --maxw: 760px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0; color: var(--ink); line-height: 1.45;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", "Noto Sans Thai", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      background: #f2f2f7;
+      background-image:
+        radial-gradient(ellipse 1100px 700px at 10% 0%,   rgba(167,243,208,0.4)   0%, transparent 60%),
+        radial-gradient(ellipse  700px 700px at 95% 8%,   rgba(204,251,241,0.45)  0%, transparent 55%),
+        radial-gradient(ellipse  800px 600px at 0%  92%,  rgba(194,221,255,0.3)   0%, transparent 55%),
+        radial-gradient(ellipse  900px 500px at 100% 96%, rgba(218,205,255,0.28)  0%, transparent 55%);
+    }
+    button, input, select, textarea { font: inherit; }
+    a { color: var(--teal); }
+    h1, h2, h3, p { margin-top: 0; }
+    .muted { color: var(--muted); }
+
+    /* ── Sticky breadcrumb nav ────────────────────── */
+    .nav {
+      position: sticky; top: 0; z-index: 200; height: 52px;
+      display: flex; align-items: center; gap: 11px; padding: 0 22px;
+      background: rgba(242,242,247,0.82);
+      backdrop-filter: blur(24px) saturate(200%);
+      -webkit-backdrop-filter: blur(24px) saturate(200%);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav a { text-decoration: none; color: inherit; }
+    .nav-brand { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+    .nav-icon {
+      width: 30px; height: 30px; border-radius: 7px;
+      background: linear-gradient(145deg, #2979ff, #1565c0);
+      display: grid; place-items: center; font-size: 15px;
+      box-shadow: 0 2px 6px rgba(41,121,255,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    .nav-wordmark { font-size: 15px; font-weight: 700; letter-spacing: -0.4px; color: var(--ink); }
+    .nav-sep { color: #c7c7cc; font-size: 14px; }
+    .nav-crumb { font-size: 14px; font-weight: 500; color: var(--muted); }
+    .nav-crumb.current { color: var(--ink); font-weight: 600; }
+    .nav-back {
+      margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+      font-size: 13px; font-weight: 500; color: var(--ink-2);
+      background: rgba(0,0,0,0.055); border: 1px solid rgba(0,0,0,0.1);
+      padding: 6px 12px; border-radius: 9px; transition: background .14s;
+    }
+    .nav-back:hover { background: rgba(0,0,0,0.09); }
+
+    /* ── Hero ─────────────────────────────────────── */
+    .hero { width: min(var(--maxw), calc(100% - 32px)); margin: 0 auto; padding: 30px 0 8px; }
+    .hero h1 {
+      font-size: clamp(26px, 3.6vw, 34px); font-weight: 800; letter-spacing: -1px; line-height: 1.12;
+      background: linear-gradient(135deg, #1c1c1e 0%, #0d9488 60%, #059669 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      margin-bottom: 6px;
+    }
+    .hero .sub { font-size: 14px; color: var(--muted); line-height: 1.5; max-width: 640px; }
+
+    /* ── Cards ────────────────────────────────────── */
+    .wrap { width: min(var(--maxw), calc(100% - 32px)); margin: 16px auto 40px; }
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.9);
+      border-radius: var(--radius); padding: 22px;
+      box-shadow: var(--shadow); margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 13px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.05em; color: var(--muted); margin-bottom: 14px;
+    }
+
+    /* ── Amount input ─────────────────────────────── */
+    .amount-wrap { position: relative; }
+    .amount-wrap .currency {
+      position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+      font-size: 22px; font-weight: 700; color: var(--faint); pointer-events: none;
+    }
+    #amount {
+      width: 100%; padding: 16px 16px 16px 46px;
+      border: 1.5px solid var(--line); border-radius: var(--radius-sm);
+      font-size: 26px; font-weight: 700; letter-spacing: -0.3px;
+      color: var(--ink); background: #fff; outline: none;
+      font-variant-numeric: tabular-nums;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    #amount:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(13,148,136,0.14); }
+    .input-note { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+    .input-warn {
+      display: none; margin-top: 8px; font-size: 13px; color: var(--amber);
+      background: var(--amber-light); border: 1px solid var(--amber-border);
+      border-radius: 8px; padding: 8px 12px;
+    }
+    .input-warn.show { display: block; }
+
+    /* ── Output rows ──────────────────────────────── */
+    .out-row {
+      display: grid; grid-template-columns: 150px minmax(0,1fr) auto; gap: 12px;
+      align-items: center; padding: 13px 0;
+      border-bottom: 1px solid var(--line-soft);
+    }
+    .out-row:last-child { border-bottom: none; }
+    .out-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; line-height: 1.4; }
+    .out-label .th-sub { display: block; font-size: 11px; color: var(--faint); text-transform: none; font-weight: 500; }
+    .out-value {
+      font-size: 15px; color: var(--ink); line-height: 1.55; word-break: break-word;
+      min-width: 0;
+    }
+    .out-value.hero-value {
+      font-size: 19px; font-weight: 700; color: var(--teal-dark);
+    }
+    .out-value.empty { color: var(--faint); font-weight: 400; font-size: 14px; }
+    .copy-btn {
+      flex-shrink: 0; border: 1px solid var(--line); background: #fff;
+      border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 600;
+      color: var(--ink-2); cursor: pointer; white-space: nowrap;
+      transition: background .14s, border-color .14s, color .14s;
+    }
+    .copy-btn:hover { border-color: var(--teal); color: var(--teal); }
+    .copy-btn.copied { background: var(--teal); border-color: var(--teal); color: #fff; }
+    .copy-btn:disabled { opacity: .4; cursor: default; }
+    @media (max-width: 560px) {
+      .out-row { grid-template-columns: 1fr auto; }
+      .out-label { grid-column: 1 / -1; }
+    }
+
+    /* ── Examples ─────────────────────────────────── */
+    .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    .chip {
+      border: 1px solid var(--line); border-radius: 999px; background: #fff;
+      padding: 5px 12px; font-size: 12px; cursor: pointer; color: var(--muted);
+      transition: all 0.14s; font-variant-numeric: tabular-nums;
+    }
+    .chip:hover { border-color: var(--teal); color: var(--teal); }
+
+    footer {
+      width: min(var(--maxw), calc(100% - 32px)); margin: 0 auto 32px;
+      font-size: 12px; color: var(--faint); text-align: center; line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-brand" href="index.html">
+    <div class="nav-icon">⚖️</div>
+    <span class="nav-wordmark">JuraTools</span>
+  </a>
+  <span class="nav-sep">/</span>
+  <span class="nav-crumb current">Baht Text</span>
+  <a class="nav-back" href="index.html">← All tools</a>
+</nav>
+
+<div class="hero">
+  <h1>Baht Text — Amount to Thai Words</h1>
+  <p class="sub">แปลงจำนวนเงินเป็นตัวอักษร — Thai words, English cheque words, Thai numerals, and ready-to-paste contract clauses. Everything runs in your browser.</p>
+</div>
+
+<div class="wrap">
+
+  <div class="card">
+    <div class="card-title">Amount</div>
+    <div class="amount-wrap">
+      <span class="currency">฿</span>
+      <input id="amount" type="text" inputmode="decimal" placeholder="250,000" autocomplete="off" spellcheck="false" />
+    </div>
+    <div class="input-note">Accepts commas, spaces, and Thai numerals (๒๕๐,๐๐๐). Decimals become satang — more than two decimal places are rounded to the satang.</div>
+    <div class="input-warn" id="warn"></div>
+    <div class="chips" id="examples">
+      <button class="chip" data-v="250000">250,000</button>
+      <button class="chip" data-v="1101.25">1,101.25</button>
+      <button class="chip" data-v="1000001">1,000,001</button>
+      <button class="chip" data-v="21500000">21,500,000</button>
+      <button class="chip" data-v="0.50">0.50</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Result</div>
+
+    <div class="out-row">
+      <div class="out-label">Thai words<span class="th-sub">จำนวนเงินตัวอักษร</span></div>
+      <div class="out-value hero-value" id="outThai"></div>
+      <button class="copy-btn" data-src="outThai">Copy</button>
+    </div>
+
+    <div class="out-row">
+      <div class="out-label">English words<span class="th-sub">cheque style</span></div>
+      <div class="out-value" id="outEng"></div>
+      <button class="copy-btn" data-src="outEng">Copy</button>
+    </div>
+
+    <div class="out-row">
+      <div class="out-label">Contract clause · TH<span class="th-sub">พร้อมวงเล็บ</span></div>
+      <div class="out-value" id="outClauseTh"></div>
+      <button class="copy-btn" data-src="outClauseTh">Copy</button>
+    </div>
+
+    <div class="out-row">
+      <div class="out-label">Contract clause · EN</div>
+      <div class="out-value" id="outClauseEn"></div>
+      <button class="copy-btn" data-src="outClauseEn">Copy</button>
+    </div>
+
+    <div class="out-row">
+      <div class="out-label">Number words<span class="th-sub">ไม่มีหน่วยเงิน</span></div>
+      <div class="out-value" id="outNumber"></div>
+      <button class="copy-btn" data-src="outNumber">Copy</button>
+    </div>
+
+    <div class="out-row">
+      <div class="out-label">Thai numerals<span class="th-sub">เลขไทย</span></div>
+      <div class="out-value" id="outThaiNum"></div>
+      <button class="copy-btn" data-src="outThaiNum">Copy</button>
+    </div>
+
+  </div>
+
+</div>
+
+<footer>
+  Reading rules follow the Royal Institute conventions (เอ็ด for a trailing one, ยี่สิบ, recursive ล้าน).<br>
+  Reference tool only. Runs entirely in your browser — nothing is sent anywhere.
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  // ── Thai number reading ─────────────────────────────────────────────────
+  var TH_DIGIT = ['ศูนย์','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า'];
+  var TH_POS   = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน'];
+
+  // Read a group of up to 6 digits. hasHigher = true when a higher ล้าน-group
+  // was already read, so a bare trailing 1 becomes เอ็ด (e.g. หนึ่งล้านเอ็ด).
+  function readGroupTh(g, hasHigher) {
+    var out = '', n = g.length;
+    for (var i = 0; i < n; i++) {
+      var d = g.charCodeAt(i) - 48;
+      var pos = n - 1 - i;
+      if (d === 0) continue;
+      if (pos === 0) {
+        var restNonZero = /[1-9]/.test(g.slice(0, -1));
+        out += (d === 1 && (restNonZero || hasHigher)) ? 'เอ็ด' : TH_DIGIT[d];
+      } else if (pos === 1) {
+        out += (d === 1) ? 'สิบ' : (d === 2) ? 'ยี่สิบ' : TH_DIGIT[d] + 'สิบ';
+      } else {
+        out += TH_DIGIT[d] + TH_POS[pos];
+      }
+    }
+    return out;
+  }
+
+  // Read an arbitrary-length digit string (no sign, no leading zeros).
+  function readIntTh(s) {
+    if (s === '0' || s === '') return 'ศูนย์';
+    var groups = [];
+    for (var end = s.length; end > 0; end -= 6) groups.unshift(s.slice(Math.max(0, end - 6), end));
+    var out = '';
+    for (var i = 0; i < groups.length; i++) {
+      var g = groups[i].replace(/^0+/, '');
+      if (g !== '') out += readGroupTh(g, i > 0);
+      if (i < groups.length - 1 && out !== '') out += 'ล้าน';
+    }
+    return out;
+  }
+
+  // ── English number reading (cheque style) ───────────────────────────────
+  var EN_ONES = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve',
+    'Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+  var EN_TENS = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+  var EN_SCALE = ['','Thousand','Million','Billion','Trillion','Quadrillion','Quintillion'];
+
+  function readGroupEn(v) {
+    var out = [];
+    var h = Math.floor(v / 100), r = v % 100;
+    if (h) out.push(EN_ONES[h] + ' Hundred');
+    if (r >= 20) {
+      var t = EN_TENS[Math.floor(r / 10)], o = r % 10;
+      out.push(o ? t + '-' + EN_ONES[o] : t);
+    } else if (r > 0) {
+      out.push(EN_ONES[r]);
+    }
+    return out.join(' ');
+  }
+
+  function readIntEn(s) {
+    if (s === '0' || s === '') return 'Zero';
+    var groups = [];
+    for (var end = s.length; end > 0; end -= 3) groups.unshift(s.slice(Math.max(0, end - 3), end));
+    if (groups.length > EN_SCALE.length) return null; // beyond quintillions
+    var out = [];
+    for (var i = 0; i < groups.length; i++) {
+      var v = parseInt(groups[i], 10);
+      if (!v) continue;
+      var scale = EN_SCALE[groups.length - 1 - i];
+      out.push(readGroupEn(v) + (scale ? ' ' + scale : ''));
+    }
+    return out.join(' ');
+  }
+
+  // ── Parsing ──────────────────────────────────────────────────────────────
+  var THAI_NUM = { '๐':'0','๑':'1','๒':'2','๓':'3','๔':'4','๕':'5','๖':'6','๗':'7','๘':'8','๙':'9' };
+
+  // Returns { neg, int: digitString, frac: digitString (raw), satang, carried, rounded } or { error }
+  function parseAmount(raw) {
+    var s = raw.replace(/[๐-๙]/g, function (c) { return THAI_NUM[c]; })
+               .replace(/[,\s_฿]/g, '').replace(/บาท/g, '');
+    if (s === '') return { empty: true };
+    var neg = false;
+    if (s[0] === '-') { neg = true; s = s.slice(1); }
+    if (!/^\d*(\.\d*)?$/.test(s) || s === '.' || s === '') return { error: 'Enter digits only, e.g. 250,000 or 1,101.25' };
+    var parts = s.split('.');
+    var intPart = (parts[0] || '0').replace(/^0+(?=\d)/, '');
+    var intRaw = intPart; // pre-carry, for reading the number exactly as typed
+    var fracRaw = parts[1] || '';
+
+    // Round the fraction to 2 places (half-up), carrying into the integer if needed.
+    var satang = 0, rounded = false, carried = false;
+    if (fracRaw.length) {
+      var f2 = fracRaw.slice(0, 2).padEnd(2, '0');
+      satang = parseInt(f2, 10);
+      if (fracRaw.length > 2 && fracRaw.charCodeAt(2) - 48 >= 5) { satang += 1; rounded = true; }
+      else if (fracRaw.length > 2 && /[1-9]/.test(fracRaw.slice(2))) { rounded = true; }
+      if (satang === 100) { satang = 0; intPart = (BigInt(intPart) + 1n).toString(); carried = true; }
+    }
+    return { neg: neg, int: intPart, intRaw: intRaw, frac: fracRaw, satang: satang, rounded: rounded, carried: carried };
+  }
+
+  function groupCommas(s) { return s.replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+  function toThaiNumerals(s) { return s.replace(/[0-9]/g, function (c) { return '๐๑๒๓๔๕๖๗๘๙'[+c]; }); }
+
+  // Live thousands separators with caret preservation. Leaves Thai-numeral
+  // input untouched so ๒๕๐๐๐๐ stays exactly as typed.
+  function liveFormat(el) {
+    var raw = el.value;
+    if (/[๐-๙]/.test(raw)) return;
+    var caret = el.selectionStart == null ? raw.length : el.selectionStart;
+    var anchorsBefore = raw.slice(0, caret).replace(/[^0-9.]/g, '').length;
+    var neg = /^\s*-/.test(raw);
+    var clean = raw.replace(/[^0-9.]/g, '');
+    var firstDot = clean.indexOf('.');
+    var intp = firstDot >= 0 ? clean.slice(0, firstDot) : clean;
+    var frac = firstDot >= 0 ? clean.slice(firstDot + 1).replace(/\./g, '') : null;
+    var out = (neg ? '-' : '') + groupCommas(intp) + (frac !== null ? '.' + frac : '');
+    if (out === raw) return;
+    el.value = out;
+    if (document.activeElement === el && el.setSelectionRange) {
+      var pos = 0, seen = 0;
+      while (pos < out.length && seen < anchorsBefore) { if (/[0-9.]/.test(out[pos])) seen++; pos++; }
+      el.setSelectionRange(pos, pos);
+    }
+  }
+
+  // ── Rendering ────────────────────────────────────────────────────────────
+  var els = {
+    amount: document.getElementById('amount'),
+    warn: document.getElementById('warn'),
+    outThai: document.getElementById('outThai'),
+    outEng: document.getElementById('outEng'),
+    outClauseTh: document.getElementById('outClauseTh'),
+    outClauseEn: document.getElementById('outClauseEn'),
+    outNumber: document.getElementById('outNumber'),
+    outThaiNum: document.getElementById('outThaiNum')
+  };
+
+  function setEmpty() {
+    ['outThai','outEng','outClauseTh','outClauseEn','outNumber','outThaiNum'].forEach(function (k) {
+      els[k].textContent = '—';
+      els[k].classList.add('empty');
+    });
+    document.querySelectorAll('.copy-btn').forEach(function (b) { b.disabled = true; });
+  }
+
+  function render() {
+    var p = parseAmount(els.amount.value);
+    els.warn.classList.remove('show');
+
+    if (p.empty) { setEmpty(); save(); return; }
+    if (p.error) {
+      setEmpty();
+      els.warn.textContent = p.error;
+      els.warn.classList.add('show');
+      save(); return;
+    }
+
+    var notes = [];
+    if (p.rounded) notes.push('Rounded to the satang' + (p.carried ? ' (carried into the baht)' : '') + '.');
+    if (p.neg) notes.push('Negative amount — words are prefixed with ลบ / Minus.');
+    if (notes.length) { els.warn.textContent = notes.join(' '); els.warn.classList.add('show'); }
+
+    var signTh = p.neg ? 'ลบ' : '';
+    var signEn = p.neg ? 'Minus ' : '';
+
+    // Thai baht words
+    var bahtWords = readIntTh(p.int);
+    var thai;
+    if (p.satang === 0) {
+      thai = signTh + bahtWords + 'บาทถ้วน';
+    } else if (p.int === '0') {
+      thai = signTh + readGroupTh(String(p.satang), false) + 'สตางค์';
+    } else {
+      thai = signTh + bahtWords + 'บาท' + readGroupTh(String(p.satang), false) + 'สตางค์';
+    }
+
+    // English cheque words
+    var engInt = readIntEn(p.int);
+    var eng;
+    if (engInt === null) {
+      eng = '— (amount too large for English words)';
+    } else if (p.satang === 0) {
+      eng = signEn + engInt + ' Baht Only';
+    } else if (p.int === '0') {
+      eng = signEn + readGroupEn(p.satang) + ' Satang Only';
+    } else {
+      eng = signEn + engInt + ' Baht and ' + readGroupEn(p.satang) + ' Satang Only';
+    }
+
+    // Formatted figures
+    var figure = (p.neg ? '-' : '') + groupCommas(p.int) + (p.satang ? '.' + String(p.satang).padStart(2, '0') : '');
+
+    // Number-only words (reads the value as typed: 3.14 → สามจุดหนึ่งสี่)
+    var numberWords = signTh + readIntTh(p.intRaw);
+    var fracTrim = p.frac.replace(/0+$/, '');
+    if (fracTrim) {
+      numberWords += 'จุด';
+      for (var i = 0; i < fracTrim.length; i++) numberWords += TH_DIGIT[fracTrim.charCodeAt(i) - 48];
+    }
+
+    els.outThai.textContent = thai;
+    els.outEng.textContent = eng;
+    els.outClauseTh.textContent = figure + ' บาท (' + thai + ')';
+    els.outClauseEn.textContent = engInt === null ? '—' : 'THB ' + figure + ' (' + eng + ')';
+    els.outNumber.textContent = numberWords;
+    els.outThaiNum.textContent = toThaiNumerals(figure);
+
+    Object.keys(els).forEach(function (k) { if (k.slice(0,3) === 'out') els[k].classList.remove('empty'); });
+    document.querySelectorAll('.copy-btn').forEach(function (b) { b.disabled = false; });
+    save();
+  }
+
+  // ── Persistence ──────────────────────────────────────────────────────────
+  function save() {
+    try { localStorage.setItem('bahtText_v1', JSON.stringify({ amount: els.amount.value })); } catch (e) {}
+  }
+  function load() {
+    try {
+      var st = JSON.parse(localStorage.getItem('bahtText_v1') || 'null');
+      if (st && st.amount != null) els.amount.value = st.amount;
+    } catch (e) {}
+  }
+
+  // ── Wiring ───────────────────────────────────────────────────────────────
+  els.amount.addEventListener('input', function () { liveFormat(els.amount); render(); });
+
+  document.getElementById('examples').addEventListener('click', function (e) {
+    var chip = e.target.closest('.chip');
+    if (!chip) return;
+    els.amount.value = chip.dataset.v;
+    liveFormat(els.amount);
+    render();
+    els.amount.focus();
+  });
+
+  document.querySelectorAll('.copy-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var text = document.getElementById(btn.dataset.src).textContent;
+      if (!text || text === '—') return;
+      navigator.clipboard.writeText(text).then(function () {
+        btn.classList.add('copied'); btn.textContent = '✓ Copied';
+        setTimeout(function () { btn.classList.remove('copied'); btn.textContent = 'Copy'; }, 1300);
+      });
+    });
+  });
+
+  load();
+  liveFormat(els.amount);
+  render();
+})();
+</script>
+</body>
+</html>

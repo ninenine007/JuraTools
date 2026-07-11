@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Withholding Tax Calculator — Thai Tax Tools | JuraTools</title>
+  <meta name="description" content="Thai withholding tax (WHT) calculator — deduct from a payment or gross-up when the payer absorbs the tax, with VAT-aware invoice math. By Kornrawee Chanchom." />
+  <style>
+    :root {
+      --ink: #1c1c1e; --ink-2: #3c3c43; --muted: #6e6e73; --faint: #aeaeb2;
+      --line: rgba(0,0,0,0.08); --line-soft: rgba(0,0,0,0.05);
+      --rose: #e11d48; --rose-dark: #c81740; --rose-light: #fff1f2; --rose-border: #fecdd3;
+      --green: #15803d; --green-light: #f0fdf4; --green-border: #bbf7d0;
+      --info: #0369a1; --info-light: #f0f9ff; --info-border: #bae6fd;
+      --card-bg: rgba(255,255,255,0.82);
+      --radius: 16px; --radius-sm: 10px;
+      --shadow: 0 1px 1px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06);
+      --maxw: 760px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0; color: var(--ink); line-height: 1.45;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", "Noto Sans Thai", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      background: #f2f2f7;
+      background-image:
+        radial-gradient(ellipse 1100px 700px at 10% 0%,   rgba(255,205,210,0.4)   0%, transparent 60%),
+        radial-gradient(ellipse  700px 700px at 95% 8%,   rgba(255,224,178,0.35)  0%, transparent 55%),
+        radial-gradient(ellipse  800px 600px at 0%  92%,  rgba(194,221,255,0.3)   0%, transparent 55%),
+        radial-gradient(ellipse  900px 500px at 100% 96%, rgba(218,205,255,0.28)  0%, transparent 55%);
+    }
+    button, input, select, textarea { font: inherit; }
+    a { color: var(--rose); }
+    h1, h2, h3, p { margin-top: 0; }
+    .muted { color: var(--muted); }
+
+    /* ── Sticky breadcrumb nav ────────────────────── */
+    .nav {
+      position: sticky; top: 0; z-index: 200; height: 52px;
+      display: flex; align-items: center; gap: 11px; padding: 0 22px;
+      background: rgba(242,242,247,0.82);
+      backdrop-filter: blur(24px) saturate(200%);
+      -webkit-backdrop-filter: blur(24px) saturate(200%);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav a { text-decoration: none; color: inherit; }
+    .nav-brand { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+    .nav-icon {
+      width: 30px; height: 30px; border-radius: 7px;
+      background: linear-gradient(145deg, #2979ff, #1565c0);
+      display: grid; place-items: center; font-size: 15px;
+      box-shadow: 0 2px 6px rgba(41,121,255,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    .nav-wordmark { font-size: 15px; font-weight: 700; letter-spacing: -0.4px; color: var(--ink); }
+    .nav-sep { color: #c7c7cc; font-size: 14px; }
+    .nav-crumb { font-size: 14px; font-weight: 500; color: var(--muted); }
+    .nav-crumb.current { color: var(--ink); font-weight: 600; }
+    .nav-back {
+      margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+      font-size: 13px; font-weight: 500; color: var(--ink-2);
+      background: rgba(0,0,0,0.055); border: 1px solid rgba(0,0,0,0.1);
+      padding: 6px 12px; border-radius: 9px; transition: background .14s;
+    }
+    .nav-back:hover { background: rgba(0,0,0,0.09); }
+    @media (max-width: 620px) { .nav-crumb:not(.current), .nav-sep.hide-sm { display: none; } }
+
+    /* ── Hero ─────────────────────────────────────── */
+    .hero { width: min(var(--maxw), calc(100% - 32px)); margin: 0 auto; padding: 30px 0 8px; }
+    .hero h1 {
+      font-size: clamp(26px, 3.6vw, 34px); font-weight: 800; letter-spacing: -1px; line-height: 1.12;
+      background: linear-gradient(135deg, #1c1c1e 0%, #e11d48 60%, #ea580c 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      margin-bottom: 6px;
+    }
+    .hero .sub { font-size: 14px; color: var(--muted); line-height: 1.5; max-width: 640px; }
+
+    /* ── Cards & fields ───────────────────────────── */
+    .wrap { width: min(var(--maxw), calc(100% - 32px)); margin: 16px auto 40px; }
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.9);
+      border-radius: var(--radius); padding: 22px;
+      box-shadow: var(--shadow); margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 13px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.05em; color: var(--muted); margin-bottom: 14px;
+    }
+    label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 5px; }
+    .hint { font-size: 12px; color: var(--muted); font-weight: 400; }
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 560px) { .field-row { grid-template-columns: 1fr; } }
+    input[type="number"], input[type="text"], select {
+      width: 100%; padding: 9px 11px;
+      border: 1px solid var(--line); border-radius: 8px;
+      font-size: 15px; background: #fff; color: var(--ink);
+      outline: none; transition: border-color .15s, box-shadow .15s;
+      font-variant-numeric: tabular-nums;
+    }
+    input:focus, select:focus { border-color: var(--rose); box-shadow: 0 0 0 3px rgba(225,29,72,0.12); }
+    .field-note { font-size: 12px; color: var(--muted); line-height: 1.5; margin-top: 5px; }
+
+    /* ── Mode toggle ──────────────────────────────── */
+    .mode-toggle { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin-bottom: 18px; background: #fff; }
+    .mode-btn {
+      flex: 1; padding: 11px 8px; text-align: center; font-size: 13.5px; font-weight: 600;
+      cursor: pointer; background: transparent; border: none; color: var(--muted);
+      transition: background 0.15s, color 0.15s; line-height: 1.35;
+    }
+    .mode-btn .th { display: block; font-size: 11px; font-weight: 500; opacity: .75; }
+    .mode-btn.active { background: var(--rose); color: #fff; }
+
+    /* ── Chips ────────────────────────────────────── */
+    .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .chip {
+      border: 1px solid var(--line); border-radius: 999px; background: #fff;
+      padding: 5px 12px; font-size: 12px; cursor: pointer; color: var(--muted);
+      transition: all 0.14s;
+    }
+    .chip:hover { border-color: var(--rose); color: var(--rose); }
+    .chip.active { background: var(--rose); color: #fff; border-color: var(--rose); }
+
+    .check-row { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; margin-bottom: 10px; }
+    .check-row input[type="checkbox"] { width: auto; margin-top: 2px; flex-shrink: 0; }
+    .check-row label { margin-bottom: 0; font-weight: 400; }
+    .radio-row { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; margin-top: 8px; }
+    .radio-row label { display: flex; align-items: center; gap: 6px; font-weight: 400; margin: 0; }
+    .sub-fields { margin: 10px 0 0 24px; }
+    .sub-fields .vat-rate { max-width: 140px; }
+
+    /* ── Results ──────────────────────────────────── */
+    table.data { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-top: 4px; }
+    table.data td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line-soft); }
+    table.data td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    table.data tr.total td { font-weight: 700; border-top: 2px solid var(--ink); border-bottom: none; }
+    table.data tr.muted td { color: var(--muted); }
+    table.data tr.hl td { color: var(--rose-dark); font-weight: 600; }
+
+    .result-boxes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+    @media (max-width: 560px) { .result-boxes { grid-template-columns: 1fr; } }
+    .amount-box { border: 1px solid var(--rose-border); border-radius: var(--radius-sm); padding: 15px 16px; background: var(--rose-light); }
+    .amount-box.green { border-color: var(--green-border); background: var(--green-light); }
+    .amount-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+    .amount-value { font-size: 24px; font-weight: 700; color: var(--rose-dark); margin-top: 2px; font-variant-numeric: tabular-nums; }
+    .amount-box.green .amount-value { color: var(--green); }
+    .amount-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    .callout {
+      border-radius: 8px; padding: 11px 14px; font-size: 12.5px; line-height: 1.55;
+      background: var(--info-light); border: 1px solid var(--info-border); color: var(--info);
+      margin-top: 14px;
+    }
+    .callout strong { font-weight: 600; }
+
+    .actions-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #fff; border: 1px solid var(--line); border-radius: 8px;
+      padding: 8px 15px; font-size: 13px; font-weight: 500;
+      cursor: pointer; color: var(--ink-2); transition: background 0.14s, border-color 0.14s, color .14s;
+    }
+    .btn:hover { border-color: var(--rose); color: var(--rose); }
+    .btn.copied { background: var(--rose); border-color: var(--rose); color: #fff; }
+
+    footer {
+      width: min(var(--maxw), calc(100% - 32px)); margin: 24px auto 32px;
+      font-size: 12px; color: var(--faint); text-align: center; line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-brand" href="index.html">
+    <div class="nav-icon">⚖️</div>
+    <span class="nav-wordmark">JuraTools</span>
+  </a>
+  <span class="nav-sep">/</span>
+  <a class="nav-crumb" href="thai-tax-tools.html">Thai Tax Tools</a>
+  <span class="nav-sep hide-sm">/</span>
+  <span class="nav-crumb current">Withholding Tax</span>
+  <a class="nav-back" href="thai-tax-tools.html">← All tax tools</a>
+</nav>
+
+<div class="hero">
+  <h1>Withholding Tax Calculator</h1>
+  <p class="sub">ภาษีหัก ณ ที่จ่าย — deduct WHT from a payment, or gross-up when the payer absorbs the tax (ออกภาษีแทน). VAT-aware invoice math: WHT is computed on the amount excluding VAT.</p>
+</div>
+
+<div class="wrap">
+
+  <div class="card">
+    <div class="card-title">Mode</div>
+    <div class="mode-toggle" id="modeToggle">
+      <button class="mode-btn active" data-mode="deduct">Deduct from payment<span class="th">หักจากยอดที่จ่าย</span></button>
+      <button class="mode-btn" data-mode="grossup">Gross-up<span class="th">ผู้จ่ายออกภาษีแทน</span></button>
+    </div>
+
+    <div class="field">
+      <label for="rate">WHT rate (%) <span class="hint">— enter the rate that applies to your payment type</span></label>
+      <input type="number" id="rate" min="0" max="99" step="0.01" value="3" />
+      <div class="chips" id="rateChips">
+        <button class="chip" data-rate="0.75">0.75</button>
+        <button class="chip" data-rate="1">1</button>
+        <button class="chip" data-rate="2">2</button>
+        <button class="chip" data-rate="3">3</button>
+        <button class="chip" data-rate="5">5</button>
+        <button class="chip" data-rate="10">10</button>
+        <button class="chip" data-rate="15">15</button>
+      </div>
+    </div>
+
+    <div class="field" id="amountField">
+      <label for="amount" id="amountLabel">Payment amount (THB)</label>
+      <input type="text" inputmode="decimal" id="amount" placeholder="e.g. 100,000" />
+      <div class="field-note" id="amountNote">The fee for the service or payment being made.</div>
+    </div>
+
+    <div class="check-row">
+      <input type="checkbox" id="vatOn" />
+      <label for="vatOn"><strong>Payment subject to VAT</strong> — WHT is still computed on the amount <em>excluding</em> VAT.</label>
+    </div>
+    <div class="sub-fields" id="vatFields" style="display:none">
+      <div class="field vat-rate">
+        <label for="vatRate">VAT rate (%)</label>
+        <input type="number" id="vatRate" min="0" max="30" step="0.01" value="7" />
+      </div>
+      <div class="field" id="vatBasisField">
+        <label>The amount entered above…</label>
+        <div class="radio-row">
+          <label><input type="radio" name="vatBasis" value="excl" checked /> excludes VAT</label>
+          <label><input type="radio" name="vatBasis" value="incl" /> includes VAT</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="field-row" style="margin-top:14px">
+      <div class="field">
+        <label for="decimals">Decimal places</label>
+        <select id="decimals">
+          <option value="0">0</option>
+          <option value="1">1</option>
+          <option value="2" selected>2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="rounding">Rounding method</label>
+        <select id="rounding">
+          <option value="normal">Normal (round half up)</option>
+          <option value="floor">Floor (always round down)</option>
+          <option value="ceil">Ceiling (always round up)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Result</div>
+    <table class="data" id="resultTable"></table>
+    <div class="result-boxes">
+      <div class="amount-box">
+        <div class="amount-label">WHT to remit</div>
+        <div class="amount-value" id="whtValue">—</div>
+        <div class="amount-sub" id="whtSub"></div>
+      </div>
+      <div class="amount-box green">
+        <div class="amount-label" id="netLabel">Net cash to payee</div>
+        <div class="amount-value" id="netValue">—</div>
+        <div class="amount-sub" id="netSub"></div>
+      </div>
+    </div>
+    <div class="callout">
+      <strong>Compliance:</strong> issue a withholding tax certificate (หนังสือรับรองการหักภาษี ณ ที่จ่าย, 50 ทวิ) to the payee, and remit via P.N.D. 3 (individuals) or P.N.D. 53 (companies) within the 7th of the following month (extended when e-filing).
+    </div>
+  </div>
+
+  <div class="actions-row">
+    <button class="btn" id="copyBtn">Copy summary</button>
+    <button class="btn" onclick="resetAll()">Reset</button>
+  </div>
+
+</div>
+
+<footer>
+  Revenue Code ss.3 เตรส, 50, 69 ทวิ · Departmental Instruction Taw.Paw. 4/2528 (rates by payment type)<br>
+  Reference tool only, not tax advice. Runs entirely in your browser — nothing is sent anywhere.
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  var mode = 'deduct';
+  var els = {
+    rate: document.getElementById('rate'),
+    amount: document.getElementById('amount'),
+    amountLabel: document.getElementById('amountLabel'),
+    amountNote: document.getElementById('amountNote'),
+    vatOn: document.getElementById('vatOn'),
+    vatRate: document.getElementById('vatRate'),
+    vatFields: document.getElementById('vatFields'),
+    vatBasisField: document.getElementById('vatBasisField'),
+    table: document.getElementById('resultTable'),
+    whtValue: document.getElementById('whtValue'),
+    whtSub: document.getElementById('whtSub'),
+    netLabel: document.getElementById('netLabel'),
+    netValue: document.getElementById('netValue'),
+    netSub: document.getElementById('netSub'),
+    copyBtn: document.getElementById('copyBtn')
+  };
+  var lastSummary = '';
+
+  function currentDp() { return parseInt(document.getElementById('decimals').value, 10); }
+  function fmt(n) {
+    var dp = currentDp();
+    return n.toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp });
+  }
+  // Rounds per the chosen precision + method (normal half-up / floor / ceiling).
+  function r2(n) {
+    var dp = currentDp(), mode = document.getElementById('rounding').value;
+    var f = Math.pow(10, dp), x = n * f;
+    var nearest = Math.round(x);
+    if (Math.abs(x - nearest) < 1e-6) x = nearest; // absorb float noise at exact values
+    else x = mode === 'floor' ? Math.floor(x) : mode === 'ceil' ? Math.ceil(x) : Math.round(x);
+    return x / f;
+  }
+  function parseAmt(v) { return parseFloat(String(v).replace(/[,\s]/g, '')); }
+  // Live thousands separators with caret preservation.
+  function liveFormat(el) {
+    var raw = el.value;
+    var caret = el.selectionStart == null ? raw.length : el.selectionStart;
+    var anchorsBefore = raw.slice(0, caret).replace(/[^0-9.]/g, '').length;
+    var clean = raw.replace(/[^0-9.]/g, '');
+    var firstDot = clean.indexOf('.');
+    var intp = firstDot >= 0 ? clean.slice(0, firstDot) : clean;
+    var frac = firstDot >= 0 ? clean.slice(firstDot + 1).replace(/\./g, '') : null;
+    var out = intp.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (frac !== null ? '.' + frac : '');
+    if (out === raw) return;
+    el.value = out;
+    if (document.activeElement === el && el.setSelectionRange) {
+      var pos = 0, seen = 0;
+      while (pos < out.length && seen < anchorsBefore) { if (/[0-9.]/.test(out[pos])) seen++; pos++; }
+      el.setSelectionRange(pos, pos);
+    }
+  }
+  function vatBasis() {
+    var el = document.querySelector('input[name="vatBasis"]:checked');
+    return el ? el.value : 'excl';
+  }
+
+  function applyModeUI() {
+    document.querySelectorAll('.mode-btn').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.mode === mode);
+    });
+    if (mode === 'deduct') {
+      els.amountLabel.textContent = 'Payment amount (THB)';
+      els.amountNote.textContent = 'The fee for the service or payment being made.';
+      els.netLabel.textContent = 'Net cash to payee';
+      els.vatBasisField.style.display = '';
+    } else {
+      els.amountLabel.textContent = 'Desired net amount to payee (THB)';
+      els.amountNote.textContent = 'The fee the payee must receive after WHT (net-of-tax fee, excluding any VAT).';
+      els.netLabel.textContent = 'Grossed-up fee';
+      els.vatBasisField.style.display = 'none'; // gross-up target is always the ex-VAT fee net of WHT
+    }
+  }
+
+  function calc() {
+    var w = parseFloat(els.rate.value) / 100;
+    var A = parseAmt(els.amount.value);
+    var vatOn = els.vatOn.checked;
+    var v = vatOn ? (parseFloat(els.vatRate.value) || 0) / 100 : 0;
+
+    els.vatFields.style.display = vatOn ? '' : 'none';
+    document.querySelectorAll('#rateChips .chip').forEach(function (c) {
+      c.classList.toggle('active', parseFloat(c.dataset.rate) === parseFloat(els.rate.value));
+    });
+
+    if (isNaN(w) || w < 0 || w >= 1 || isNaN(A) || A < 0) {
+      els.table.innerHTML = '<tr class="muted"><td>Enter the WHT rate and amount.</td></tr>';
+      els.whtValue.textContent = '—'; els.whtSub.textContent = '';
+      els.netValue.textContent = '—'; els.netSub.textContent = '';
+      lastSummary = '';
+      save(); return;
+    }
+
+    var base, wht, vat, invoice, net, rows = '', summary = [];
+    var ratePct = parseFloat(els.rate.value);
+
+    if (mode === 'deduct') {
+      base = (vatOn && vatBasis() === 'incl') ? A / (1 + v) : A;
+      vat = r2(base * v);
+      base = r2(base);
+      wht = r2(base * w);
+      invoice = r2(base + vat);
+      net = r2(invoice - wht);
+
+      rows += '<tr><td>WHT base (fee excluding VAT)</td><td class="num">' + fmt(base) + '</td></tr>';
+      if (vatOn) {
+        rows += '<tr class="muted"><td>VAT (' + (v * 100).toLocaleString() + '%)</td><td class="num">+ ' + fmt(vat) + '</td></tr>';
+        rows += '<tr><td>Invoice total</td><td class="num">' + fmt(invoice) + '</td></tr>';
+      }
+      rows += '<tr class="hl"><td>WHT withheld (' + ratePct + '% of base)</td><td class="num">− ' + fmt(wht) + '</td></tr>';
+      rows += '<tr class="total"><td>Net cash paid to payee</td><td class="num">' + fmt(net) + '</td></tr>';
+
+      els.whtValue.textContent = fmt(wht);
+      els.whtSub.textContent = ratePct + '% × ' + fmt(base);
+      els.netValue.textContent = fmt(net);
+      els.netSub.textContent = vatOn ? 'Invoice ' + fmt(invoice) + ' − WHT ' + fmt(wht) : 'Fee ' + fmt(base) + ' − WHT ' + fmt(wht);
+
+      summary.push('Withholding tax — deduct mode');
+      summary.push('Fee (ex-VAT): ' + fmt(base));
+      if (vatOn) { summary.push('VAT ' + (v * 100) + '%: ' + fmt(vat)); summary.push('Invoice total: ' + fmt(invoice)); }
+      summary.push('WHT ' + ratePct + '%: ' + fmt(wht));
+      summary.push('Net cash to payee: ' + fmt(net));
+    } else {
+      // Gross-up: fee F such that F − F·w = A  →  F = A / (1 − w)
+      base = r2(A / (1 - w));
+      wht = r2(base * w);
+      vat = r2(base * v);
+      invoice = r2(base + vat);
+      net = r2(invoice - wht);
+
+      rows += '<tr><td>Desired net fee to payee</td><td class="num">' + fmt(A) + '</td></tr>';
+      rows += '<tr class="hl"><td>Grossed-up fee — ÷ (1 − ' + ratePct + '%)</td><td class="num">' + fmt(base) + '</td></tr>';
+      if (vatOn) {
+        rows += '<tr class="muted"><td>VAT (' + (v * 100).toLocaleString() + '%) on grossed-up fee</td><td class="num">+ ' + fmt(vat) + '</td></tr>';
+        rows += '<tr><td>Invoice total</td><td class="num">' + fmt(invoice) + '</td></tr>';
+      }
+      rows += '<tr><td>WHT withheld (' + ratePct + '% of grossed-up fee)</td><td class="num">− ' + fmt(wht) + '</td></tr>';
+      rows += '<tr class="total"><td>Net cash paid to payee</td><td class="num">' + fmt(net) + '</td></tr>';
+      rows += '<tr class="muted"><td>Extra cost borne by payer (the absorbed WHT)</td><td class="num">' + fmt(r2(base - A)) + '</td></tr>';
+
+      els.whtValue.textContent = fmt(wht);
+      els.whtSub.textContent = ratePct + '% × ' + fmt(base) + ' (grossed-up)';
+      els.netValue.textContent = fmt(base);
+      els.netSub.textContent = fmt(A) + ' ÷ (1 − ' + ratePct + '%) — multiplier ' + (1 / (1 - w)).toFixed(6);
+
+      summary.push('Withholding tax — gross-up mode (payer absorbs WHT)');
+      summary.push('Desired net fee: ' + fmt(A));
+      summary.push('Grossed-up fee: ' + fmt(base) + '  (÷ (1 − ' + ratePct + '%))');
+      if (vatOn) { summary.push('VAT ' + (v * 100) + '%: ' + fmt(vat)); summary.push('Invoice total: ' + fmt(invoice)); }
+      summary.push('WHT ' + ratePct + '%: ' + fmt(wht));
+      summary.push('Net cash to payee: ' + fmt(net));
+    }
+
+    els.table.innerHTML = rows;
+    lastSummary = summary.join('\n');
+    save();
+  }
+
+  // ── Persistence ──────────────────────────────────────────────────────────
+  function save() {
+    try {
+      localStorage.setItem('whtCalc_v1', JSON.stringify({
+        mode: mode, rate: els.rate.value, amount: els.amount.value,
+        vatOn: els.vatOn.checked, vatRate: els.vatRate.value, vatBasis: vatBasis(),
+        decimals: document.getElementById('decimals').value,
+        rounding: document.getElementById('rounding').value
+      }));
+    } catch (e) {}
+  }
+  function load() {
+    try {
+      var st = JSON.parse(localStorage.getItem('whtCalc_v1') || 'null');
+      if (!st) return;
+      mode = st.mode === 'grossup' ? 'grossup' : 'deduct';
+      if (st.rate != null && st.rate !== '') els.rate.value = st.rate;
+      if (st.amount != null) els.amount.value = st.amount;
+      els.vatOn.checked = !!st.vatOn;
+      if (st.vatRate != null && st.vatRate !== '') els.vatRate.value = st.vatRate;
+      var basis = document.querySelector('input[name="vatBasis"][value="' + (st.vatBasis === 'incl' ? 'incl' : 'excl') + '"]');
+      if (basis) basis.checked = true;
+      if (st.decimals != null) document.getElementById('decimals').value = st.decimals;
+      if (st.rounding) document.getElementById('rounding').value = st.rounding;
+    } catch (e) {}
+  }
+  window.resetAll = function () { try { localStorage.removeItem('whtCalc_v1'); } catch (e) {} location.reload(); };
+
+  // ── Wiring ───────────────────────────────────────────────────────────────
+  document.getElementById('modeToggle').addEventListener('click', function (e) {
+    var btn = e.target.closest('.mode-btn');
+    if (!btn) return;
+    mode = btn.dataset.mode;
+    applyModeUI(); calc();
+  });
+  document.getElementById('rateChips').addEventListener('click', function (e) {
+    var chip = e.target.closest('.chip');
+    if (!chip) return;
+    els.rate.value = chip.dataset.rate;
+    calc();
+  });
+  els.amount.addEventListener('input', function () { liveFormat(this); }); // registered first so calc reads the formatted value
+  ['rate', 'amount', 'vatOn', 'vatRate', 'decimals', 'rounding'].forEach(function (id) {
+    var el = document.getElementById(id);
+    el.addEventListener('input', calc);
+    el.addEventListener('change', calc);
+  });
+  document.querySelectorAll('input[name="vatBasis"]').forEach(function (el) {
+    el.addEventListener('change', calc);
+  });
+  els.copyBtn.addEventListener('click', function () {
+    if (!lastSummary) return;
+    navigator.clipboard.writeText(lastSummary).then(function () {
+      els.copyBtn.classList.add('copied'); els.copyBtn.textContent = '✓ Copied';
+      setTimeout(function () { els.copyBtn.classList.remove('copied'); els.copyBtn.textContent = 'Copy summary'; }, 1300);
+    });
+  });
+
+  load();
+  applyModeUI();
+  calc();
+})();
+</script>
+</body>
+</html>

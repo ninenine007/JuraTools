@@ -1,0 +1,763 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rounding Lab — Simulator &amp; Visualizer | JuraTools</title>
+  <meta name="description" content="Learn and compare every rounding mode — floor, ceiling, truncation, away from zero, and all six round-half tie-breaking rules — with exact decimal math, an interactive staircase graph, and increment rounding. By Kornrawee Chanchom." />
+  <style>
+    :root {
+      --ink: #1c1c1e; --ink-2: #3c3c43; --muted: #6e6e73; --faint: #aeaeb2;
+      --line: rgba(0,0,0,0.08); --line-soft: rgba(0,0,0,0.05);
+      --orange: #ea580c; --orange-dark: #c2410c; --orange-light: #fff7ed; --orange-border: #fed7aa;
+      --green: #15803d; --green-light: #f0fdf4; --green-border: #bbf7d0;
+      --info: #0369a1; --info-light: #f0f9ff; --info-border: #bae6fd;
+      --amber: #b45309; --amber-light: #fffbeb; --amber-border: #fde68a;
+      --card-bg: rgba(255,255,255,0.82);
+      --radius: 16px; --radius-sm: 10px;
+      --shadow: 0 1px 1px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06);
+      --maxw: 860px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0; color: var(--ink); line-height: 1.45;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", "Noto Sans Thai", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      background: #f2f2f7;
+      background-image:
+        radial-gradient(ellipse 1100px 700px at 10% 0%,   rgba(254,215,170,0.5)   0%, transparent 60%),
+        radial-gradient(ellipse  700px 700px at 95% 8%,   rgba(253,230,138,0.4)   0%, transparent 55%),
+        radial-gradient(ellipse  800px 600px at 0%  92%,  rgba(194,221,255,0.3)   0%, transparent 55%),
+        radial-gradient(ellipse  900px 500px at 100% 96%, rgba(218,205,255,0.25)  0%, transparent 55%);
+    }
+    button, input, select, textarea { font: inherit; }
+    a { color: var(--orange); }
+    h1, h2, h3, p { margin-top: 0; }
+    .muted { color: var(--muted); }
+
+    /* ── Sticky breadcrumb nav ────────────────────── */
+    .nav {
+      position: sticky; top: 0; z-index: 200; height: 52px;
+      display: flex; align-items: center; gap: 11px; padding: 0 22px;
+      background: rgba(242,242,247,0.82);
+      backdrop-filter: blur(24px) saturate(200%);
+      -webkit-backdrop-filter: blur(24px) saturate(200%);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav a { text-decoration: none; color: inherit; }
+    .nav-brand { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+    .nav-icon {
+      width: 30px; height: 30px; border-radius: 7px;
+      background: linear-gradient(145deg, #2979ff, #1565c0);
+      display: grid; place-items: center; font-size: 15px;
+      box-shadow: 0 2px 6px rgba(41,121,255,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    .nav-wordmark { font-size: 15px; font-weight: 700; letter-spacing: -0.4px; color: var(--ink); }
+    .nav-sep { color: #c7c7cc; font-size: 14px; }
+    .nav-crumb { font-size: 14px; font-weight: 500; color: var(--muted); }
+    .nav-crumb.current { color: var(--ink); font-weight: 600; }
+    .nav-back {
+      margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+      font-size: 13px; font-weight: 500; color: var(--ink-2);
+      background: rgba(0,0,0,0.055); border: 1px solid rgba(0,0,0,0.1);
+      padding: 6px 12px; border-radius: 9px; transition: background .14s;
+    }
+    .nav-back:hover { background: rgba(0,0,0,0.09); }
+
+    /* ── Hero ─────────────────────────────────────── */
+    .hero { width: min(var(--maxw), calc(100% - 32px)); margin: 0 auto; padding: 30px 0 8px; }
+    .hero h1 {
+      font-size: clamp(26px, 3.6vw, 34px); font-weight: 800; letter-spacing: -1px; line-height: 1.12;
+      background: linear-gradient(135deg, #1c1c1e 0%, #ea580c 60%, #d97706 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      margin-bottom: 6px;
+    }
+    .hero .sub { font-size: 14px; color: var(--muted); line-height: 1.5; max-width: 720px; }
+
+    /* ── Cards & fields ───────────────────────────── */
+    .wrap { width: min(var(--maxw), calc(100% - 32px)); margin: 16px auto 40px; }
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.9);
+      border-radius: var(--radius); padding: 22px;
+      box-shadow: var(--shadow); margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 13px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.05em; color: var(--muted); margin-bottom: 14px;
+    }
+    label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 5px; }
+    .hint { font-size: 12px; color: var(--muted); font-weight: 400; }
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 560px) { .field-row { grid-template-columns: 1fr; } }
+    input[type="number"], input[type="text"], select {
+      width: 100%; padding: 9px 11px;
+      border: 1px solid var(--line); border-radius: 8px;
+      font-size: 15px; background: #fff; color: var(--ink);
+      outline: none; transition: border-color .15s, box-shadow .15s;
+      font-variant-numeric: tabular-nums;
+    }
+    input:focus, select:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(234,88,12,0.12); }
+    .field-note { font-size: 12px; color: var(--muted); line-height: 1.5; margin-top: 6px; }
+
+    .mode-toggle { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: #fff; }
+    .mode-btn {
+      flex: 1; padding: 9px 8px; text-align: center; font-size: 13px; font-weight: 600;
+      cursor: pointer; background: transparent; border: none; color: var(--muted);
+      transition: background 0.15s, color 0.15s; line-height: 1.35;
+    }
+    .mode-btn .th { display: block; font-size: 11px; font-weight: 500; opacity: .75; }
+    .mode-btn.active { background: var(--orange); color: #fff; }
+
+    .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .chip {
+      border: 1px solid var(--line); border-radius: 999px; background: #fff;
+      padding: 5px 12px; font-size: 12px; cursor: pointer; color: var(--muted);
+      transition: all 0.14s; font-variant-numeric: tabular-nums;
+    }
+    .chip:hover { border-color: var(--orange); color: var(--orange); }
+    .chip.active { background: var(--orange); color: #fff; border-color: var(--orange); }
+
+    .status {
+      border-radius: 8px; padding: 10px 14px; font-size: 13px; line-height: 1.5;
+      border: 1px solid; margin-top: 14px;
+    }
+    .status.exact { background: var(--green-light); border-color: var(--green-border); color: var(--green); }
+    .status.tie   { background: var(--amber-light); border-color: var(--amber-border); color: var(--amber); }
+    .status.plain { background: var(--info-light); border-color: var(--info-border); color: var(--info); }
+    .status.err   { background: #fef2f2; border-color: #fecaca; color: #dc2626; }
+    .status strong { font-weight: 700; }
+
+    /* ── Result rows ──────────────────────────────── */
+    .group-head {
+      display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+      font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+      color: var(--muted); margin: 18px 0 6px;
+    }
+    .group-head:first-of-type { margin-top: 0; }
+    .group-head .g-note { font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--faint); font-size: 12px; }
+    .res-row {
+      display: grid; grid-template-columns: 16px minmax(0,1.4fr) minmax(0,1fr) minmax(0,.8fr); gap: 10px;
+      align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line-soft);
+      font-size: 13.5px;
+    }
+    .res-row:last-child { border-bottom: none; }
+    .res-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid transparent; }
+    .res-name { color: var(--ink-2); line-height: 1.3; }
+    .res-name .alias { display: block; font-size: 11px; color: var(--faint); }
+    .res-val { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .res-diff { text-align: right; font-size: 12px; color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .res-diff.up { color: #b91c1c; }
+    .res-diff.down { color: #1d4ed8; }
+    @media (max-width: 520px) { .res-row { grid-template-columns: 16px minmax(0,1.2fr) minmax(0,1fr); } .res-diff { display: none; } }
+
+    /* ── Graph ────────────────────────────────────── */
+    .graph-wrap { overflow-x: auto; }
+    .graph-svg { width: 100%; min-width: 560px; display: block; }
+    .graph-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+    .mode-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      border: 1px solid var(--line); border-radius: 999px; background: #fff;
+      padding: 5px 12px; font-size: 12px; cursor: pointer; color: var(--muted);
+      transition: all 0.14s;
+    }
+    .mode-chip .swatch { width: 10px; height: 10px; border-radius: 50%; }
+    .mode-chip.active { color: var(--ink); border-color: currentColor; box-shadow: inset 0 0 0 1px currentColor; font-weight: 600; }
+    .mode-chip.active { border-color: var(--c); color: var(--ink); box-shadow: inset 0 0 0 2px var(--c); }
+    .small-btn {
+      border: 1px solid var(--line); border-radius: 8px; background: #fff;
+      padding: 5px 11px; font-size: 12px; font-weight: 500; cursor: pointer; color: var(--ink-2);
+      transition: border-color .14s, color .14s;
+    }
+    .small-btn:hover { border-color: var(--orange); color: var(--orange); }
+
+    /* ── Example tables ───────────────────────────── */
+    .tables-row { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    .tbl-wrap { overflow-x: auto; }
+    table.data { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    table.data th, table.data td { text-align: right; padding: 7px 9px; border-bottom: 1px solid var(--line-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    table.data th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); font-weight: 600; }
+    table.data th:first-child, table.data td:first-child { text-align: left; font-weight: 600; }
+    table.data td.hl { background: rgba(234,88,12,0.07); font-weight: 700; }
+
+    /* ── Cheat sheet ──────────────────────────────── */
+    .cheat { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 18px; }
+    @media (max-width: 680px) { .cheat { grid-template-columns: 1fr; } }
+    .cheat-item { display: flex; gap: 9px; font-size: 12.5px; line-height: 1.5; }
+    .cheat-item .swatch { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+    .cheat-item b { color: var(--ink); }
+    .cheat-item span { color: var(--muted); }
+
+    .actions-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #fff; border: 1px solid var(--line); border-radius: 8px;
+      padding: 8px 15px; font-size: 13px; font-weight: 500;
+      cursor: pointer; color: var(--ink-2); transition: background 0.14s, border-color 0.14s, color .14s;
+    }
+    .btn:hover { border-color: var(--orange); color: var(--orange); }
+    .btn.copied { background: var(--orange); border-color: var(--orange); color: #fff; }
+
+    .hidden { display: none !important; }
+
+    footer {
+      width: min(var(--maxw), calc(100% - 32px)); margin: 24px auto 32px;
+      font-size: 12px; color: var(--faint); text-align: center; line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-brand" href="index.html">
+    <div class="nav-icon">⚖️</div>
+    <span class="nav-wordmark">JuraTools</span>
+  </a>
+  <span class="nav-sep">/</span>
+  <span class="nav-crumb current">Rounding Lab</span>
+  <a class="nav-back" href="index.html">← All tools</a>
+</nav>
+
+<div class="hero">
+  <h1>Rounding Lab — Simulator &amp; Visualizer</h1>
+  <p class="sub">การปัดเศษทุกรูปแบบ — compare all four directed modes (down, up, toward zero, away from zero) and all six round-to-nearest tie-breaking rules on any number, at any decimal precision or increment (nearest 0.25, per 1,000 …). Computed exactly on decimal digits, so 1.005 rounds the way arithmetic says — not the way binary floats drift.</p>
+</div>
+
+<div class="wrap">
+
+  <div class="card">
+    <div class="card-title">1 · Number &amp; precision</div>
+    <div class="field-row">
+      <div class="field">
+        <label for="value">Number to round</label>
+        <input type="text" inputmode="decimal" id="value" placeholder="e.g. 2.5 or 1,234.567" autocomplete="off" spellcheck="false" />
+        <div class="chips" id="valueChips">
+          <button class="chip" data-v="2.5">2.5</button>
+          <button class="chip" data-v="-2.5">-2.5</button>
+          <button class="chip" data-v="1.005">1.005</button>
+          <button class="chip" data-v="7.30">7.30</button>
+          <button class="chip" data-v="1,234.01">1,234.01</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Round to…</label>
+        <div class="mode-toggle" id="precToggle">
+          <button class="mode-btn active" data-pmode="dp">Decimal places<span class="th">ทศนิยม</span></button>
+          <button class="mode-btn" data-pmode="inc">Nearest increment<span class="th">พหุคูณที่ใกล้ที่สุด</span></button>
+        </div>
+        <div id="dpWrap" style="margin-top:10px">
+          <select id="dp">
+            <option value="0" selected>0 — whole number</option>
+            <option value="1">1 decimal place</option>
+            <option value="2">2 decimal places (satang)</option>
+            <option value="3">3 decimal places</option>
+            <option value="4">4 decimal places</option>
+            <option value="5">5 decimal places</option>
+            <option value="6">6 decimal places</option>
+          </select>
+        </div>
+        <div id="incWrap" class="hidden" style="margin-top:10px">
+          <input type="text" inputmode="decimal" id="inc" value="0.25" autocomplete="off" spellcheck="false" />
+          <div class="chips" id="incChips">
+            <button class="chip" data-v="0.01">0.01</button>
+            <button class="chip" data-v="0.25">0.25</button>
+            <button class="chip" data-v="0.5">0.5</button>
+            <button class="chip" data-v="5">5</button>
+            <button class="chip" data-v="100">100</button>
+            <button class="chip" data-v="1,000">1,000</button>
+          </div>
+          <div class="field-note">e.g. <strong>1,000 + round up</strong> reproduces the stamp-duty rule “ทุกจำนวน 1,000 บาท หรือเศษของ 1,000” — any fraction of a thousand counts as a full thousand.</div>
+        </div>
+      </div>
+    </div>
+    <div class="status plain" id="status">Enter a number to see every rounding mode side by side.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">2 · All modes, side by side</div>
+    <div id="results"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">3 · The staircase — y = round(x)</div>
+    <div class="graph-controls" id="graphChips"></div>
+    <div class="graph-controls">
+      <button class="small-btn" id="showAll">Show all</button>
+      <button class="small-btn" id="showNone">Hide all</button>
+      <span class="hint">Filled dot = boundary belongs to that step · open dot = it doesn’t. Lines are nudged apart so overlaps stay visible. The dashed guide marks your number (÷ increment) with its rounded result per mode.</span>
+    </div>
+    <div class="graph-wrap"><div id="graph"></div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">4 · Tie-breaking at a glance</div>
+    <div class="tables-row">
+      <div class="tbl-wrap">
+        <table class="data" id="tieTable"></table>
+        <div class="field-note">Only exact halves (….5) expose the tie rules — every other value rounds identically under all six “nearest” modes. Shaded cells mark where a rule pulls the tie in its own direction.</div>
+      </div>
+      <div class="tbl-wrap">
+        <table class="data" id="dirTable"></table>
+        <div class="field-note">Directed modes ignore “nearest” entirely — they always push in their direction, however small the fraction.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">5 · Which mode is used where?</div>
+    <div class="cheat" id="cheat"></div>
+  </div>
+
+  <div class="actions-row">
+    <button class="btn" id="copyBtn">Copy results</button>
+    <button class="btn" onclick="resetAll()">Reset</button>
+  </div>
+
+</div>
+
+<footer>
+  Terminology follows the <a href="https://en.wikipedia.org/wiki/Rounding" target="_blank" rel="noopener">Wikipedia “Rounding”</a> taxonomy. All arithmetic is exact decimal (BigInt) — no binary floating-point surprises.<br>
+  Companion to the Default Interest and Withholding Tax calculators, which offer normal / floor / ceiling rounding. Runs entirely in your browser.
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  // ── Mode catalogue ───────────────────────────────────────────────────────
+  var MODES = [
+    { id: 'down',     group: 'directed', name: 'Round down',            alias: 'floor · toward −∞',                    color: '#2979ff',
+      use: 'Never overstates. Day counts, completed years of age/service, “full months only” clauses.' },
+    { id: 'up',       group: 'directed', name: 'Round up',              alias: 'ceiling · toward +∞',                  color: '#b91c1c',
+      use: 'Any fraction counts in full — stamp duty per 1,000 (เศษของ 1,000 นับเป็น 1,000), fee steps, parking hours.' },
+    { id: 'zero',     group: 'directed', name: 'Round toward zero',     alias: 'truncate · ปัดเศษทิ้ง',                 color: '#15803d',
+      use: 'Simply drops the fraction. Common administrative satang truncation; integer division in most CPUs.' },
+    { id: 'away',     group: 'directed', name: 'Round away from zero',  alias: 'toward ±∞',                            color: '#111111',
+      use: 'Mirror of truncation — every fraction escalates outward. Rare on its own; appears inside “half away”.' },
+    { id: 'halfdown', group: 'nearest',  name: 'Half down',             alias: 'nearest · ties toward −∞',             color: '#7cb9ff',
+      use: 'Nearest value, but exact halves fall downward. Uncommon in practice.' },
+    { id: 'halfup',   group: 'nearest',  name: 'Half up',               alias: 'nearest · ties toward +∞',             color: '#fb7185',
+      use: 'What JavaScript’s Math.round does — note −2.5 → −2, so negatives break upward, not “bigger”.' },
+    { id: 'halfzero', group: 'nearest',  name: 'Half toward zero',      alias: 'nearest · ties inward',                color: '#4ade80',
+      use: 'Nearest value, halves collapse inward. Occasionally seen in fee schedules that favour the payer.' },
+    { id: 'halfaway', group: 'nearest',  name: 'Half away from zero',   alias: 'nearest · ties outward',               color: '#6b7280',
+      use: 'Everyday “round half up” as most people mean it (−2.5 → −3). Excel’s ROUND; typical commercial rounding.' },
+    { id: 'halfeven', group: 'nearest',  name: 'Half to even',          alias: 'banker’s rounding',                    color: '#c026d3',
+      use: 'Ties go to the even neighbour, cancelling drift over many roundings. IEEE 754 default; Python’s round().' },
+    { id: 'halfodd',  group: 'nearest',  name: 'Half to odd',           alias: 'nearest · ties to odd',                color: '#f59e0b',
+      use: 'The mirror of banker’s rounding. Chiefly of theoretical interest — it never produces exact halves again.' }
+  ];
+  var byId = {};
+  MODES.forEach(function (m) { byId[m.id] = m; });
+
+  // ── Exact decimal engine (BigInt) ────────────────────────────────────────
+  function parseDec(s) {
+    s = String(s).replace(/[,\s]/g, '');
+    var m = /^([+-]?)(\d*)(?:\.(\d*))?$/.exec(s);
+    if (!m || ((m[2] || '') === '' && (m[3] || '') === '')) return null;
+    return { neg: m[1] === '-', int: m[2] || '0', frac: m[3] || '' };
+  }
+  // Returns { n: BigInt quotient per mode } factory pieces: fd (floor div), rem, Q
+  function scaled(p, s) {
+    var frac = (p.frac + '0'.repeat(s)).slice(0, s);
+    var v = BigInt(p.int + frac);
+    return p.neg ? -v : v;
+  }
+  function pow10(s) { return BigInt('1' + '0'.repeat(s)); }
+
+  // Core: value/increment as parsed decimals → per-mode integer multiples.
+  // Returns { s, Q, fd, rem, tie, exact, results: {id: BigInt n} }
+  function roundAll(pv, pq) {
+    var s = Math.max(pv.frac.length, pq.frac.length);
+    var V = scaled(pv, s), Q = scaled(pq, s);
+    if (Q <= 0n) return null;
+    var fd = V >= 0n ? V / Q : -((-V + Q - 1n) / Q);
+    var rem = V - fd * Q;                       // 0 ≤ rem < Q
+    var Vneg = V < 0n;
+    var exact = rem === 0n, tie = rem * 2n === Q;
+    var up = fd + 1n;
+    function nearest(tieN) {
+      var c = rem * 2n;
+      if (c < Q) return fd;
+      if (c > Q) return up;
+      return tieN;
+    }
+    var evenN = (fd % 2n === 0n) ? fd : up;
+    var oddN  = (fd % 2n === 0n) ? up : fd;
+    var results = {
+      down: fd,
+      up: exact ? fd : up,
+      zero: !Vneg ? fd : (exact ? fd : up),
+      away: !Vneg ? (exact ? fd : up) : fd,
+      halfdown: nearest(fd),
+      halfup: nearest(up),
+      halfzero: nearest(!Vneg ? fd : up),
+      halfaway: nearest(!Vneg ? up : fd),
+      halfeven: nearest(evenN),
+      halfodd: nearest(oddN)
+    };
+    return { s: s, V: V, Q: Q, tie: tie, exact: exact, results: results };
+  }
+
+  // Format a scale-s BigInt as a grouped decimal string, trimming trailing zeros.
+  function fmtScaled(R, s) {
+    var neg = R < 0n;
+    var str = (neg ? -R : R).toString().padStart(s + 1, '0');
+    var intp = str.slice(0, str.length - s) || '0';
+    var frac = s ? str.slice(str.length - s).replace(/0+$/, '') : '';
+    intp = intp.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return (neg ? '-' : '') + intp + (frac ? '.' + frac : '');
+  }
+
+  // Float version for the graph (breakpoints are exact halves, so safe).
+  function roundNum(x, mode) {
+    var f = Math.floor(x), r = x - f;
+    switch (mode) {
+      case 'down': return f;
+      case 'up':   return r === 0 ? f : f + 1;
+      case 'zero': return x >= 0 ? f : (r === 0 ? f : f + 1);
+      case 'away': return x >= 0 ? (r === 0 ? f : f + 1) : f;
+    }
+    if (r < 0.5) return f;
+    if (r > 0.5) return f + 1;
+    switch (mode) {
+      case 'halfdown': return f;
+      case 'halfup':   return f + 1;
+      case 'halfzero': return x > 0 ? f : f + 1;
+      case 'halfaway': return x > 0 ? f + 1 : f;
+      case 'halfeven': return f % 2 === 0 ? f : f + 1;
+      case 'halfodd':  return f % 2 === 0 ? f + 1 : f;
+    }
+  }
+
+  // ── Live thousands separators (caret-preserving) ─────────────────────────
+  function liveFormat(el) {
+    var raw = el.value;
+    var caret = el.selectionStart == null ? raw.length : el.selectionStart;
+    var anchorsBefore = raw.slice(0, caret).replace(/[^0-9.]/g, '').length;
+    var neg = /^\s*-/.test(raw);
+    var clean = raw.replace(/[^0-9.]/g, '');
+    var firstDot = clean.indexOf('.');
+    var intp = firstDot >= 0 ? clean.slice(0, firstDot) : clean;
+    var frac = firstDot >= 0 ? clean.slice(firstDot + 1).replace(/\./g, '') : null;
+    var out = (neg ? '-' : '') + intp.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (frac !== null ? '.' + frac : '');
+    if (out === raw) return;
+    el.value = out;
+    if (document.activeElement === el && el.setSelectionRange) {
+      var pos = 0, seen = 0;
+      while (pos < out.length && seen < anchorsBefore) { if (/[0-9.]/.test(out[pos])) seen++; pos++; }
+      el.setSelectionRange(pos, pos);
+    }
+  }
+
+  // ── State ────────────────────────────────────────────────────────────────
+  var precMode = 'dp';
+  var activeGraph = { down: true, up: true, halfup: true, halfeven: true };
+  var lastCopy = '';
+
+  var els = {
+    value: document.getElementById('value'),
+    dp: document.getElementById('dp'),
+    inc: document.getElementById('inc'),
+    status: document.getElementById('status'),
+    results: document.getElementById('results'),
+    graph: document.getElementById('graph'),
+    graphChips: document.getElementById('graphChips'),
+    copyBtn: document.getElementById('copyBtn')
+  };
+
+  function incrementParsed() {
+    if (precMode === 'dp') {
+      var d = parseInt(els.dp.value, 10);
+      return parseDec(d === 0 ? '1' : '0.' + '0'.repeat(d - 1) + '1');
+    }
+    return parseDec(els.inc.value);
+  }
+
+  // ── Results rendering ────────────────────────────────────────────────────
+  function renderResults() {
+    var pv = parseDec(els.value.value);
+    var pq = incrementParsed();
+    var qLabel = precMode === 'dp'
+      ? els.dp.options[els.dp.selectedIndex].text
+      : 'nearest ' + (els.inc.value || '?');
+
+    if (!pv) {
+      els.status.className = 'status ' + (els.value.value.trim() ? 'err' : 'plain');
+      els.status.textContent = els.value.value.trim()
+        ? 'That doesn’t parse as a number — digits, one decimal point, and an optional minus sign.'
+        : 'Enter a number to see every rounding mode side by side.';
+      els.results.innerHTML = '';
+      lastCopy = '';
+      drawGraph(null); save(); return;
+    }
+    if (!pq || (function () { var t = roundAll(pv, pq); return !t; })()) {
+      els.status.className = 'status err';
+      els.status.textContent = 'The increment must be a positive number (e.g. 0.25 or 1,000).';
+      els.results.innerHTML = '';
+      lastCopy = '';
+      drawGraph(null); save(); return;
+    }
+
+    var r = roundAll(pv, pq);
+    var vDisp = fmtScaled(r.V, r.s), qDisp = fmtScaled(r.Q, r.s);
+
+    if (r.exact) {
+      els.status.className = 'status exact';
+      els.status.innerHTML = '<strong>' + vDisp + '</strong> is already an exact multiple of ' + qDisp + ' — all ten modes agree.';
+    } else if (r.tie) {
+      els.status.className = 'status tie';
+      els.status.innerHTML = '<strong>' + vDisp + '</strong> is an <strong>exact tie</strong> — precisely halfway between multiples of ' + qDisp + '. This is where the six “nearest” rules disagree.';
+    } else {
+      els.status.className = 'status plain';
+      els.status.innerHTML = '<strong>' + vDisp + '</strong> is not a tie at this precision — all six “nearest” modes give the same answer; only the directed modes differ.';
+    }
+
+    var copy = ['Rounding ' + vDisp + ' (' + qLabel + ')', ''];
+    var html = '';
+    ['directed', 'nearest'].forEach(function (g) {
+      html += '<div class="group-head">' + (g === 'directed' ? 'Directed rounding' : 'Round to nearest') +
+        '<span class="g-note">' + (g === 'directed'
+          ? 'always pushes one way — the fraction size is irrelevant'
+          : 'picks the closer multiple; the rule only matters on exact halves') + '</span></div>';
+      copy.push(g === 'directed' ? '— Directed —' : '— Round to nearest —');
+      MODES.filter(function (m) { return m.group === g; }).forEach(function (m) {
+        var n = r.results[m.id];
+        var R = n * r.Q;                    // result at scale s
+        var D = R - r.V;                    // exact difference
+        var res = fmtScaled(R, r.s);
+        var diff = D === 0n ? '±0' : (D > 0n ? '+' : '−') + fmtScaled(D < 0n ? -D : D, r.s);
+        var cls = D === 0n ? '' : (D > 0n ? 'up' : 'down');
+        html += '<div class="res-row">' +
+          '<div class="res-dot" style="background:' + m.color + '"></div>' +
+          '<div class="res-name">' + m.name + '<span class="alias">' + m.alias + '</span></div>' +
+          '<div class="res-val">' + res + '</div>' +
+          '<div class="res-diff ' + cls + '">' + diff + '</div></div>';
+        copy.push(m.name + ': ' + res + '  (' + diff + ')');
+      });
+    });
+    els.results.innerHTML = html;
+    lastCopy = copy.join('\n');
+
+    drawGraph(r);
+    save();
+  }
+
+  // ── Graph ────────────────────────────────────────────────────────────────
+  var XMIN = -3.75, XMAX = 3.75, YMIN = -4.1, YMAX = 4.1;
+  var W = 720, H = 560, PAD = 34;
+  function sx(x) { return PAD + (x - XMIN) / (XMAX - XMIN) * (W - 2 * PAD); }
+  function sy(y) { return H - PAD - (y - YMIN) / (YMAX - YMIN) * (H - 2 * PAD); }
+
+  function renderGraphChips() {
+    var html = '';
+    MODES.forEach(function (m) {
+      html += '<button class="mode-chip' + (activeGraph[m.id] ? ' active' : '') + '" data-mode="' + m.id + '" style="--c:' + m.color + '">' +
+        '<span class="swatch" style="background:' + m.color + '"></span>' + m.name + '</button>';
+    });
+    els.graphChips.innerHTML = html;
+  }
+
+  function drawGraph(r) {
+    var act = MODES.filter(function (m) { return activeGraph[m.id]; });
+    var svg = '<svg class="graph-svg" viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Step functions of the selected rounding modes">';
+    // grid
+    for (var gx = Math.ceil(XMIN); gx <= Math.floor(XMAX); gx++) {
+      svg += '<line x1="' + sx(gx) + '" y1="' + sy(YMIN) + '" x2="' + sx(gx) + '" y2="' + sy(YMAX) + '" stroke="rgba(0,0,0,0.07)" stroke-width="1"/>';
+      if (gx !== 0) svg += '<text x="' + sx(gx) + '" y="' + (sy(0) + 16) + '" font-size="12" text-anchor="middle" fill="#6e6e73">' + gx + '</text>';
+    }
+    for (var gy = Math.ceil(YMIN); gy <= Math.floor(YMAX); gy++) {
+      svg += '<line x1="' + sx(XMIN) + '" y1="' + sy(gy) + '" x2="' + sx(XMAX) + '" y2="' + sy(gy) + '" stroke="rgba(0,0,0,0.07)" stroke-width="1"/>';
+      if (gy !== 0) svg += '<text x="' + (sx(0) - 7) + '" y="' + (sy(gy) + 4) + '" font-size="12" text-anchor="end" fill="#6e6e73">' + gy + '</text>';
+    }
+    // axes
+    svg += '<line x1="' + sx(XMIN) + '" y1="' + sy(0) + '" x2="' + sx(XMAX) + '" y2="' + sy(0) + '" stroke="#1c1c1e" stroke-width="1.6"/>';
+    svg += '<line x1="' + sx(0) + '" y1="' + sy(YMIN) + '" x2="' + sx(0) + '" y2="' + sy(YMAX) + '" stroke="#1c1c1e" stroke-width="1.6"/>';
+    svg += '<text x="' + (sx(XMAX) - 4) + '" y="' + (sy(0) - 7) + '" font-size="13" font-style="italic" text-anchor="end" fill="#1c1c1e">x</text>';
+    svg += '<text x="' + (sx(0) + 8) + '" y="' + (sy(YMAX) + 12) + '" font-size="13" font-style="italic" fill="#1c1c1e">y</text>';
+
+    // guide line for current value
+    var guideX = null, guideResults = [];
+    if (r) {
+      var xg = Number(r.V) / Number(r.Q);
+      if (isFinite(xg) && xg >= XMIN && xg <= XMAX) {
+        guideX = xg;
+        act.forEach(function (m) { guideResults.push({ m: m, n: Number(r.results[m.id]) }); });
+      }
+    }
+    if (guideX !== null) {
+      svg += '<line x1="' + sx(guideX) + '" y1="' + sy(YMIN) + '" x2="' + sx(guideX) + '" y2="' + sy(YMAX) + '" stroke="#6e6e73" stroke-width="1.4" stroke-dasharray="5 4"/>';
+    }
+
+    // step segments per active mode, nudged apart
+    act.forEach(function (m, mi) {
+      var off = (mi - (act.length - 1) / 2) * 0.045;         // vertical nudge in graph units
+      var half = [];                                          // breakpoints every 0.5
+      for (var k = Math.ceil(XMIN * 2); k <= Math.floor(XMAX * 2); k++) half.push(k / 2);
+      if (half[0] > XMIN) half.unshift(XMIN);
+      if (half[half.length - 1] < XMAX) half.push(XMAX);
+      // build segments, merging intervals with equal y
+      var segs = [];
+      for (var i = 0; i < half.length - 1; i++) {
+        var a = half[i], b = half[i + 1], y = roundNum((a + b) / 2, m.id);
+        if (segs.length && segs[segs.length - 1].y === y) segs[segs.length - 1].b = b;
+        else segs.push({ a: a, b: b, y: y });
+      }
+      segs.forEach(function (sg) {
+        if (sg.y < YMIN || sg.y > YMAX) return;
+        var yy = sy(sg.y + off);
+        svg += '<line x1="' + sx(sg.a) + '" y1="' + yy + '" x2="' + sx(sg.b) + '" y2="' + yy + '" stroke="' + m.color + '" stroke-width="3"/>';
+        // endpoint dots (skip artificial range edges)
+        [[sg.a, 'a'], [sg.b, 'b']].forEach(function (pt) {
+          var xVal = pt[0];
+          if (xVal === XMIN || xVal === XMAX) return;
+          var belongs = roundNum(xVal, m.id) === sg.y;
+          svg += '<circle cx="' + sx(xVal) + '" cy="' + yy + '" r="4.4" fill="' + (belongs ? m.color : '#ffffff') + '" stroke="' + m.color + '" stroke-width="2"/>';
+        });
+      });
+      // guide marker
+      if (guideX !== null) {
+        var gr = guideResults[mi];
+        if (gr && gr.n >= YMIN && gr.n <= YMAX) {
+          var gy2 = sy(gr.n + off);
+          svg += '<path d="M ' + (sx(guideX) - 6) + ' ' + gy2 + ' L ' + sx(guideX) + ' ' + (gy2 - 6) + ' L ' + (sx(guideX) + 6) + ' ' + gy2 + ' L ' + sx(guideX) + ' ' + (gy2 + 6) + ' Z" fill="' + m.color + '" stroke="#fff" stroke-width="1.4"/>';
+        }
+      }
+    });
+
+    if (guideX !== null) {
+      svg += '<text x="' + Math.min(sx(guideX) + 8, W - 90) + '" y="' + (sy(YMAX) + 26) + '" font-size="11.5" fill="#6e6e73">x = value ÷ increment = ' + (Math.round(guideX * 1000) / 1000) + '</text>';
+    }
+    svg += '</svg>';
+    els.graph.innerHTML = svg;
+  }
+
+  // ── Static example tables ────────────────────────────────────────────────
+  function buildTables() {
+    var nearest = MODES.filter(function (m) { return m.group === 'nearest'; });
+    var directed = MODES.filter(function (m) { return m.group === 'directed'; });
+
+    var ties = ['-2.5', '-1.5', '-0.5', '0.5', '1.5', '2.5'];
+    var html = '<tr><th>Value</th>' + nearest.map(function (m) {
+      return '<th><span style="color:' + m.color + '">●</span> ' + m.name.replace('Half ', 'half ') + '</th>';
+    }).join('') + '</tr>';
+    ties.forEach(function (v) {
+      var x = parseFloat(v);
+      html += '<tr><td>' + v + '</td>' + nearest.map(function (m) {
+        var y = roundNum(x, m.id);
+        var pull = (m.id === 'halfup' && y > x) || (m.id === 'halfdown' && y < x) ||
+                   (m.id === 'halfzero' && Math.abs(y) < Math.abs(x)) || (m.id === 'halfaway' && Math.abs(y) > Math.abs(x));
+        return '<td' + (pull ? ' class="hl"' : '') + '>' + (y === 0 ? 0 : y) + '</td>';
+      }).join('') + '</tr>';
+    });
+    document.getElementById('tieTable').innerHTML = html;
+
+    var dirVals = ['1.2', '1.8', '-1.2', '-1.8', '2.0'];
+    var html2 = '<tr><th>Value</th>' + directed.map(function (m) {
+      return '<th><span style="color:' + m.color + '">●</span> ' + m.name.replace('Round ', '') + '</th>';
+    }).join('') + '</tr>';
+    dirVals.forEach(function (v) {
+      var x = parseFloat(v);
+      html2 += '<tr><td>' + v + '</td>' + directed.map(function (m) {
+        return '<td>' + roundNum(x, m.id) + '</td>';
+      }).join('') + '</tr>';
+    });
+    document.getElementById('dirTable').innerHTML = html2;
+
+    document.getElementById('cheat').innerHTML = MODES.map(function (m) {
+      return '<div class="cheat-item"><span class="swatch" style="background:' + m.color + '"></span>' +
+        '<div><b>' + m.name + '</b> <span class="hint">(' + m.alias + ')</span><br><span>' + m.use + '</span></div></div>';
+    }).join('');
+  }
+
+  // ── Persistence ──────────────────────────────────────────────────────────
+  function save() {
+    try {
+      localStorage.setItem('roundingLab_v1', JSON.stringify({
+        value: els.value.value, precMode: precMode, dp: els.dp.value, inc: els.inc.value,
+        graph: Object.keys(activeGraph).filter(function (k) { return activeGraph[k]; })
+      }));
+    } catch (e) {}
+  }
+  function load() {
+    try {
+      var st = JSON.parse(localStorage.getItem('roundingLab_v1') || 'null');
+      if (!st) return;
+      if (st.value != null) els.value.value = st.value;
+      if (st.precMode === 'inc' || st.precMode === 'dp') precMode = st.precMode;
+      if (st.dp != null) els.dp.value = st.dp;
+      if (st.inc != null && st.inc !== '') els.inc.value = st.inc;
+      if (Array.isArray(st.graph)) {
+        activeGraph = {};
+        st.graph.forEach(function (k) { if (byId[k]) activeGraph[k] = true; });
+      }
+    } catch (e) {}
+  }
+  window.resetAll = function () { try { localStorage.removeItem('roundingLab_v1'); } catch (e) {} location.reload(); };
+
+  // ── Wiring ───────────────────────────────────────────────────────────────
+  function applyPrecUI() {
+    document.querySelectorAll('#precToggle .mode-btn').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.pmode === precMode);
+    });
+    document.getElementById('dpWrap').classList.toggle('hidden', precMode !== 'dp');
+    document.getElementById('incWrap').classList.toggle('hidden', precMode !== 'inc');
+  }
+  document.getElementById('precToggle').addEventListener('click', function (e) {
+    var btn = e.target.closest('.mode-btn');
+    if (!btn) return;
+    precMode = btn.dataset.pmode;
+    applyPrecUI(); renderResults();
+  });
+  els.value.addEventListener('input', function () { liveFormat(this); renderResults(); });
+  els.inc.addEventListener('input', function () { liveFormat(this); renderResults(); });
+  els.dp.addEventListener('change', renderResults);
+  document.getElementById('valueChips').addEventListener('click', function (e) {
+    var chip = e.target.closest('.chip');
+    if (!chip) return;
+    els.value.value = chip.dataset.v; liveFormat(els.value); renderResults(); els.value.focus();
+  });
+  document.getElementById('incChips').addEventListener('click', function (e) {
+    var chip = e.target.closest('.chip');
+    if (!chip) return;
+    els.inc.value = chip.dataset.v; liveFormat(els.inc); renderResults();
+  });
+  els.graphChips.addEventListener('click', function (e) {
+    var chip = e.target.closest('.mode-chip');
+    if (!chip) return;
+    activeGraph[chip.dataset.mode] = !activeGraph[chip.dataset.mode];
+    renderGraphChips(); renderResults();
+  });
+  document.getElementById('showAll').addEventListener('click', function () {
+    MODES.forEach(function (m) { activeGraph[m.id] = true; });
+    renderGraphChips(); renderResults();
+  });
+  document.getElementById('showNone').addEventListener('click', function () {
+    activeGraph = {};
+    renderGraphChips(); renderResults();
+  });
+  els.copyBtn.addEventListener('click', function () {
+    if (!lastCopy) return;
+    var btn = this;
+    navigator.clipboard.writeText(lastCopy).then(function () {
+      btn.classList.add('copied'); btn.textContent = '✓ Copied';
+      setTimeout(function () { btn.classList.remove('copied'); btn.textContent = 'Copy results'; }, 1300);
+    });
+  });
+
+  // ── Init ─────────────────────────────────────────────────────────────────
+  if (!els.value.value) els.value.value = '2.5';
+  load();
+  applyPrecUI();
+  buildTables();
+  renderGraphChips();
+  renderResults();
+})();
+</script>
+</body>
+</html>

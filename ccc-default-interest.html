@@ -1,0 +1,943 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Default Interest Calculator (CCC s.224) — JuraTools</title>
+  <meta name="description" content="Thai default interest calculator under CCC s.224/224-1 — auto-splits the 7.5% → 5% statutory rate change (11 April 2021), supports contractual rates, yearly/monthly/daily rates, calendar or day-count bases, direct duration input, and per-segment breakdowns. By Kornrawee Chanchom." />
+  <style>
+    :root {
+      --ink: #1c1c1e; --ink-2: #3c3c43; --muted: #6e6e73; --faint: #aeaeb2;
+      --line: rgba(0,0,0,0.08); --line-soft: rgba(0,0,0,0.05);
+      --blue: #2979ff; --blue-dark: #1c6ef3; --blue-light: #eff6ff; --blue-border: #bfdbfe;
+      --green: #15803d; --green-light: #f0fdf4; --green-border: #bbf7d0;
+      --info: #0369a1; --info-light: #f0f9ff; --info-border: #bae6fd;
+      --amber: #b45309; --amber-light: #fffbeb; --amber-border: #fde68a;
+      --red: #dc2626;
+      --card-bg: rgba(255,255,255,0.82);
+      --radius: 16px; --radius-sm: 10px;
+      --shadow: 0 1px 1px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06);
+      --maxw: 860px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0; color: var(--ink); line-height: 1.45;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", "Noto Sans Thai", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      background: #f2f2f7;
+      background-image:
+        radial-gradient(ellipse 1100px 700px at 10% 0%,   rgba(194,221,255,0.5)   0%, transparent 60%),
+        radial-gradient(ellipse  700px 700px at 95% 8%,   rgba(218,205,255,0.4)   0%, transparent 55%),
+        radial-gradient(ellipse  800px 600px at 0%  92%,  rgba(167,243,208,0.3)   0%, transparent 55%),
+        radial-gradient(ellipse  900px 500px at 100% 96%, rgba(255,220,180,0.25)  0%, transparent 55%);
+    }
+    button, input, select, textarea { font: inherit; }
+    a { color: var(--blue); }
+    h1, h2, h3, p { margin-top: 0; }
+    .muted { color: var(--muted); }
+
+    /* ── Sticky breadcrumb nav ────────────────────── */
+    .nav {
+      position: sticky; top: 0; z-index: 200; height: 52px;
+      display: flex; align-items: center; gap: 11px; padding: 0 22px;
+      background: rgba(242,242,247,0.82);
+      backdrop-filter: blur(24px) saturate(200%);
+      -webkit-backdrop-filter: blur(24px) saturate(200%);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav a { text-decoration: none; color: inherit; }
+    .nav-brand { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+    .nav-icon {
+      width: 30px; height: 30px; border-radius: 7px;
+      background: linear-gradient(145deg, #2979ff, #1565c0);
+      display: grid; place-items: center; font-size: 15px;
+      box-shadow: 0 2px 6px rgba(41,121,255,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    .nav-wordmark { font-size: 15px; font-weight: 700; letter-spacing: -0.4px; color: var(--ink); }
+    .nav-sep { color: #c7c7cc; font-size: 14px; }
+    .nav-crumb { font-size: 14px; font-weight: 500; color: var(--muted); }
+    .nav-crumb.current { color: var(--ink); font-weight: 600; }
+    .nav-back {
+      margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+      font-size: 13px; font-weight: 500; color: var(--ink-2);
+      background: rgba(0,0,0,0.055); border: 1px solid rgba(0,0,0,0.1);
+      padding: 6px 12px; border-radius: 9px; transition: background .14s;
+    }
+    .nav-back:hover { background: rgba(0,0,0,0.09); }
+
+    /* ── Hero ─────────────────────────────────────── */
+    .hero { width: min(var(--maxw), calc(100% - 32px)); margin: 0 auto; padding: 30px 0 8px; }
+    .hero h1 {
+      font-size: clamp(26px, 3.6vw, 34px); font-weight: 800; letter-spacing: -1px; line-height: 1.12;
+      background: linear-gradient(135deg, #1c1c1e 0%, #2979ff 60%, #7c3aed 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      margin-bottom: 6px;
+    }
+    .hero .sub { font-size: 14px; color: var(--muted); line-height: 1.5; max-width: 720px; }
+
+    /* ── Cards & fields ───────────────────────────── */
+    .wrap { width: min(var(--maxw), calc(100% - 32px)); margin: 16px auto 40px; }
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.9);
+      border-radius: var(--radius); padding: 22px;
+      box-shadow: var(--shadow); margin-bottom: 16px;
+    }
+    .card-head-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+    .card-title {
+      font-size: 13px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.05em; color: var(--muted);
+    }
+    label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 5px; }
+    .hint { font-size: 12px; color: var(--muted); font-weight: 400; }
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .field-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    @media (max-width: 620px) { .field-row, .field-row-3 { grid-template-columns: 1fr; } }
+    input[type="number"], input[type="text"], input[type="date"], select {
+      width: 100%; padding: 8px 10px;
+      border: 1px solid var(--line); border-radius: 8px;
+      font-size: 14px; background: #fff; color: var(--ink);
+      outline: none; transition: border-color .15s, box-shadow .15s;
+      font-variant-numeric: tabular-nums;
+    }
+    input:focus, select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(41,121,255,0.12); }
+    input:disabled { background: #f4f4f6; color: var(--faint); }
+    .field-note { font-size: 12px; color: var(--muted); line-height: 1.5; margin-top: 6px; }
+
+    /* ── Mode toggle ──────────────────────────────── */
+    .mode-toggle { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin-bottom: 14px; background: #fff; }
+    .mode-btn {
+      flex: 1; padding: 9px 8px; text-align: center; font-size: 13px; font-weight: 600;
+      cursor: pointer; background: transparent; border: none; color: var(--muted);
+      transition: background 0.15s, color 0.15s; line-height: 1.35;
+    }
+    .mode-btn .th { display: block; font-size: 11px; font-weight: 500; opacity: .75; }
+    .mode-btn.active { background: var(--blue); color: #fff; }
+
+    /* ── Row editors (items & rate segments) ──────── */
+    .row-grid { display: grid; gap: 8px; align-items: end; margin-bottom: 8px; }
+    .row-grid.items { grid-template-columns: minmax(0,1.3fr) minmax(0,1fr) minmax(0,1fr) 34px; }
+    .row-grid.items-manual { grid-template-columns: minmax(0,1.2fr) minmax(0,1fr) minmax(0,.55fr) minmax(0,.55fr) minmax(0,.55fr) 34px; }
+    .row-grid.rates { grid-template-columns: minmax(0,1fr) minmax(0,1fr) 34px; }
+    .row-grid .col-label { font-size: 11px; font-weight: 600; color: var(--faint); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 3px; }
+    @media (max-width: 620px) {
+      .row-grid.items { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+      .row-grid.items .remove-btn { grid-column: 2; justify-self: end; }
+      .row-grid.items-manual { grid-template-columns: repeat(3, minmax(0,1fr)); }
+      .row-grid.items-manual .remove-btn { grid-column: 3; justify-self: end; }
+    }
+    .remove-btn {
+      width: 34px; height: 36px; border-radius: 8px; border: 1px solid var(--line);
+      background: #fff; color: var(--red); font-weight: 700; cursor: pointer;
+      transition: background .14s;
+    }
+    .remove-btn:hover { background: #fef2f2; }
+    .remove-btn:disabled { color: var(--faint); cursor: default; background: #f4f4f6; }
+
+    .add-btn, .small-btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #fff; border: 1px solid var(--line); border-radius: 8px;
+      padding: 7px 13px; font-size: 13px; font-weight: 500;
+      cursor: pointer; color: var(--ink-2); transition: border-color .14s, color .14s, background .14s;
+    }
+    .add-btn:hover, .small-btn:hover { border-color: var(--blue); color: var(--blue); }
+
+    /* ── Chips ────────────────────────────────────── */
+    .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+    .chip {
+      border: 1px solid var(--line); border-radius: 999px; background: #fff;
+      padding: 5px 12px; font-size: 12px; cursor: pointer; color: var(--muted);
+      transition: all 0.14s;
+    }
+    .chip:hover { border-color: var(--blue); color: var(--blue); }
+    .chip.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+    .timeline-badge {
+      display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px;
+      font-size: 11px; font-weight: 600;
+    }
+    .badge-auto { background: rgba(52,199,89,0.13); color: #1a7a35; border: 1px solid rgba(52,199,89,.22); }
+    .badge-custom { background: var(--amber-light); color: var(--amber); border: 1px solid var(--amber-border); }
+
+    .callout {
+      border-radius: 8px; padding: 11px 14px; font-size: 12.5px; line-height: 1.55;
+      background: var(--info-light); border: 1px solid var(--info-border); color: var(--info);
+      margin-top: 14px;
+    }
+    .callout strong { font-weight: 600; }
+    .warn-small { font-size: 12px; color: var(--amber); margin-top: 6px; }
+
+    /* ── Results ──────────────────────────────────── */
+    table.data { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table.data th, table.data td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line-soft); }
+    table.data th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 600; }
+    table.data td.num, table.data th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    table.data tr.item-head td { font-weight: 700; background: rgba(41,121,255,0.05); }
+    table.data tr.subtotal td { font-weight: 600; border-bottom: 2px solid var(--line); }
+    table.data tr.muted td { color: var(--muted); }
+
+    .amount-box {
+      border: 1px solid var(--green-border); border-radius: var(--radius-sm);
+      padding: 16px; background: var(--green-light); margin-top: 16px;
+    }
+    .amount-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+    .amount-value { font-size: 26px; font-weight: 700; color: var(--green); margin-top: 2px; font-variant-numeric: tabular-nums; }
+    .amount-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    .actions-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #fff; border: 1px solid var(--line); border-radius: 8px;
+      padding: 8px 15px; font-size: 13px; font-weight: 500;
+      cursor: pointer; color: var(--ink-2); transition: background 0.14s, border-color 0.14s, color .14s;
+    }
+    .btn:hover { border-color: var(--blue); color: var(--blue); }
+    .btn.copied { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+    .hidden { display: none !important; }
+
+    footer {
+      width: min(var(--maxw), calc(100% - 32px)); margin: 24px auto 32px;
+      font-size: 12px; color: var(--faint); text-align: center; line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-brand" href="index.html">
+    <div class="nav-icon">⚖️</div>
+    <span class="nav-wordmark">JuraTools</span>
+  </a>
+  <span class="nav-sep">/</span>
+  <span class="nav-crumb current">Default Interest (CCC s.224)</span>
+  <a class="nav-back" href="index.html">← All tools</a>
+</nav>
+
+<div class="hero">
+  <h1>Default Interest Calculator</h1>
+  <p class="sub">ดอกเบี้ยผิดนัดตาม ป.พ.พ. มาตรา 224/224-1 — auto-splits the statutory rate change of 11 April 2021 (7.5% → 5% p.a.), supports contractual rates, yearly / monthly / daily rates with calendar or day-count duration bases, direct duration input, and multiple debts or defaulted installments with a per-segment breakdown.</p>
+</div>
+
+<div class="wrap">
+
+  <div class="card">
+    <div class="card-head-row">
+      <div class="card-title">1 · Debts in default</div>
+      <button class="add-btn" id="addItem">+ Add debt / installment</button>
+    </div>
+
+    <div class="mode-toggle" id="inputModeToggle">
+      <button class="mode-btn active" data-imode="dates">Enter dates<span class="th">ระบุวันที่</span></button>
+      <button class="mode-btn" data-imode="manual">Enter duration directly<span class="th">ระบุระยะเวลาเอง (ปี/เดือน/วัน)</span></button>
+    </div>
+
+    <div class="field" id="semanticField">
+      <label for="dateSemantic">The date entered for each debt is…</label>
+      <select id="dateSemantic">
+        <option value="due">the due date — last day the debtor may still pay; default starts the NEXT day</option>
+        <option value="first">the first day of default — this day itself is counted as day 1</option>
+      </select>
+      <div class="field-note" id="semanticNote"></div>
+    </div>
+
+    <div id="itemBody"></div>
+
+    <div class="field-note hidden" id="manualNote">
+      Duration converts as: <strong>1 year = 12 months = 365 days</strong> and <strong>1 month = 30 days</strong> (used only where the rate period and your inputs differ, e.g. days remainder under a yearly rate).
+    </div>
+
+    <div class="callout">
+      <strong>s.224/1 (installments):</strong> when a debt is payable in installments and one installment is in default, default interest may only be charged on the <strong>defaulted installment's principal</strong> — not the whole outstanding balance. Add each defaulted installment as its own line with its own default date.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head-row">
+      <div class="card-title">2 · Interest rate<span id="timelineTitleSuffix"> timeline</span></div>
+      <span class="timeline-badge badge-auto" id="timelineBadge">Statutory (auto)</span>
+    </div>
+    <div class="chips" style="margin-bottom:14px" id="presetChips">
+      <button class="chip" data-preset="statutory">Statutory 7.5% → 5%</button>
+      <button class="chip" data-preset="flat5">Flat 5% (s.224)</button>
+      <button class="chip" data-preset="flat7_5">Flat 7.5% (old law)</button>
+      <button class="chip" data-preset="flat3">Flat 3% (s.7)</button>
+      <button class="chip" data-preset="flat15">Flat 15% (LPA s.9)</button>
+    </div>
+
+    <div id="timelineWrap">
+      <div id="rateBody"></div>
+      <div style="margin-top:6px; display:flex; gap:8px; flex-wrap:wrap">
+        <button class="add-btn" id="addRate">+ Add rate change</button>
+        <button class="small-btn" id="resetRates">↺ Reset to statutory</button>
+      </div>
+    </div>
+
+    <div class="field hidden" id="manualRateWrap">
+      <label for="manualRate">Rate (% per <span id="manualRatePeriod">year</span>)</label>
+      <input type="number" id="manualRate" min="0" step="0.01" value="5" />
+      <div class="field-note">Duration mode has no dates, so the statutory 2021 rate split cannot apply — one rate is used for the whole duration. Switch to date mode for the 7.5% → 5% auto-split.</div>
+    </div>
+
+    <div class="callout">
+      <strong>Statutory default rate:</strong> before 11 Apr 2021 the default rate was <strong>7.5% p.a.</strong>; from 11 Apr 2021 it is the s.7 rate (3%) + 2% = <strong>5% p.a.</strong>, applied to interest accruing from that date even for earlier defaults. The s.7 base rate is adjustable by royal decree — add a rate change here if it moves. If the creditor may lawfully claim a higher rate (e.g. a contractual rate), that rate continues during default (s.224 ¶1): use a flat preset or edit the rows. Rates here are read as <strong>% per the rate period chosen in section 3</strong>.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="margin-bottom:14px">3 · Calculation</div>
+    <div class="field-row" id="dateFieldsRow">
+      <div class="field">
+        <label for="asOf">Calculate up to <span class="hint">(inclusive — this day is counted)</span></label>
+        <input type="date" id="asOf" />
+      </div>
+      <div class="field">
+        <label for="ratePeriod">Rate period</label>
+        <select id="ratePeriod">
+          <option value="year">% per year (ต่อปี)</option>
+          <option value="month">% per month (ต่อเดือน)</option>
+          <option value="day">% per day (ต่อวัน)</option>
+        </select>
+      </div>
+    </div>
+    <div class="field" id="basisField">
+      <label for="basis">Duration counting method</label>
+      <select id="basis"></select>
+      <div class="field-note" id="basisNote"></div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="decimals">Decimal places</label>
+        <select id="decimals">
+          <option value="0">0</option>
+          <option value="1">1</option>
+          <option value="2" selected>2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="rounding">Rounding method</label>
+        <select id="rounding">
+          <option value="normal">Normal (round half up)</option>
+          <option value="floor">Floor (always round down)</option>
+          <option value="ceil">Ceiling (always round up)</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-note">Each interest line is rounded with the chosen method and precision; subtotals and totals are sums of the rounded lines, so the statement always adds up.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="margin-bottom:14px">4 · Result</div>
+    <div style="overflow-x:auto">
+      <table class="data" id="resultTable"></table>
+    </div>
+    <div class="amount-box">
+      <div class="amount-label">Total payable</div>
+      <div class="amount-value" id="totalValue">—</div>
+      <div class="amount-sub" id="totalSub"></div>
+    </div>
+  </div>
+
+  <div class="actions-row">
+    <button class="btn" id="copyBtn">Copy summary</button>
+    <button class="btn" onclick="resetAll()">Reset all</button>
+  </div>
+
+</div>
+
+<footer>
+  Civil &amp; Commercial Code ss.7, 224, 224/1 (as amended by the Emergency Decree B.E. 2564, effective 11 April 2021)<br>
+  No compound interest during default (s.224 ¶2). Reference tool only, not legal advice. Runs entirely in your browser.
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  // ── Constants ────────────────────────────────────────────────────────────
+  var AMENDMENT = '2021-04-11'; // Emergency Decree effective date: 7.5% → 5%
+  var STATUTORY = [{ from: null, rate: 7.5 }, { from: AMENDMENT, rate: 5 }];
+  var PRESETS = {
+    statutory: STATUTORY,
+    flat5:  [{ from: null, rate: 5 }],
+    flat7_5:[{ from: null, rate: 7.5 }],
+    flat3:  [{ from: null, rate: 3 }],
+    flat15: [{ from: null, rate: 15 }]
+  };
+  var PERIOD_SUFFIX = { year: '/yr', month: '/mo', day: '/day' };
+  var PERIOD_WORD = { year: 'year', month: 'month', day: 'day' };
+  var BASES = {
+    year: [
+      { value: 'act365',  label: 'Actual days ÷ 365', note: 'Every counted day = 1/365 of a year, even in leap years (366 days ÷ 365 > 1 year). Most common in judgments.' },
+      { value: 'actact',  label: 'Actual ÷ actual (365/366, leap-aware)', note: 'Days in a leap year divide by 366, other years by 365 — a full calendar year is exactly 1.' },
+      { value: 'calYMD',  label: 'Calendar years + months + days (leap-neutral)', note: 'Counts whole years and months on the calendar (like the CCC time rules), so 12 Apr → 11 Apr next year is exactly 1 year whether or not it spans 29 Feb. Leftover days ÷ 365.' },
+      { value: 'd30360',  label: '30/360', note: 'Every month counts as 30 days, a year as 360 — the banking convention.' }
+    ],
+    month: [
+      { value: 'calMD30',   label: 'Whole months + leftover days ÷ 30', note: 'Whole calendar months (corresponding-day rule), leftover days each count 1/30 month.' },
+      { value: 'calMDfrac', label: 'Whole months + leftover days ÷ actual month length', note: 'Whole calendar months, leftover days divided by the real length of the month they fall in.' },
+      { value: 'act30',     label: 'Actual days ÷ 30', note: 'Ignores the calendar — every 30 counted days = 1 month.' }
+    ],
+    day: [
+      { value: 'days', label: 'Count actual days', note: 'Interest = principal × daily rate × counted days.' }
+    ]
+  };
+  var SEMANTIC_NOTE = {
+    due: 'Example: due 11 Jul → the debtor may pay until 11 Jul 23:59; default begins 12 Jul, which is counted as day 1.',
+    first: 'Example: enter 12 Jul → 12 Jul itself is day 1 of default (use this if you have already determined the first default day).'
+  };
+
+  // ── State ────────────────────────────────────────────────────────────────
+  var state = {
+    inputMode: 'dates',            // 'dates' | 'manual'
+    dateSemantic: 'due',           // 'due' | 'first'
+    items: [{ label: '', principal: '', from: '', y: '', mo: '', d: '' }],
+    rates: JSON.parse(JSON.stringify(STATUTORY)),
+    manualRate: 5
+  };
+  var lastSummary = '';
+
+  // ── Date helpers ─────────────────────────────────────────────────────────
+  function parseDate(str) {
+    if (!str) return null;
+    var p = str.split('-').map(Number);
+    if (p.length !== 3 || p.some(isNaN)) return null;
+    return new Date(p[0], p[1] - 1, p[2]);
+  }
+  function toISO(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function addDays(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
+  function daysDiff(a, b) { return Math.round((b - a) / 86400000); }
+  function maxD(a, b) { return a > b ? a : b; }
+  function minD(a, b) { return a < b ? a : b; }
+  function isLeap(y) { return (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0; }
+  function daysInMonth(y, m) { return new Date(y, m + 1, 0).getDate(); }
+  function fmtShort(d) { return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); }
+
+  // Month addition with CCC-style clamping (31 Jan + 1 mo = 28/29 Feb).
+  function addMonthsClamped(d, n) {
+    var y = d.getFullYear(), m = d.getMonth() + n, day = d.getDate();
+    var res = new Date(y, m, day);
+    if (res.getDate() !== day) res = new Date(y, m + 1, 0);
+    return res;
+  }
+
+  // ── Numbers: rounding, formatting, live thousands separators ────────────
+  function currentDp() { return parseInt(document.getElementById('decimals').value, 10); }
+  function currentRounding() { return document.getElementById('rounding').value; }
+
+  function roundAmt(n) {
+    var dp = currentDp(), mode = currentRounding();
+    var f = Math.pow(10, dp), x = n * f;
+    var nearest = Math.round(x);
+    if (Math.abs(x - nearest) < 1e-6) x = nearest;           // absorb float noise at exact halves/integers
+    else x = mode === 'floor' ? Math.floor(x) : mode === 'ceil' ? Math.ceil(x) : Math.round(x);
+    return x / f;
+  }
+  function fmt(n) {
+    var dp = currentDp();
+    return n.toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp });
+  }
+  function parseAmt(v) { return parseFloat(String(v).replace(/[,\s]/g, '')); }
+
+  // Live thousands separators with caret preservation (text inputs only).
+  function liveFormat(el) {
+    var raw = el.value;
+    var caret = el.selectionStart == null ? raw.length : el.selectionStart;
+    var anchorsBefore = raw.slice(0, caret).replace(/[^0-9.]/g, '').length;
+    var neg = /^\s*-/.test(raw);
+    var clean = raw.replace(/[^0-9.]/g, '');
+    var firstDot = clean.indexOf('.');
+    var intp = firstDot >= 0 ? clean.slice(0, firstDot) : clean;
+    var frac = firstDot >= 0 ? clean.slice(firstDot + 1).replace(/\./g, '') : null;
+    var out = (neg ? '-' : '') + intp.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (frac !== null ? '.' + frac : '');
+    if (out === raw) return;
+    el.value = out;
+    if (document.activeElement === el && el.setSelectionRange) {
+      var pos = 0, seen = 0;
+      while (pos < out.length && seen < anchorsBefore) { if (/[0-9.]/.test(out[pos])) seen++; pos++; }
+      el.setSelectionRange(pos, pos);
+    }
+  }
+
+  // ── Interest engine ──────────────────────────────────────────────────────
+  // Days counted: each day after the exclusive anchor `sExcl` up to and
+  // including `eIncl`. A counted day accrues at the rate of the timeline row
+  // whose `from` ≤ that day.
+  function segmentsFor(start, end, timeline) {
+    var segs = [];
+    for (var k = 0; k < timeline.length; k++) {
+      var lower = timeline[k].from ? addDays(parseDate(timeline[k].from), -1) : null;
+      var next = (k + 1 < timeline.length) ? addDays(parseDate(timeline[k + 1].from), -1) : null;
+      var s = lower ? maxD(start, lower) : start;
+      var e = next ? minD(end, next) : end;
+      if (daysDiff(s, e) > 0) segs.push({ s: s, e: e, rate: timeline[k].rate });
+    }
+    return segs;
+  }
+
+  function factorActAct(s, e) {
+    var factor = 0;
+    for (var y = s.getFullYear(); y <= e.getFullYear(); y++) {
+      var ys = maxD(s, new Date(y - 1, 11, 31));
+      var ye = minD(e, new Date(y, 11, 31));
+      var d = daysDiff(ys, ye);
+      if (d > 0) factor += d / (isLeap(y) ? 366 : 365);
+    }
+    return factor;
+  }
+
+  // 30/360 (US convention) day count between exclusive anchor and inclusive end.
+  function days360(s, e) {
+    var d1 = Math.min(s.getDate(), 30);
+    var d2 = e.getDate();
+    if (d2 === 31 && d1 === 30) d2 = 30;
+    return (e.getFullYear() - s.getFullYear()) * 360 + (e.getMonth() - s.getMonth()) * 30 + (d2 - d1);
+  }
+
+  // Calendar decomposition: whole years + whole months + leftover days,
+  // measured from the exclusive anchor with corresponding-day arithmetic.
+  function decompose(a, e) {
+    var years = 0, months = 0;
+    while (addMonthsClamped(a, (years + 1) * 12) <= e) years++;
+    var base = addMonthsClamped(a, years * 12);
+    while (addMonthsClamped(base, months + 1) <= e) months++;
+    var anchorM = addMonthsClamped(base, months);
+    return { y: years, mo: months, d: daysDiff(anchorM, e), anchorM: anchorM };
+  }
+
+  function durLabel(c, days) {
+    var parts = [];
+    if (c.y) parts.push(c.y + 'y');
+    if (c.mo) parts.push(c.mo + 'mo');
+    parts.push(c.d + 'd');
+    return parts.join(' ') + ' (' + days + ' d)';
+  }
+
+  // Returns { factor, detail } where interest = principal × rate% × factor.
+  function factorFor(sExcl, eIncl, ratePeriod, basis) {
+    var days = daysDiff(sExcl, eIncl);
+    if (ratePeriod === 'day') return { factor: days, detail: days + ' d' };
+    if (ratePeriod === 'year') {
+      if (basis === 'act365') return { factor: days / 365, detail: days + ' d ÷ 365' };
+      if (basis === 'actact') return { factor: factorActAct(sExcl, eIncl), detail: days + ' d ÷ 365/366' };
+      if (basis === 'd30360') { var d3 = days360(sExcl, eIncl); return { factor: d3 / 360, detail: d3 + ' d (30/360) ÷ 360' }; }
+      var c = decompose(sExcl, eIncl);
+      return { factor: c.y + c.mo / 12 + c.d / 365, detail: durLabel(c, days) };
+    }
+    // month
+    if (basis === 'act30') return { factor: days / 30, detail: days + ' d ÷ 30' };
+    var cm = decompose(sExcl, eIncl);
+    var whole = cm.y * 12 + cm.mo;
+    if (basis === 'calMD30') return { factor: whole + cm.d / 30, detail: whole + ' mo + ' + cm.d + ' d ÷ 30' };
+    var firstRem = addDays(cm.anchorM, 1);
+    var dim = daysInMonth(firstRem.getFullYear(), firstRem.getMonth());
+    return { factor: whole + cm.d / dim, detail: whole + ' mo + ' + cm.d + '/' + dim + ' d' };
+  }
+
+  // Manual duration → factor (1 y = 12 mo = 365 d; 1 mo = 30 d).
+  function manualFactor(y, mo, d, ratePeriod) {
+    if (ratePeriod === 'year')  return { factor: y + mo / 12 + d / 365, detail: y + 'y ' + mo + 'mo ' + d + 'd' };
+    if (ratePeriod === 'month') return { factor: y * 12 + mo + d / 30,  detail: y + 'y ' + mo + 'mo ' + d + 'd' };
+    return { factor: y * 365 + mo * 30 + d, detail: y + 'y ' + mo + 'mo ' + d + 'd = ' + (y * 365 + mo * 30 + d) + ' d' };
+  }
+
+  // ── Row editors ──────────────────────────────────────────────────────────
+  var itemBody = document.getElementById('itemBody');
+  var rateBody = document.getElementById('rateBody');
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function dateColLabel() {
+    return state.dateSemantic === 'due' ? 'Due date (last day to pay)' : 'First day of default';
+  }
+
+  function renderItems() {
+    var html;
+    if (state.inputMode === 'dates') {
+      html = '<div class="row-grid items">' +
+        '<div class="col-label">Description (optional)</div>' +
+        '<div class="col-label">Principal (THB)</div>' +
+        '<div class="col-label">' + dateColLabel() + '</div><div></div></div>';
+      state.items.forEach(function (it, i) {
+        html += '<div class="row-grid items">' +
+          '<input type="text" data-i="' + i + '" data-k="label" placeholder="e.g. Invoice #12 / Installment 3" value="' + esc(it.label) + '" />' +
+          '<input type="text" inputmode="decimal" data-i="' + i + '" data-k="principal" data-money="1" placeholder="e.g. 500,000" value="' + esc(it.principal) + '" />' +
+          '<input type="date" data-i="' + i + '" data-k="from" value="' + esc(it.from) + '" />' +
+          '<button class="remove-btn" data-remove-item="' + i + '" title="Remove"' + (state.items.length === 1 ? ' disabled' : '') + '>×</button>' +
+          '</div>';
+      });
+    } else {
+      html = '<div class="row-grid items-manual">' +
+        '<div class="col-label">Description (optional)</div>' +
+        '<div class="col-label">Principal (THB)</div>' +
+        '<div class="col-label">Years</div><div class="col-label">Months</div><div class="col-label">Days</div><div></div></div>';
+      state.items.forEach(function (it, i) {
+        html += '<div class="row-grid items-manual">' +
+          '<input type="text" data-i="' + i + '" data-k="label" placeholder="e.g. Invoice #12" value="' + esc(it.label) + '" />' +
+          '<input type="text" inputmode="decimal" data-i="' + i + '" data-k="principal" data-money="1" placeholder="e.g. 500,000" value="' + esc(it.principal) + '" />' +
+          '<input type="number" min="0" step="1" data-i="' + i + '" data-k="y" placeholder="0" value="' + esc(it.y) + '" />' +
+          '<input type="number" min="0" step="1" data-i="' + i + '" data-k="mo" placeholder="0" value="' + esc(it.mo) + '" />' +
+          '<input type="number" min="0" step="1" data-i="' + i + '" data-k="d" placeholder="0" value="' + esc(it.d) + '" />' +
+          '<button class="remove-btn" data-remove-item="' + i + '" title="Remove"' + (state.items.length === 1 ? ' disabled' : '') + '>×</button>' +
+          '</div>';
+      });
+    }
+    itemBody.innerHTML = html;
+  }
+
+  function renderRates() {
+    var suffix = PERIOD_SUFFIX[document.getElementById('ratePeriod').value];
+    var html = '<div class="row-grid rates">' +
+      '<div class="col-label">Effective from</div>' +
+      '<div class="col-label">Rate (%' + suffix + ')</div><div></div></div>';
+    state.rates.forEach(function (r, i) {
+      html += '<div class="row-grid rates">' +
+        (i === 0
+          ? '<input type="text" value="Start of default" disabled />'
+          : '<input type="date" data-ri="' + i + '" data-rk="from" value="' + esc(r.from || '') + '" />') +
+        '<input type="number" data-ri="' + i + '" data-rk="rate" min="0" step="0.01" value="' + esc(r.rate) + '" />' +
+        '<button class="remove-btn" data-remove-rate="' + i + '" title="Remove"' + (i === 0 ? ' disabled' : '') + '>×</button>' +
+        '</div>';
+    });
+    rateBody.innerHTML = html;
+    updateBadge();
+  }
+
+  function isStatutory() {
+    return document.getElementById('ratePeriod').value === 'year' &&
+           state.rates.length === 2 && state.rates[0].from === null && Number(state.rates[0].rate) === 7.5 &&
+           state.rates[1].from === AMENDMENT && Number(state.rates[1].rate) === 5;
+  }
+  function updateBadge() {
+    var badge = document.getElementById('timelineBadge');
+    if (state.inputMode === 'manual') { badge.classList.add('hidden'); }
+    else {
+      badge.classList.remove('hidden');
+      if (isStatutory()) { badge.textContent = 'Statutory (auto)'; badge.className = 'timeline-badge badge-auto'; }
+      else { badge.textContent = 'Custom — edited'; badge.className = 'timeline-badge badge-custom'; }
+    }
+    document.querySelectorAll('#presetChips .chip').forEach(function (c) {
+      var p = PRESETS[c.dataset.preset];
+      var match = state.inputMode === 'manual'
+        ? (p.length === 1 && Number(state.manualRate) === p[0].rate)
+        : (JSON.stringify(p) === JSON.stringify(state.rates) && document.getElementById('ratePeriod').value === 'year');
+      c.classList.toggle('active', match);
+    });
+  }
+
+  function rebuildBasisOptions() {
+    var period = document.getElementById('ratePeriod').value;
+    var sel = document.getElementById('basis');
+    var prev = sel.value;
+    sel.innerHTML = '';
+    BASES[period].forEach(function (b) {
+      var o = document.createElement('option');
+      o.value = b.value; o.textContent = b.label;
+      sel.appendChild(o);
+    });
+    if (BASES[period].some(function (b) { return b.value === prev; })) sel.value = prev;
+    updateBasisNote();
+  }
+  function updateBasisNote() {
+    var period = document.getElementById('ratePeriod').value;
+    var v = document.getElementById('basis').value;
+    var b = BASES[period].filter(function (x) { return x.value === v; })[0];
+    document.getElementById('basisNote').textContent = b ? b.note : '';
+  }
+
+  function applyInputModeUI() {
+    var manual = state.inputMode === 'manual';
+    document.querySelectorAll('#inputModeToggle .mode-btn').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.imode === state.inputMode);
+    });
+    document.getElementById('semanticField').classList.toggle('hidden', manual);
+    document.getElementById('manualNote').classList.toggle('hidden', !manual);
+    document.getElementById('timelineWrap').classList.toggle('hidden', manual);
+    document.getElementById('manualRateWrap').classList.toggle('hidden', !manual);
+    document.getElementById('timelineTitleSuffix').textContent = manual ? '' : ' timeline';
+    document.getElementById('asOf').parentElement.classList.toggle('hidden', manual);
+    document.getElementById('basisField').classList.toggle('hidden', manual);
+    document.getElementById('semanticNote').textContent = SEMANTIC_NOTE[state.dateSemantic];
+    document.getElementById('manualRatePeriod').textContent = PERIOD_WORD[document.getElementById('ratePeriod').value];
+    updateBadge();
+  }
+
+  // ── Calculation & result rendering ───────────────────────────────────────
+  function calc() {
+    var ratePeriod = document.getElementById('ratePeriod').value;
+    var basis = document.getElementById('basis').value;
+    var suffix = PERIOD_SUFFIX[ratePeriod];
+    var tbl = document.getElementById('resultTable');
+    var totalValue = document.getElementById('totalValue');
+    var totalSub = document.getElementById('totalSub');
+    var manual = state.inputMode === 'manual';
+
+    var rows = '<tr><th>Period</th><th class="num">Duration</th><th class="num">Rate</th><th class="num">Interest</th></tr>';
+    var sumP = 0, sumI = 0, count = 0;
+    var summary = [];
+
+    if (manual) {
+      var mRate = parseFloat(document.getElementById('manualRate').value);
+      summary.push('Default interest (CCC s.224) — duration entered directly · rate ' + mRate + '%' + suffix);
+      summary.push('');
+      state.items.forEach(function (it, idx) {
+        var principal = parseAmt(it.principal);
+        var y = parseInt(it.y, 10) || 0, mo = parseInt(it.mo, 10) || 0, d = parseInt(it.d, 10) || 0;
+        if (isNaN(principal) || principal <= 0 || isNaN(mRate) || (y + mo + d) === 0) return;
+        count++;
+        var name = it.label || 'Debt ' + count;
+        var f = manualFactor(y, mo, d, ratePeriod);
+        var interest = roundAmt(principal * (mRate / 100) * f.factor);
+        rows += '<tr class="item-head"><td>' + esc(name) + '</td><td class="num" colspan="2">Principal</td><td class="num">' + fmt(principal) + '</td></tr>';
+        rows += '<tr><td style="padding-left:22px">Duration as entered</td><td class="num">' + f.detail + '</td>' +
+                '<td class="num">' + mRate + '%' + suffix + '</td><td class="num">' + fmt(interest) + '</td></tr>';
+        rows += '<tr class="subtotal"><td colspan="3">Subtotal — ' + esc(name) + ' (principal + interest)</td><td class="num">' + fmt(principal + interest) + '</td></tr>';
+        summary.push(name + ' — principal ' + fmt(principal) + ' · ' + f.detail + ' @ ' + mRate + '%' + suffix + ' = ' + fmt(interest));
+        summary.push('  Subtotal: ' + fmt(principal + interest));
+        summary.push('');
+        sumP += principal; sumI += interest;
+      });
+    } else {
+      var asOf = parseDate(document.getElementById('asOf').value);
+      var timeline = [state.rates[0]].concat(
+        state.rates.slice(1).filter(function (r) { return r.from && !isNaN(Number(r.rate)); })
+          .sort(function (a, b) { return a.from < b.from ? -1 : 1; })
+      );
+      var basisLabel = (BASES[ratePeriod].filter(function (b) { return b.value === basis; })[0] || {}).label || basis;
+      summary.push('Default interest (CCC s.224) — up to ' + (asOf ? fmtShort(asOf) : '?') +
+        ' · rate per ' + PERIOD_WORD[ratePeriod] + ' · ' + basisLabel +
+        ' · dates entered as ' + (state.dateSemantic === 'due' ? 'due dates (default starts the next day)' : 'first default days'));
+      summary.push('');
+
+      if (asOf) {
+        state.items.forEach(function (it, idx) {
+          var principal = parseAmt(it.principal);
+          var entered = parseDate(it.from);
+          if (isNaN(principal) || principal <= 0 || !entered) return;
+          count++;
+          // Exclusive anchor: the last day the debtor could still pay.
+          var anchor = state.dateSemantic === 'due' ? entered : addDays(entered, -1);
+          var firstDay = addDays(anchor, 1);
+          var name = it.label || 'Debt ' + count;
+          rows += '<tr class="item-head"><td>' + esc(name) + ' — in default from ' + fmtShort(firstDay) +
+                  (state.dateSemantic === 'due' ? ' (due ' + fmtShort(entered) + ')' : '') +
+                  '</td><td class="num" colspan="2">Principal</td><td class="num">' + fmt(principal) + '</td></tr>';
+          summary.push(name + ' — principal ' + fmt(principal) + ', in default from ' + fmtShort(firstDay) +
+                       (state.dateSemantic === 'due' ? ' (due ' + fmtShort(entered) + ')' : ''));
+
+          var itemInterest = 0;
+          if (daysDiff(anchor, asOf) <= 0) {
+            rows += '<tr class="muted"><td colspan="4">End date is before the default begins — no interest accrued.</td></tr>';
+            summary.push('  (no interest — end date is before the default begins)');
+          } else {
+            segmentsFor(anchor, asOf, timeline).forEach(function (seg) {
+              var f = factorFor(seg.s, seg.e, ratePeriod, basis);
+              var interest = roundAmt(principal * (seg.rate / 100) * f.factor);
+              itemInterest += interest;
+              var period = fmtShort(addDays(seg.s, 1)) + ' – ' + fmtShort(seg.e);
+              rows += '<tr><td style="padding-left:22px">' + period + '</td>' +
+                      '<td class="num">' + f.detail + '</td>' +
+                      '<td class="num">' + seg.rate + '%' + suffix + '</td>' +
+                      '<td class="num">' + fmt(interest) + '</td></tr>';
+              summary.push('  ' + period + ' · ' + f.detail + ' @ ' + seg.rate + '%' + suffix + ' = ' + fmt(interest));
+            });
+          }
+          rows += '<tr class="subtotal"><td colspan="3">Subtotal — ' + esc(name) +
+                  ' (principal + interest)</td><td class="num">' + fmt(principal + itemInterest) + '</td></tr>';
+          summary.push('  Subtotal: ' + fmt(principal + itemInterest));
+          summary.push('');
+          sumP += principal; sumI += itemInterest;
+        });
+      }
+    }
+
+    if (count === 0) {
+      tbl.innerHTML = '<tr class="muted"><td>' + (manual
+        ? 'Enter at least one debt (principal + duration) and the rate.'
+        : 'Enter at least one debt (principal + date) and the end date.') + '</td></tr>';
+      totalValue.textContent = '—'; totalSub.textContent = '';
+      lastSummary = '';
+      save(); return;
+    }
+
+    var roundingLabel = { normal: 'half up', floor: 'floor', ceil: 'ceiling' }[currentRounding()];
+    tbl.innerHTML = rows;
+    totalValue.textContent = fmt(sumP + sumI) + ' THB';
+    totalSub.textContent = 'Principal ' + fmt(sumP) + ' + interest ' + fmt(sumI) +
+      (count > 1 ? ' · ' + count + ' debts' : '') +
+      ' · rounded ' + roundingLabel + ' @ ' + currentDp() + ' dp';
+    summary.push('TOTAL: principal ' + fmt(sumP) + ' + interest ' + fmt(sumI) + ' = ' + fmt(sumP + sumI) +
+      '  (rounded ' + roundingLabel + ', ' + currentDp() + ' decimal places)');
+    lastSummary = summary.join('\n');
+    save();
+  }
+
+  // ── Persistence ──────────────────────────────────────────────────────────
+  function save() {
+    try {
+      localStorage.setItem('cccInterest_v2', JSON.stringify({
+        inputMode: state.inputMode, dateSemantic: state.dateSemantic,
+        items: state.items, rates: state.rates, manualRate: document.getElementById('manualRate').value,
+        asOf: document.getElementById('asOf').value,
+        ratePeriod: document.getElementById('ratePeriod').value,
+        basis: document.getElementById('basis').value,
+        decimals: document.getElementById('decimals').value,
+        rounding: document.getElementById('rounding').value
+      }));
+    } catch (e) {}
+  }
+  function load() {
+    try {
+      var st = JSON.parse(localStorage.getItem('cccInterest_v2') || 'null');
+      if (!st) { // migrate v1 if present
+        var v1 = JSON.parse(localStorage.getItem('cccInterest_v1') || 'null');
+        if (!v1) return;
+        st = { items: (v1.items || []).map(function (it) { return { label: it.label, principal: it.principal, from: it.from, y: '', mo: '', d: '' }; }),
+               rates: v1.rates, asOf: v1.asOf, dateSemantic: 'first' }; // v1 counted from the entered date exclusive → closest to 'due'; keep data, let user review
+        st.dateSemantic = 'due';
+      }
+      if (st.inputMode === 'manual' || st.inputMode === 'dates') state.inputMode = st.inputMode;
+      if (st.dateSemantic === 'due' || st.dateSemantic === 'first') state.dateSemantic = st.dateSemantic;
+      if (Array.isArray(st.items) && st.items.length) state.items = st.items.map(function (it) {
+        return { label: it.label || '', principal: it.principal || '', from: it.from || '', y: it.y || '', mo: it.mo || '', d: it.d || '' };
+      });
+      if (Array.isArray(st.rates) && st.rates.length) state.rates = st.rates;
+      if (st.manualRate != null && st.manualRate !== '') { state.manualRate = st.manualRate; document.getElementById('manualRate').value = st.manualRate; }
+      if (st.asOf) document.getElementById('asOf').value = st.asOf;
+      if (st.ratePeriod) document.getElementById('ratePeriod').value = st.ratePeriod;
+      if (st.decimals != null) document.getElementById('decimals').value = st.decimals;
+      if (st.rounding) document.getElementById('rounding').value = st.rounding;
+      document.getElementById('dateSemantic').value = state.dateSemantic;
+      rebuildBasisOptions();
+      if (st.basis) {
+        var sel = document.getElementById('basis');
+        if ([].some.call(sel.options, function (o) { return o.value === st.basis; })) sel.value = st.basis;
+        updateBasisNote();
+      }
+    } catch (e) {}
+  }
+  window.resetAll = function () {
+    try { localStorage.removeItem('cccInterest_v2'); localStorage.removeItem('cccInterest_v1'); } catch (e) {}
+    location.reload();
+  };
+
+  // ── Wiring ───────────────────────────────────────────────────────────────
+  itemBody.addEventListener('input', function (e) {
+    var t = e.target;
+    if (t.dataset.i == null) return;
+    if (t.dataset.money) liveFormat(t);
+    state.items[+t.dataset.i][t.dataset.k] = t.value;
+    calc();
+  });
+  itemBody.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-remove-item]');
+    if (!btn || btn.disabled) return;
+    state.items.splice(+btn.dataset.removeItem, 1);
+    renderItems(); calc();
+  });
+  document.getElementById('addItem').addEventListener('click', function () {
+    state.items.push({ label: '', principal: '', from: '', y: '', mo: '', d: '' });
+    renderItems(); calc();
+  });
+
+  document.getElementById('inputModeToggle').addEventListener('click', function (e) {
+    var btn = e.target.closest('.mode-btn');
+    if (!btn) return;
+    state.inputMode = btn.dataset.imode;
+    applyInputModeUI(); renderItems(); calc();
+  });
+
+  document.getElementById('dateSemantic').addEventListener('change', function () {
+    state.dateSemantic = this.value;
+    document.getElementById('semanticNote').textContent = SEMANTIC_NOTE[state.dateSemantic];
+    renderItems(); calc();
+  });
+
+  rateBody.addEventListener('input', function (e) {
+    var t = e.target;
+    if (t.dataset.ri != null) {
+      var r = state.rates[+t.dataset.ri];
+      if (t.dataset.rk === 'rate') r.rate = t.value === '' ? '' : Number(t.value);
+      else r.from = t.value || null;
+    }
+    updateBadge(); calc();
+  });
+  rateBody.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-remove-rate]');
+    if (!btn || btn.disabled) return;
+    state.rates.splice(+btn.dataset.removeRate, 1);
+    renderRates(); calc();
+  });
+  document.getElementById('addRate').addEventListener('click', function () {
+    state.rates.push({ from: '', rate: 5 });
+    renderRates(); calc();
+  });
+  document.getElementById('resetRates').addEventListener('click', function () {
+    state.rates = JSON.parse(JSON.stringify(STATUTORY));
+    document.getElementById('ratePeriod').value = 'year';
+    rebuildBasisOptions(); applyInputModeUI(); renderRates(); calc();
+  });
+  document.getElementById('presetChips').addEventListener('click', function (e) {
+    var chip = e.target.closest('.chip');
+    if (!chip) return;
+    var preset = PRESETS[chip.dataset.preset];
+    if (state.inputMode === 'manual') {
+      if (chip.dataset.preset === 'statutory') return; // needs dates
+      state.manualRate = preset[0].rate;
+      document.getElementById('manualRate').value = preset[0].rate;
+    } else {
+      state.rates = JSON.parse(JSON.stringify(preset));
+      document.getElementById('ratePeriod').value = 'year'; // presets are yearly statutory rates
+      rebuildBasisOptions(); applyInputModeUI();
+      renderRates();
+    }
+    updateBadge(); calc();
+  });
+
+  document.getElementById('manualRate').addEventListener('input', function () {
+    state.manualRate = this.value; updateBadge(); calc();
+  });
+
+  document.getElementById('ratePeriod').addEventListener('change', function () {
+    rebuildBasisOptions(); applyInputModeUI(); renderRates(); calc();
+  });
+  document.getElementById('basis').addEventListener('change', function () { updateBasisNote(); calc(); });
+  ['asOf', 'decimals', 'rounding'].forEach(function (id) {
+    document.getElementById(id).addEventListener('change', calc);
+    document.getElementById(id).addEventListener('input', calc);
+  });
+
+  document.getElementById('copyBtn').addEventListener('click', function () {
+    if (!lastSummary) return;
+    var btn = this;
+    navigator.clipboard.writeText(lastSummary).then(function () {
+      btn.classList.add('copied'); btn.textContent = '✓ Copied';
+      setTimeout(function () { btn.classList.remove('copied'); btn.textContent = 'Copy summary'; }, 1300);
+    });
+  });
+
+  // ── Init ─────────────────────────────────────────────────────────────────
+  document.getElementById('asOf').value = toISO(new Date());
+  rebuildBasisOptions();
+  load();
+  applyInputModeUI();
+  renderItems();
+  renderRates();
+  calc();
+})();
+</script>
+</body>
+</html>
