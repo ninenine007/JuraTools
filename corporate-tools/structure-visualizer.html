@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Corporate Structure & Capitalization Visualizer — JuraTools</title>
+<style>
+  :root {
+    --bg: #f5f5f7; --card: #ffffff; --border: rgba(0,0,0,0.09);
+    --text: #1c1c1e; --muted: #6e6e73; --muted2: #aeaeb2;
+    --accent: #7c3aed; --accent-soft: #f3eeff;
+    --blue: #0a66c2; --blue-soft: #e8f1fb;
+    --red: #d70015;  --red-soft: #fdebed;
+    --green: #1d7a3d; --green-soft: #e8f6ec;
+    --amber: #b25000; --amber-soft: #fff3e6;
+    --radius: 12px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans Thai", sans-serif;
+    background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5;
+  }
+  button { font-family: inherit; cursor: pointer; }
+  input, select { font-family: inherit; font-size: 13px; }
+
+  /* ── top bar ── */
+  .topbar {
+    background: var(--card); border-bottom: 1px solid var(--border);
+    padding: 10px 18px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    position: sticky; top: 0; z-index: 40;
+  }
+  .topbar .back { color: var(--muted); text-decoration: none; font-size: 13px; white-space: nowrap; }
+  .topbar .back:hover { color: var(--accent); }
+  .topbar h1 { font-size: 16px; font-weight: 700; letter-spacing: -.3px; white-space: nowrap; }
+  .topbar .th-sub { font-size: 12px; color: var(--muted2); white-space: nowrap; }
+  .topbar .spacer { flex: 1; }
+
+  .scenario-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .scenario-bar select { padding: 5px 8px; border: 1px solid var(--border); border-radius: 8px; background: #fff; max-width: 190px; }
+  .btn {
+    border: 1px solid var(--border); background: #fff; border-radius: 8px;
+    padding: 5px 10px; font-size: 12.5px; font-weight: 600; color: var(--text);
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { filter: brightness(1.08); color: #fff; }
+  .btn.danger:hover { border-color: var(--red); color: var(--red); }
+  .btn.sm { padding: 3px 8px; font-size: 12px; }
+
+  /* ── lens / settings bar ── */
+  .lensbar {
+    padding: 10px 18px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .lens-chips { display: flex; gap: 6px; }
+  .lens-chip {
+    border: 1px solid var(--border); background: #fff; border-radius: 999px;
+    padding: 5px 14px; font-size: 12.5px; font-weight: 600; color: var(--muted);
+  }
+  .lens-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .lens-chip:not(.active):hover { border-color: var(--accent); color: var(--accent); }
+  .settings-row { display: flex; align-items: center; gap: 6px; margin-left: auto; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+  .settings-row select { padding: 3px 6px; border: 1px solid var(--border); border-radius: 6px; }
+
+  /* ── layout grid ── */
+  .main {
+    display: grid; grid-template-columns: 250px 1fr 400px; gap: 14px;
+    padding: 0 18px 18px; align-items: start;
+  }
+  @media (max-width: 1100px) { .main { grid-template-columns: 220px 1fr; } .inspector { grid-column: 1 / -1; } }
+  .card-box { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); }
+  .card-box .box-head {
+    padding: 10px 14px; border-bottom: 1px solid var(--border);
+    font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px;
+  }
+  .card-box .box-body { padding: 12px 14px; }
+
+  /* ── entity panel ── */
+  .add-form { display: flex; flex-direction: column; gap: 6px; }
+  .add-form input, .add-form select { padding: 6px 8px; border: 1px solid var(--border); border-radius: 8px; width: 100%; }
+  .entity-list { list-style: none; margin-top: 10px; max-height: 52vh; overflow-y: auto; }
+  .entity-list li {
+    display: flex; align-items: center; gap: 7px; padding: 6px 8px; border-radius: 8px;
+    cursor: pointer; font-size: 13px;
+  }
+  .entity-list li:hover { background: var(--bg); }
+  .entity-list li.selected { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .entity-list .tico { font-size: 14px; width: 18px; text-align: center; }
+  .entity-list .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .entity-list .tag { font-size: 10px; color: var(--muted2); }
+
+  /* ── diagram ── */
+  .diagram-box { overflow: auto; position: relative; }
+  #diagram { display: block; min-width: 100%; }
+  #diagram .node { cursor: pointer; }
+  #diagram .node rect.body {
+    fill: #fff; stroke: var(--border); stroke-width: 1.2; rx: 10;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.07));
+  }
+  #diagram .node.selected rect.body { stroke: var(--accent); stroke-width: 2; }
+  #diagram .node.err rect.body { stroke: var(--red); stroke-dasharray: 4 3; }
+  #diagram .node.dragging { opacity: .6; }
+  #diagram text { user-select: none; }
+  #diagram .nm { font-size: 12.5px; font-weight: 700; fill: var(--text); }
+  #diagram .sub { font-size: 10px; fill: var(--muted2); }
+  #diagram .badge { font-size: 9.5px; font-weight: 700; }
+  #diagram .edge path { fill: none; stroke: #c7c7cc; stroke-width: 1.4; }
+  #diagram .edge.ctrl path { stroke: var(--accent); stroke-width: 2.2; }
+  #diagram .edge text {
+    font-size: 10.5px; font-weight: 600; fill: var(--muted);
+    paint-order: stroke; stroke: var(--card); stroke-width: 3px; stroke-linejoin: round;
+  }
+  #diagram .edge .vdiff { fill: var(--amber); }
+  /* lens tints */
+  #diagram .node.t-foreign rect.body { fill: var(--red-soft); stroke: #e9b1b7; }
+  #diagram .node.t-thai rect.body { fill: var(--blue-soft); stroke: #b3cfe8; }
+  #diagram .node.t-soe rect.body { fill: var(--green-soft); stroke: #a9d4b6; }
+  #diagram .node.t-affil rect.body { fill: #fff; stroke: var(--green); stroke-dasharray: 5 3; }
+  #diagram .node.t-listed rect.body { fill: var(--accent-soft); stroke: #cdb8f5; }
+  #diagram .node.t-holder rect.body { fill: #fdf7e8; stroke: #e2cf96; }
+  .empty-state { text-align: center; color: var(--muted2); padding: 60px 20px; }
+  .empty-state .big { font-size: 34px; margin-bottom: 8px; }
+
+  /* ── inspector ── */
+  .inspector .box-body { display: block; }
+  .inspector .box-body > * { margin-bottom: 14px; }
+  .inspector .box-body > *:last-child { margin-bottom: 0; }
+  .fld { display: flex; flex-direction: column; gap: 3px; }
+  .fld label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; }
+  .fld input, .fld select { padding: 6px 8px; border: 1px solid var(--border); border-radius: 8px; }
+  .fld .chk { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text); text-transform: none; letter-spacing: 0; font-weight: 500; }
+  .sect-title { font-size: 12px; font-weight: 800; color: var(--text); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 6px; display:flex; align-items:center; gap:6px; }
+
+  /* holder / holding rows */
+  .edge-row { border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; font-size: 13px; }
+  .edge-row + .edge-row { margin-top: 6px; }
+  .edge-row .er-head { display: flex; align-items: center; gap: 6px; }
+  .edge-row .who { font-weight: 600; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .edge-row .who:hover { color: var(--accent); }
+  .edge-row .er-dir { font-size: 11px; color: var(--muted2); flex: 1; white-space: nowrap; }
+  .edge-row .x { border: none; background: none; color: var(--muted2); font-size: 15px; line-height: 1; padding: 2px 4px; }
+  .edge-row .x:hover { color: var(--red); }
+  .edge-row .er-fields { display: flex; align-items: flex-end; gap: 10px; margin-top: 6px; flex-wrap: wrap; }
+  .mini-fld { display: flex; flex-direction: column; gap: 2px; }
+  .mini-fld > span { font-size: 10px; font-weight: 700; color: var(--muted2); text-transform: uppercase; letter-spacing: .3px; }
+  .mini-fld .mrow { display: flex; align-items: center; gap: 4px; }
+  .mini-fld input { width: 84px; text-align: right; padding: 4px 6px; border: 1px solid var(--border); border-radius: 6px; }
+  .mini-fld input.auto { color: var(--muted2); font-style: italic; }
+  .mini-fld .reset { border: none; background: none; color: var(--accent); font-size: 11px; padding: 0 2px; }
+  .edge-row .er-val { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; margin-left: auto; align-self: center; }
+  .edge-row .flags { display: flex; gap: 10px; margin-top: 6px; font-size: 11.5px; color: var(--muted); flex-wrap: wrap; }
+  .edge-row .flags label { display: flex; gap: 4px; align-items: center; cursor: pointer; }
+  .add-edge { display: flex; gap: 6px; align-items: center; margin-top: 8px; }
+  .add-edge select { flex: 1; padding: 5px 6px; border: 1px solid var(--border); border-radius: 8px; min-width: 0; }
+  .add-edge input { width: 70px; text-align: right; padding: 5px 6px; border: 1px solid var(--border); border-radius: 8px; }
+
+  /* analysis cards */
+  .law-card { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .law-card + .law-card { margin-top: 10px; }
+  .law-card .law-head {
+    padding: 7px 10px; font-size: 12.5px; font-weight: 700; display: flex; align-items: center; gap: 8px;
+    flex-wrap: wrap; background: var(--bg);
+  }
+  .law-card .law-head .pills { margin-left: auto; display: flex; gap: 4px; flex-wrap: wrap; }
+  .law-card .law-body { padding: 8px 10px; font-size: 12.5px; color: var(--muted); }
+  .law-card .law-body ul { margin: 4px 0 0 16px; }
+  .law-card .law-body li { margin: 2px 0; }
+  .status-pill {
+    display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 999px;
+    font-size: 11px; font-weight: 700; white-space: nowrap;
+  }
+  .pill-red { background: var(--red-soft); color: var(--red); }
+  .pill-blue { background: var(--blue-soft); color: var(--blue); }
+  .pill-green { background: var(--green-soft); color: var(--green); }
+  .pill-amber { background: var(--amber-soft); color: var(--amber); }
+  .pill-purple { background: var(--accent-soft); color: var(--accent); }
+  .pill-gray { background: #ececf0; color: var(--muted); }
+  .cite { font-size: 11px; color: var(--muted2); }
+  .money { font-variant-numeric: tabular-nums; }
+
+  /* relationships */
+  .law-card details { margin-top: 8px; }
+  .law-card summary { cursor: pointer; font-size: 12px; font-weight: 700; color: var(--text); }
+  .rel-group { margin-top: 6px; }
+  .rel-entity { font-size: 12.5px; font-weight: 700; color: var(--text); margin-top: 8px; display: flex; align-items: center; gap: 5px; }
+  .rel-entity:first-child { margin-top: 4px; }
+  .rel-row { display: flex; gap: 6px; align-items: baseline; padding: 2px 0 2px 14px; font-size: 12.5px; }
+  .rel-row .mark { font-weight: 800; width: 14px; flex-shrink: 0; }
+  .rel-row.yes .mark { color: var(--green); }
+  .rel-row.no .mark { color: var(--muted2); }
+  .rel-row.yes { color: var(--text); }
+  .rel-row.no { color: var(--muted2); }
+  .rel-row .why { font-size: 11px; color: var(--muted2); }
+
+  /* ── warnings drawer ── */
+  .warnings { margin: 0 18px 24px; }
+  .warn-item {
+    display: flex; gap: 10px; align-items: flex-start; padding: 9px 12px;
+    border-bottom: 1px solid var(--border); font-size: 13px;
+  }
+  .warn-item:last-child { border-bottom: none; }
+  .warn-item .wico { font-size: 15px; }
+  .warn-item .wtxt b { font-weight: 700; }
+  .warn-item .wcite { display: block; font-size: 11px; color: var(--muted2); }
+  .warn-item.sev-err { background: var(--red-soft); }
+  .warn-none { padding: 12px 14px; color: var(--muted2); font-size: 13px; }
+
+  /* toast */
+  #toasts { position: fixed; bottom: 18px; right: 18px; display: flex; flex-direction: column; gap: 8px; z-index: 90; }
+  .toast {
+    background: #1c1c1e; color: #fff; padding: 9px 14px; border-radius: 10px; font-size: 12.5px;
+    box-shadow: 0 6px 22px rgba(0,0,0,.25); animation: tin .18s ease-out; max-width: 340px;
+  }
+  @keyframes tin { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <a class="back" href="index.html">← Corporate Tools</a>
+  <div>
+    <h1>Corporate Structure &amp; Capitalization Visualizer</h1>
+    <div class="th-sub">โครงสร้างการถือหุ้นและผลทางกฎหมาย — FBA · พ.ร.บ.หลักทรัพย์ฯ · พ.ร.บ.วิธีการงบประมาณ</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="scenario-bar">
+    <select id="scenario-select" onchange="switchScenario(this.value)"></select>
+    <button class="btn sm" onclick="newScenario()">New</button>
+    <button class="btn sm" onclick="duplicateScenario()">Duplicate</button>
+    <button class="btn sm" onclick="renameScenario()">Rename</button>
+    <button class="btn sm danger" onclick="deleteScenario()">Delete</button>
+    <button class="btn sm" onclick="exportJSON()">Export</button>
+    <button class="btn sm" onclick="document.getElementById('import-file').click()">Import</button>
+    <input type="file" id="import-file" accept=".json,application/json" style="display:none" onchange="importJSON(this)">
+  </div>
+</header>
+
+<div class="lensbar">
+  <span style="font-size:12px;font-weight:700;color:var(--muted)">Lens:</span>
+  <div class="lens-chips" id="lens-chips">
+    <button class="lens-chip" data-lens="none" onclick="setLens('none')">Plain</button>
+    <button class="lens-chip" data-lens="fba" onclick="setLens('fba')">FBA คนต่างด้าว</button>
+    <button class="lens-chip" data-lens="sec" onclick="setLens('sec')">SEC Act</button>
+    <button class="lens-chip" data-lens="soe" onclick="setLens('soe')">รัฐวิสาหกิจ</button>
+  </div>
+  <button class="btn sm" onclick="loadExample()">Load example</button>
+  <div class="settings-row">
+    <span>% decimals</span>
+    <select id="set-pctdec" onchange="state.settings.pctDec=+this.value;refresh()">
+      <option>0</option><option>1</option><option selected>2</option><option>3</option><option>4</option>
+    </select>
+    <span>฿ decimals</span>
+    <select id="set-moneydec" onchange="state.settings.moneyDec=+this.value;refresh()">
+      <option selected>0</option><option>1</option><option>2</option><option>3</option><option>4</option>
+    </select>
+    <select id="set-round" onchange="state.settings.rounding=this.value;refresh()">
+      <option value="normal" selected>Round normal</option>
+      <option value="floor">Round down (floor)</option>
+      <option value="ceil">Round up (ceiling)</option>
+    </select>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- entities panel -->
+  <section class="card-box">
+    <div class="box-head">🏛️ Entities</div>
+    <div class="box-body">
+      <div class="add-form">
+        <input id="new-name" placeholder="Name, e.g. บริษัท ก จำกัด" onkeydown="if(event.key==='Enter')addEntity()">
+        <select id="new-type"></select>
+        <button class="btn primary" onclick="addEntity()">+ Add entity</button>
+      </div>
+      <ul class="entity-list" id="entity-list"></ul>
+    </div>
+  </section>
+
+  <!-- diagram -->
+  <section class="card-box diagram-box" id="diagram-wrap">
+    <svg id="diagram" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="empty-state" id="empty-state" style="display:none">
+      <div class="big">🗂️</div>
+      Add entities on the left, then link holders to companies in the inspector.<br>
+      Or <a href="#" onclick="loadExample();return false">load the example structure</a>.
+    </div>
+  </section>
+
+  <!-- inspector -->
+  <section class="card-box inspector">
+    <div class="box-head" id="insp-head">🔍 Inspector</div>
+    <div class="box-body" id="insp-body">
+      <div style="color:var(--muted2);font-size:13px">Select an entity to edit its details and read the legal analysis.</div>
+    </div>
+  </section>
+</div>
+
+<!-- warnings -->
+<section class="card-box warnings">
+  <div class="box-head">⚠️ Warnings &amp; rule triggers <span id="warn-count" class="status-pill pill-gray"></span></div>
+  <div id="warn-list"></div>
+</section>
+
+<div id="toasts"></div>
+
+<script>
+'use strict';
+/* ════════════════════════════ constants ════════════════════════════ */
+const KEY = 'structViz-v1';
+const EPS = 1e-9;
+const NODE_W = 148, NODE_H = 58, COL_GAP = 46, ROW_GAP = 100, PAD = 30;
+
+const TYPES = {
+  person_th:  { label: 'Thai natural person',        th: 'บุคคลธรรมดาสัญชาติไทย', icon: '👤', person: true,  holdable: false },
+  person_fo:  { label: 'Foreign natural person',     th: 'บุคคลธรรมดาต่างชาติ',   icon: '🌏', person: true,  holdable: false },
+  co_ltd:     { label: 'บจก. — Private limited co.', th: 'บริษัทจำกัด',            icon: '🏢', person: false, holdable: true  },
+  pcl:        { label: 'บมจ. — Public limited co.',  th: 'บริษัทมหาชนจำกัด',       icon: '🏬', person: false, holdable: true  },
+  foreign_co: { label: 'Foreign juristic person',    th: 'นิติบุคคลจดทะเบียนต่างประเทศ', icon: '🌐', person: false, holdable: true },
+  partnership:{ label: 'ห้างหุ้นส่วน (หจก./หสน.จดทะเบียน)', th: 'ห้างหุ้นส่วนนิติบุคคล', icon: '🤝', person: false, holdable: true },
+  gov:        { label: 'ส่วนราชการ',                  th: 'ส่วนราชการ',             icon: '🏛️', person: false, holdable: false },
+  soe1:       { label: 'รัฐวิสาหกิจตาม (1) — statutory SOE', th: 'องค์การของรัฐ/กิจการของรัฐที่มีกฎหมายจัดตั้ง', icon: '🚉', person: false, holdable: false },
+};
+const COMPANY_TYPES = ['co_ltd', 'pcl'];                       // eligible for รสก.(2)/(3)
+const TH_JURISTIC   = ['co_ltd', 'pcl', 'partnership'];        // FBA per-tier test applies
+const JURISTIC      = ['co_ltd', 'pcl', 'partnership', 'foreign_co'];
+
+/* ════════════════════════════ state ════════════════════════════ */
+let root = loadRoot();
+let state = activeScenario();
+let selId = null;
+let lastSig = null;
+
+function blankScenario(name) {
+  return {
+    id: 's' + Date.now() + Math.floor(Math.random() * 1e4),
+    name: name || 'Untitled structure',
+    entities: [], edges: [],
+    settings: { pctDec: 2, moneyDec: 0, rounding: 'normal', lens: 'fba' },
+    seq: 1, updated: Date.now()
+  };
+}
+function exampleScenario() {
+  /* โยธิน ตัวอย่างที่ 4 (DTAC-style 49/51 cascade) + a state-sector strand */
+  const s = blankScenario('Example — FBA cascade + SOE');
+  const E = (id, name, type, extra) => Object.assign({ id, name, type, capital: null, listed: false,
+    pKind: 'หจก.', managingPartnerId: null, order: 0 }, extra || {});
+  s.entities = [
+    E('n1', 'ต่างด้าว 1', 'person_fo'),
+    E('n2', 'คนไทย', 'person_th'),
+    E('n3', 'บริษัท C จำกัด', 'co_ltd', { capital: 100000000 }),
+    E('n4', 'ต่างด้าว 2', 'person_fo'),
+    E('n5', 'บริษัท B จำกัด', 'co_ltd', { capital: 50000000 }),
+    E('n6', 'ต่างด้าว 3', 'person_fo'),
+    E('n7', 'บริษัท A (มหาชน)', 'pcl', { capital: 300000000, listed: true }),
+    E('n8', 'กระทรวง ก (ส่วนราชการ)', 'gov'),
+    E('n9', 'การรถไฟฯ (รสก.ตาม (1))', 'soe1'),
+    E('n10', 'บริษัท รัฐร่วมทุน จำกัด', 'co_ltd', { capital: 200000000 }),
+    E('n11', 'บริษัท หลานรัฐ จำกัด', 'co_ltd', { capital: 80000000 }),
+    E('n12', 'บริษัท ในเครือหนึ่ง จำกัด', 'co_ltd', { capital: 60000000 }),
+    E('n13', 'บริษัท ในเครือสอง จำกัด', 'co_ltd', { capital: 40000000 }),
+  ];
+  const G = (from, to, pct) => ({ id: 'e' + from + '_' + to, from, to, pct, vpct: null, meetCtrl: false, boardCtrl: false });
+  s.edges = [
+    G('n1', 'n3', 49), G('n2', 'n3', 51),
+    G('n3', 'n5', 51), G('n4', 'n5', 49),
+    G('n5', 'n7', 51), G('n6', 'n7', 49),
+    G('n8', 'n10', 30), G('n9', 'n10', 25),
+    G('n10', 'n11', 60),
+    G('n9', 'n12', 30),   // SOE(1) holds 30% > 25% ⇒ บริษัทในเครือ (main definition)
+    G('n12', 'n13', 40),  // tier-1 affiliate holds 40% > 25% ⇒ บริษัทในเครือชั้นที่ 2 (extended)
+  ];
+  s.seq = 14;
+  return s;
+}
+function loadRoot() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) {
+      const r = JSON.parse(raw);
+      if (r && Array.isArray(r.scenarios) && r.scenarios.length) return r;
+    }
+  } catch (e) { /* fall through */ }
+  const sc = exampleScenario();
+  return { scenarios: [sc], activeId: sc.id };
+}
+function activeScenario() {
+  return root.scenarios.find(s => s.id === root.activeId) || root.scenarios[0];
+}
+function save() {
+  state.updated = Date.now();
+  try { localStorage.setItem(KEY, JSON.stringify(root)); } catch (e) { /* storage unavailable (sandbox/private mode) — keep working in-memory */ }
+}
+
+/* ════════════════════════════ helpers ════════════════════════════ */
+const byId = id => state.entities.find(e => e.id === id);
+const nameOf = id => (byId(id) || { name: '?' }).name;
+const typeOf = id => (byId(id) || {}).type;
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const inEdges = id => state.edges.filter(e => e.to === id);
+const outEdges = id => state.edges.filter(e => e.from === id);
+const votingOf = e => (e.vpct == null ? e.pct : e.vpct);
+const isHoldable = ent => TYPES[ent.type].holdable;
+
+function fmtPct(v) {
+  const d = state.settings.pctDec;
+  let s = (+v).toFixed(d);
+  if (s.indexOf('.') >= 0) s = s.replace(/0+$/, '').replace(/\.$/, '');
+  return s + '%';
+}
+function fmtMoney(v) {
+  const d = state.settings.moneyDec, m = Math.pow(10, d);
+  let n = v * m;
+  n = state.settings.rounding === 'floor' ? Math.floor(n + EPS)
+    : state.settings.rounding === 'ceil' ? Math.ceil(n - EPS)
+    : Math.round(n);
+  n = n / m;
+  return n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+function stripNum(s) { return String(s).replace(/[^\d.]/g, ''); }
+function liveThousands(input) {
+  const raw = stripNum(input.value);
+  if (raw === '') { input.value = ''; return null; }
+  const parts = raw.split('.');
+  const intPart = parts[0].replace(/^0+(?=\d)/, '');
+  const num = parseFloat(intPart + (parts[1] != null ? '.' + parts[1] : ''));
+  input.value = (intPart === '' ? '0' : Number(intPart).toLocaleString('en-US')) + (parts[1] != null ? '.' + parts[1] : '');
+  return isFinite(num) ? num : null;
+}
+
+/* ════════════════════════════ engines ════════════════════════════ */
+let A = null; // analysis result
+
+function analyze() {
+  const ids = state.entities.map(e => e.id);
+
+  /* ---- inbound capital sums / validation ---- */
+  const capIn = {}, overAlloc = {};
+  ids.forEach(id => {
+    const s = inEdges(id).reduce((a, e) => a + (+e.pct || 0), 0);
+    capIn[id] = s; overAlloc[id] = s > 100 + 1e-6;
+  });
+
+  /* ---- cycles (nodes on some directed cycle) ---- */
+  const cyc = new Set();
+  {
+    const adj = {}; ids.forEach(i => adj[i] = []);
+    state.edges.forEach(e => { if (adj[e.from]) adj[e.from].push(e.to); });
+    const idx = {}, low = {}, onstk = {}, stk = []; let ctr = 0;
+    const selfLoop = new Set(state.edges.filter(e => e.from === e.to).map(e => e.from));
+    function scc(v) {
+      idx[v] = low[v] = ctr++; stk.push(v); onstk[v] = true;
+      for (const w of adj[v]) {
+        if (idx[w] == null) { scc(w); low[v] = Math.min(low[v], low[w]); }
+        else if (onstk[w]) low[v] = Math.min(low[v], idx[w]);
+      }
+      if (low[v] === idx[v]) {
+        const comp = [];
+        let w; do { w = stk.pop(); onstk[w] = false; comp.push(w); } while (w !== v);
+        if (comp.length > 1) comp.forEach(x => cyc.add(x));
+      }
+    }
+    ids.forEach(i => { if (idx[i] == null) scc(i); });
+    selfLoop.forEach(x => cyc.add(x));
+  }
+
+  /* ---- FBA per-tier classification (least fixed point) ---- */
+  const foreign = {};
+  ids.forEach(id => {
+    const t = typeOf(id);
+    foreign[id] = (t === 'person_fo' || t === 'foreign_co');
+  });
+  for (let pass = 0; pass < ids.length + 2; pass++) {
+    let changed = false;
+    for (const id of ids) {
+      const ent = byId(id);
+      if (!TH_JURISTIC.includes(ent.type) || foreign[id]) continue;
+      let f = inEdges(id).reduce((a, e) => a + (foreign[e.from] ? (+e.pct || 0) : 0), 0);
+      let mp = false;
+      if (ent.type === 'partnership' && ent.managingPartnerId && typeOf(ent.managingPartnerId) === 'person_fo') mp = true;
+      if (f >= 50 - EPS || mp) { foreign[id] = true; changed = true; }
+    }
+    if (!changed) break;
+  }
+  const fbaForeignCap = {}; // Σ capital % held by FBA-foreign holders (final statuses)
+  const fbaForeignVote = {};
+  ids.forEach(id => {
+    fbaForeignCap[id] = inEdges(id).reduce((a, e) => a + (foreign[e.from] ? (+e.pct || 0) : 0), 0);
+    fbaForeignVote[id] = inEdges(id).reduce((a, e) => a + (foreign[e.from] ? votingOf(e) : 0), 0);
+  });
+
+  /* ---- cumulative (economic) foreign interest — informational ---- */
+  const cumFo = {};
+  function cumForeign(id, onPath) {
+    const t = typeOf(id);
+    if (t === 'person_fo' || t === 'foreign_co') return 100;
+    if (t === 'person_th' || t === 'gov' || t === 'soe1') return 0;
+    let sum = 0;
+    for (const e of inEdges(id)) {
+      if (onPath.has(e.from)) continue; // cycle-safe: simple paths only
+      onPath.add(e.from);
+      sum += (+e.pct || 0) / 100 * cumForeign(e.from, onPath);
+      onPath.delete(e.from);
+    }
+    return sum;
+  }
+  ids.forEach(id => { cumFo[id] = TH_JURISTIC.includes(typeOf(id)) ? cumForeign(id, new Set([id])) : null; });
+
+  /* ---- Budget Act SOE cascade ---- */
+  const soe = {}; // id -> 1|2|3|null
+  ids.forEach(id => soe[id] = (typeOf(id) === 'soe1' ? 1 : null));
+  // level (2): companies where gov + soe(1) hold combined > 50
+  const stateCapL2 = {};
+  ids.forEach(id => {
+    if (!COMPANY_TYPES.includes(typeOf(id))) return;
+    const s = inEdges(id).reduce((a, e) => a + ((typeOf(e.from) === 'gov' || soe[e.from] === 1) ? (+e.pct || 0) : 0), 0);
+    stateCapL2[id] = s;
+    if (s > 50 + EPS) soe[id] = 2;
+  });
+  // level (3): companies where gov + soe(1) + soe(2) hold combined > 50  — (3) does NOT propagate
+  const stateCapL3 = {};
+  ids.forEach(id => {
+    if (!COMPANY_TYPES.includes(typeOf(id)) || soe[id]) { stateCapL3[id] = null; return; }
+    const s = inEdges(id).reduce((a, e) =>
+      a + ((typeOf(e.from) === 'gov' || soe[e.from] === 1 || soe[e.from] === 2) ? (+e.pct || 0) : 0), 0);
+    stateCapL3[id] = s;
+    if (s > 50 + EPS) soe[id] = 3;
+  });
+  // Cabinet criteria: รัฐวิสาหกิจแม่ + บริษัทในเครือ (>25 combined SOE capital), with per-SOE attribution
+  const soeParent = {}, affiliate = {}, affilCap = {}, affilBy = {};
+  ids.forEach(id => {
+    const t = typeOf(id);
+    soeParent[id] = t === 'soe1' ||
+      (JURISTIC.includes(t) && inEdges(id).reduce((a, e) => a + (typeOf(e.from) === 'gov' ? (+e.pct || 0) : 0), 0) > 50 + EPS);
+    if (TH_JURISTIC.includes(t)) {
+      const holders = inEdges(id).filter(e => soe[e.from]).map(e => ({ id: e.from, pct: (+e.pct || 0), lvl: soe[e.from], alone: (+e.pct || 0) > 25 + EPS }));
+      const s = holders.reduce((a, h) => a + h.pct, 0);
+      affilCap[id] = s; affilBy[id] = holders;
+      affiliate[id] = s > 25 + EPS && !soe[id];
+    } else { affilCap[id] = null; affilBy[id] = []; affiliate[id] = false; }
+  });
+  /* Extended chain (supplementary view): บริษัทในเครือชั้นถัดไป.
+     Tier 1 = the MAIN quoted definition (>25% combined DIRECT SOE capital).
+     Tier n+1 = company where tier-n affiliates hold combined capital > 25%.
+     The main definition always wins the primary status; tiers ≥2 are labelled as the extended view. */
+  const affilTier = {}, affilChainBy = {};
+  ids.forEach(id => { if (affiliate[id]) affilTier[id] = 1; });
+  for (let tier = 1; tier <= ids.length; tier++) {
+    let added = false;
+    ids.forEach(id => {
+      const t = typeOf(id);
+      if (!TH_JURISTIC.includes(t) || soe[id] || affilTier[id]) return;
+      const holders = inEdges(id).filter(e => affilTier[e.from] === tier)
+        .map(e => ({ id: e.from, pct: (+e.pct || 0), tier }));
+      const s = holders.reduce((a, h) => a + h.pct, 0);
+      if (s > 25 + EPS) { affilTier[id] = tier + 1; affilChainBy[id] = holders; added = true; }
+    });
+    if (!added) break;
+  }
+
+  /* ---- SEC Act: control sets for ALL entities (voting-based + fact flags, chains via fixed point) ---- */
+  const ctrlSet = {};   // id -> Set of juristic entities it controls (directly or through the chain)
+  const ctrlWhy = {};   // 'S|O' -> reason text pieces
+  ids.forEach(S => {
+    const set = new Set();
+    let grew = true;
+    while (grew) {
+      grew = false;
+      for (const O of ids) {
+        if (O === S || set.has(O) || !JURISTIC.includes(typeOf(O))) continue;
+        let v = 0, flag = false; const via = [];
+        for (const e of inEdges(O)) {
+          if (e.from === S || set.has(e.from)) {
+            v += votingOf(e);
+            if (e.from !== S) via.push(e.from);
+            if (e.meetCtrl || e.boardCtrl) flag = true;
+          }
+        }
+        if (v > 50 + EPS || flag) {
+          set.add(O); grew = true;
+          ctrlWhy[S + '|' + O] = (flag ? 'fact flag (meeting/board control)' : 'aggregate voting ' + v.toFixed(4).replace(/0+$/, '').replace(/\.$/, '') + '% > 50%') +
+            (via.length ? ' · via ' + via.map(nameOf).join(', ') : '');
+        }
+      }
+    }
+    ctrlSet[S] = set;
+  });
+  function aggVoteTo(S, O) {
+    let v = 0; const parts = [];
+    for (const e of inEdges(O)) {
+      if (e.from === S) { v += votingOf(e); parts.push({ id: S, v: votingOf(e), direct: true }); }
+      else if (ctrlSet[S].has(e.from)) { v += votingOf(e); parts.push({ id: e.from, v: votingOf(e), direct: false }); }
+    }
+    return { v, parts };
+  }
+  const listed = ids.filter(id => { const e = byId(id); return e.type === 'pcl' && e.listed; });
+  const sec = {}; // listedId -> { controllers, parents, subsidiaries, holders }
+  listed.forEach(L => {
+    const controllers = ids.filter(p => p !== L && ctrlSet[p].has(L));
+    const parents = controllers.filter(p => JURISTIC.includes(typeOf(p)));
+    const subsidiaries = [...ctrlSet[L]];
+    const holders = [];
+    ids.forEach(H => {
+      if (H === L) return;
+      const { v, parts } = aggVoteTo(H, L);
+      const direct = parts.filter(p => p.direct).reduce((a, p) => a + p.v, 0);
+      const viaChain = v - direct;
+      if (v <= EPS && !ctrlSet[H].has(L)) return;
+      const band = v >= 75 - EPS ? 75 : v >= 50 - EPS ? 50 : v >= 25 - EPS ? 25 : null;
+      holders.push({ id: H, direct, viaChain, chainSrc: parts.filter(p => !p.direct).map(p => ({ id: p.id, v: p.v })), agg: v, band, major: v > 10 + EPS, controls: ctrlSet[H].has(L) });
+    });
+    holders.sort((a, b) => b.agg - a.agg);
+    sec[L] = { controllers, parents, subsidiaries, holders };
+  });
+
+  /* ---- pairwise SEC relations (all juristic pairs, not just listed) ---- */
+  function relControl(S, O) { return ctrlSet[S] && ctrlSet[S].has(O); }
+  function relParent(S, O) { return JURISTIC.includes(typeOf(S)) && JURISTIC.includes(typeOf(O)) && relControl(S, O); }
+  function relAssociate(S, O) { // บริษัทร่วม: ≥20% of voting shares (direct + via subsidiaries), no control
+    if (!JURISTIC.includes(typeOf(S)) || !JURISTIC.includes(typeOf(O)) || S === O) return false;
+    if (relControl(S, O)) return false;
+    return aggVoteTo(S, O).v >= 20 - EPS;
+  }
+
+  /* ---- warnings ---- */
+  const warns = [];
+  ids.forEach(id => {
+    if (overAlloc[id]) warns.push({
+      sev: 'err', icon: '⛔',
+      html: `<b>${esc(nameOf(id))}</b> — inbound shareholding totals ${fmtPct(capIn[id])} (&gt;100%). Fix the percentages.`,
+      cite: 'Data validation'
+    });
+  });
+  // FBA nominee indicators
+  ids.forEach(id => {
+    const ent = byId(id);
+    if (!TH_JURISTIC.includes(ent.type) || foreign[id]) return;
+    if (cumFo[id] != null && cumFo[id] > 50 + EPS) warns.push({
+      sev: 'warn', icon: '🕵️',
+      html: `<b>${esc(ent.name)}</b> is legally Thai per tier, but cumulative foreign interest is <b>${fmtPct(cumFo[id])}</b> (DTAC pattern). Indicator only — assess nominee exposure.`,
+      cite: 'FBA ม.36 (nominee); per-tier test per ม.4'
+    });
+    const nearMiss = x => {
+      const e2 = byId(x);
+      return e2 && TH_JURISTIC.includes(e2.type) && !foreign[x] && fbaForeignCap[x] >= 45 - EPS && fbaForeignCap[x] < 50 - EPS;
+    };
+    if (nearMiss(id) && inEdges(id).some(e => nearMiss(e.from))) warns.push({
+      sev: 'warn', icon: '🪜',
+      html: `<b>${esc(ent.name)}</b> — repeated thin-margin (≈49/51) Thai-majority tiers in its chain. Indicator only.`,
+      cite: 'FBA ม.36 (nominee indicator)'
+    });
+    if (fbaForeignVote[id] >= 50 - EPS && fbaForeignCap[id] < 50 - EPS) warns.push({
+      sev: 'warn', icon: '🗳️',
+      html: `<b>${esc(ent.name)}</b> is Thai by capital (${fmtPct(fbaForeignCap[id])} foreign) but foreign holders carry <b>${fmtPct(fbaForeignVote[id])}</b> of votes. Indicator only.`,
+      cite: 'FBA ม.36 (voting-control indicator)'
+    });
+  });
+  // SEC triggers
+  listed.forEach(L => {
+    sec[L].holders.forEach(h => {
+      if (h.band) warns.push({
+        sev: 'warn', icon: '📢',
+        html: `<b>${esc(nameOf(h.id))}</b> holds <b>${fmtPct(h.agg)}</b> of voting rights in <b>${esc(nameOf(L))}</b>` +
+          (h.viaChain > EPS ? ` (${fmtPct(h.direct)} direct + ${fmtPct(h.viaChain)} via chain principle)` : '') +
+          ` — at/above the ${h.band}% trigger point. An acquisition reaching this level requires a tender offer unless exempt.`,
+        cite: 'SEC Act ม.247; chain principle per ประกาศ ทจ. 12/2554'
+      });
+    });
+  });
+  // SOE notices
+  ids.forEach(id => {
+    if (soe[id] === 2 || soe[id] === 3) warns.push({
+      sev: 'info', icon: '🏛️',
+      html: `<b>${esc(nameOf(id))}</b> is a <b>รัฐวิสาหกิจตาม (${soe[id]})</b> — state combined capital ${fmtPct(soe[id] === 2 ? stateCapL2[id] : stateCapL3[id])} &gt; 50%. Budget-law regime applies. Its own subsidiaries ${soe[id] === 3 ? 'do <b>not</b> become SOEs (level (3) does not propagate)' : 'may become รัฐวิสาหกิจตาม (3)'}.`,
+      cite: 'พ.ร.บ.วิธีการงบประมาณ 2561 ม.4'
+    });
+    if (affiliate[id]) warns.push({
+      sev: 'info', icon: '🧩',
+      html: `<b>${esc(nameOf(id))}</b> is a <b>บริษัทในเครือของรัฐวิสาหกิจ</b> — SOE combined capital ${fmtPct(affilCap[id])} &gt; 25%${affilBy[id].filter(h => h.alone).length ? ' (ของ ' + affilBy[id].filter(h => h.alone).map(h => esc(nameOf(h.id))).join(', ') + ')' : ' (combined only)'}. Cabinet criteria on establishment/co-investment and supervision apply.`,
+      cite: 'หลักเกณฑ์การจัดตั้ง/ร่วมทุนและกำกับดูแลบริษัทในเครือของรัฐวิสาหกิจ (มติ ครม.)'
+    });
+    if (affilTier[id] > 1) warns.push({
+      sev: 'info', icon: '🪢',
+      html: `<b>${esc(nameOf(id))}</b> is a <b>บริษัทในเครือชั้นที่ ${affilTier[id]}</b> (extended chain view) — tier-${affilTier[id] - 1} affiliates hold combined ${fmtPct((affilChainBy[id] || []).reduce((a, h) => a + h.pct, 0))} &gt; 25% (${(affilChainBy[id] || []).map(h => esc(nameOf(h.id))).join(', ')}). The main definition (&gt;25% direct SOE capital) is not met — direct SOE capital is ${fmtPct(affilCap[id] || 0)}.`,
+      cite: 'หลักเกณฑ์ฯ — tiered affiliates (supplementary view; main test = quoted >25% direct SOE capital)'
+    });
+  });
+  if (cyc.size) warns.push({
+    sev: 'info', icon: '🔁',
+    html: `Cross/circular holdings detected (${[...cyc].map(nameOf).map(esc).join(', ')}). Classification uses a least fixed point; cumulative % sums simple paths only.`,
+    cite: 'Engine note'
+  });
+
+  A = { capIn, overAlloc, cyc, foreign, fbaForeignCap, fbaForeignVote, cumFo,
+        soe, stateCapL2, stateCapL3, soeParent, affiliate, affilCap, affilBy, affilTier, affilChainBy,
+        listed, ctrlSet, ctrlWhy, aggVoteTo, relControl, relParent, relAssociate, sec, warns };
+}
+
+/* status signature for change toasts */
+function signature() {
+  const parts = [];
+  state.entities.forEach(e => {
+    const bands = A.listed.map(L => {
+      const h = (A.sec[L].holders || []).find(x => x.id === e.id);
+      return h && h.band ? L + ':' + h.band : '';
+    }).filter(Boolean).join(',');
+    parts.push([e.id, A.foreign[e.id] ? 'F' : 'T', A.soe[e.id] || '-', A.affilTier[e.id] ? 'A' + A.affilTier[e.id] : '-', bands].join('|'));
+  });
+  return parts;
+}
+function toastStatusChanges(oldSig) {
+  if (!oldSig) return;
+  const oldMap = {}; oldSig.forEach(s => { oldMap[s.split('|')[0]] = s; });
+  signature().forEach(s => {
+    const id = s.split('|')[0];
+    if (!(id in oldMap) || oldMap[id] === s) return;
+    const [, oF, oS, oA] = oldMap[id].split('|'); const [, nF, nS, nA] = s.split('|');
+    const nm = nameOf(id);
+    if (oF !== nF) toast(`${nm}: now ${nF === 'F' ? 'คนต่างด้าว (foreign)' : 'Thai'} under the FBA`);
+    if (oS !== nS) toast(`${nm}: ${nS === '-' ? 'no longer a รัฐวิสาหกิจ' : 'now รัฐวิสาหกิจตาม (' + nS + ')'}`);
+    if (oA !== nA) toast(`${nm}: ${nA === '-' ? 'no longer a บริษัทในเครือของรัฐวิสาหกิจ'
+      : nA === 'A1' ? 'now a บริษัทในเครือของรัฐวิสาหกิจ'
+      : 'now a บริษัทในเครือชั้นที่ ' + nA.slice(1) + ' (extended chain)'}`);
+  });
+}
+function toast(msg) {
+  const d = document.createElement('div');
+  d.className = 'toast'; d.textContent = msg;
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(() => { d.style.transition = 'opacity .4s'; d.style.opacity = '0'; setTimeout(() => d.remove(), 450); }, 3600);
+}
+
+/* ════════════════════════════ layout ════════════════════════════ */
+function computeLayout() {
+  const ids = state.entities.map(e => e.id);
+  const layer = {}; ids.forEach(i => layer[i] = 0);
+  // iterative relaxation, cycle-safe (holders above held)
+  for (let pass = 0; pass < ids.length + 1; pass++) {
+    let changed = false;
+    for (const e of state.edges) {
+      if (layer[e.to] != null && layer[e.from] != null && layer[e.to] < layer[e.from] + 1) {
+        if (layer[e.from] + 1 <= ids.length) { layer[e.to] = layer[e.from] + 1; changed = true; }
+      }
+    }
+    if (!changed) break;
+  }
+  const rows = {};
+  ids.forEach(i => { (rows[layer[i]] = rows[layer[i]] || []).push(i); });
+  const maxL = ids.length ? Math.max(...ids.map(i => layer[i])) : 0;
+
+  // order within tiers: manual `order` first, then barycenter of holders (reduces crossings)
+  const posIdx = {};
+  for (let L = 0; L <= maxL; L++) {
+    const r = rows[L] || [];
+    const bary = {};
+    r.forEach(id => {
+      const hs = inEdges(id).map(e => posIdx[e.from]).filter(x => x != null);
+      bary[id] = hs.length ? hs.reduce((a, b) => a + b, 0) / hs.length : 0;
+    });
+    r.sort((a, b) => ((byId(a).order || 0) - (byId(b).order || 0)) || (bary[a] - bary[b]));
+    r.forEach((id, i) => { posIdx[id] = i; });
+  }
+
+  const maxCols = Object.values(rows).reduce((m, r) => Math.max(m, r.length), 0) || 1;
+  const spacing = NODE_W + COL_GAP;
+  const width = Math.max(maxCols * spacing - COL_GAP + PAD * 2, 480);
+  const height = (maxL + 1) * (NODE_H + ROW_GAP) - ROW_GAP + PAD * 2 + 20;
+  const pos = {};
+  for (let L = 0; L <= maxL; L++) {
+    const r = rows[L] || [];
+    const rowW = r.length * spacing - COL_GAP;
+    const startX = (width - rowW) / 2;
+    r.forEach((id, i) => { pos[id] = { x: startX + i * spacing, y: PAD + L * (NODE_H + ROW_GAP), layer: L }; });
+  }
+  return { pos, width, height, rows, layer };
+}
+
+/* ════════════════════════════ diagram render ════════════════════════════ */
+function secParticipant(id) {
+  if (!A.ctrlSet[id]) return false;
+  if (A.ctrlSet[id].size) return true;
+  return state.entities.some(e => A.ctrlSet[e.id] && A.ctrlSet[e.id].has(id));
+}
+function lensClass(id) {
+  const lens = state.settings.lens;
+  const ent = byId(id);
+  if (lens === 'fba') {
+    if (TYPES[ent.type].person || JURISTIC.includes(ent.type)) return A.foreign[id] ? 't-foreign' : 't-thai';
+    return '';
+  }
+  if (lens === 'soe') {
+    if (A.soe[id]) return 't-soe';
+    if (A.affilTier[id]) return 't-affil';
+    if (ent.type === 'gov') return 't-soe';
+    return '';
+  }
+  if (lens === 'sec') {
+    if (ent.type === 'pcl' && ent.listed) return 't-listed';
+    if (secParticipant(id)) return 't-holder';
+    for (const L of A.listed) {
+      const h = A.sec[L].holders.find(x => x.id === id);
+      if (h && h.major) return 't-holder';
+    }
+    return '';
+  }
+  return '';
+}
+function nodeBadges(id) {
+  const lens = state.settings.lens, ent = byId(id), out = [];
+  if (lens === 'fba') {
+    if (JURISTIC.includes(ent.type)) out.push(A.foreign[id] ? { t: 'ต่างด้าว', c: 'var(--red)' } : { t: 'ไทย', c: 'var(--blue)' });
+    if (TYPES[ent.type].person) out.push(A.foreign[id] ? { t: 'ต่างชาติ', c: 'var(--red)' } : { t: 'ไทย', c: 'var(--blue)' });
+    if (!A.foreign[id] && A.cumFo[id] != null && A.cumFo[id] > 50 + EPS) out.push({ t: 'cum ' + fmtPct(A.cumFo[id]), c: 'var(--amber)' });
+  } else if (lens === 'soe') {
+    if (A.soe[id]) out.push({ t: 'รสก.(' + A.soe[id] + ')', c: 'var(--green)' });
+    if (A.soeParent[id]) out.push({ t: 'รสก.แม่', c: 'var(--green)' });
+    if (A.affiliate[id]) out.push({ t: 'บ.ในเครือ ' + fmtPct(A.affilCap[id]), c: 'var(--green)' });
+    else if (A.affilTier[id] > 1) out.push({ t: 'บ.ในเครือ ชั้น ' + A.affilTier[id], c: 'var(--amber)' });
+  } else if (lens === 'sec') {
+    if (ent.type === 'pcl' && ent.listed) out.push({ t: 'Listed', c: 'var(--accent)' });
+    if (A.ctrlSet[id] && A.ctrlSet[id].size) out.push({ t: 'ควบคุม ' + A.ctrlSet[id].size + ' co.', c: 'var(--accent)' });
+    else {
+      const parentOfMe = state.entities.find(e => A.ctrlSet[e.id] && A.ctrlSet[e.id].has(id));
+      if (parentOfMe && JURISTIC.includes(ent.type)) out.push({ t: 'บ.ย่อยของ ' + nameOf(parentOfMe.id), c: 'var(--amber)' });
+    }
+    for (const L of A.listed) {
+      const h = A.sec[L].holders.find(x => x.id === id);
+      if (h && h.major && !(A.ctrlSet[id] && A.ctrlSet[id].has(L))) { out.push({ t: 'รายใหญ่ ' + fmtPct(h.agg), c: 'var(--amber)' }); break; }
+    }
+  }
+  return out;
+}
+
+function renderDiagram() {
+  const svg = document.getElementById('diagram');
+  const empty = document.getElementById('empty-state');
+  if (!state.entities.length) {
+    svg.setAttribute('width', 0); svg.setAttribute('height', 0); svg.innerHTML = '';
+    empty.style.display = 'block'; return;
+  }
+  empty.style.display = 'none';
+  const { pos, width, height } = computeLayout();
+  svg.setAttribute('width', width); svg.setAttribute('height', height);
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+  /* spread edge anchors across node top/bottom so labels & lines don't pile up */
+  const inAnchor = {}, outAnchor = {};
+  for (const ent of state.entities) {
+    const p = pos[ent.id]; if (!p) continue;
+    const ins = inEdges(ent.id).filter(e => pos[e.from]).sort((a, b) => pos[a.from].x - pos[b.from].x);
+    ins.forEach((e, i) => { inAnchor[e.id] = p.x + NODE_W * (i + 1) / (ins.length + 1); });
+    const outs = outEdges(ent.id).filter(e => pos[e.to]).sort((a, b) => pos[a.to].x - pos[b.to].x);
+    outs.forEach((e, i) => { outAnchor[e.id] = p.x + NODE_W * (i + 1) / (outs.length + 1); });
+  }
+
+  let out = '';
+  // edges first
+  for (const e of state.edges) {
+    const p1 = pos[e.from], p2 = pos[e.to];
+    if (!p1 || !p2) continue;
+    const sx = outAnchor[e.id] != null ? outAnchor[e.id] : p1.x + NODE_W / 2, sy = p1.y + NODE_H;
+    const tx = inAnchor[e.id] != null ? inAnchor[e.id] : p2.x + NODE_W / 2, ty = p2.y;
+    const my = (sy + ty) / 2;
+    // label point on the cubic at t (converges toward the target anchor → labels separate)
+    const bez = t => {
+      const u = 1 - t;
+      return { x: (u * u * u + 3 * u * u * t) * sx + (3 * u * t * t + t * t * t) * tx,
+               y: u * u * u * sy + 3 * u * u * t * my + 3 * u * t * t * my + t * t * t * ty };
+    };
+    const lp = bez(0.74);
+    const isCtrl = state.settings.lens === 'sec' && (votingOf(e) > 50 + EPS || e.meetCtrl || e.boardCtrl);
+    const v = votingOf(e);
+    const showV = e.vpct != null && Math.abs(e.vpct - e.pct) > EPS;
+    out += `<g class="edge${isCtrl ? ' ctrl' : ''}">
+      <path d="M ${sx} ${sy} C ${sx} ${my}, ${tx} ${my}, ${tx} ${ty}" marker-end="url(#arr)"/>
+      <text x="${lp.x}" y="${lp.y - 4}" text-anchor="middle">${fmtPct(e.pct)}</text>
+      ${showV ? `<text class="vdiff" x="${lp.x}" y="${lp.y + 9}" text-anchor="middle">🗳 ${fmtPct(v)}</text>` : ''}
+    </g>`;
+  }
+  // nodes
+  for (const ent of state.entities) {
+    const p = pos[ent.id]; if (!p) continue;
+    const cls = ['node', lensClass(ent.id)];
+    if (ent.id === selId) cls.push('selected');
+    if (A.overAlloc[ent.id]) cls.push('err');
+    const badges = nodeBadges(ent.id);
+    const badgeLine = badges.map(x => x.t).join(' · ');
+    const capLine = ent.capital ? '฿' + fmtMoney(ent.capital) : TYPES[ent.type].th;
+    const tip = `${ent.name} — ${TYPES[ent.type].label}${ent.capital ? ' · ฿' + fmtMoney(ent.capital) : ''}${badgeLine ? '\n' + badgeLine : ''}`;
+    out += `<g class="${cls.join(' ')}" data-id="${ent.id}" transform="translate(${p.x},${p.y})">
+      <title>${esc(tip)}</title>
+      <rect class="body" width="${NODE_W}" height="${NODE_H}" rx="10"/>
+      <text class="nm" x="${NODE_W / 2}" y="20" text-anchor="middle">${esc(clip(ent.name, 18))}</text>
+      <text class="sub" x="${NODE_W / 2}" y="34" text-anchor="middle">${TYPES[ent.type].icon} ${esc(clip(capLine, 22))}</text>
+      ${badgeLine ? `<text class="badge" x="${NODE_W / 2}" y="48" text-anchor="middle" fill="${badges[0].c}">${esc(clip(badgeLine, 26))}</text>` : ''}
+    </g>`;
+  }
+  svg.innerHTML = `<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#c7c7cc"/></marker></defs>` + out;
+
+  // interactions
+  svg.querySelectorAll('.node').forEach(g => {
+    g.addEventListener('mousedown', ev => beginDrag(ev, g.dataset.id));
+    g.addEventListener('click', ev => { if (!dragMoved) { selectEntity(g.dataset.id); } });
+  });
+}
+function clip(s, n) { s = String(s); return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+
+/* drag to reorder within a tier */
+let dragCtx = null, dragMoved = false;
+function beginDrag(ev, id) {
+  ev.preventDefault();
+  dragMoved = false;
+  const { rows, layer } = computeLayout();
+  dragCtx = { id, startX: ev.clientX, layer: layer[id], rows };
+  const move = e => {
+    if (Math.abs(e.clientX - dragCtx.startX) > 6) {
+      dragMoved = true;
+      const el = document.querySelector(`.node[data-id="${id}"]`);
+      if (el) el.classList.add('dragging');
+    }
+  };
+  const up = e => {
+    document.removeEventListener('mousemove', move);
+    document.removeEventListener('mouseup', up);
+    if (dragMoved && dragCtx) {
+      const row = dragCtx.rows[dragCtx.layer] || [];
+      const dx = e.clientX - dragCtx.startX;
+      const shift = Math.round(dx / (NODE_W + COL_GAP));
+      if (shift !== 0) {
+        const cur = row.indexOf(id);
+        const tgt = Math.max(0, Math.min(row.length - 1, cur + shift));
+        row.splice(cur, 1); row.splice(tgt, 0, id);
+        row.forEach((rid, i) => { byId(rid).order = i + 1; }); // explicit manual order for the whole tier
+        refresh();
+      } else {
+        const el = document.querySelector(`.node[data-id="${id}"]`);
+        if (el) el.classList.remove('dragging');
+      }
+    }
+    dragCtx = null;
+    setTimeout(() => { dragMoved = false; }, 0);
+  };
+  document.addEventListener('mousemove', move);
+  document.addEventListener('mouseup', up);
+}
+
+/* ════════════════════════════ entity panel ════════════════════════════ */
+function renderTypeSelect() {
+  const sel = document.getElementById('new-type');
+  sel.innerHTML = Object.entries(TYPES).map(([k, t]) => `<option value="${k}">${t.icon} ${esc(t.label)}</option>`).join('');
+  sel.value = 'co_ltd';
+}
+function renderEntityList() {
+  const ul = document.getElementById('entity-list');
+  ul.innerHTML = state.entities.map(e => `
+    <li class="${e.id === selId ? 'selected' : ''}" onclick="selectEntity('${e.id}')">
+      <span class="tico">${TYPES[e.type].icon}</span>
+      <span class="nm">${esc(e.name)}</span>
+      <span class="tag">${e.type === 'pcl' && e.listed ? 'SET' : ''}</span>
+    </li>`).join('');
+}
+function addEntity() {
+  const name = document.getElementById('new-name').value.trim();
+  const type = document.getElementById('new-type').value;
+  if (!name) { toast('Give the entity a name first'); return; }
+  const ent = { id: 'n' + (state.seq++), name, type, capital: null, listed: false, pKind: 'หจก.', managingPartnerId: null, order: 0 };
+  state.entities.push(ent);
+  document.getElementById('new-name').value = '';
+  selId = ent.id;
+  refresh();
+}
+function deleteEntity(id) {
+  if (!confirm(`Delete “${nameOf(id)}” and all its links?`)) return;
+  state.entities = state.entities.filter(e => e.id !== id);
+  state.edges = state.edges.filter(e => e.from !== id && e.to !== id);
+  state.entities.forEach(e => { if (e.managingPartnerId === id) e.managingPartnerId = null; });
+  if (selId === id) selId = null;
+  refresh();
+}
+function selectEntity(id) { selId = id; refresh(false); }
+
+/* ════════════════════════════ inspector ════════════════════════════ */
+function renderInspector() {
+  const head = document.getElementById('insp-head');
+  const body = document.getElementById('insp-body');
+  const ent = byId(selId);
+  if (!ent) {
+    head.innerHTML = '🔍 Inspector';
+    body.innerHTML = '<div style="color:var(--muted2);font-size:13px">Select an entity to edit its details and read the legal analysis.</div>';
+    return;
+  }
+  head.innerHTML = `${TYPES[ent.type].icon} ${esc(ent.name)}
+    <span style="margin-left:auto"></span>
+    <button class="btn sm danger" onclick="deleteEntity('${ent.id}')">Delete</button>`;
+
+  let html = '';
+
+  /* -- properties -- */
+  html += `<div class="fld"><label>Name</label>
+    <input value="${esc(ent.name)}" onchange="byId('${ent.id}').name=this.value;refresh()"></div>`;
+  html += `<div class="fld"><label>Type</label>
+    <select onchange="changeType('${ent.id}',this.value)">
+      ${Object.entries(TYPES).map(([k, t]) => `<option value="${k}" ${k === ent.type ? 'selected' : ''}>${t.icon} ${esc(t.label)}</option>`).join('')}
+    </select></div>`;
+  if (isHoldable(ent)) {
+    html += `<div class="fld"><label>Registered capital (฿, optional)</label>
+      <input class="money" inputmode="decimal" value="${ent.capital != null ? Number(ent.capital).toLocaleString('en-US') : ''}"
+        placeholder="e.g. 100,000,000"
+        oninput="byId('${ent.id}').capital=liveThousands(this)"
+        onchange="refresh()"></div>`;
+  }
+  if (ent.type === 'pcl') {
+    html += `<div class="fld"><label class="chk"><input type="checkbox" ${ent.listed ? 'checked' : ''}
+      onchange="byId('${ent.id}').listed=this.checked;refresh()"> Listed on SET (หลักทรัพย์จดทะเบียน) — activates รายใหญ่/ม.247 analysis</label></div>`;
+  }
+  if (ent.type === 'partnership') {
+    const holders = inEdges(ent.id).map(e => e.from);
+    html += `<div class="fld"><label>Partnership kind</label>
+      <select onchange="byId('${ent.id}').pKind=this.value;refresh()">
+        <option ${ent.pKind === 'หจก.' ? 'selected' : ''}>หจก.</option>
+        <option ${ent.pKind === 'หสน.จดทะเบียน' ? 'selected' : ''}>หสน.จดทะเบียน</option>
+      </select></div>`;
+    html += `<div class="fld"><label>หุ้นส่วนผู้จัดการ (managing partner)</label>
+      <select onchange="byId('${ent.id}').managingPartnerId=this.value||null;refresh()">
+        <option value="">— none set —</option>
+        ${holders.map(h => `<option value="${h}" ${ent.managingPartnerId === h ? 'selected' : ''}>${esc(nameOf(h))}</option>`).join('')}
+      </select></div>`;
+  }
+
+  /* -- holders (inbound) -- */
+  if (isHoldable(ent)) {
+    const rows = inEdges(ent.id).map(e => edgeRowHTML(e, 'in')).join('');
+    const candidates = state.entities.filter(x => x.id !== ent.id && !state.edges.some(e2 => e2.from === x.id && e2.to === ent.id));
+    html += `<div>
+      <div class="sect-title">Holders <span class="cite">Σ ${fmtPct(A.capIn[ent.id] || 0)}${A.overAlloc[ent.id] ? ' ⛔' : ''}</span></div>
+      ${rows || '<div class="cite">No holders yet.</div>'}
+      <div class="add-edge">
+        <select id="add-holder-sel">${candidates.map(c => `<option value="${c.id}">${TYPES[c.type].icon} ${esc(c.name)}</option>`).join('')}</select>
+        <input id="add-holder-pct" type="number" min="0" max="100" step="0.0001" placeholder="%">
+        <button class="btn sm primary" onclick="addEdgeFromForm('${ent.id}')">Link</button>
+      </div>
+    </div>`;
+  }
+
+  /* -- holdings (outbound) -- */
+  const outs = outEdges(ent.id);
+  if (outs.length) {
+    html += `<div><div class="sect-title">Holdings</div>${outs.map(e => edgeRowHTML(e, 'out')).join('')}</div>`;
+  }
+
+  /* -- analysis -- */
+  html += `<div class="sect-title" style="margin-top:4px">Legal analysis</div>`;
+  html += fbaCardHTML(ent) + soeCardHTML(ent) + secCardHTML(ent);
+
+  body.innerHTML = html;
+}
+
+function edgeRowHTML(e, dir) {
+  const other = dir === 'in' ? e.from : e.to;
+  const target = byId(e.to);
+  const overridden = e.vpct != null;
+  const stakeVal = target && target.capital ? `<span class="er-val money">stake ≈ ฿${fmtMoney(target.capital * (+e.pct || 0) / 100)}</span>` : '';
+  const secFlags = target && target.type === 'pcl' && target.listed ? `
+    <div class="flags">
+      <label><input type="checkbox" ${e.meetCtrl ? 'checked' : ''} onchange="edgeById('${e.id}').meetCtrl=this.checked;refresh()">คุมเสียงข้างมากที่ประชุมผู้ถือหุ้น</label>
+      <label><input type="checkbox" ${e.boardCtrl ? 'checked' : ''} onchange="edgeById('${e.id}').boardCtrl=this.checked;refresh()">คุมแต่งตั้ง/ถอดถอน ≥กึ่งหนึ่งของบอร์ด</label>
+    </div>` : '';
+  return `<div class="edge-row">
+    <div class="er-head">
+      <span class="who" onclick="selectEntity('${other}')">${TYPES[typeOf(other)].icon} ${esc(nameOf(other))}</span>
+      <span class="er-dir">${dir === 'in' ? 'holds in ' + esc(clip(nameOf(e.to), 20)) : 'held in ' + esc(clip(nameOf(e.to), 20))}</span>
+      <button class="x" onclick="removeEdge('${e.id}')" title="Remove link">✕</button>
+    </div>
+    <div class="er-fields">
+      <div class="mini-fld"><span>Capital %</span>
+        <div class="mrow"><input type="number" min="0" max="100" step="0.0001" value="${e.pct}"
+          onchange="setEdgePct('${e.id}', this.value)"></div></div>
+      <div class="mini-fld"><span>Voting %${overridden ? '' : ' (auto)'}</span>
+        <div class="mrow"><input class="${overridden ? '' : 'auto'}" type="number" min="0" max="100" step="0.0001"
+          value="${votingOf(e)}" title="Voting % — defaults to capital %"
+          onchange="setEdgeVpct('${e.id}', this.value)">
+          ${overridden ? `<button class="reset" onclick="edgeById('${e.id}').vpct=null;refresh()" title="Reset voting % to auto">↺ auto</button>` : ''}</div></div>
+      ${stakeVal}
+    </div>
+    ${secFlags}
+  </div>`;
+}
+
+/* relationship row helper */
+function relRow(yes, text, why) {
+  return `<div class="rel-row ${yes ? 'yes' : 'no'}"><span class="mark">${yes ? '✓' : '✗'}</span><span>${text}${why ? ` <span class="why">— ${why}</span>` : ''}</span></div>`;
+}
+
+function fbaCardHTML(ent) {
+  const id = ent.id, t = ent.type;
+  let pill, body = '';
+  if (t === 'person_th') { pill = '<span class="status-pill pill-blue">ไทย</span>'; body = 'Thai natural person — not a คนต่างด้าว.'; }
+  else if (t === 'person_fo') { pill = '<span class="status-pill pill-red">คนต่างด้าว (1)</span>'; body = 'Natural person without Thai nationality — คนต่างด้าวตาม ม.4(1).'; }
+  else if (t === 'gov' || t === 'soe1') { pill = '<span class="status-pill pill-blue">ไทย</span>'; body = 'Thai state entity — not a คนต่างด้าว.'; }
+  else if (t === 'foreign_co') { pill = '<span class="status-pill pill-red">คนต่างด้าว (2)</span>'; body = 'Juristic person not registered in Thailand — คนต่างด้าวตาม ม.4(2).'; }
+  else {
+    const f = A.foreign[id], cap = A.fbaForeignCap[id];
+    pill = f ? '<span class="status-pill pill-red">คนต่างด้าว</span>' : '<span class="status-pill pill-blue">ไทย</span>';
+    const parts = inEdges(id).map(e =>
+      `<li>${esc(nameOf(e.from))} — ${fmtPct(e.pct)} ${A.foreign[e.from] ? '<b style="color:var(--red)">ต่างด้าว</b>' : '<span style="color:var(--blue)">ไทย</span>'}</li>`).join('');
+    body = `Capital held by foreign persons (per tier, final statuses): <b>${fmtPct(cap)}</b> ${cap >= 50 - EPS ? '≥' : '&lt;'} 50% (กึ่งหนึ่ง)
+      ⇒ ${f ? 'คนต่างด้าวตาม ม.4(3)/(4)' : 'Thai'}.<ul>${parts}</ul>`;
+    if (t === 'partnership' && ent.managingPartnerId) {
+      const mp = byId(ent.managingPartnerId);
+      if (mp && mp.type === 'person_fo') body += `<div style="color:var(--red)">หุ้นส่วนผู้จัดการ (${esc(mp.name)}) is a foreign natural person ⇒ foreign per ม.4(3)(ข) regardless of capital.</div>`;
+      else if (mp && mp.type !== 'person_fo' && mp.type !== 'person_th') body += `<div class="cite">Note: ม.4(3)(ข) reaches only natural persons under (1); a juristic managing partner does not trigger it by itself.</div>`;
+    }
+    if (A.cumFo[id] != null) body += `<div style="margin-top:5px">Cumulative (economic) foreign interest: <b>${fmtPct(A.cumFo[id])}</b> <span class="cite">— informational only; the legal test is per tier (แต่ละชั้น ไม่สะสม)</span></div>`;
+    if (A.cyc.has(id)) body += `<div class="cite">🔁 In a holding cycle — least-fixed-point classification.</div>`;
+  }
+  return `<div class="law-card"><div class="law-head">FBA — พ.ร.บ.การประกอบธุรกิจของคนต่างด้าว <span class="pills">${pill}</span></div>
+    <div class="law-body">${body}<div class="cite" style="margin-top:4px">ม.4 นิยาม "คนต่างด้าว"; nominee: ม.36</div></div></div>`;
+}
+
+function soeCardHTML(ent) {
+  const id = ent.id, t = ent.type;
+  let pill = '<span class="status-pill pill-gray">—</span>', body = '', rels = '';
+
+  /* ── status + headline derivation ── */
+  if (t === 'gov') { pill = '<span class="status-pill pill-green">ส่วนราชการ</span>'; body = 'Government agency — its capital counts toward the &gt;50% state-capital tests, and toward รัฐวิสาหกิจแม่ (&gt;50% gov capital).'; }
+  else if (t === 'soe1') { pill = '<span class="status-pill pill-green">รัฐวิสาหกิจ (1)</span>'; body = 'Statutory SOE — รัฐวิสาหกิจตาม ม.4(1); a รัฐวิสาหกิจแม่ under the Cabinet criteria.'; }
+  else if (COMPANY_TYPES.includes(t)) {
+    body = soeCompanyDerivation(id);
+    const pills = [];
+    if (A.soe[id]) pills.push(`<span class="status-pill pill-green">รัฐวิสาหกิจ (${A.soe[id]})</span>`);
+    if (A.affiliate[id]) pills.push('<span class="status-pill pill-green">บ.ในเครือ</span>');
+    else if (A.affilTier[id] > 1) pills.push(`<span class="status-pill pill-amber">บ.ในเครือ ชั้น ${A.affilTier[id]}</span>`);
+    if (pills.length) pill = pills.join(' ');
+    if (A.soeParent[id]) body += `<div class="cite">Also a รัฐวิสาหกิจแม่ (ส่วนราชการ capital &gt; 50%).</div>`;
+  } else if (t === 'partnership') {
+    body = 'Partnerships cannot be รัฐวิสาหกิจ under ม.4(2)/(3) (บจก./บมจ. only), but CAN be a บริษัทในเครือของรัฐวิสาหกิจ under the Cabinet criteria.';
+    if (A.affiliate[id]) pill = '<span class="status-pill pill-green">บ.ในเครือ</span>';
+    else if (A.affilTier[id] > 1) pill = `<span class="status-pill pill-amber">บ.ในเครือ ชั้น ${A.affilTier[id]}</span>`;
+  } else {
+    body = 'Not within the state-enterprise definitions (persons and foreign entities cannot be รัฐวิสาหกิจ or บริษัทในเครือ).';
+  }
+
+  /* ── Section A: state-sector relations — for EVERY Thai juristic, incl. companies that are SOEs themselves ── */
+  if (TH_JURISTIC.includes(t)) {
+    const stateActors = state.entities.filter(x => x.id !== id && (x.type === 'gov' || A.soe[x.id]));
+    rels += `<div class="rel-group"><div class="sect-title" style="margin-top:8px">Relationships — state sector</div>`;
+    if (!stateActors.length) {
+      rels += `<div class="cite">No ส่วนราชการ or รัฐวิสาหกิจ in this structure.</div>`;
+    } else {
+      stateActors.forEach(S => {
+        const pct = inEdges(id).filter(e => e.from === S.id).reduce((a, e) => a + (+e.pct || 0), 0);
+        const cls = S.type === 'gov' ? 'ส่วนราชการ' : `รัฐวิสาหกิจ (${A.soe[S.id]})`;
+        rels += `<div class="rel-entity">${TYPES[S.type].icon} ${esc(S.name)} <span class="cite">(${cls} — holds ${fmtPct(pct)} of ${esc(nameOf(id))})</span></div>`;
+        if (A.soe[S.id]) {
+          const yes = !A.soe[id] && pct > 25 + EPS;
+          rels += relRow(yes, `${esc(nameOf(id))} เป็นบริษัทในเครือของ ${esc(S.name)}?`,
+            A.soe[id] ? 'เป็นรัฐวิสาหกิจเองแล้ว (ไม่ใช่บริษัทในเครือ)' :
+            pct > 25 + EPS ? `ถือ ${fmtPct(pct)} > 25% (เกินยี่สิบห้า)` : `ถือ ${fmtPct(pct)} ไม่เกิน 25%`);
+        } else {
+          rels += relRow(false, `${esc(nameOf(id))} เป็นบริษัทในเครือของ ${esc(S.name)}?`, 'ส่วนราชการไม่ใช่รัฐวิสาหกิจ — นับเข้าเกณฑ์ รสก.(2)/รสก.แม่ แทน');
+        }
+      });
+      /* combined verdicts */
+      if (COMPANY_TYPES.includes(t)) {
+        const c2 = A.stateCapL2[id] || 0;
+        rels += `<div class="rel-entity">Σ Combined verdicts</div>`;
+        rels += relRow(A.soe[id] === 2, `รัฐวิสาหกิจตาม (2)?`, `ทุนของส่วนราชการ + รสก.(1) รวม ${fmtPct(c2)} ${c2 > 50 + EPS ? '> 50%' : 'ไม่เกิน 50%'}`);
+        const c3 = A.soe[id] === 2 ? null : (A.stateCapL3[id] != null ? A.stateCapL3[id] : c2);
+        if (A.soe[id] !== 2) rels += relRow(A.soe[id] === 3, `รัฐวิสาหกิจตาม (3)?`, `ทุนรวมทั้ง รสก.(2): ${fmtPct(c3 || 0)} ${c3 > 50 + EPS ? '> 50%' : 'ไม่เกิน 50%'}`);
+      }
+      if (A.affilCap[id] != null) {
+        rels += relRow(!!A.affiliate[id], `บริษัทในเครือของรัฐวิสาหกิจ (main — นิยามหลัก, ทุน รสก. ทางตรง)?`,
+          A.soe[id] ? 'เป็นรัฐวิสาหกิจเองแล้ว' : `ทุน รสก. รวม ${fmtPct(A.affilCap[id])} ${A.affilCap[id] > 25 + EPS ? '> 25%' : 'ไม่เกิน 25%'}`);
+      }
+    }
+    /* affiliate holders → extended-chain view (supplementary to the main definition) */
+    const affilHolders = state.entities.filter(x => x.id !== id && A.affilTier[x.id] && inEdges(id).some(e => e.from === x.id));
+    if (affilHolders.length || A.affilTier[id] > 1) {
+      affilHolders.forEach(S => {
+        const pct = inEdges(id).filter(e => e.from === S.id).reduce((a, e) => a + (+e.pct || 0), 0);
+        rels += `<div class="rel-entity">${TYPES[S.type].icon} ${esc(S.name)} <span class="cite">(บริษัทในเครือ ชั้น ${A.affilTier[S.id]} — holds ${fmtPct(pct)} of ${esc(nameOf(id))})</span></div>`;
+        const counted = A.affilTier[id] === A.affilTier[S.id] + 1;
+        const sameTierSum = inEdges(id).filter(e => A.affilTier[e.from] === A.affilTier[S.id]).reduce((a, e) => a + (+e.pct || 0), 0);
+        rels += relRow(counted, `${esc(nameOf(id))} เป็นบริษัทในเครือชั้นที่ ${A.affilTier[S.id] + 1} ผ่าน ${esc(S.name)}?`,
+          A.soe[id] ? 'เป็นรัฐวิสาหกิจเองแล้ว' :
+          A.affiliate[id] ? 'เข้านิยามหลักอยู่แล้ว (ชั้นที่ 1 — ทุน รสก. ทางตรง > 25%)' :
+          `ทุนจากบริษัทในเครือชั้น ${A.affilTier[S.id]} รวม ${fmtPct(sameTierSum)} ${sameTierSum > 25 + EPS ? '> 25%' : 'ไม่เกิน 25%'}`);
+      });
+      if (!A.soe[id] && !A.affiliate[id]) {
+        rels += relRow(A.affilTier[id] > 1, `บริษัทในเครือชั้นถัดไป (extended chain — supplementary)?`,
+          A.affilTier[id] > 1 ? `ชั้นที่ ${A.affilTier[id]} — ทุนจากชั้นที่ ${A.affilTier[id] - 1} (${(A.affilChainBy[id] || []).map(h => esc(nameOf(h.id)) + ' ' + fmtPct(h.pct)).join(', ')}) > 25%; นิยามหลัก (ทุน รสก. ทางตรง ${fmtPct(A.affilCap[id] || 0)}) ไม่เข้า`
+                              : 'ไม่มีบริษัทในเครือชั้นใดถือทุนรวมเกิน 25%');
+      }
+    }
+    rels += `<div class="cite" style="margin-top:4px">นิยามหลัก = ทุนทางตรงของรัฐวิสาหกิจ > 25% ตามหลักเกณฑ์ที่อ้าง; ชั้นถัดไป (ถือผ่านบริษัทในเครือ) แสดงเป็น extended view ประกอบเท่านั้น</div></div>`;
+  }
+
+  /* ── Section B: companies this entity holds — for gov, soe(1), SOE-classified companies, and affiliates (chain view) ── */
+  if (t === 'gov' || t === 'soe1' || A.soe[id] || A.affilTier[id]) {
+    const held = [...new Set(outEdges(id).map(e => e.to))].filter(x => TH_JURISTIC.includes(typeOf(x)));
+    if (held.length) {
+      rels += `<div class="rel-group"><div class="sect-title" style="margin-top:8px">Relationships — companies this entity holds</div>`;
+      held.forEach(O => {
+        const pct = outEdges(id).filter(e => e.to === O).reduce((a, e) => a + (+e.pct || 0), 0);
+        rels += `<div class="rel-entity">${TYPES[typeOf(O)].icon} ${esc(nameOf(O))} <span class="cite">(holds ${fmtPct(pct)})</span></div>`;
+        const lvl = A.soe[O];
+        rels += relRow(!!lvl, `${esc(nameOf(O))} เป็นรัฐวิสาหกิจ?`,
+          lvl ? `รัฐวิสาหกิจตาม (${lvl}) — state capital ${fmtPct(lvl === 2 ? A.stateCapL2[O] : A.stateCapL3[O])} > 50%`
+              : `state capital ${fmtPct(Math.max(A.stateCapL2[O] || 0, A.stateCapL3[O] || 0))} ไม่เกิน 50%`);
+        if (t === 'soe1' || A.soe[id]) {
+          const alone = pct > 25 + EPS;
+          rels += relRow(alone && !A.soe[O], `${esc(nameOf(O))} เป็นบริษัทในเครือของ ${esc(nameOf(id))}?`,
+            A.soe[O] ? 'เป็นรัฐวิสาหกิจเองแล้ว (ไม่ใช่บริษัทในเครือ)' :
+            alone ? `ถือ ${fmtPct(pct)} > 25%` :
+            `ถือ ${fmtPct(pct)} ไม่เกิน 25%` + (A.affiliate[O] ? ` — but combined SOE capital ${fmtPct(A.affilCap[O])} > 25% (combined ⇒ ในเครือ)` : ''));
+        } else if (A.affilTier[id]) {
+          /* selected entity is a บริษัทในเครือ (any tier) → chain question about the held company */
+          const myTier = A.affilTier[id];
+          const sameTierSum = inEdges(O).filter(e => A.affilTier[e.from] === myTier).reduce((a, e) => a + (+e.pct || 0), 0);
+          rels += relRow(A.affilTier[O] === myTier + 1, `${esc(nameOf(O))} เป็นบริษัทในเครือชั้นที่ ${myTier + 1} (extended)?`,
+            A.soe[O] ? 'เป็นรัฐวิสาหกิจเองแล้ว' :
+            A.affiliate[O] ? 'เข้านิยามหลักอยู่แล้ว (ชั้นที่ 1 — ทุน รสก. ทางตรง > 25%)' :
+            `ทุนจากบริษัทในเครือชั้น ${myTier} รวม ${fmtPct(sameTierSum)} ${sameTierSum > 25 + EPS ? '> 25%' : 'ไม่เกิน 25%'}`);
+        }
+      });
+      rels += '</div>';
+    }
+  }
+
+  return `<div class="law-card"><div class="law-head">รัฐวิสาหกิจ — พ.ร.บ.วิธีการงบประมาณ 2561 <span class="pills">${pill}</span></div>
+    <div class="law-body">${body}${rels}<div class="cite" style="margin-top:4px">ม.4 "รัฐวิสาหกิจ" (1)–(3); มติ ครม. หลักเกณฑ์บริษัทในเครือ (&gt;25%)</div></div></div>`;
+}
+function soeCompanyDerivation(id) {
+  const lvl = A.soe[id];
+  if (lvl) {
+    const cap = lvl === 2 ? A.stateCapL2[id] : A.stateCapL3[id];
+    const srcs = inEdges(id).filter(e => typeOf(e.from) === 'gov' || A.soe[e.from] === 1 || (lvl === 3 && A.soe[e.from] === 2))
+      .map(e => `<li>${esc(nameOf(e.from))} — ${fmtPct(e.pct)}</li>`).join('');
+    return `State capital ${fmtPct(cap)} &gt; 50% ⇒ รัฐวิสาหกิจตาม ม.4(${lvl}).<ul>${srcs}</ul>` +
+      (lvl === 3 ? '<div class="cite">Level (3) does not propagate — its own majority-held companies are NOT รัฐวิสาหกิจ.</div>' : '');
+  }
+  const c2 = A.stateCapL2[id] || 0, c3 = A.stateCapL3[id];
+  return `State capital: ${fmtPct(c2)} from ส่วนราชการ/รสก.(1)` + (c3 != null ? `; ${fmtPct(c3)} including รสก.(2)` : '') + ` — not over 50%, so not a รัฐวิสาหกิจ.`;
+}
+
+function secCardHTML(ent) {
+  const id = ent.id;
+  const pills = [];
+  let body = '', rels = '';
+  const juristics = state.entities.filter(x => x.id !== id && JURISTIC.includes(x.type));
+  const iAmJuristic = JURISTIC.includes(ent.type);
+
+  /* status pills */
+  if (ent.type === 'pcl' && ent.listed) pills.push('<span class="status-pill pill-purple">Listed กิจการ</span>');
+  if (A.ctrlSet[id] && A.ctrlSet[id].size) pills.push(`<span class="status-pill pill-purple">ควบคุม ${A.ctrlSet[id].size}</span>`);
+  const myParents = state.entities.filter(e => A.ctrlSet[e.id] && A.ctrlSet[e.id].has(id));
+  if (iAmJuristic && myParents.some(p => JURISTIC.includes(p.type))) pills.push('<span class="status-pill pill-amber">บ.ย่อย</span>');
+  if (!pills.length) pills.push('<span class="status-pill pill-gray">—</span>');
+
+  /* headline facts for a listed company */
+  if (ent.type === 'pcl' && ent.listed) {
+    const S = A.sec[id];
+    body += `<div><b>ผู้มีอำนาจควบคุม:</b> ${S.controllers.length ? S.controllers.map(c => esc(nameOf(c))).join(', ') : '<span class="cite">none identified from voting &gt;50% / fact flags</span>'}</div>`;
+    const hs = S.holders.map(h => `<li>${esc(nameOf(h.id))} — <b>${fmtPct(h.agg)}</b> voting
+      ${h.viaChain > EPS ? `(${fmtPct(h.direct)} direct + ${fmtPct(h.viaChain)} chain: ${h.chainSrc.map(c => esc(nameOf(c.id))).join(', ')})` : ''}
+      ${h.major ? '<span class="status-pill pill-amber">รายใหญ่ &gt;10%</span>' : ''}
+      ${h.band ? `<span class="status-pill pill-red">≥${h.band}% trigger</span>` : ''}</li>`).join('');
+    body += `<div style="margin-top:4px"><b>Voting stakes (chain-aggregated):</b><ul>${hs || '<li class="cite">—</li>'}</ul></div>`;
+  } else if (!A.listed.length) {
+    body += `<div class="cite">No listed company in this structure — รายใหญ่ &amp; ม.247 trigger analysis inactive. บริษัทใหญ่/ย่อย/ร่วม relations below still apply.</div>`;
+  }
+
+  /* stakes in listed companies (for non-listed selected entities) */
+  A.listed.filter(L => L !== id).forEach(L => {
+    const S = A.sec[L];
+    const h = S.holders.find(x => x.id === id);
+    const ctrl = S.controllers.includes(id);
+    if (ctrl || h) {
+      body += `<div><b>${esc(nameOf(L))} (listed):</b> ${h ? `aggregate voting <b>${fmtPct(h.agg)}</b>${h.viaChain > EPS ? ` (${fmtPct(h.direct)} direct + ${fmtPct(h.viaChain)} via chain principle)` : ''}` : ''} ${ctrl ? '<span class="status-pill pill-purple">ผู้มีอำนาจควบคุม</span>' : ''} ${h && h.major ? '<span class="status-pill pill-amber">รายใหญ่</span>' : ''} ${h && h.band ? `<span class="status-pill pill-red">≥${h.band}% trigger</span>` : ''}</div>`;
+    }
+  });
+
+  /* ── pairwise relationships: explicit ✓ / ✗ for every relevant entity in the graph ── */
+  const iAmListed = ent.type === 'pcl' && ent.listed;
+  const blocks = [];
+  state.entities.filter(x => x.id !== id).forEach(O => {
+    const oid = O.id;
+    const oJuristic = JURISTIC.includes(O.type);
+    if (!oJuristic && !iAmJuristic) return; // person↔person etc.: no SEC relation to state
+    const rows = [];
+    const myAgg = A.aggVoteTo(id, oid);
+    const theirAgg = A.aggVoteTo(oid, id);
+
+    if (oJuristic) {
+      // control of O (applies to any holder type: person, gov, SOE, company)
+      const iCtrl = A.relControl(id, oid);
+      rows.push(relRow(iCtrl, `${esc(nameOf(id))} มีอำนาจควบคุม ${esc(O.name)}?`,
+        iCtrl ? (A.ctrlWhy[id + '|' + oid] ? esc(A.ctrlWhy[id + '|' + oid]) : 'control chain')
+              : `aggregate voting ${fmtPct(myAgg.v)} ไม่เกิน 50% และไม่มี fact flag`));
+
+      if (iAmJuristic) {
+        // parent / subsidiary — both directions, explicit
+        rows.push(relRow(A.relParent(id, oid), `${esc(O.name)} เป็นบริษัทย่อยของ ${esc(nameOf(id))}?`,
+          A.relParent(id, oid) ? `${esc(nameOf(id))} เป็นบริษัทใหญ่ (มีอำนาจควบคุมกิจการ)` : `ไม่มีอำนาจควบคุม (voting ${fmtPct(myAgg.v)})`));
+        rows.push(relRow(A.relParent(oid, id), `${esc(nameOf(id))} เป็นบริษัทย่อยของ ${esc(O.name)}?`,
+          A.relParent(oid, id) ? `${esc(O.name)} เป็นบริษัทใหญ่ (มีอำนาจควบคุมกิจการ)` : `${esc(O.name)} ไม่มีอำนาจควบคุม (voting ${fmtPct(theirAgg.v)})`));
+        // associate — both directions
+        rows.push(relRow(A.relAssociate(id, oid), `${esc(O.name)} เป็นบริษัทร่วมของ ${esc(nameOf(id))}?`,
+          A.relAssociate(id, oid) ? `ถือหุ้นที่มีสิทธิออกเสียง ${fmtPct(myAgg.v)} (≥20% แต่ไม่ถึงควบคุม)` :
+          A.relControl(id, oid) ? 'เป็นบริษัทย่อย (ควบคุมแล้ว)' : `ถือ ${fmtPct(myAgg.v)} &lt; 20%`));
+        if (theirAgg.v > EPS || A.relControl(oid, id)) {
+          rows.push(relRow(A.relAssociate(oid, id), `${esc(nameOf(id))} เป็นบริษัทร่วมของ ${esc(O.name)}?`,
+            A.relAssociate(oid, id) ? `${esc(O.name)} ถือ ${fmtPct(theirAgg.v)} (≥20% แต่ไม่ถึงควบคุม)` :
+            A.relControl(oid, id) ? 'เป็นบริษัทย่อย (ควบคุมแล้ว)' : `${esc(O.name)} ถือ ${fmtPct(theirAgg.v)} &lt; 20%`));
+        }
+      } else {
+        rows.push(relRow(false, `${esc(O.name)} เป็นบริษัทย่อย/บริษัทใหญ่ของ ${esc(nameOf(id))}?`,
+          'บริษัทใหญ่/ย่อย เป็นความสัมพันธ์ระหว่างนิติบุคคล — ' + (TYPES[ent.type].person ? 'บุคคลธรรมดา' : TYPES[ent.type].th) + 'ใช้สถานะ "ผู้มีอำนาจควบคุม" แทน'));
+      }
+
+      // major shareholder of a listed O
+      if (O.type === 'pcl' && O.listed) {
+        rows.push(relRow(myAgg.v > 10 + EPS, `${esc(nameOf(id))} เป็นผู้ถือหุ้นรายใหญ่ของ ${esc(O.name)}?`,
+          `aggregate voting ${fmtPct(myAgg.v)} ${myAgg.v > 10 + EPS ? '> 10%' : 'ไม่เกิน 10%'}`));
+      }
+      // inverse direction: is O a major shareholder / controller of ME (when I am a listed co)?
+      if (iAmListed) {
+        rows.push(relRow(A.relControl(oid, id), `${esc(O.name)} มีอำนาจควบคุม ${esc(nameOf(id))}?`,
+          A.relControl(oid, id) ? (A.ctrlWhy[oid + '|' + id] ? esc(A.ctrlWhy[oid + '|' + id]) : 'control chain')
+                                : `aggregate voting ${fmtPct(theirAgg.v)} ไม่เกิน 50% และไม่มี fact flag`));
+        rows.push(relRow(theirAgg.v > 10 + EPS, `${esc(O.name)} เป็นผู้ถือหุ้นรายใหญ่ของ ${esc(nameOf(id))}?`,
+          `aggregate voting ${fmtPct(theirAgg.v)} ${theirAgg.v > 10 + EPS ? '> 10%' : 'ไม่เกิน 10%'}`));
+      }
+    } else {
+      /* O is a natural person / ส่วนราชการ / รสก.(1); selected entity is a company:
+         show O's control + รายใหญ่ position over the selected company */
+      rows.push(relRow(A.relControl(oid, id), `${esc(O.name)} มีอำนาจควบคุม ${esc(nameOf(id))}?`,
+        A.relControl(oid, id) ? (A.ctrlWhy[oid + '|' + id] ? esc(A.ctrlWhy[oid + '|' + id]) : 'control chain')
+                              : `aggregate voting ${fmtPct(theirAgg.v)} ไม่เกิน 50% และไม่มี fact flag`));
+      rows.push(relRow(false, `${esc(nameOf(id))} เป็นบริษัทย่อยของ ${esc(O.name)}?`,
+        'บริษัทใหญ่/ย่อย เป็นความสัมพันธ์ระหว่างนิติบุคคล — ' + (TYPES[O.type].person ? 'บุคคลธรรมดา' : TYPES[O.type].th) + 'ใช้สถานะ "ผู้มีอำนาจควบคุม" แทน'));
+      if (iAmListed) {
+        rows.push(relRow(theirAgg.v > 10 + EPS, `${esc(O.name)} เป็นผู้ถือหุ้นรายใหญ่ของ ${esc(nameOf(id))}?`,
+          `aggregate voting ${fmtPct(theirAgg.v)} ${theirAgg.v > 10 + EPS ? '> 10%' : 'ไม่เกิน 10%'}`));
+      }
+    }
+
+    const anyYes = rows.some(r => r.indexOf('rel-row yes') >= 0);
+    blocks.push({ anyYes, html: `<div class="rel-entity">${TYPES[O.type].icon} ${esc(O.name)}</div>` + rows.join('') });
+  });
+  if (blocks.length) {
+    blocks.sort((a, b) => (b.anyYes ? 1 : 0) - (a.anyYes ? 1 : 0));
+    rels = `<details open><summary>Relationships — บริษัทใหญ่ / บริษัทย่อย / บริษัทร่วม / ควบคุม / รายใหญ่ (${blocks.length} ${blocks.length === 1 ? 'entity' : 'entities'})</summary>
+      <div class="rel-group">${blocks.map(b => b.html).join('')}</div>
+      <div class="cite" style="margin-top:4px">v2: ม.258 kinship aggregation &amp; concert party not yet counted.</div>
+    </details>`;
+  }
+
+  return `<div class="law-card"><div class="law-head">SEC Act — พ.ร.บ.หลักทรัพย์ฯ <span class="pills">${pills.join(' ')}</span></div>
+    <div class="law-body">${body}${rels}<div class="cite" style="margin-top:4px">อำนาจควบคุม &gt;50% สิทธิออกเสียง; บ.ร่วม ≥20%; รายใหญ่ &gt;10%; ม.247 triggers 25/50/75; chain principle</div></div></div>`;
+}
+
+/* ════════════════════════════ edges ════════════════════════════ */
+const edgeById = id => state.edges.find(e => e.id === id);
+function addEdgeFromForm(toId) {
+  const sel = document.getElementById('add-holder-sel');
+  const pctIn = document.getElementById('add-holder-pct');
+  const from = sel && sel.value;
+  const pct = parseFloat(pctIn.value);
+  if (!from) { toast('Pick a holder'); return; }
+  if (!isFinite(pct) || pct < 0 || pct > 100) { toast('Enter a % between 0 and 100'); return; }
+  if (!isHoldable(byId(toId))) { toast(TYPES[typeOf(toId)].label + ' cannot have holders'); return; }
+  state.edges.push({ id: 'e' + (state.seq++), from, to: toId, pct, vpct: null, meetCtrl: false, boardCtrl: false });
+  refresh();
+}
+function setEdgePct(id, v) {
+  const e = edgeById(id); if (!e) return;
+  const p = Math.max(0, Math.min(100, parseFloat(v) || 0));
+  e.pct = p; refresh();
+}
+function setEdgeVpct(id, v) {
+  const e = edgeById(id); if (!e) return;
+  const p = parseFloat(v);
+  if (!isFinite(p)) { e.vpct = null; } else { e.vpct = Math.max(0, Math.min(100, p)); }
+  refresh();
+}
+function removeEdge(id) { state.edges = state.edges.filter(e => e.id !== id); refresh(); }
+function changeType(id, type) {
+  const ent = byId(id);
+  ent.type = type;
+  if (!TYPES[type].holdable) { state.edges = state.edges.filter(e => e.to !== id); ent.capital = null; }
+  if (type !== 'pcl') ent.listed = false;
+  if (type !== 'partnership') ent.managingPartnerId = null;
+  refresh();
+}
+
+/* ════════════════════════════ warnings ════════════════════════════ */
+function renderWarnings() {
+  const list = document.getElementById('warn-list');
+  const count = document.getElementById('warn-count');
+  const order = { err: 0, warn: 1, info: 2 };
+  const ws = [...A.warns].sort((a, b) => order[a.sev] - order[b.sev]);
+  count.textContent = ws.length;
+  list.innerHTML = ws.length ? ws.map(w => `
+    <div class="warn-item sev-${w.sev}">
+      <span class="wico">${w.icon}</span>
+      <span class="wtxt">${w.html}<span class="wcite">${esc(w.cite)}</span></span>
+    </div>`).join('') : '<div class="warn-none">No warnings — nothing triggered under the three laws.</div>';
+}
+
+/* ════════════════════════════ lens / scenarios ════════════════════════════ */
+function setLens(l) { state.settings.lens = l; refresh(false); }
+function renderLens() {
+  document.querySelectorAll('.lens-chip').forEach(c => c.classList.toggle('active', c.dataset.lens === state.settings.lens));
+}
+function renderScenarioBar() {
+  const sel = document.getElementById('scenario-select');
+  sel.innerHTML = root.scenarios.map(s => `<option value="${s.id}" ${s.id === root.activeId ? 'selected' : ''}>${esc(s.name)}</option>`).join('');
+  document.getElementById('set-pctdec').value = String(state.settings.pctDec);
+  document.getElementById('set-moneydec').value = String(state.settings.moneyDec);
+  document.getElementById('set-round').value = state.settings.rounding;
+}
+function switchScenario(id) {
+  root.activeId = id; state = activeScenario(); selId = null; lastSig = null; refresh();
+}
+function newScenario() {
+  const name = prompt('Name for the new structure:', 'New structure');
+  if (name == null) return;
+  const s = blankScenario(name.trim() || 'Untitled structure');
+  root.scenarios.push(s); root.activeId = s.id; state = s; selId = null; lastSig = null; refresh();
+}
+function duplicateScenario() {
+  const copy = JSON.parse(JSON.stringify(state));
+  copy.id = 's' + Date.now() + Math.floor(Math.random() * 1e4);
+  copy.name = state.name + ' (copy)';
+  root.scenarios.push(copy); root.activeId = copy.id; state = activeScenario(); lastSig = null; refresh();
+  toast('Duplicated — edit this copy to compare before/after.');
+}
+function renameScenario() {
+  const name = prompt('Rename structure:', state.name);
+  if (name == null) return;
+  state.name = name.trim() || state.name; refresh(false);
+}
+function deleteScenario() {
+  if (root.scenarios.length === 1) { toast('Cannot delete the only structure — create another first.'); return; }
+  if (!confirm(`Delete structure “${state.name}”? This cannot be undone.`)) return;
+  root.scenarios = root.scenarios.filter(s => s.id !== state.id);
+  root.activeId = root.scenarios[0].id; state = activeScenario(); selId = null; lastSig = null; refresh();
+}
+function loadExample() {
+  const s = exampleScenario();
+  root.scenarios.push(s); root.activeId = s.id; state = s; selId = null; lastSig = null; refresh();
+}
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = state.name.replace(/[^\wก-๙-]+/g, '_') + '.structviz.json';
+  a.click(); URL.revokeObjectURL(a.href);
+}
+function importJSON(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const s = JSON.parse(reader.result);
+      if (!Array.isArray(s.entities) || !Array.isArray(s.edges)) throw new Error('bad shape');
+      s.id = 's' + Date.now() + Math.floor(Math.random() * 1e4);
+      s.name = (s.name || file.name.replace(/\.structviz\.json$|\.json$/i, '')) + ' (imported)';
+      s.settings = Object.assign({ pctDec: 2, moneyDec: 0, rounding: 'normal', lens: 'fba' }, s.settings || {});
+      s.seq = s.seq || (s.entities.length + s.edges.length + 1);
+      root.scenarios.push(s); root.activeId = s.id; state = activeScenario(); selId = null; lastSig = null; refresh();
+      toast('Imported “' + state.name + '”');
+    } catch (e) { toast('Import failed — not a valid structure file.'); }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+/* ════════════════════════════ main refresh ════════════════════════════ */
+function refresh(withToasts = true) {
+  const oldSig = lastSig;
+  analyze();
+  renderScenarioBar();
+  renderLens();
+  renderEntityList();
+  renderDiagram();
+  renderInspector();
+  renderWarnings();
+  save();
+  if (withToasts) toastStatusChanges(oldSig);
+  lastSig = signature();
+}
+
+renderTypeSelect();
+refresh(false);
+</script>
+</body>
+</html>
