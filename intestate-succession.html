@@ -1,0 +1,1641 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Intestate Succession Calculator — มรดกโดยธรรม | JuraTools</title>
+  <meta name="description" content="คำนวณการแบ่งทรัพย์มรดกโดยธรรมตามประมวลกฎหมายแพ่งและพาณิชย์ บรรพ 6 — ทายาท 6 ลำดับ คู่สมรส การรับมรดกแทนที่ การสืบมรดก การสละ การกำจัด และการตัดมิให้รับมรดก By Kornrawee Chanchom." />
+  <style>
+    :root {
+      --ink: #1c1c1e; --ink-2: #3c3c43; --muted: #6e6e73; --faint: #aeaeb2;
+      --line: rgba(0,0,0,0.08); --line-soft: rgba(0,0,0,0.05);
+      --accent: #4f46e5; --accent-dark: #4338ca; --accent-soft: rgba(79,70,229,0.09);
+      --amber: #d97706; --amber-bg: rgba(217,119,6,0.08);
+      --green: #248a3d; --green-bg: rgba(52,199,89,0.12);
+      --red: #e11d48;
+      --card-bg: rgba(255,255,255,0.82);
+      --radius: 16px; --radius-sm: 10px;
+      --shadow: 0 1px 1px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06);
+      --maxw: 1180px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0; color: var(--ink); line-height: 1.5;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", "Noto Sans Thai", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      background: #f2f2f7;
+      background-image:
+        radial-gradient(ellipse 1100px 700px at 10% 0%,   rgba(199,210,254,0.45) 0%, transparent 60%),
+        radial-gradient(ellipse  700px 700px at 95% 8%,   rgba(221,214,254,0.4)  0%, transparent 55%),
+        radial-gradient(ellipse  800px 600px at 0%  92%,  rgba(167,243,208,0.28) 0%, transparent 55%),
+        radial-gradient(ellipse  900px 500px at 100% 96%, rgba(255,220,180,0.25) 0%, transparent 55%);
+    }
+    button, input, select, textarea { font: inherit; }
+    a { color: var(--accent); }
+    h1, h2, h3, p { margin-top: 0; }
+    .muted { color: var(--muted); }
+
+    /* ── Sticky breadcrumb nav ────────────────────── */
+    .nav {
+      position: sticky; top: 0; z-index: 200; height: 52px;
+      display: flex; align-items: center; gap: 11px; padding: 0 22px;
+      background: rgba(242,242,247,0.82);
+      backdrop-filter: blur(24px) saturate(200%);
+      -webkit-backdrop-filter: blur(24px) saturate(200%);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav a { text-decoration: none; color: inherit; font-weight: inherit; }
+    .nav-brand { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+    .nav-icon {
+      width: 30px; height: 30px; border-radius: 7px;
+      background: linear-gradient(145deg, #2979ff, #1565c0);
+      display: grid; place-items: center; font-size: 15px;
+      box-shadow: 0 2px 6px rgba(41,121,255,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    .nav-wordmark { font-size: 15px; font-weight: 700; letter-spacing: -0.4px; color: var(--ink); }
+    .nav-sep { color: #c7c7cc; font-size: 14px; }
+    .nav-crumb { font-size: 14px; font-weight: 500; color: var(--muted); }
+    .nav-crumb.current { color: var(--ink); font-weight: 600; }
+    .nav-back {
+      margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+      font-size: 13px; font-weight: 500; color: var(--ink-2);
+      background: rgba(0,0,0,0.055); border: 1px solid rgba(0,0,0,0.1);
+      padding: 6px 12px; border-radius: 9px; transition: background .14s;
+    }
+    .nav-back:hover { background: rgba(0,0,0,0.09); }
+    @media (max-width: 620px) { .nav-crumb:not(.current), .nav-sep.hide-sm { display: none; } }
+
+    /* ── Hero ─────────────────────────────────────── */
+    .hero { width: min(var(--maxw), calc(100% - 32px)); margin: 0 auto; padding: 30px 0 8px; }
+    .hero h1 {
+      font-size: clamp(26px, 3.6vw, 34px); font-weight: 800; letter-spacing: -0.5px; line-height: 1.15;
+      background: linear-gradient(135deg, #1c1c1e 0%, #4f46e5 60%, #7c3aed 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      margin-bottom: 6px;
+    }
+    .hero h1 .h1-emoji { -webkit-text-fill-color: initial; background: none; }
+    .hero .sub { font-size: 14px; color: var(--muted); line-height: 1.55; max-width: 860px; }
+    .hero .sub .en { display: block; font-size: 12px; color: var(--faint); margin-top: 2px; }
+    .hero-links { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 12px; font-size: 12px; color: var(--faint); align-items: center; }
+    .hero-links .dot { color: #d1d1d6; }
+
+    /* ── Workspace ────────────────────────────────── */
+    .workspace {
+      width: min(var(--maxw), calc(100% - 32px));
+      margin: 14px auto 40px;
+      display: grid; grid-template-columns: minmax(0, 1fr) 410px; gap: 20px; align-items: start;
+    }
+    .entry-area, .summary-panel { min-width: 0; }
+    @media (max-width: 1020px) { .workspace { grid-template-columns: 1fr; } .summary-panel { position: static !important; } }
+
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.9);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+    }
+    .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; flex-wrap: wrap; }
+    .step-no {
+      width: 26px; height: 26px; border-radius: 8px; flex-shrink: 0;
+      background: linear-gradient(145deg, #6366f1, #4f46e5); color: #fff;
+      display: grid; place-items: center; font-size: 13px; font-weight: 700;
+      box-shadow: 0 1px 4px rgba(79,70,229,0.35);
+    }
+    .card-header h2 { font-size: 16px; font-weight: 700; letter-spacing: -0.2px; margin: 0; }
+    .card-header .law-ref { font-size: 11.5px; color: var(--faint); font-weight: 500; }
+    .card-note { font-size: 12px; color: var(--muted); line-height: 1.55; margin: 6px 0 12px; }
+    .card-note b { color: var(--ink-2); }
+
+    /* class sub-cards */
+    .class-card {
+      border: 1px solid var(--line); border-radius: 12px;
+      padding: 13px 14px; margin-bottom: 12px; background: rgba(255,255,255,0.55);
+    }
+    .class-card:last-child { margin-bottom: 0; }
+    .class-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+    .class-head h3 { font-size: 13.5px; font-weight: 700; margin: 0; color: var(--ink); }
+    .class-head .spacer { flex: 1; }
+    .class-hint { font-size: 11.5px; color: var(--muted); line-height: 1.55; margin: 2px 0 10px; }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2.5px 9px; border-radius: 999px;
+      font-size: 11px; font-weight: 600; letter-spacing: .1px; white-space: nowrap;
+    }
+    .badge.take   { background: var(--green-bg); color: var(--green); border: 1px solid rgba(52,199,89,.25); }
+    .badge.block  { background: var(--amber-bg); color: var(--amber); border: 1px solid rgba(217,119,6,.22); }
+    .badge.idle   { background: rgba(0,0,0,0.05); color: var(--muted); border: 1px solid var(--line); }
+
+    /* ── Inputs ───────────────────────────────────── */
+    .field-label { display: block; font-size: 11.5px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+    .input, .select {
+      width: 100%; background: #fff; border: 1px solid var(--line);
+      border-radius: var(--radius-sm); padding: 8px 11px; font-size: 13.5px;
+      color: var(--ink); outline: none; min-height: 38px;
+      transition: border-color .14s, box-shadow .14s;
+    }
+    .input:focus, .select:focus { border-color: rgba(79,70,229,0.5); box-shadow: 0 0 0 3px rgba(79,70,229,0.13); }
+    .input.money { text-align: right; font-variant-numeric: tabular-nums; }
+    .select { -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg width='10' height='6' viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236e6e73' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 560px) { .grid-2 { grid-template-columns: 1fr; } }
+    .radio-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .seg {
+      display: inline-flex; align-items: center; gap: 6px;
+      border: 1px solid var(--line); border-radius: 9px; background: #fff;
+      padding: 7px 12px; font-size: 12.5px; font-weight: 500; cursor: pointer;
+      color: var(--ink-2); transition: all .13s; user-select: none;
+    }
+    .seg:hover { background: rgba(0,0,0,0.03); }
+    .seg.on { background: var(--accent-soft); border-color: rgba(79,70,229,0.45); color: var(--accent-dark); font-weight: 600; }
+    .seg input { display: none; }
+
+    /* option blocks (interpretation choices) */
+    .opt-block { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; background: rgba(255,255,255,0.55); }
+    .opt-block:last-child { margin-bottom: 0; }
+    .opt-title { font-size: 12.5px; font-weight: 700; color: var(--ink); margin-bottom: 2px; }
+    .opt-sub { font-size: 11.5px; color: var(--muted); margin-bottom: 8px; line-height: 1.5; }
+    .opt-choice { display: flex; align-items: flex-start; gap: 8px; padding: 6px 4px; border-radius: 8px; cursor: pointer; font-size: 12.5px; color: var(--ink-2); line-height: 1.5; }
+    .opt-choice:hover { background: rgba(0,0,0,0.03); }
+    .opt-choice input { margin-top: 3px; accent-color: var(--accent); }
+    .opt-choice b { color: var(--ink); font-weight: 600; }
+
+    /* ── Person tree ──────────────────────────────── */
+    .person-list { display: flex; flex-direction: column; gap: 8px; }
+    .person-node { border: 1px solid var(--line); border-radius: 10px; background: #fff; padding: 9px 10px; }
+    .person-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .person-row .input { flex: 1 1 130px; min-height: 34px; padding: 6px 10px; font-size: 13px; }
+    .person-row .select { flex: 1 1 150px; width: auto; min-height: 34px; padding: 5px 26px 5px 9px; font-size: 12px; }
+    .person-children { margin-top: 8px; margin-left: 14px; padding-left: 12px; border-left: 2px solid rgba(79,70,229,0.25); display: flex; flex-direction: column; gap: 8px; }
+    .child-caption { font-size: 11px; font-weight: 600; color: var(--accent-dark); }
+    .mini-btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      border: 1px solid var(--line); background: #fff; border-radius: 8px;
+      min-height: 30px; padding: 0 10px; font-weight: 600; font-size: 11.5px;
+      cursor: pointer; color: var(--ink-2); transition: background .13s; white-space: nowrap;
+    }
+    .mini-btn:hover { background: rgba(0,0,0,0.05); }
+    .mini-btn.accent { color: var(--accent-dark); border-color: rgba(79,70,229,0.35); background: var(--accent-soft); }
+    .mini-btn.accent:hover { background: rgba(79,70,229,0.16); }
+    .mini-btn.danger { color: var(--red); }
+    .empty-hint { font-size: 12px; color: var(--faint); padding: 4px 2px; }
+
+    /* member rows (class 2 / 5 / spouse) */
+    .member-row { border: 1px solid var(--line); border-radius: 10px; background: #fff; padding: 9px 10px; margin-bottom: 8px; }
+    .member-row:last-child { margin-bottom: 0; }
+    .member-main { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .member-main .role { font-size: 12.5px; font-weight: 700; color: var(--ink); min-width: 38px; }
+    .member-main .input { flex: 1 1 120px; min-height: 34px; padding: 6px 10px; font-size: 13px; }
+    .member-main .select { flex: 1 1 150px; width: auto; min-height: 34px; padding: 5px 26px 5px 9px; font-size: 12px; }
+    .member-extra { margin-top: 7px; }
+    .member-extra .input { min-height: 34px; padding: 6px 10px; font-size: 12.5px; }
+    .succ-hint { font-size: 11px; color: var(--muted); margin-top: 3px; }
+    .inline-note { font-size: 11.5px; color: var(--amber); margin-top: 6px; line-height: 1.5; }
+
+    .toggle-line { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+
+    /* ── Summary panel ────────────────────────────── */
+    .summary-panel { position: sticky; top: 66px; }
+    .summary-card { background: var(--card-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.9); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px 20px; margin-bottom: 14px; }
+    .summary-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+    .summary-head h2 { font-size: 16px; font-weight: 700; margin: 0; letter-spacing: -0.2px; }
+    .estate-line { font-size: 12.5px; color: var(--muted); margin-bottom: 10px; line-height: 1.55; }
+    .estate-line b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+    .marital-box { border: 1px solid rgba(79,70,229,0.25); background: var(--accent-soft); border-radius: 10px; padding: 9px 12px; font-size: 12px; color: var(--ink-2); margin-bottom: 10px; line-height: 1.6; }
+    .marital-box b { font-variant-numeric: tabular-nums; }
+
+    table.result { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    table.result th { text-align: left; font-size: 11px; font-weight: 700; color: var(--faint); text-transform: none; letter-spacing: .2px; padding: 5px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    table.result th.num, table.result td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    table.result td { padding: 7px 6px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+    table.result tr:last-child td { border-bottom: none; }
+    table.result td .who { font-weight: 600; color: var(--ink); }
+    table.result td .how { font-size: 11px; color: var(--muted); line-height: 1.45; margin-top: 1px; }
+    table.result td .frac { font-weight: 600; color: var(--accent-dark); }
+    table.result td .pct { font-size: 10.5px; color: var(--faint); }
+    table.result tfoot td { border-top: 1.5px solid var(--line); font-weight: 700; padding-top: 8px; }
+    .rounding-diff { font-size: 11px; color: var(--muted); margin-top: 5px; }
+
+    /* per-asset breakdown */
+    .asset-break { margin-bottom: 14px; }
+    .asset-break:last-child { margin-bottom: 4px; }
+    .asset-break h4 { font-size: 12px; font-weight: 700; color: var(--ink); margin: 8px 0 5px; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+    .asset-chip { display: inline-flex; padding: 1.5px 8px; border-radius: 999px; font-size: 10px; font-weight: 600; background: rgba(0,0,0,0.05); color: var(--muted); border: 1px solid var(--line); }
+    .asset-chip.m { background: var(--accent-soft); color: var(--accent-dark); border-color: rgba(79,70,229,0.25); }
+    .asset-val { font-size: 11px; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    .escheat-box { border: 1px solid rgba(217,119,6,0.3); background: var(--amber-bg); border-radius: 10px; padding: 12px 14px; font-size: 13px; color: var(--amber); font-weight: 600; }
+
+    .fmt-controls { display: flex; gap: 8px; align-items: end; margin: 12px 0 2px; flex-wrap: wrap; }
+    .fmt-controls .fc { flex: 1 1 110px; }
+    .fmt-controls .select { min-height: 34px; padding: 5px 26px 5px 9px; font-size: 12px; }
+
+    details.block { border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,0.6); margin-top: 12px; overflow: hidden; }
+    details.block summary { cursor: pointer; padding: 9px 12px; font-size: 12.5px; font-weight: 700; color: var(--ink-2); user-select: none; list-style: none; display: flex; align-items: center; gap: 6px; }
+    details.block summary::before { content: '▸'; font-size: 10px; color: var(--faint); transition: transform .15s; }
+    details.block[open] summary::before { transform: rotate(90deg); }
+    details.block .block-body { padding: 2px 14px 12px; }
+    .step-item { margin-bottom: 10px; }
+    .step-item h4 { font-size: 12px; font-weight: 700; color: var(--ink); margin: 0 0 3px; }
+    .step-item ul { margin: 0; padding-left: 18px; }
+    .step-item li { font-size: 11.5px; color: var(--ink-2); line-height: 1.6; margin-bottom: 2px; }
+    .note-item { display: flex; gap: 7px; font-size: 11.5px; line-height: 1.55; margin-bottom: 6px; color: var(--ink-2); }
+    .note-item .ic { flex-shrink: 0; }
+    .note-item.warn { color: #92400e; }
+
+    .panel-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+    .button {
+      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+      border-radius: 10px; padding: 0 14px; min-height: 38px;
+      font-weight: 600; font-size: 13px; border: 1px solid var(--line);
+      background: #fff; color: var(--ink-2); cursor: pointer;
+      transition: background .15s, border-color .15s, box-shadow .15s, transform .12s;
+    }
+    .button.primary { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 1px 4px rgba(79,70,229,.32), inset 0 1px 0 rgba(255,255,255,.18); }
+    .button.primary:hover { background: var(--accent-dark); transform: translateY(-1px); }
+    .button.secondary:hover { background: rgba(0,0,0,0.05); }
+    .disclaimer { font-size: 11px; color: var(--faint); line-height: 1.55; margin-top: 12px; }
+
+    .toolbar-top { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+    .toolbar-top .spacer { flex: 1; }
+    .save-hint { font-size: 11px; color: var(--faint); }
+
+    .footer { text-align: center; font-size: 12px; color: #c7c7cc; padding: 0 16px 28px; }
+  </style>
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav class="nav">
+    <a class="nav-brand" href="index.html">
+      <div class="nav-icon">⚖️</div>
+      <span class="nav-wordmark">JuraTools</span>
+    </a>
+    <span class="nav-sep hide-sm">›</span>
+    <span class="nav-crumb current">Intestate Succession</span>
+    <a class="nav-back" href="index.html">← All tools</a>
+  </nav>
+
+  <!-- ── Hero ── -->
+  <header class="hero">
+    <h1><span class="h1-emoji">🌳</span> Intestate Succession Calculator</h1>
+    <p class="sub">
+      <b>เครื่องคำนวณมรดกโดยธรรม</b> — คำนวณการแบ่งทรัพย์มรดกกรณีไม่มีพินัยกรรม (หรือส่วนที่พินัยกรรมไม่ได้จำหน่าย) ตาม ป.พ.พ. บรรพ 6 —
+      ทายาทโดยธรรม 6 ลำดับ ส่วนแบ่งคู่สมรส การรับมรดกแทนที่ การสืบมรดก การสละมรดก การถูกกำจัด และการถูกตัดมิให้รับมรดก
+      พร้อมเหตุผลอ้างมาตราทีละขั้น ประเด็นที่ต้องใช้ดุลพินิจทางกฎหมายเปิดให้ผู้ใช้เลือกเอง
+      <span class="en">Thai intestate succession calculator — CCC ss. 1599–1645, 1753. Exact fractions, per-stirpes representation, interpretation toggles. Runs entirely in your browser.</span>
+    </p>
+    <div class="hero-links">
+      <span>ม.1599–1645, 1753</span><span class="dot">·</span>
+      <span>คำนวณเศษส่วนแบบแม่นยำ</span><span class="dot">·</span>
+      <span>ข้อมูลอยู่ในเบราว์เซอร์ของคุณเท่านั้น</span>
+    </div>
+  </header>
+
+  <!-- ── Workspace ── -->
+  <div class="workspace">
+    <!-- ═══ Entry area ═══ -->
+    <div class="entry-area">
+
+      <div class="toolbar-top">
+        <button class="button secondary" id="btn-example" type="button"><span>✨</span> โหลดตัวอย่าง</button>
+        <select class="select" id="example-select" style="width:auto; min-height:38px; font-size:12.5px;">
+          <option value="ex1">ตย. 1 — คู่สมรส + บุตร 3 (1 คนตายก่อน มีหลาน 2) + บิดา</option>
+          <option value="ex2">ตย. 2 — คู่สมรส + บิดามารดา (ไม่มีบุตร)</option>
+          <option value="ex3">ตย. 3 — คู่สมรส + พี่น้องร่วมบิดามารดา 2 คน</option>
+          <option value="ex4">ตย. 4 — บุตรสละมรดก มีผู้สืบสันดานสืบ</option>
+        </select>
+        <span class="spacer"></span>
+        <span class="save-hint" id="save-hint">บันทึกอัตโนมัติในเครื่อง</span>
+        <button class="button secondary" id="btn-reset" type="button"><span>🗑️</span> ล้างข้อมูล</button>
+      </div>
+
+      <!-- ── 1. กองมรดก ── -->
+      <section class="card" id="estate-section">
+        <div class="card-header">
+          <span class="step-no">1</span>
+          <h2>กองมรดก</h2>
+          <span class="law-ref">ม.1600, 1620, 1625</span>
+        </div>
+        <p class="card-note">
+          ใส่มูลค่า<b>กองมรดกสุทธิ</b> (ทรัพย์สินหักหนี้สินแล้ว เฉพาะส่วนที่<b>ไม่ได้</b>จำหน่ายโดยพินัยกรรม — ม.1620)
+          หรือให้เครื่องมือแยก<b>สินสมรส</b>ให้ก่อนตาม ม.1625 (1) — ครึ่งหนึ่งของสินสมรสเป็นของคู่สมรสในฐานะเจ้าของร่วม ไม่ใช่มรดก
+          จะเว้นว่างไว้เพื่อดูเฉพาะ<b>สัดส่วน</b>ก็ได้
+        </p>
+        <div style="margin-bottom:12px;">
+          <label class="field-label" for="decedent-name">ชื่อเจ้ามรดก (ไม่บังคับ)</label>
+          <input class="input" id="decedent-name" type="text" placeholder="เช่น นายสมชาย ใจดี" autocomplete="off" />
+        </div>
+        <div class="radio-row" id="estate-mode" style="margin-bottom:12px;">
+          <label class="seg" data-val="direct"><input type="radio" name="estate-mode" value="direct" />กรอกกองมรดกโดยตรง</label>
+          <label class="seg" data-val="marital"><input type="radio" name="estate-mode" value="marital" />แยกสินสมรสก่อน (ม.1625)</label>
+          <label class="seg" data-val="assets"><input type="radio" name="estate-mode" value="assets" />แยกรายการทรัพย์สิน</label>
+        </div>
+        <div id="estate-direct-fields">
+          <label class="field-label" for="estate-direct">มูลค่ากองมรดกสุทธิ (บาท)</label>
+          <input class="input money" id="estate-direct" type="text" inputmode="decimal" placeholder="เช่น 12,000,000" autocomplete="off" />
+        </div>
+        <div id="estate-marital-fields" class="grid-2" style="display:none;">
+          <div>
+            <label class="field-label" for="estate-sinsomros">สินสมรสทั้งหมด (บาท)</label>
+            <input class="input money" id="estate-sinsomros" type="text" inputmode="decimal" placeholder="เช่น 10,000,000" autocomplete="off" />
+          </div>
+          <div>
+            <label class="field-label" for="estate-sinsuantua">สินส่วนตัวของผู้ตาย (บาท)</label>
+            <input class="input money" id="estate-sinsuantua" type="text" inputmode="decimal" placeholder="เช่น 2,000,000" autocomplete="off" />
+          </div>
+        </div>
+        <div id="estate-assets-fields" style="display:none;">
+          <div id="asset-list"></div>
+          <button class="mini-btn accent" type="button" data-action="add-asset" style="margin-top:8px;">+ เพิ่มทรัพย์สิน</button>
+          <div class="succ-hint" style="margin-top:6px;">ระบุทรัพย์สินเป็นรายรายการ เช่น ที่ดินแต่ละโฉนด บัญชีเงินฝาก หุ้น — รายการที่เป็น<b>สินสมรส</b>จะนับเข้ากองมรดกเพียงครึ่งเดียว (อีกครึ่งเป็นของคู่สมรสในฐานะเจ้าของร่วม ม.1625(1)) และผลลัพธ์จะแสดง<b>ส่วนของแต่ละคนในทรัพย์สินแต่ละรายการ</b>ด้วย</div>
+        </div>
+      </section>
+
+      <!-- ── 2. คู่สมรส ── -->
+      <section class="card" id="spouse-section">
+        <div class="card-header">
+          <span class="step-no">2</span>
+          <h2>คู่สมรส</h2>
+          <span class="law-ref">ม.1629 วรรคท้าย, 1635</span>
+          <span class="spacer" style="flex:1"></span>
+          <span id="spouse-badge"></span>
+        </div>
+        <p class="card-note">
+          เฉพาะคู่สมรสที่<b>จดทะเบียนสมรส</b>โดยชอบด้วยกฎหมายเท่านั้น
+          คู่สมรสที่ร้างกันหรือแยกกันอยู่โดยยังมิได้จดทะเบียนหย่า <b>ยังคงมีสิทธิ</b>รับมรดก (ม.1628)
+        </p>
+        <div class="toggle-line" id="spouse-exists-row">
+          <label class="seg" data-val="yes"><input type="radio" name="spouse-exists" value="yes" />มีคู่สมรสโดยชอบด้วยกฎหมาย</label>
+          <label class="seg" data-val="no"><input type="radio" name="spouse-exists" value="no" />ไม่มี / หย่าแล้ว / ตายก่อน</label>
+        </div>
+        <div id="spouse-fields"></div>
+      </section>
+
+      <!-- ── 3. ทายาทโดยธรรม 6 ลำดับ ── -->
+      <section class="card" id="heirs-section">
+        <div class="card-header">
+          <span class="step-no">3</span>
+          <h2>ทายาทโดยธรรม 6 ลำดับ</h2>
+          <span class="law-ref">ม.1629, 1630</span>
+        </div>
+        <p class="card-note">
+          กรอกเท่าที่มีตัวตนจริง — เครื่องมือจะใช้หลัก<b>ญาติสนิทตัดญาติห่าง</b> (ม.1630) เลือกลำดับที่ได้รับให้เอง
+          ลำดับที่ต่ำกว่าไม่จำเป็นต้องกรอกหากลำดับสูงกว่ามีทายาทแน่นอน
+          สถานะของแต่ละคนกำหนดผลเอง: ตายก่อน/ถูกกำจัดก่อน → <b>รับมรดกแทนที่</b> (ม.1639),
+          สละ/ถูกกำจัดหลัง → <b>สืบมรดก</b> (ม.1607, 1615), ถูกตัด → ตัดทั้งสาย (ม.1608)
+        </p>
+        <div id="class-cards"></div>
+      </section>
+
+      <!-- ── 4. แนวการตีความ ── -->
+      <section class="card" id="options-section">
+        <div class="card-header">
+          <span class="step-no">4</span>
+          <h2>แนวการตีความ</h2>
+          <span class="law-ref">ประเด็นที่มีความเห็นต่างกัน</span>
+        </div>
+        <p class="card-note">ประเด็นที่กฎหมายไม่ชัดและมีทั้งแนวฎีกากับความเห็นทางตำรา — เลือกแนวที่ต้องการใช้ในการคำนวณ</p>
+
+        <div class="opt-block">
+          <div class="opt-title">ก. ผู้มีสิทธิ "สืบมรดก" กรณีทายาทสละมรดก หรือถูกกำจัดหลังเจ้ามรดกตาย (ม.1607, 1615 วรรคสอง)</div>
+          <div class="opt-sub">การรับมรดกแทนที่ (ตาย/ถูกกำจัด<b>ก่อน</b>) จำกัดเฉพาะผู้สืบสันดานโดยตรงเสมอ (ม.1643) แต่การ "สืบมรดก" มีสองแนว</div>
+          <label class="opt-choice"><input type="radio" name="opt-succ" value="dika" />
+            <span><b>รวมบุตรบุญธรรมของทายาทด้วย</b> — แนวฎีกา 478/2539: ม.1607 เป็นเอกเทศ ไม่อยู่ใต้บังคับ ม.1639</span></label>
+          <label class="opt-choice"><input type="radio" name="opt-succ" value="direct" />
+            <span><b>เฉพาะผู้สืบสันดานโดยตรง</b> — แนวความเห็น ศ.ดร.พินัย ณ นคร: ตีความ ม.1607 ประกอบ ม.1639, 1643</span></label>
+        </div>
+
+        <div class="opt-block">
+          <div class="opt-title">ข. กรณีบุตรของเจ้ามรดกไม่มีผู้ใดรับมรดกได้ด้วยตนเอง (เช่น ตายก่อนเจ้ามรดกทั้งหมด)</div>
+          <div class="opt-sub">หลาน (และชั้นถัดไป) จะรับมรดกอย่างไร</div>
+          <label class="opt-choice"><input type="radio" name="opt-percapita" value="stirpes" />
+            <span><b>รับมรดกแทนที่ตามสาย (per stirpes)</b> — แนวฎีกา: ผู้สืบสันดานชั้นถัดไปรับได้ก็แต่โดยการแทนที่ (ม.1631, 1634)</span></label>
+          <label class="opt-choice"><input type="radio" name="opt-percapita" value="capita" />
+            <span><b>แบ่งรายหัวเท่ากันในชั้นสนิทที่สุด (per capita)</b> — ความเห็นทางตำรา: เมื่อไม่มีชั้นบุตรเหลืออยู่ ชั้นหลานกลายเป็นชั้นสนิทที่สุดและรับในสิทธิของตนเอง</span></label>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ═══ Summary panel ═══ -->
+    <aside class="summary-panel">
+      <div class="summary-card" id="results-card">
+        <div class="summary-head">
+          <h2>ผลการแบ่งมรดก</h2>
+          <span id="scenario-badge"></span>
+        </div>
+        <div class="estate-line" id="estate-summary"></div>
+        <div id="marital-summary"></div>
+        <div id="results-body"></div>
+        <div class="fmt-controls">
+          <div class="fc">
+            <label class="field-label" for="fmt-decimals">ทศนิยม</label>
+            <select class="select" id="fmt-decimals">
+              <option value="0">0 ตำแหน่ง</option>
+              <option value="1">1 ตำแหน่ง</option>
+              <option value="2">2 ตำแหน่ง</option>
+              <option value="3">3 ตำแหน่ง</option>
+              <option value="4">4 ตำแหน่ง</option>
+            </select>
+          </div>
+          <div class="fc">
+            <label class="field-label" for="fmt-round">การปัดเศษ</label>
+            <select class="select" id="fmt-round">
+              <option value="half">ปัดปกติ (ครึ่งขึ้น)</option>
+              <option value="floor">ปัดลงเสมอ</option>
+              <option value="ceil">ปัดขึ้นเสมอ</option>
+            </select>
+          </div>
+        </div>
+        <details class="block" id="assets-block" style="display:none" open>
+          <summary>การแบ่งรายทรัพย์สิน</summary>
+          <div class="block-body" id="assets-body"></div>
+        </details>
+        <details class="block" id="steps-block" open>
+          <summary>วิธีคิดทีละขั้น</summary>
+          <div class="block-body" id="steps-body"></div>
+        </details>
+        <details class="block" id="notes-block">
+          <summary>หมายเหตุ & ข้อสังเกต</summary>
+          <div class="block-body" id="notes-body"></div>
+        </details>
+        <div class="panel-actions">
+          <button class="button primary" id="btn-copy" type="button"><span>📋</span> คัดลอกผลลัพธ์</button>
+        </div>
+        <p class="disclaimer">
+          เครื่องมือช่วยคำนวณเบื้องต้นสำหรับผู้ประกอบวิชาชีพ มิใช่คำแนะนำทางกฎหมาย —
+          ประเด็นข้อเท็จจริง เช่น ความเป็นบุตรชอบด้วยกฎหมาย การรับรองบุตร ความสมบูรณ์ของการสละ/การตัด
+          ต้องวินิจฉัยเองก่อนกรอก ไม่รองรับกรณีภริยาหลายคนก่อนใช้บรรพ 5 (ม.1636–1637) และการชดใช้ตาม ม.1637–1638
+        </p>
+      </div>
+    </aside>
+  </div>
+
+  <div class="footer">© 2025–2026 Kornrawee Chanchom — JuraTools</div>
+
+<script>
+'use strict';
+/* ═══════════════════════════════════════════════════════════════
+   Succession Engine — การแบ่งมรดกโดยธรรม (ป.พ.พ. บรรพ 6)
+   Pure calculation core: exact fraction arithmetic (BigInt).
+   ═══════════════════════════════════════════════════════════════ */
+function gcdBig(a, b) { a = a < 0n ? -a : a; b = b < 0n ? -b : b; while (b) { [a, b] = [b, a % b]; } return a; }
+function F(n, d) {
+  n = BigInt(n); d = BigInt(d === undefined ? 1 : d);
+  if (d < 0n) { n = -n; d = -d; }
+  const g = gcdBig(n, d) || 1n;
+  return { n: n / g, d: d / g };
+}
+const F0 = F(0), F1 = F(1);
+function fAdd(a, b) { return F(a.n * b.d + b.n * a.d, a.d * b.d); }
+function fMul(a, b) { return F(a.n * b.n, a.d * b.d); }
+function fDiv(a, k) { return F(a.n, a.d * BigInt(k)); }
+function fText(a) {
+  if (a.n === 0n) return '0';
+  if (a.d === 1n) return a.n === 1n ? 'ทั้งหมด' : String(a.n);
+  return `${a.n}/${a.d}`;
+}
+function fPct(a) {
+  const bp = (a.n * 1000000n) / a.d;
+  return (Number(bp) / 10000).toFixed(2) + '%';
+}
+
+const STATUS_TH = {
+  alive: 'มีชีวิตอยู่', dead_before: 'ตายก่อนเจ้ามรดก', dead_after: 'ตายหลังเจ้ามรดก',
+  renounced: 'สละมรดก', excluded_before: 'ถูกกำจัดก่อนเจ้ามรดกตาย',
+  excluded_after: 'ถูกกำจัดหลังเจ้ามรดกตาย', disinherited: 'ถูกตัดมิให้รับมรดก',
+  monk: 'เป็นพระภิกษุ (ไม่เรียกร้อง)',
+};
+const TYPE_TH = {
+  legit: 'บุตรชอบด้วยกฎหมาย', recognized: 'บุตรนอกกฎหมายที่บิดารับรอง (ม.1627)',
+  adopted: 'บุตรบุญธรรม', direct: 'ผู้สืบสันดานโดยตรง',
+};
+
+function personLabel(p, fallback) { return (p && p.name && p.name.trim()) || fallback || '(ไม่ระบุชื่อ)'; }
+
+function resolveNode(node, opts, notes, label) {
+  const name = personLabel(node, label);
+  const st = node.status;
+
+  if (st === 'alive') return [{ person: node, frac: F1, path: [] }];
+  if (st === 'dead_after') {
+    notes.push({ kind: 'info', text: `${name} ตายหลังเจ้ามรดก — ได้รับมรดกแล้ว ส่วนแบ่งตกทอดเป็นกองมรดกของ ${name} ต่อไป (ม.1599)` });
+    return [{ person: node, frac: F1, path: [], transmission: true }];
+  }
+  if (st === 'disinherited') {
+    notes.push({ kind: 'warn', text: `${name} ถูกตัดมิให้รับมรดก — เป็นการตัดทั้งสาย ผู้สืบสันดานของ ${name} ไม่อาจรับมรดกแทนที่หรือสืบมรดกได้ (ม.1608)` });
+    return [];
+  }
+  if (st === 'monk') {
+    notes.push({ kind: 'warn', text: `${name} เป็นพระภิกษุ — เรียกร้องเอาทรัพย์มรดกในฐานะทายาทโดยธรรมไม่ได้ เว้นแต่จะสึกออกมาเรียกร้องภายในอายุความ (ม.1622) หากจะให้รับมรดก ให้เปลี่ยนสถานะเป็น “มีชีวิตอยู่”` });
+    return [];
+  }
+
+  const kids = node.children || [];
+  let mech, eligible;
+  if (st === 'dead_before' || st === 'excluded_before') {
+    mech = 'represent';
+    eligible = kids.filter(k => k.type !== 'adopted');
+    kids.filter(k => k.type === 'adopted').forEach(k => notes.push({
+      kind: 'warn',
+      text: `${personLabel(k)} เป็นบุตรบุญธรรมของ ${name} — ไม่อาจรับมรดกแทนที่ได้ เพราะมิใช่ผู้สืบสันดานโดยตรง (ม.1643)`,
+    }));
+  } else {
+    mech = 'succeed';
+    if (opts.succAdopted) {
+      eligible = kids.slice();
+    } else {
+      eligible = kids.filter(k => k.type !== 'adopted');
+      kids.filter(k => k.type === 'adopted').forEach(k => notes.push({
+        kind: 'warn',
+        text: `${personLabel(k)} เป็นบุตรบุญธรรมของ ${name} — ตามแนวที่เลือก (เฉพาะผู้สืบสันดานโดยตรง) จึงไม่มีสิทธิสืบมรดกส่วนของ ${name}`,
+      }));
+    }
+  }
+
+  const branches = [];
+  for (const k of eligible) {
+    const sub = resolveNode(k, opts, notes);
+    if (sub.length) branches.push(sub);
+  }
+
+  if (!branches.length) {
+    if (st === 'renounced') {
+      notes.push({ kind: 'info', text: `${name} สละมรดกโดยไม่มีผู้สืบสันดานที่จะสืบมรดก — ส่วนแบ่งปันแก่ทายาทอื่นของเจ้ามรดก (ม.1618)` });
+    } else if (st === 'dead_before') {
+      notes.push({ kind: 'info', text: `${name} ตายก่อนเจ้ามรดกโดยไม่มีผู้รับมรดกแทนที่ — สายนี้ไม่ได้รับส่วนแบ่ง` });
+    } else {
+      notes.push({ kind: 'info', text: `${name} ${STATUS_TH[st]} โดยไม่มีผู้สืบสันดานที่จะรับช่วงสิทธิ — สายนี้ไม่ได้รับส่วนแบ่ง` });
+    }
+    return [];
+  }
+
+  const mechText = mech === 'represent'
+    ? `รับมรดกแทนที่ ${name} (ม.1639)`
+    : (st === 'renounced' ? `สืบมรดกส่วนของ ${name} ผู้สละมรดก (ม.1615 วรรคสอง)` : `สืบมรดกส่วนของ ${name} ผู้ถูกกำจัด (ม.1607)`);
+
+  const out = [];
+  for (const br of branches) {
+    for (const t of br) {
+      out.push({ ...t, frac: fDiv(t.frac, branches.length), path: [{ name, mech, text: mechText }, ...t.path] });
+    }
+  }
+  return out;
+}
+
+function resolveClass1PerCapita(rootList, opts, notes) {
+  let gen = rootList.filter(n => n.status !== 'disinherited');
+  rootList.filter(n => n.status === 'disinherited').forEach(n => notes.push({
+    kind: 'warn', text: `${personLabel(n)} ถูกตัดมิให้รับมรดก — ตัดทั้งสาย (ม.1608)`,
+  }));
+  let depth = 0;
+  while (gen.length) {
+    const takers = gen.filter(n => n.status === 'alive' || n.status === 'dead_after');
+    if (takers.length) {
+      takers.forEach(n => {
+        if (n.status === 'dead_after') notes.push({ kind: 'info', text: `${personLabel(n)} ตายหลังเจ้ามรดก — ส่วนแบ่งตกทอดเป็นกองมรดกของ ${personLabel(n)} ต่อไป` });
+      });
+      if (depth > 0) notes.push({
+        kind: 'info',
+        text: `ตามแนวที่เลือก (แบ่งรายหัวในชั้นสนิทที่สุด) ผู้สืบสันดานชั้นที่ ${depth + 1} ที่ยังมีสิทธิ จำนวน ${takers.length} คน รับมรดกในฐานะทายาทชั้นสนิทที่สุด แบ่งเท่ากันเป็นรายหัว (ความเห็นทางตำรา — ต่างจากแนวฎีกาที่ให้รับมรดกแทนที่ตามสาย)`,
+      });
+      return takers.map(n => ({ person: n, frac: F1, path: depth > 0 ? [{ name: '', mech: 'percapita', text: 'รับในฐานะผู้สืบสันดานชั้นสนิทที่สุด (แบ่งรายหัว)' }] : [], transmission: n.status === 'dead_after' }));
+    }
+    const next = [];
+    for (const n of gen) {
+      for (const k of (n.children || [])) {
+        if (k.status === 'disinherited') {
+          notes.push({ kind: 'warn', text: `${personLabel(k)} ถูกตัดมิให้รับมรดก — ตัดทั้งสาย (ม.1608)` });
+          continue;
+        }
+        if (k.type === 'adopted') {
+          notes.push({ kind: 'warn', text: `${personLabel(k)} เป็นบุตรบุญธรรมของทายาท — ไม่ใช่ผู้สืบสันดานของเจ้ามรดกเอง จึงไม่มีสิทธิรับในฐานะรายหัว` });
+          continue;
+        }
+        next.push(k);
+      }
+    }
+    gen = next; depth++;
+  }
+  return [];
+}
+
+function resolveTreeClass(list, classNo, opts, notes) {
+  if (classNo === 1 && opts.class1PerCapita) {
+    const anyRootTakes = list.some(n => n.status === 'alive' || n.status === 'dead_after');
+    if (!anyRootTakes) {
+      const takers = resolveClass1PerCapita(list, opts, notes);
+      if (takers.length) return { lines: takers.map(t => ({ root: t.person, takers: [t] })), occupied: true, perCapita: true };
+      return { lines: [], occupied: false };
+    }
+  }
+  const lines = [];
+  for (const root of list) {
+    const takers = resolveNode(root, opts, notes);
+    if (takers.length) lines.push({ root, takers });
+  }
+  return { lines, occupied: lines.length > 0 };
+}
+
+function resolveMemberClass(members, opts, notes) {
+  const slots = [];
+  for (const m of members) {
+    const p = m.person;
+    if (!p || !p.exists) continue;
+    const name = personLabel(p, m.roleLabel);
+    if (m.key === 'father' && p.legal === false) {
+      notes.push({ kind: 'warn', text: `${name} มิใช่บิดาชอบด้วยกฎหมาย — บิดาที่เพียงรับรองบุตรนอกกฎหมายโดยพฤตินัยไม่เป็นทายาทโดยธรรมของบุตร (สิทธิตาม ม.1627 เป็นสิทธิของบุตรฝ่ายเดียว)` });
+      continue;
+    }
+    const st = p.status;
+    if (st === 'alive') {
+      slots.push({ member: m, takers: [{ name, basis: null }] });
+    } else if (st === 'dead_after') {
+      notes.push({ kind: 'info', text: `${name} ตายหลังเจ้ามรดก — ได้รับมรดกแล้ว ส่วนแบ่งตกทอดเป็นกองมรดกของ ${name} ต่อไป` });
+      slots.push({ member: m, takers: [{ name, basis: null, transmission: true }] });
+    } else if (st === 'dead_before' || st === 'excluded_before') {
+      notes.push({ kind: 'info', text: `${name} ${STATUS_TH[st]} — ทายาทลำดับนี้ห้ามรับมรดกแทนที่ ส่วนแบ่งทั้งหมดตกแก่ทายาทในลำดับเดียวกันที่ยังมีสิทธิ (ม.1641)` });
+    } else if (st === 'renounced' || st === 'excluded_after') {
+      const succ = (p.successors || []).map(s => s.trim()).filter(Boolean);
+      if (succ.length) {
+        const basis = st === 'renounced' ? `สืบมรดกส่วนของ ${name} ผู้สละมรดก (ม.1615 วรรคสอง)` : `สืบมรดกส่วนของ ${name} ผู้ถูกกำจัด (ม.1607)`;
+        slots.push({ member: m, takers: succ.map(s => ({ name: s, basis })) });
+        notes.push({ kind: 'info', text: `${name} ${STATUS_TH[st]} — ผู้สืบสันดานที่ระบุไว้สืบมรดกในส่วนแบ่งเท่าที่ ${name} จะได้รับ` });
+      } else {
+        notes.push({ kind: 'info', text: `${name} ${STATUS_TH[st]} โดยไม่ได้ระบุผู้สืบสันดานที่จะสืบมรดก — ส่วนแบ่งปันแก่ทายาทอื่น (ม.1618)` });
+      }
+    } else if (st === 'disinherited') {
+      notes.push({ kind: 'warn', text: `${name} ถูกตัดมิให้รับมรดก (ม.1608) — ไม่ได้รับส่วนแบ่ง` });
+    } else if (st === 'monk') {
+      notes.push({ kind: 'warn', text: `${name} เป็นพระภิกษุ — เรียกร้องเอาทรัพย์มรดกในฐานะทายาทโดยธรรมไม่ได้ (ม.1622)` });
+    }
+  }
+  return { slots, occupied: slots.length > 0 };
+}
+
+function resolveSpouse(spouse, notes) {
+  if (!spouse || !spouse.exists) return { mode: 'none' };
+  const name = personLabel(spouse, 'คู่สมรส');
+  const st = spouse.status;
+  if (st === 'alive') return { mode: 'self', name };
+  if (st === 'dead_after') {
+    notes.push({ kind: 'info', text: `${name} ตายหลังเจ้ามรดก — ได้รับมรดกแล้ว ส่วนแบ่งตกทอดเป็นกองมรดกของ ${name} ต่อไป` });
+    return { mode: 'self', name, transmission: true };
+  }
+  if (st === 'disinherited') {
+    notes.push({ kind: 'warn', text: `${name} ถูกตัดมิให้รับมรดก (ม.1608) — ไม่ได้รับส่วนแบ่ง และผู้สืบสันดานสืบมรดกไม่ได้` });
+    return { mode: 'none' };
+  }
+  if (st === 'excluded_before') {
+    notes.push({ kind: 'warn', text: `${name} ถูกกำจัดก่อนเจ้ามรดกตาย — การรับมรดกแทนที่ใช้เฉพาะทายาทลำดับ (1)(3)(4)(6) จึงไม่มีผู้รับมรดกแทนที่คู่สมรส (ม.1639)` });
+    return { mode: 'none' };
+  }
+  const succ = (spouse.successors || []).map(s => s.trim()).filter(Boolean);
+  if (succ.length) {
+    const basis = st === 'renounced' ? `สืบมรดกส่วนของ ${name} ผู้สละมรดก (ม.1615 วรรคสอง)` : `สืบมรดกส่วนของ ${name} ผู้ถูกกำจัด (ม.1607)`;
+    notes.push({ kind: 'info', text: `${name} ${STATUS_TH[st]} — ผู้สืบสันดานของคู่สมรสที่ระบุไว้สืบมรดกในส่วนแบ่งเท่าที่คู่สมรสจะได้รับ` });
+    return { mode: 'successors', name, successors: succ, basis };
+  }
+  notes.push({ kind: 'info', text: `${name} ${STATUS_TH[st]} โดยไม่ได้ระบุผู้สืบสันดานที่จะสืบมรดก — ส่วนแบ่งปันแก่ทายาทอื่น (ม.1618)` });
+  return { mode: 'none' };
+}
+
+function computeAllocation(state) {
+  const notes = [];
+  const steps = [];
+  const opts = state.options || { succAdopted: true, class1PerCapita: false };
+
+  const c1 = resolveTreeClass(state.class1 || [], 1, opts, notes);
+  const c2 = resolveMemberClass([
+    { key: 'father', roleLabel: 'บิดา', person: state.class2 && state.class2.father },
+    { key: 'mother', roleLabel: 'มารดา', person: state.class2 && state.class2.mother },
+  ], opts, notes);
+  const c3 = resolveTreeClass(state.class3 || [], 3, opts, notes);
+  const c4 = resolveTreeClass(state.class4 || [], 4, opts, notes);
+  const c5 = resolveMemberClass([
+    { key: 'pgf', roleLabel: 'ปู่', person: state.class5 && state.class5.pgf },
+    { key: 'pgm', roleLabel: 'ย่า', person: state.class5 && state.class5.pgm },
+    { key: 'mgf', roleLabel: 'ตา', person: state.class5 && state.class5.mgf },
+    { key: 'mgm', roleLabel: 'ยาย', person: state.class5 && state.class5.mgm },
+  ], opts, notes);
+  const c6 = resolveTreeClass(state.class6 || [], 6, opts, notes);
+  const sp = resolveSpouse(state.spouse, notes);
+
+  const spouseActive = sp.mode !== 'none';
+  const allocations = [];
+
+  function pushTreeAllocations(cls, classInfo, lineFrac, relationBase) {
+    for (const line of classInfo.lines) {
+      for (const t of line.takers) {
+        const frac = fMul(lineFrac, t.frac);
+        let basis, relation;
+        if (!t.path.length) {
+          relation = relationBase(line.root);
+          basis = `ทายาทโดยธรรมลำดับที่ ${cls} (ม.1629(${cls}))`;
+        } else {
+          relation = relationBase(line.root) + ' — ' + t.path.map(s => s.text).join(' → ');
+          basis = t.path[t.path.length - 1].text;
+        }
+        allocations.push({
+          name: personLabel(t.person), relation, basis, frac,
+          transmission: !!t.transmission, cls,
+        });
+      }
+    }
+  }
+
+  function pushMemberAllocations(cls, classInfo, classFrac, roleOf) {
+    const slotCount = classInfo.slots.length;
+    for (const slot of classInfo.slots) {
+      const slotFrac = fDiv(classFrac, slotCount);
+      const per = fDiv(slotFrac, slot.takers.length);
+      for (const t of slot.takers) {
+        allocations.push({
+          name: t.name,
+          relation: t.basis ? `${roleOf(slot.member)} — ${t.basis}` : roleOf(slot.member),
+          basis: t.basis || `ทายาทโดยธรรมลำดับที่ ${cls} (ม.1629(${cls}))`,
+          frac: per, transmission: !!t.transmission, cls,
+        });
+      }
+    }
+  }
+
+  function pushSpouseAllocation(frac, ruleText) {
+    if (sp.mode === 'self') {
+      allocations.push({ name: sp.name, relation: 'คู่สมรส', basis: ruleText, frac, transmission: !!sp.transmission, cls: 'spouse' });
+    } else if (sp.mode === 'successors') {
+      const per = fDiv(frac, sp.successors.length);
+      for (const s of sp.successors) {
+        allocations.push({ name: s, relation: `ผู้สืบสันดานของคู่สมรส — ${sp.basis}`, basis: sp.basis, frac: per, cls: 'spouse' });
+      }
+    }
+  }
+
+  let scenario, spouseRule = null, spouseFrac = F0;
+
+  if (c1.occupied) {
+    scenario = 'c1';
+    const heads = c1.lines.length + c2.slots.length + (spouseActive ? 1 : 0);
+    const headFrac = F(1, heads);
+    steps.push({
+      title: 'ลำดับทายาทที่ได้รับมรดก',
+      lines: [
+        `มีผู้สืบสันดาน (ลำดับที่ 1) ที่ยังมีสิทธิอยู่ ${c1.lines.length} สาย — ลำดับถัดลงไปไม่มีสิทธิ (ม.1629, 1630 วรรคหนึ่ง)` +
+        (c2.slots.length ? ` เว้นแต่บิดามารดา ซึ่งได้ส่วนแบ่งเสมือนทายาทชั้นบุตร (ม.1630 วรรคสอง)` : ''),
+        ...(spouseActive ? [`คู่สมรสได้ส่วนแบ่งเสมือนทายาทชั้นบุตร (ม.1635(1))`] : []),
+        `รวมส่วนแบ่งชั้นบุตร ${heads} ส่วน — สายละ/คนละ 1/${heads} (ม.1633)` + (c1.perCapita ? ' [โหมดแบ่งรายหัว]' : ''),
+      ],
+    });
+    pushTreeAllocations(1, c1, headFrac, root => `ผู้สืบสันดาน (${TYPE_TH[root.type] || 'บุตร'})`);
+    for (const slot of c2.slots) {
+      const per = fDiv(headFrac, slot.takers.length);
+      for (const t of slot.takers) {
+        allocations.push({
+          name: t.name,
+          relation: t.basis ? `${slot.member.roleLabel} — ${t.basis}` : `${slot.member.roleLabel} (ได้เสมือนทายาทชั้นบุตร ม.1630 วรรคสอง)`,
+          basis: t.basis || 'ม.1630 วรรคสอง', frac: per, transmission: !!t.transmission, cls: 2,
+        });
+      }
+    }
+    if (spouseActive) { spouseRule = 'ม.1635(1) — เสมือนทายาทชั้นบุตร'; spouseFrac = headFrac; pushSpouseAllocation(headFrac, spouseRule); }
+  } else if (c2.occupied) {
+    scenario = 'c2';
+    spouseFrac = spouseActive ? F(1, 2) : F0;
+    const classFrac = fAdd(F1, F(-spouseFrac.n, spouseFrac.d));
+    steps.push({
+      title: 'ลำดับทายาทที่ได้รับมรดก',
+      lines: [
+        'ไม่มีผู้สืบสันดานที่ยังมีสิทธิ — บิดามารดา (ลำดับที่ 2) เป็นผู้รับมรดก (ม.1629(2), 1630)',
+        ...(spouseActive ? ['คู่สมรสได้รับกึ่งหนึ่ง (ม.1635(2))'] : []),
+        `บิดามารดาที่ยังมีสิทธิ ${c2.slots.length} คน แบ่งส่วนของลำดับนี้เท่ากัน (ม.1633)`,
+      ],
+    });
+    if (spouseActive) { spouseRule = 'ม.1635(2) — กึ่งหนึ่ง'; pushSpouseAllocation(spouseFrac, spouseRule); }
+    pushMemberAllocations(2, c2, classFrac, m => m.roleLabel);
+  } else if (c3.occupied) {
+    scenario = 'c3';
+    spouseFrac = spouseActive ? F(1, 2) : F0;
+    const classFrac = fAdd(F1, F(-spouseFrac.n, spouseFrac.d));
+    steps.push({
+      title: 'ลำดับทายาทที่ได้รับมรดก',
+      lines: [
+        'ไม่มีทายาทลำดับที่ 1–2 ที่ยังมีสิทธิ — พี่น้องร่วมบิดามารดาเดียวกัน (ลำดับที่ 3) เป็นผู้รับมรดก (ม.1629(3), 1630)',
+        ...(spouseActive ? ['คู่สมรสได้รับกึ่งหนึ่ง (ม.1635(2))'] : []),
+        `สายที่ยังมีสิทธิ ${c3.lines.length} สาย แบ่งส่วนของลำดับนี้เท่ากัน (ม.1633)`,
+      ],
+    });
+    if (spouseActive) { spouseRule = 'ม.1635(2) — กึ่งหนึ่ง'; pushSpouseAllocation(spouseFrac, spouseRule); }
+    pushTreeAllocations(3, c3, fDiv(classFrac, c3.lines.length), () => 'พี่น้องร่วมบิดามารดาเดียวกัน');
+  } else if (c4.occupied) {
+    scenario = 'c4';
+    spouseFrac = spouseActive ? F(2, 3) : F0;
+    const classFrac = fAdd(F1, F(-spouseFrac.n, spouseFrac.d));
+    steps.push({
+      title: 'ลำดับทายาทที่ได้รับมรดก',
+      lines: [
+        'ไม่มีทายาทลำดับที่ 1–3 ที่ยังมีสิทธิ — พี่น้องร่วมบิดาหรือร่วมมารดาเดียวกัน (ลำดับที่ 4) เป็นผู้รับมรดก (ม.1629(4), 1630)',
+        ...(spouseActive ? ['คู่สมรสได้รับสองในสาม (ม.1635(3))'] : []),
+        `สายที่ยังมีสิทธิ ${c4.lines.length} สาย แบ่งส่วนของลำดับนี้เท่ากัน (ม.1633)`,
+      ],
+    });
+    if (spouseActive) { spouseRule = 'ม.1635(3) — สองในสาม'; pushSpouseAllocation(spouseFrac, spouseRule); }
+    pushTreeAllocations(4, c4, fDiv(classFrac, c4.lines.length), () => 'พี่น้องร่วมบิดาหรือร่วมมารดาเดียวกัน');
+  } else if (c5.occupied) {
+    scenario = 'c5';
+    spouseFrac = spouseActive ? F(2, 3) : F0;
+    const classFrac = fAdd(F1, F(-spouseFrac.n, spouseFrac.d));
+    steps.push({
+      title: 'ลำดับทายาทที่ได้รับมรดก',
+      lines: [
+        'ไม่มีทายาทลำดับที่ 1–4 ที่ยังมีสิทธิ — ปู่ ย่า ตา ยาย (ลำดับที่ 5) เป็นผู้รับมรดก (ม.1629(5), 1630)',
+        ...(spouseActive ? ['คู่สมรสได้รับสองในสาม (ม.1635(3))'] : []),
+        `ผู้ที่ยังมีสิทธิ ${c5.slots.length} คน แบ่งส่วนของลำดับนี้เท่ากัน (ม.1633)`,
+      ],
+    });
+    if (spouseActive) { spouseRule = 'ม.1635(3) — สองในสาม'; pushSpouseAllocation(spouseFrac, spouseRule); }
+    pushMemberAllocations(5, c5, classFrac, m => m.roleLabel);
+  } else if (c6.occupied) {
+    scenario = 'c6';
+    spouseFrac = spouseActive ? F(2, 3) : F0;
+    const classFrac = fAdd(F1, F(-spouseFrac.n, spouseFrac.d));
+    steps.push({
+      title: 'ลำดับทายาทที่ได้รับมรดก',
+      lines: [
+        'ไม่มีทายาทลำดับที่ 1–5 ที่ยังมีสิทธิ — ลุง ป้า น้า อา (ลำดับที่ 6) เป็นผู้รับมรดก (ม.1629(6), 1630)',
+        ...(spouseActive ? ['คู่สมรสได้รับสองในสาม (ม.1635(3))'] : []),
+        `สายที่ยังมีสิทธิ ${c6.lines.length} สาย แบ่งส่วนของลำดับนี้เท่ากัน (ม.1633)`,
+      ],
+    });
+    if (spouseActive) { spouseRule = 'ม.1635(3) — สองในสาม'; pushSpouseAllocation(spouseFrac, spouseRule); }
+    pushTreeAllocations(6, c6, fDiv(classFrac, c6.lines.length), () => 'ลุง ป้า น้า อา');
+  } else if (spouseActive) {
+    scenario = 'spouse_only';
+    spouseRule = 'ม.1635(4) — ทั้งหมด';
+    spouseFrac = F1;
+    steps.push({
+      title: 'ลำดับทายาทที่ได้รับมรดก',
+      lines: ['ไม่มีทายาทโดยธรรมลำดับใดตาม ม.1629 ที่ยังมีสิทธิ — คู่สมรสได้รับมรดกทั้งหมด (ม.1635(4))'],
+    });
+    pushSpouseAllocation(F1, spouseRule);
+  } else {
+    scenario = 'escheat';
+    steps.push({
+      title: 'ลำดับทายาทที่ได้รับมรดก',
+      lines: ['ไม่มีทายาทโดยธรรมและไม่มีคู่สมรสที่ยังมีสิทธิ — มรดกตกทอดแก่แผ่นดิน (ม.1753)'],
+    });
+  }
+
+  const classOccupied = { 1: c1.occupied, 2: c2.occupied, 3: c3.occupied, 4: c4.occupied, 5: c5.occupied, 6: c6.occupied };
+  const classTaking = {
+    1: scenario === 'c1',
+    2: scenario === 'c2' || (scenario === 'c1' && c2.slots.length > 0),
+    3: scenario === 'c3', 4: scenario === 'c4', 5: scenario === 'c5', 6: scenario === 'c6',
+  };
+
+  return { allocations, notes, steps, scenario, spouseRule, spouseFrac, classOccupied, classTaking, spouseActive };
+}
+
+function shareAmount(estateMicro, frac, decimals, mode) {
+  const scale = 10n ** BigInt(6 - decimals);
+  const num = estateMicro * frac.n;
+  const den = frac.d * scale;
+  let q = num / den; const r = num % den;
+  if (r !== 0n) {
+    if (mode === 'ceil') q += 1n;
+    else if (mode === 'half' && r * 2n >= den) q += 1n;
+  }
+  return q;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   UI layer
+   ═══════════════════════════════════════════════════════════════ */
+const LS_KEY = 'jt-intestate-succession-v1';
+let uid = 1;
+function newPerson(type) { return { id: 'p' + (uid++), name: '', type: type || 'legit', status: 'alive', children: [] }; }
+function newMember() { return { exists: false, name: '', status: 'alive', legal: true, successors: [] }; }
+
+function defaultState() {
+  return {
+    decedent: '',
+    estate: { mode: 'direct', direct: '', sinSomros: '', sinSuanTua: '', assets: [] },
+    spouse: { exists: false, name: '', status: 'alive', successors: [] },
+    class1: [],
+    class2: { father: newMember(), mother: newMember() },
+    class3: [], class4: [],
+    class5: { pgf: newMember(), pgm: newMember(), mgf: newMember(), mgm: newMember() },
+    class6: [],
+    options: { succAdopted: true, class1PerCapita: false, decimals: 2, roundMode: 'half' },
+  };
+}
+let state = defaultState();
+
+/* ── path helpers ── */
+function getByPath(obj, path) {
+  return path.split('.').reduce((o, k) => (o == null ? o : o[k]), obj);
+}
+function setByPath(obj, path, val) {
+  const keys = path.split('.');
+  const last = keys.pop();
+  const target = keys.reduce((o, k) => o[k], obj);
+  target[last] = val;
+}
+
+/* ── money formatting ── */
+function digitsOnly(s) { return (s || '').replace(/[^0-9.]/g, ''); }
+function formatMoneyStr(s) {
+  s = digitsOnly(s);
+  if (!s) return '';
+  const firstDot = s.indexOf('.');
+  let int = firstDot === -1 ? s : s.slice(0, firstDot);
+  let frac = firstDot === -1 ? '' : s.slice(firstDot + 1).replace(/\./g, '').slice(0, 4);
+  int = int.replace(/^0+(?=\d)/, '');
+  const grouped = int.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return firstDot === -1 ? grouped : grouped + '.' + frac;
+}
+function formatMoneyInPlace(el) {
+  const before = el.value;
+  const caret = el.selectionStart == null ? before.length : el.selectionStart;
+  const digitsBefore = before.slice(0, caret).replace(/[^0-9.]/g, '').length;
+  const next = formatMoneyStr(before);
+  el.value = next;
+  let pos = 0, seen = 0;
+  while (pos < next.length && seen < digitsBefore) {
+    if (/[0-9.]/.test(next[pos])) seen++;
+    pos++;
+  }
+  el.setSelectionRange(pos, pos);
+  return next;
+}
+function attachMoney(el) {
+  el.addEventListener('input', () => {
+    onMoneyChanged(el.id, formatMoneyInPlace(el));
+  });
+}
+function parseMicro(str) {
+  const s = digitsOnly(str);
+  if (!s) return 0n;
+  const [i, f = ''] = s.split('.');
+  const fr = (f + '000000').slice(0, 6);
+  return BigInt(i || '0') * 1000000n + BigInt(fr);
+}
+function fmtUnits(units, decimals) {
+  const neg = units < 0n;
+  if (neg) units = -units;
+  const base = 10n ** BigInt(decimals);
+  const i = units / base, f = units % base;
+  let s = i.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  if (decimals > 0) s += '.' + f.toString().padStart(decimals, '0');
+  return (neg ? '-' : '') + s;
+}
+function fmtMicroDisplay(micro) {
+  const sat = shareAmount(micro, F1, 2, 'half');
+  let s = fmtUnits(sat, 2);
+  return s.replace(/\.00$/, '');
+}
+
+/* ── select option builders ── */
+function statusOptions(sel) {
+  const list = ['alive', 'dead_before', 'dead_after', 'renounced', 'excluded_before', 'excluded_after', 'disinherited', 'monk'];
+  return list.map(v => `<option value="${v}" ${v === sel ? 'selected' : ''}>${STATUS_TH[v]}</option>`).join('');
+}
+function typeOptions(sel, isRoot) {
+  const list = isRoot ? ['legit', 'recognized', 'adopted'] : ['direct', 'adopted'];
+  return list.map(v => `<option value="${v}" ${v === sel ? 'selected' : ''}>${TYPE_TH[v]}</option>`).join('');
+}
+const NEEDS_CHILDREN = ['dead_before', 'excluded_before', 'renounced', 'excluded_after'];
+const NEEDS_SUCCESSORS = ['renounced', 'excluded_after'];
+
+function esc(s) { return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+/* ── tree rendering ── */
+function renderPersonNode(node, path, isRoot, childNoun) {
+  const showChildren = NEEDS_CHILDREN.includes(node.status);
+  let childrenHtml = '';
+  if (showChildren) {
+    const mechCap = (node.status === 'dead_before' || node.status === 'excluded_before')
+      ? 'ผู้รับมรดกแทนที่ (ม.1639 — เฉพาะผู้สืบสันดานโดยตรง)'
+      : 'ผู้สืบมรดก (ม.1607/1615)';
+    childrenHtml = `
+      <div class="person-children">
+        <span class="child-caption">${mechCap}</span>
+        ${node.children.map((c, i) => renderPersonNode(c, `${path}.children.${i}`, false, 'ผู้สืบสันดาน')).join('')}
+        <div><button class="mini-btn accent" type="button" data-action="add-child" data-path="${path}">+ เพิ่มผู้สืบสันดานของ ${esc(personLabel(node, 'คนนี้'))}</button></div>
+      </div>`;
+  }
+  return `
+    <div class="person-node" data-node="${node.id}">
+      <div class="person-row">
+        <input class="input" type="text" placeholder="ชื่อ" value="${esc(node.name)}" data-bind="${path}.name" autocomplete="off" />
+        <select class="select" data-bind="${path}.type" data-rerender="1" title="ประเภท">${typeOptions(node.type, isRoot && childNoun === 'บุตร')}</select>
+        <select class="select" data-bind="${path}.status" data-rerender="1" title="สถานะ">${statusOptions(node.status)}</select>
+        <button class="mini-btn danger" type="button" data-action="remove" data-path="${path}" title="ลบ">✕</button>
+      </div>
+      ${childrenHtml}
+    </div>`;
+}
+
+function renderTreeClass(clsNo, title, lawRef, hint, listPath, addLabel, badgeHtml) {
+  const list = getByPath(state, listPath);
+  return `
+    <div class="class-card" id="class-card-${clsNo}">
+      <div class="class-head">
+        <h3>ลำดับที่ ${clsNo} — ${title}</h3>
+        <span class="law-ref" style="font-size:11px;color:var(--faint);">${lawRef}</span>
+        <span class="spacer"></span>
+        ${badgeHtml}
+        <button class="mini-btn accent" type="button" data-action="add-root" data-path="${listPath}">+ ${addLabel}</button>
+      </div>
+      <p class="class-hint">${hint}</p>
+      <div class="person-list">
+        ${list.length ? list.map((p, i) => renderPersonNode(p, `${listPath}.${i}`, true, clsNo === 1 ? 'บุตร' : 'ญาติ')).join('') : `<div class="empty-hint">ยังไม่มีรายชื่อ — กด "+ ${addLabel}" เพื่อเพิ่ม</div>`}
+      </div>
+    </div>`;
+}
+
+function renderMemberRow(role, path, opts) {
+  const m = getByPath(state, path);
+  const showSucc = m.exists && NEEDS_SUCCESSORS.includes(m.status);
+  const fatherSel = opts && opts.father ? `
+    <select class="select" data-bind="${path}.legal" data-rerender="1" data-bool="1" title="ความเป็นบิดาชอบด้วยกฎหมาย">
+      <option value="true" ${m.legal !== false ? 'selected' : ''}>บิดาชอบด้วยกฎหมาย</option>
+      <option value="false" ${m.legal === false ? 'selected' : ''}>บิดาไม่ชอบด้วย กม. (เพียงรับรอง)</option>
+    </select>` : '';
+  return `
+    <div class="member-row">
+      <div class="member-main">
+        <span class="role">${role}</span>
+        <label class="seg ${m.exists ? 'on' : ''}" style="min-height:34px;padding:5px 11px;">
+          <input type="checkbox" data-bind="${path}.exists" data-rerender="1" data-check="1" ${m.exists ? 'checked' : ''} />${m.exists ? 'มีตัวตน' : 'ไม่มี / ไม่ทราบ'}
+        </label>
+        ${m.exists ? `
+          <input class="input" type="text" placeholder="ชื่อ (ไม่บังคับ)" value="${esc(m.name)}" data-bind="${path}.name" autocomplete="off" />
+          ${fatherSel}
+          <select class="select" data-bind="${path}.status" data-rerender="1" title="สถานะ">${statusOptions(m.status)}</select>
+        ` : ''}
+      </div>
+      ${showSucc ? `
+        <div class="member-extra">
+          <input class="input" type="text" placeholder="ผู้สืบสันดานของ${role}ที่จะสืบมรดกส่วนนี้ — คั่นหลายคนด้วย , (เว้นว่าง = ปันแก่ทายาทอื่น ม.1618)"
+                 value="${esc((m.successors || []).join(', '))}" data-bind="${path}.successors" data-list="1" autocomplete="off" />
+          <div class="succ-hint">ผู้สืบสันดานของ${role}สืบมรดกได้ตามสิทธิของตน (ม.1607/1615) — ระบุชื่อ หรือเว้นว่างเพื่อปันส่วนนี้แก่ทายาทอื่น</div>
+        </div>` : ''}
+    </div>`;
+}
+
+function renderSpouseFields() {
+  const wrap = document.getElementById('spouse-fields');
+  const s = state.spouse;
+  if (!s.exists) { wrap.innerHTML = ''; return; }
+  const spouseStatuses = ['alive', 'dead_after', 'renounced', 'excluded_before', 'excluded_after', 'disinherited'];
+  const showSucc = NEEDS_SUCCESSORS.includes(s.status);
+  wrap.innerHTML = `
+    <div class="member-row">
+      <div class="member-main">
+        <span class="role">คู่สมรส</span>
+        <input class="input" type="text" placeholder="ชื่อ (ไม่บังคับ)" value="${esc(s.name)}" data-bind="spouse.name" autocomplete="off" />
+        <select class="select" data-bind="spouse.status" data-rerender="1" title="สถานะ">
+          ${spouseStatuses.map(v => `<option value="${v}" ${v === s.status ? 'selected' : ''}>${STATUS_TH[v]}</option>`).join('')}
+        </select>
+      </div>
+      ${showSucc ? `
+        <div class="member-extra">
+          <input class="input" type="text" placeholder="ผู้สืบสันดานของคู่สมรสที่จะสืบมรดกส่วนนี้ — คั่นหลายคนด้วย , (เว้นว่าง = ปันแก่ทายาทอื่น ม.1618)"
+                 value="${esc((s.successors || []).join(', '))}" data-bind="spouse.successors" data-list="1" autocomplete="off" />
+          <div class="succ-hint">เช่น บุตรติดของคู่สมรส (ที่ไม่ใช่ทายาทของเจ้ามรดกเอง) — เป็นประเด็นตีความ โปรดพิจารณาก่อนใช้</div>
+        </div>` : ''}
+      ${s.status === 'excluded_before' ? `<div class="inline-note">คู่สมรสไม่อยู่ในลำดับ (1)(3)(4)(6) จึงไม่มีการรับมรดกแทนที่ (ม.1639) — ส่วนนี้ปันแก่ทายาทอื่น</div>` : ''}
+    </div>`;
+}
+
+function renderAssets() {
+  const wrap = document.getElementById('asset-list');
+  if (!wrap) return;
+  const assets = state.estate.assets || [];
+  wrap.innerHTML = assets.length ? assets.map((a, i) => `
+    <div class="member-row">
+      <div class="member-main">
+        <input class="input" type="text" placeholder="ทรัพย์สิน เช่น ที่ดินโฉนดเลขที่ 1234" value="${esc(a.name)}" data-bind="estate.assets.${i}.name" autocomplete="off" />
+        <input class="input money" type="text" inputmode="decimal" placeholder="มูลค่า (บาท)" value="${esc(a.value)}" data-bind="estate.assets.${i}.value" data-money="1" autocomplete="off" style="flex:0 1 150px;" />
+        <select class="select" data-bind="estate.assets.${i}.marital" data-bool="1" data-rerender="1" style="flex:0 1 200px;" title="ประเภททรัพย์สิน">
+          <option value="false" ${!a.marital ? 'selected' : ''}>สินส่วนตัว (นับเต็มจำนวน)</option>
+          <option value="true" ${a.marital ? 'selected' : ''}>สินสมรส (นับครึ่งหนึ่ง)</option>
+        </select>
+        <button class="mini-btn danger" type="button" data-action="remove" data-path="estate.assets.${i}" title="ลบ">✕</button>
+      </div>
+    </div>`).join('') : '<div class="empty-hint">ยังไม่มีรายการ — กด "+ เพิ่มทรัพย์สิน" เพื่อเพิ่ม</div>';
+}
+
+function classBadgeHtml(clsNo, result, hasEntries) {
+  if (!result) return '';
+  if (result.classTaking[clsNo]) return '<span class="badge take">ได้รับมรดก</span>';
+  if (result.classOccupied[clsNo]) return '<span class="badge block">ไม่ได้รับ — มีทายาทลำดับก่อน (ม.1630)</span>';
+  if (hasEntries) return '<span class="badge idle">ไม่มีผู้มีสิทธิในลำดับนี้</span>';
+  return '';
+}
+
+let lastResult = null;
+
+function renderEntry() {
+  /* estate mode segs */
+  document.querySelectorAll('#estate-mode .seg').forEach(seg => {
+    const on = seg.dataset.val === state.estate.mode;
+    seg.classList.toggle('on', on);
+    seg.querySelector('input').checked = on;
+  });
+  document.getElementById('estate-direct-fields').style.display = state.estate.mode === 'direct' ? '' : 'none';
+  document.getElementById('estate-marital-fields').style.display = state.estate.mode === 'marital' ? 'grid' : 'none';
+  document.getElementById('estate-assets-fields').style.display = state.estate.mode === 'assets' ? '' : 'none';
+  renderAssets();
+  document.getElementById('decedent-name').value = state.decedent;
+  document.getElementById('estate-direct').value = formatMoneyStr(state.estate.direct);
+  document.getElementById('estate-sinsomros').value = formatMoneyStr(state.estate.sinSomros);
+  document.getElementById('estate-sinsuantua').value = formatMoneyStr(state.estate.sinSuanTua);
+
+  /* spouse */
+  document.querySelectorAll('#spouse-exists-row .seg').forEach(seg => {
+    const on = (seg.dataset.val === 'yes') === state.spouse.exists;
+    seg.classList.toggle('on', on);
+    seg.querySelector('input').checked = on;
+  });
+  renderSpouseFields();
+
+  /* class cards */
+  const r = lastResult;
+  const cards = document.getElementById('class-cards');
+  cards.innerHTML = [
+    renderTreeClass(1, 'ผู้สืบสันดาน', 'ม.1629(1), 1627, 1631', 'บุตรทุกประเภทตาม ม.1627 นับเป็นผู้สืบสันดาน — เด็กในครรภ์ที่เกิดรอดภายใน 310 วันนับแต่เจ้ามรดกตาย ถือว่าเป็นทายาท (ม.1604 วรรคสอง) ให้กรอกสถานะ "มีชีวิตอยู่"', 'class1', 'เพิ่มบุตร', classBadgeHtml(1, r, state.class1.length > 0)),
+    `<div class="class-card" id="class-card-2">
+      <div class="class-head">
+        <h3>ลำดับที่ 2 — บิดามารดา</h3>
+        <span style="font-size:11px;color:var(--faint);">ม.1629(2), 1630 วรรคสอง, 1641</span>
+        <span class="spacer"></span>
+        ${classBadgeHtml(2, r, state.class2.father.exists || state.class2.mother.exists)}
+      </div>
+      <p class="class-hint">บิดามารดา<b>ที่แท้จริง</b>เท่านั้น — บิดาต้องชอบด้วยกฎหมาย (สมรสกับมารดา/จดทะเบียนรับรองบุตร/คำพิพากษา) ผู้รับบุตรบุญธรรมไม่เป็นทายาทของบุตรบุญธรรม ลำดับนี้<b>ไม่มีการรับมรดกแทนที่</b> (ม.1641) และหากมีผู้สืบสันดานอยู่ บิดามารดายังได้ส่วนแบ่งเสมือนทายาทชั้นบุตร (ม.1630 วรรคสอง)</p>
+      ${renderMemberRow('บิดา', 'class2.father', { father: true })}
+      ${renderMemberRow('มารดา', 'class2.mother')}
+    </div>`,
+    renderTreeClass(3, 'พี่น้องร่วมบิดามารดาเดียวกัน', 'ม.1629(3), 1639', 'พิจารณาความเป็นพี่น้องตาม<b>ความเป็นจริง</b> — สายที่ตาย/ถูกกำจัดก่อน มีการรับมรดกแทนที่ได้จนหมดสาย (ม.1639)', 'class3', 'เพิ่มพี่น้อง', classBadgeHtml(3, r, state.class3.length > 0)),
+    renderTreeClass(4, 'พี่น้องร่วมบิดาหรือร่วมมารดาเดียวกัน', 'ม.1629(4), 1639', 'พี่น้องต่างบิดาหรือต่างมารดา (ร่วมแต่ฝ่ายเดียว) — มีการรับมรดกแทนที่ได้เช่นกัน', 'class4', 'เพิ่มพี่น้อง', classBadgeHtml(4, r, state.class4.length > 0)),
+    `<div class="class-card" id="class-card-5">
+      <div class="class-head">
+        <h3>ลำดับที่ 5 — ปู่ ย่า ตา ยาย</h3>
+        <span style="font-size:11px;color:var(--faint);">ม.1629(5), 1641</span>
+        <span class="spacer"></span>
+        ${classBadgeHtml(5, r, ['pgf','pgm','mgf','mgm'].some(k => state.class5[k].exists))}
+      </div>
+      <p class="class-hint">ปู่ย่าตายาย<b>ที่แท้จริง</b>เท่านั้น — ลำดับนี้<b>ไม่มีการรับมรดกแทนที่</b> (ม.1641) ผู้ที่ตาย/ถูกกำจัดก่อน ส่วนแบ่งตกแก่ผู้ที่เหลือในลำดับเดียวกัน</p>
+      ${renderMemberRow('ปู่', 'class5.pgf')}
+      ${renderMemberRow('ย่า', 'class5.pgm')}
+      ${renderMemberRow('ตา', 'class5.mgf')}
+      ${renderMemberRow('ยาย', 'class5.mgm')}
+    </div>`,
+    renderTreeClass(6, 'ลุง ป้า น้า อา', 'ม.1629(6), 1639', 'พี่น้องของบิดาหรือมารดา (ตามความเป็นจริง) — มีการรับมรดกแทนที่ได้จนหมดสาย (ม.1639) ผู้แทนที่คือลูกพี่ลูกน้องของเจ้ามรดก', 'class6', 'เพิ่มลุงป้าน้าอา', classBadgeHtml(6, r, state.class6.length > 0)),
+  ].join('');
+
+  /* options */
+  document.querySelectorAll('input[name="opt-succ"]').forEach(el => { el.checked = (el.value === 'dika') === state.options.succAdopted; });
+  document.querySelectorAll('input[name="opt-percapita"]').forEach(el => { el.checked = (el.value === 'capita') === state.options.class1PerCapita; });
+  document.getElementById('fmt-decimals').value = String(state.options.decimals);
+  document.getElementById('fmt-round').value = state.options.roundMode;
+}
+
+/* ── results rendering ── */
+function estateMicroNow() {
+  if (state.estate.mode === 'direct') return parseMicro(state.estate.direct);
+  if (state.estate.mode === 'assets') {
+    let total = 0n;
+    for (const a of (state.estate.assets || [])) {
+      const v = parseMicro(a.value);
+      total += a.marital ? v / 2n : v;
+    }
+    return total;
+  }
+  const somros = parseMicro(state.estate.sinSomros);
+  return somros / 2n + parseMicro(state.estate.sinSuanTua);
+}
+
+/* per-asset breakdown: each person's undivided share in each asset */
+function perAssetBreakdown(result, dec, mode) {
+  if (state.estate.mode !== 'assets') return [];
+  const assetsList = (state.estate.assets || []).filter(a => (a.name && a.name.trim()) || parseMicro(a.value) > 0n);
+  if (!assetsList.length || (!result.allocations.length && result.scenario !== 'escheat')) return [];
+  const spouseCoOwner = state.spouse.exists;
+  const spouseName = personLabel(state.spouse, 'คู่สมรส');
+  const allocs = result.allocations.length ? result.allocations : [{ name: 'แผ่นดิน (ม.1753)', frac: F1 }];
+  return assetsList.map((a, idx) => {
+    const v = parseMicro(a.value);
+    const persons = new Map();
+    const addShare = (name, frac, label) => {
+      if (frac.n === 0n) return;
+      if (!persons.has(name)) persons.set(name, { frac: F0, parts: [] });
+      const p = persons.get(name);
+      p.frac = fAdd(p.frac, frac);
+      p.parts.push(`${label} ${fText(frac)}`);
+    };
+    if (a.marital && spouseCoOwner) addShare(spouseName, F(1, 2), 'เจ้าของร่วม ม.1625(1)');
+    const estatePart = a.marital ? F(1, 2) : F1;
+    for (const al of allocs) addShare(al.name, fMul(al.frac, estatePart), 'มรดก');
+    let sum = 0n;
+    const rows = [...persons.entries()].map(([name, p]) => {
+      const amt = v > 0n ? shareAmount(v, p.frac, dec, mode) : null;
+      if (amt !== null) sum += amt;
+      return { name, frac: p.frac, parts: p.parts, amt };
+    });
+    return { idx, name: (a.name && a.name.trim()) || ('ทรัพย์สินรายการที่ ' + (idx + 1)), marital: a.marital, value: v, rows, sum };
+  });
+}
+
+function recompute() {
+  const result = computeAllocation(state);
+  lastResult = result;
+
+  const estateMicro = estateMicroNow();
+  const hasMoney = estateMicro > 0n;
+  const dec = state.options.decimals;
+  const mode = state.options.roundMode;
+
+  /* estate summary line */
+  const est = document.getElementById('estate-summary');
+  const who = state.decedent.trim() ? `กองมรดกของ ${esc(state.decedent.trim())}` : 'กองมรดก';
+  est.innerHTML = hasMoney ? `${who}: <b>${fmtMicroDisplay(estateMicro)} บาท</b>` : `${who}: <b>ยังไม่ได้ระบุมูลค่า</b> — แสดงเฉพาะสัดส่วน`;
+
+  /* marital box */
+  const mar = document.getElementById('marital-summary');
+  if (state.estate.mode === 'marital') {
+    const somros = parseMicro(state.estate.sinSomros);
+    const half = somros / 2n;
+    const noSpouseWarn = !state.spouse.exists
+      ? '<br>⚠️ ยังไม่ได้ระบุคู่สมรสในข้อ 2 — การแยกสินสมรสตาม ม.1625(1) ใช้เฉพาะกรณีเจ้ามรดกมีคู่สมรสอยู่ขณะตาย'
+      : '';
+    mar.innerHTML = `<div class="marital-box">แบ่งสินสมรสก่อน (ม.1625(1)): คู่สมรสได้ครึ่งหนึ่ง <b>${fmtMicroDisplay(half)} บาท</b> ในฐานะเจ้าของร่วม (ไม่ใช่มรดก)<br>กองมรดก = สินส่วนตัว ${fmtMicroDisplay(parseMicro(state.estate.sinSuanTua))} + ครึ่งสินสมรส ${fmtMicroDisplay(somros - half)} = <b>${fmtMicroDisplay(estateMicro)} บาท</b>${noSpouseWarn}</div>`;
+  } else if (state.estate.mode === 'assets') {
+    const assets = state.estate.assets || [];
+    let total = 0n, maritalSum = 0n;
+    for (const a of assets) { const v = parseMicro(a.value); total += v; if (a.marital) maritalSum += v; }
+    const hasMarital = maritalSum > 0n;
+    const warn = hasMarital && !state.spouse.exists
+      ? '<br>⚠️ มีรายการสินสมรสแต่ยังไม่ได้ระบุคู่สมรสในข้อ 2 — การแบ่งครึ่งตาม ม.1625(1) ใช้เฉพาะกรณีมีคู่สมรสอยู่ขณะตาย'
+      : '';
+    mar.innerHTML = assets.length
+      ? `<div class="marital-box">ทรัพย์สิน ${assets.length} รายการ รวม <b>${fmtMicroDisplay(total)} บาท</b>${hasMarital ? `<br>สินสมรสรวม ${fmtMicroDisplay(maritalSum)} — ครึ่งหนึ่ง <b>${fmtMicroDisplay(maritalSum / 2n)} บาท</b> เป็นของคู่สมรสในฐานะเจ้าของร่วม (ม.1625(1) ไม่ใช่มรดก)` : ''}<br>กองมรดกสุทธิ = <b>${fmtMicroDisplay(estateMicro)} บาท</b>${warn}</div>`
+      : '';
+  } else {
+    mar.innerHTML = '';
+  }
+
+  /* scenario badge */
+  const badge = document.getElementById('scenario-badge');
+  const scenarioNames = { c1: 'ลำดับ 1 รับมรดก', c2: 'ลำดับ 2 รับมรดก', c3: 'ลำดับ 3 รับมรดก', c4: 'ลำดับ 4 รับมรดก', c5: 'ลำดับ 5 รับมรดก', c6: 'ลำดับ 6 รับมรดก', spouse_only: 'คู่สมรสรับทั้งหมด', escheat: 'ตกแก่แผ่นดิน' };
+  badge.innerHTML = result.scenario === 'escheat'
+    ? '<span class="badge block">' + scenarioNames[result.scenario] + '</span>'
+    : '<span class="badge take">' + scenarioNames[result.scenario] + '</span>';
+
+  /* spouse badge in entry */
+  const sb = document.getElementById('spouse-badge');
+  sb.innerHTML = result.spouseRule ? `<span class="badge take">${esc(result.spouseRule)}</span>` : (state.spouse.exists ? '<span class="badge idle">ไม่ได้รับส่วนแบ่ง</span>' : '');
+
+  /* results table */
+  const body = document.getElementById('results-body');
+  if (result.scenario === 'escheat') {
+    body.innerHTML = '<div class="escheat-box">ไม่มีทายาทโดยธรรมและคู่สมรส — มรดกตกทอดแก่แผ่นดิน (ม.1753)</div>';
+  } else if (!result.allocations.length) {
+    body.innerHTML = '<div class="empty-hint">ยังไม่มีผู้รับมรดก — กรอกข้อมูลทายาทด้านซ้าย</div>';
+  } else {
+    let sum = 0n;
+    const rows = result.allocations.map(a => {
+      let amtCell = '';
+      if (hasMoney) {
+        const amt = shareAmount(estateMicro, a.frac, dec, mode);
+        sum += amt;
+        amtCell = `<td class="num">${fmtUnits(amt, dec)}</td>`;
+      }
+      return `<tr>
+        <td><span class="who">${esc(a.name)}</span>${a.transmission ? ' <span title="ตกทอดแก่กองมรดกของทายาทผู้นี้ต่อไป">⤳</span>' : ''}<div class="how">${esc(a.relation)}</div></td>
+        <td class="num"><span class="frac">${fText(a.frac)}</span><br><span class="pct">${fPct(a.frac)}</span></td>
+        ${amtCell}
+      </tr>`;
+    }).join('');
+    let foot = '';
+    if (hasMoney) {
+      const estRounded = shareAmount(estateMicro, F1, dec, 'half');
+      const diff = sum - estRounded;
+      foot = `<tfoot><tr><td>รวม</td><td class="num"></td><td class="num">${fmtUnits(sum, dec)}</td></tr></tfoot>`;
+      body.innerHTML = `<table class="result">
+        <thead><tr><th>ผู้รับมรดก</th><th class="num">ส่วน</th><th class="num">บาท</th></tr></thead>
+        <tbody>${rows}</tbody>${foot}
+      </table>` + (diff !== 0n ? `<div class="rounding-diff">ผลรวมต่างจากกองมรดก ${fmtUnits(diff > 0n ? diff : -diff, dec)} บาท (${diff > 0n ? 'เกิน' : 'ขาด'}) จากการปัดเศษ — เกลี่ยเองตามตกลง</div>` : '');
+    } else {
+      body.innerHTML = `<table class="result">
+        <thead><tr><th>ผู้รับมรดก</th><th class="num">ส่วน</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+    }
+  }
+
+  /* steps */
+  const stepsBody = document.getElementById('steps-body');
+  stepsBody.innerHTML = result.steps.map(s => `
+    <div class="step-item"><h4>${esc(s.title)}</h4><ul>${s.lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul></div>
+  `).join('') || '<div class="empty-hint">—</div>';
+
+  /* notes */
+  const notesBody = document.getElementById('notes-body');
+  const uniqueNotes = [...new Map(result.notes.map(n => [n.text, n])).values()];
+  notesBody.innerHTML = uniqueNotes.length
+    ? uniqueNotes.map(n => `<div class="note-item ${n.kind}"><span class="ic">${n.kind === 'warn' ? '⚠️' : 'ℹ️'}</span><span>${esc(n.text)}</span></div>`).join('')
+    : '<div class="empty-hint">ไม่มีข้อสังเกตเพิ่มเติม</div>';
+  document.getElementById('notes-block').open = uniqueNotes.some(n => n.kind === 'warn');
+
+  /* per-asset breakdown */
+  const assetBreak = perAssetBreakdown(result, dec, mode);
+  const assetsBlock = document.getElementById('assets-block');
+  const assetsBody = document.getElementById('assets-body');
+  if (assetBreak.length) {
+    assetsBlock.style.display = '';
+    assetsBody.innerHTML = assetBreak.map(ab => {
+      const hasV = ab.value > 0n;
+      const rows = ab.rows.map(row => {
+        const partsText = row.parts.length > 1 ? `<div class="how">${esc(row.parts.join(' + '))}</div>` : '';
+        return `<tr><td><span class="who">${esc(row.name)}</span>${partsText}</td><td class="num"><span class="frac">${fText(row.frac)}</span><br><span class="pct">${fPct(row.frac)}</span></td>${hasV ? `<td class="num">${fmtUnits(row.amt, dec)}</td>` : ''}</tr>`;
+      }).join('');
+      const foot = hasV ? `<tfoot><tr><td>รวม</td><td class="num"></td><td class="num">${fmtUnits(ab.sum, dec)}</td></tr></tfoot>` : '';
+      return `<div class="asset-break">
+        <h4>${ab.idx + 1}. ${esc(ab.name)} <span class="asset-chip${ab.marital ? ' m' : ''}">${ab.marital ? 'สินสมรส' : 'สินส่วนตัว'}</span>${hasV ? `<span class="asset-val">${fmtMicroDisplay(ab.value)} บาท</span>` : ''}</h4>
+        <table class="result">
+          <thead><tr><th>ผู้มีส่วน</th><th class="num">ส่วนในทรัพย์นี้</th>${hasV ? '<th class="num">บาท</th>' : ''}</tr></thead>
+          <tbody>${rows}</tbody>${foot}
+        </table>
+      </div>`;
+    }).join('');
+  } else {
+    assetsBlock.style.display = 'none';
+    assetsBody.innerHTML = '';
+  }
+
+  /* refresh class badges without rebuilding trees (badges live inside class cards) */
+  for (const clsNo of [1, 2, 3, 4, 5, 6]) {
+    const card = document.getElementById('class-card-' + clsNo);
+    if (!card) continue;
+    const head = card.querySelector('.class-head');
+    const oldBadge = head.querySelector('.badge');
+    const hasEntries = { 1: state.class1.length > 0, 2: state.class2.father.exists || state.class2.mother.exists, 3: state.class3.length > 0, 4: state.class4.length > 0, 5: ['pgf','pgm','mgf','mgm'].some(k => state.class5[k].exists), 6: state.class6.length > 0 }[clsNo];
+    const html = classBadgeHtml(clsNo, result, hasEntries);
+    if (oldBadge) oldBadge.remove();
+    if (html) {
+      const tmp = document.createElement('span');
+      tmp.innerHTML = html;
+      head.insertBefore(tmp.firstElementChild, head.querySelector('.mini-btn') || null);
+    }
+  }
+
+  save();
+}
+
+/* ── persistence ── */
+function save() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) { /* private mode */ }
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    state = Object.assign(defaultState(), parsed);
+    state.options = Object.assign(defaultState().options, parsed.options || {});
+    state.estate = Object.assign(defaultState().estate, parsed.estate || {});
+    if (!Array.isArray(state.estate.assets)) state.estate.assets = [];
+    let maxId = 0;
+    (function walk(list) { (list || []).forEach(p => { const n = parseInt(String(p.id).slice(1), 10); if (n > maxId) maxId = n; walk(p.children); }); })(
+      [].concat(state.class1, state.class3, state.class4, state.class6));
+    uid = maxId + 1;
+  } catch (e) { state = defaultState(); }
+}
+
+/* ── events ── */
+function onMoneyChanged(id, val) {
+  if (id === 'estate-direct') state.estate.direct = val;
+  else if (id === 'estate-sinsomros') state.estate.sinSomros = val;
+  else if (id === 'estate-sinsuantua') state.estate.sinSuanTua = val;
+  recompute();
+}
+
+document.getElementById('decedent-name').addEventListener('input', e => { state.decedent = e.target.value; recompute(); });
+attachMoney(document.getElementById('estate-direct'));
+attachMoney(document.getElementById('estate-sinsomros'));
+attachMoney(document.getElementById('estate-sinsuantua'));
+
+document.getElementById('estate-mode').addEventListener('change', e => {
+  const v = e.target.closest('.seg')?.dataset.val;
+  if (v) { state.estate.mode = v; renderEntry(); recompute(); }
+});
+document.getElementById('spouse-exists-row').addEventListener('change', e => {
+  const v = e.target.closest('.seg')?.dataset.val;
+  if (v) { state.spouse.exists = v === 'yes'; renderEntry(); recompute(); }
+});
+
+/* delegated entry events (trees, members, spouse fields) */
+const entryArea = document.querySelector('.entry-area');
+entryArea.addEventListener('input', e => {
+  const el = e.target;
+  const bind = el.dataset.bind;
+  if (!bind || el.dataset.rerender) return;
+  if (el.dataset.money) setByPath(state, bind, formatMoneyInPlace(el));
+  else if (el.dataset.list) setByPath(state, bind, el.value.split(',').map(s => s.trim()).filter(s => s !== ''));
+  else setByPath(state, bind, el.value);
+  recompute();
+});
+entryArea.addEventListener('change', e => {
+  const el = e.target;
+  const bind = el.dataset.bind;
+  if (!bind || !el.dataset.rerender) return;
+  let val;
+  if (el.dataset.check) val = el.checked;
+  else if (el.dataset.bool) val = el.value === 'true';
+  else val = el.value;
+  setByPath(state, bind, val);
+  renderEntry();
+  recompute();
+});
+entryArea.addEventListener('click', e => {
+  const btn = e.target.closest('button[data-action]');
+  if (!btn) return;
+  const action = btn.dataset.action;
+  const path = btn.dataset.path;
+  if (action === 'add-root') {
+    getByPath(state, path).push(newPerson(path === 'class1' ? 'legit' : 'direct'));
+  } else if (action === 'add-asset') {
+    state.estate.assets.push({ name: '', value: '', marital: false });
+  } else if (action === 'add-child') {
+    const node = getByPath(state, path);
+    node.children.push(newPerson('direct'));
+  } else if (action === 'remove') {
+    const keys = path.split('.');
+    const idx = parseInt(keys.pop(), 10);
+    getByPath(state, keys.join('.')).splice(idx, 1);
+  } else {
+    return;
+  }
+  renderEntry();
+  recompute();
+});
+
+/* options */
+document.querySelectorAll('input[name="opt-succ"]').forEach(el => el.addEventListener('change', () => {
+  state.options.succAdopted = document.querySelector('input[name="opt-succ"]:checked').value === 'dika';
+  recompute();
+}));
+document.querySelectorAll('input[name="opt-percapita"]').forEach(el => el.addEventListener('change', () => {
+  state.options.class1PerCapita = document.querySelector('input[name="opt-percapita"]:checked').value === 'capita';
+  recompute();
+}));
+document.getElementById('fmt-decimals').addEventListener('change', e => { state.options.decimals = parseInt(e.target.value, 10); recompute(); });
+document.getElementById('fmt-round').addEventListener('change', e => { state.options.roundMode = e.target.value; recompute(); });
+
+/* copy */
+document.getElementById('btn-copy').addEventListener('click', () => {
+  const r = lastResult;
+  if (!r) return;
+  const estateMicro = estateMicroNow();
+  const hasMoney = estateMicro > 0n;
+  const dec = state.options.decimals;
+  const mode = state.options.roundMode;
+  const L = [];
+  L.push(`การแบ่งมรดกโดยธรรม${state.decedent.trim() ? ' — กองมรดกของ ' + state.decedent.trim() : ''}`);
+  if (state.estate.mode === 'marital') {
+    const somros = parseMicro(state.estate.sinSomros);
+    L.push(`แบ่งสินสมรสก่อน (ม.1625(1)): คู่สมรสได้ครึ่งหนึ่ง ${fmtMicroDisplay(somros / 2n)} บาท (ในฐานะเจ้าของร่วม ไม่ใช่มรดก)`);
+  } else if (state.estate.mode === 'assets') {
+    const assets = state.estate.assets || [];
+    let totalAll = 0n, maritalSum = 0n;
+    for (const a of assets) { const v = parseMicro(a.value); totalAll += v; if (a.marital) maritalSum += v; }
+    L.push(`ทรัพย์สิน ${assets.length} รายการ รวม ${fmtMicroDisplay(totalAll)} บาท`);
+    if (maritalSum > 0n) L.push(`สินสมรสรวม ${fmtMicroDisplay(maritalSum)} บาท — ครึ่งหนึ่ง ${fmtMicroDisplay(maritalSum / 2n)} บาท เป็นของคู่สมรสในฐานะเจ้าของร่วม (ม.1625(1) ไม่ใช่มรดก)`);
+  }
+  L.push(hasMoney ? `กองมรดกสุทธิ: ${fmtMicroDisplay(estateMicro)} บาท` : 'กองมรดกสุทธิ: (ไม่ได้ระบุ — แสดงเฉพาะสัดส่วน)');
+  L.push('');
+  if (r.scenario === 'escheat') {
+    L.push('ไม่มีทายาทโดยธรรมและคู่สมรส — มรดกตกทอดแก่แผ่นดิน (ม.1753)');
+  } else {
+    L.push('ผู้รับมรดก:');
+    for (const a of r.allocations) {
+      const amt = hasMoney ? ` = ${fmtUnits(shareAmount(estateMicro, a.frac, dec, mode), dec)} บาท` : '';
+      L.push(`• ${a.name} — ${a.relation} — ส่วนแบ่ง ${fText(a.frac)} (${fPct(a.frac)})${amt}${a.transmission ? ' [ตกทอดแก่กองมรดกของทายาทผู้นี้ต่อไป]' : ''}`);
+    }
+  }
+  const assetBreak = perAssetBreakdown(r, dec, mode);
+  if (assetBreak.length) {
+    L.push('');
+    L.push('การแบ่งรายทรัพย์สิน:');
+    for (const ab of assetBreak) {
+      L.push(`${ab.idx + 1}. ${ab.name} (${ab.marital ? 'สินสมรส' : 'สินส่วนตัว'}${ab.value > 0n ? ' — ' + fmtMicroDisplay(ab.value) + ' บาท' : ''})`);
+      for (const row of ab.rows) {
+        const parts = row.parts.length > 1 ? ` [${row.parts.join(' + ')}]` : '';
+        L.push(`   • ${row.name} — ส่วนในทรัพย์นี้ ${fText(row.frac)} (${fPct(row.frac)})${row.amt !== null ? ' = ' + fmtUnits(row.amt, dec) + ' บาท' : ''}${parts}`);
+      }
+    }
+  }
+  L.push('');
+  L.push('วิธีคิด:');
+  for (const s of r.steps) { L.push(`[${s.title}]`); s.lines.forEach(l => L.push(`- ${l}`)); }
+  const uniqueNotes = [...new Map(r.notes.map(n => [n.text, n])).values()];
+  if (uniqueNotes.length) {
+    L.push('');
+    L.push('หมายเหตุ:');
+    uniqueNotes.forEach(n => L.push(`- ${n.text}`));
+  }
+  L.push('');
+  L.push('คำนวณโดย JuraTools — เครื่องคำนวณมรดกโดยธรรม (เครื่องมือช่วยคำนวณเบื้องต้น มิใช่คำแนะนำทางกฎหมาย)');
+  navigator.clipboard.writeText(L.join('\n')).then(() => {
+    const btn = document.getElementById('btn-copy');
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<span>✓</span> คัดลอกแล้ว';
+    setTimeout(() => { btn.innerHTML = orig; }, 1400);
+  });
+});
+
+/* reset & examples */
+document.getElementById('btn-reset').addEventListener('click', () => {
+  if (!confirm('ล้างข้อมูลทั้งหมดและเริ่มใหม่?')) return;
+  state = defaultState();
+  renderEntry();
+  recompute();
+});
+
+const EXAMPLES = {
+  ex1() {
+    const s = defaultState();
+    s.decedent = 'นายสมชาย';
+    s.estate.direct = '12,000,000';
+    s.spouse = { exists: true, name: 'นางสมหญิง', status: 'alive', successors: [] };
+    s.class1 = [
+      { id: 'p1', name: 'นายหนึ่ง', type: 'legit', status: 'alive', children: [] },
+      { id: 'p2', name: 'นางสอง', type: 'legit', status: 'alive', children: [] },
+      { id: 'p3', name: 'นายสาม', type: 'legit', status: 'dead_before', children: [
+        { id: 'p4', name: 'ด.ช. สี่', type: 'direct', status: 'alive', children: [] },
+        { id: 'p5', name: 'ด.ญ. ห้า', type: 'direct', status: 'alive', children: [] },
+      ] },
+    ];
+    s.class2.father = { exists: true, name: 'นายพ่อ', status: 'alive', legal: true, successors: [] };
+    uid = 6;
+    return s;
+  },
+  ex2() {
+    const s = defaultState();
+    s.decedent = 'นางสาวเอ';
+    s.estate.direct = '3,000,000';
+    s.spouse = { exists: true, name: 'นายบี', status: 'alive', successors: [] };
+    s.class2.father = { exists: true, name: 'นายพ่อ', status: 'alive', legal: true, successors: [] };
+    s.class2.mother = { exists: true, name: 'นางแม่', status: 'alive', legal: true, successors: [] };
+    return s;
+  },
+  ex3() {
+    const s = defaultState();
+    s.decedent = 'นายซี';
+    s.estate.direct = '8,000,000';
+    s.spouse = { exists: true, name: 'นางดี', status: 'alive', successors: [] };
+    s.class3 = [
+      { id: 'p1', name: 'นายพี่', type: 'direct', status: 'alive', children: [] },
+      { id: 'p2', name: 'นางน้อง', type: 'direct', status: 'alive', children: [] },
+    ];
+    uid = 3;
+    return s;
+  },
+  ex4() {
+    const s = defaultState();
+    s.decedent = 'นางอี';
+    s.estate.direct = '6,000,000';
+    s.class1 = [
+      { id: 'p1', name: 'นายลูกโต', type: 'legit', status: 'renounced', children: [
+        { id: 'p2', name: 'ด.ช. หลานหนึ่ง', type: 'direct', status: 'alive', children: [] },
+      ] },
+      { id: 'p3', name: 'นางลูกเล็ก', type: 'legit', status: 'alive', children: [] },
+    ];
+    uid = 4;
+    return s;
+  },
+};
+document.getElementById('btn-example').addEventListener('click', () => {
+  const key = document.getElementById('example-select').value;
+  if (EXAMPLES[key]) {
+    state = EXAMPLES[key]();
+    renderEntry();
+    recompute();
+  }
+});
+
+/* init */
+load();
+renderEntry();
+recompute();
+</script>
+</body>
+</html>

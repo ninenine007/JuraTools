@@ -17,6 +17,6 @@ Tools are grouped into collections, each with its own hub page:
 | `utilities/` | Utilities — Thai line formatting, baht text, text sanitizer, subtitle converter, pro-rata allocation, rounding lab, percentages |
 | `tools/` | Local scripts (e.g. `srv-to-paragraphs`) |
 
-Standalone tools (`ccc-default-interest.html`, `copywork.html`, `marginalia.html`) live at the root next to `index.html`.
+Standalone tools (`ccc-default-interest.html`, `intestate-succession.html`, `copywork.html`, `marginalia.html`) live at the root next to `index.html`.
 
 Old root-level tool URLs redirect to their new locations via `404.html` on GitHub Pages.
