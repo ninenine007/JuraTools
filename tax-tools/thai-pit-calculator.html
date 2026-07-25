@@ -1,0 +1,1776 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Personal Income Tax Calculator — Thai Tax Tools | JuraTools</title>
+  <meta name="description" content="Thai personal income tax (PIT) estimator — income by §40 category with เหมา expense deductions, itemised allowances with real cap-groups, §40(4) election optimiser, and refund/payable. By Kornrawee Chanchom." />
+  <style>
+    :root {
+      --ink: #1c1c1e; --ink-2: #3c3c43; --muted: #6e6e73; --faint: #aeaeb2;
+      --line: rgba(0,0,0,0.08); --line-soft: rgba(0,0,0,0.05);
+      --rose: #e11d48; --rose-dark: #c81740; --rose-light: #fff1f2; --rose-border: #fecdd3;
+      --green: #15803d; --green-light: #f0fdf4; --green-border: #bbf7d0;
+      --info: #0369a1; --info-light: #f0f9ff; --info-border: #bae6fd;
+      --warn: #b45309; --warn-light: #fffbeb; --warn-border: #fde68a;
+      --card-bg: rgba(255,255,255,0.82);
+      --radius: 16px; --radius-sm: 10px;
+      --shadow: 0 1px 1px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06);
+      --maxw: 860px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0; color: var(--ink); line-height: 1.45;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", "Noto Sans Thai", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      background: #f2f2f7;
+      background-image:
+        radial-gradient(ellipse 1100px 700px at 10% 0%,   rgba(255,205,210,0.4)   0%, transparent 60%),
+        radial-gradient(ellipse  700px 700px at 95% 8%,   rgba(255,224,178,0.35)  0%, transparent 55%),
+        radial-gradient(ellipse  800px 600px at 0%  92%,  rgba(194,221,255,0.3)   0%, transparent 55%),
+        radial-gradient(ellipse  900px 500px at 100% 96%, rgba(218,205,255,0.28)  0%, transparent 55%);
+    }
+    button, input, select, textarea { font: inherit; }
+    a { color: var(--rose); }
+    h1, h2, h3, p { margin-top: 0; }
+    .muted { color: var(--muted); }
+
+    /* ── Sticky breadcrumb nav ────────────────────── */
+    .nav {
+      position: sticky; top: 0; z-index: 200; height: 52px;
+      display: flex; align-items: center; gap: 11px; padding: 0 22px;
+      background: rgba(242,242,247,0.82);
+      backdrop-filter: blur(24px) saturate(200%);
+      -webkit-backdrop-filter: blur(24px) saturate(200%);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav a { text-decoration: none; color: inherit; }
+    .nav-brand { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+    .nav-icon {
+      width: 30px; height: 30px; border-radius: 7px;
+      background: linear-gradient(145deg, #2979ff, #1565c0);
+      display: grid; place-items: center; font-size: 15px;
+      box-shadow: 0 2px 6px rgba(41,121,255,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    .nav-wordmark { font-size: 15px; font-weight: 700; letter-spacing: -0.4px; color: var(--ink); }
+    .nav-sep { color: #c7c7cc; font-size: 14px; }
+    .nav-crumb { font-size: 14px; font-weight: 500; color: var(--muted); }
+    .nav-crumb.current { color: var(--ink); font-weight: 600; }
+    .nav-back {
+      margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+      font-size: 13px; font-weight: 500; color: var(--ink-2);
+      background: rgba(0,0,0,0.055); border: 1px solid rgba(0,0,0,0.1);
+      padding: 6px 12px; border-radius: 9px; transition: background .14s;
+    }
+    .nav-back:hover { background: rgba(0,0,0,0.09); }
+    /* "Personal Income Tax" is a longer crumb than the other tools carry, so it
+       needs to ellipsise rather than wrap and collide with the back button. */
+    @media (max-width: 620px) {
+      .nav { gap: 8px; padding: 0 14px; }
+      .nav-crumb:not(.current), .nav-sep.hide-sm { display: none; }
+      .nav-crumb.current { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+      .nav-back { flex-shrink: 0; white-space: nowrap; }
+    }
+    @media (max-width: 430px) {
+      .nav-wordmark, .nav-sep { display: none; }
+    }
+
+    /* ── Sticky summary bar ───────────────────────── */
+    .summary-bar {
+      position: sticky; top: 52px; z-index: 190;
+      background: rgba(255,255,255,0.9);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-bottom: 1px solid var(--line);
+      box-shadow: 0 1px 8px rgba(0,0,0,0.04);
+    }
+    .summary-inner {
+      width: min(var(--maxw), calc(100% - 32px)); margin: 0 auto;
+      display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+      padding: 9px 0;
+    }
+    .sum-cell { display: flex; flex-direction: column; padding: 0 14px; border-left: 1px solid var(--line-soft); flex: 1 1 auto; min-width: 108px; }
+    .sum-cell:first-child { border-left: none; padding-left: 0; }
+    .sum-k { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--faint); }
+    .sum-v { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.4px; }
+    .sum-v.rose { color: var(--rose-dark); }
+    .sum-v.green { color: var(--green); }
+    @media (max-width: 640px) {
+      .summary-inner { padding: 7px 0; }
+      .sum-cell { min-width: 88px; padding: 0 9px; }
+      .sum-v { font-size: 15px; }
+    }
+
+    /* ── Hero ─────────────────────────────────────── */
+    .hero { width: min(var(--maxw), calc(100% - 32px)); margin: 0 auto; padding: 28px 0 6px; }
+    .hero h1 {
+      font-size: clamp(26px, 3.6vw, 34px); font-weight: 800; letter-spacing: -1px; line-height: 1.12;
+      background: linear-gradient(135deg, #1c1c1e 0%, #e11d48 60%, #ea580c 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      margin-bottom: 6px;
+    }
+    .hero .sub { font-size: 14px; color: var(--muted); line-height: 1.55; max-width: 660px; }
+
+    /* ── Cards & fields ───────────────────────────── */
+    .wrap { width: min(var(--maxw), calc(100% - 32px)); margin: 16px auto 40px; }
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.9);
+      border-radius: var(--radius); padding: 22px;
+      box-shadow: var(--shadow); margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 13px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.05em; color: var(--muted); margin-bottom: 14px;
+    }
+    .card-title .th { text-transform: none; letter-spacing: 0; font-weight: 500; color: var(--faint); }
+    label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 5px; }
+    .hint { font-size: 12px; color: var(--muted); font-weight: 400; }
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 560px) { .field-row { grid-template-columns: 1fr; } }
+    input[type="number"], input[type="text"], select {
+      width: 100%; padding: 9px 11px;
+      border: 1px solid var(--line); border-radius: 8px;
+      font-size: 15px; background: #fff; color: var(--ink);
+      outline: none; transition: border-color .15s, box-shadow .15s;
+      font-variant-numeric: tabular-nums;
+    }
+    input:focus, select:focus { border-color: var(--rose); box-shadow: 0 0 0 3px rgba(225,29,72,0.12); }
+    input.amt { text-align: right; }
+    .field-note { font-size: 12px; color: var(--muted); line-height: 1.5; margin-top: 5px; }
+
+    .check-row { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; margin-bottom: 10px; }
+    .check-row:last-child { margin-bottom: 0; }
+    .check-row input[type="checkbox"] { width: auto; margin-top: 3px; flex-shrink: 0; accent-color: var(--rose); }
+    .check-row label { margin-bottom: 0; font-weight: 400; }
+
+    /* ── Section sub-heads ────────────────────────── */
+    .sec { border-top: 1px solid var(--line-soft); margin-top: 18px; padding-top: 16px; }
+    .sec:first-of-type { border-top: none; margin-top: 0; padding-top: 0; }
+    .sec-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+    .sec-code { font-size: 13px; font-weight: 700; color: var(--rose-dark); font-variant-numeric: tabular-nums; }
+    .sec-name { font-size: 13px; font-weight: 600; }
+    .sec-th { font-size: 12px; color: var(--faint); }
+
+    /* ── Income / allowance rows ──────────────────── */
+    .row {
+      display: grid; grid-template-columns: 1fr 118px 150px; gap: 10px;
+      align-items: center; padding: 7px 0;
+    }
+    .row.has-del { grid-template-columns: 1fr 118px 150px 30px; }
+    .row-lbl { font-size: 13px; }
+    .row-lbl .th { display: block; font-size: 11.5px; color: var(--faint); }
+    .row-mid { font-size: 12px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+    @media (max-width: 620px) {
+      .row, .row.has-del { grid-template-columns: 1fr 130px; }
+      .row-mid { grid-column: 1 / -1; text-align: left; order: 3; }
+      .row .del { order: 4; }
+    }
+    .del {
+      width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--line);
+      background: #fff; color: var(--faint); cursor: pointer; line-height: 1;
+      display: grid; place-items: center; font-size: 15px; padding: 0;
+    }
+    .del:hover { border-color: var(--rose); color: var(--rose); }
+    .add-line {
+      display: inline-flex; align-items: center; gap: 5px; margin-top: 6px;
+      background: transparent; border: 1px dashed var(--line); border-radius: 8px;
+      padding: 6px 12px; font-size: 12.5px; color: var(--muted); cursor: pointer;
+      transition: all .14s;
+    }
+    .add-line:hover { border-color: var(--rose); color: var(--rose); border-style: solid; }
+
+    .line { border: 1px solid var(--line-soft); border-radius: var(--radius-sm); padding: 11px 12px; margin-bottom: 9px; background: rgba(255,255,255,0.55); }
+    .line-grid { display: grid; grid-template-columns: 1.4fr 92px 1fr 30px; gap: 9px; align-items: end; }
+    @media (max-width: 620px) { .line-grid { grid-template-columns: 1fr 1fr; } .line-grid .del { justify-self: end; } }
+    .line-grid label { font-size: 11px; color: var(--muted); font-weight: 500; margin-bottom: 3px; }
+    .line-sub { margin-top: 8px; font-size: 12px; }
+    .line-calc { font-size: 11.5px; color: var(--muted); margin-top: 7px; font-variant-numeric: tabular-nums; }
+
+    /* ── Group headroom meters ────────────────────── */
+    .grp {
+      border: 1px solid var(--line); border-radius: var(--radius-sm);
+      padding: 12px 13px; margin: 12px 0; background: rgba(255,255,255,0.6);
+    }
+    .grp-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 12.5px; font-weight: 600; margin-bottom: 8px; }
+    .grp-used { font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .grp-used.full { color: var(--warn); font-weight: 600; }
+    .meter { height: 5px; border-radius: 3px; background: rgba(0,0,0,0.07); overflow: hidden; margin-bottom: 9px; }
+    .meter i { display: block; height: 100%; background: var(--rose); border-radius: 3px; transition: width .2s; }
+    .meter i.full { background: var(--warn); }
+    .grp-note { font-size: 11.5px; color: var(--muted); line-height: 1.5; margin-top: 6px; }
+    .grp-note.warn { color: var(--warn); }
+
+    /* ── Rules panel ──────────────────────────────── */
+    details.rules { border: none; padding: 0; }
+    details.rules > summary {
+      list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px;
+      font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted);
+    }
+    details.rules > summary::-webkit-details-marker { display: none; }
+    details.rules > summary::before { content: "▸"; font-size: 11px; transition: transform .16s; color: var(--faint); }
+    details.rules[open] > summary::before { transform: rotate(90deg); }
+    details.rules > summary .th { text-transform: none; letter-spacing: 0; font-weight: 500; color: var(--faint); }
+    .rules-body { margin-top: 16px; }
+    .rule-grp-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--faint); margin: 16px 0 8px; }
+    .rule-grp-title:first-child { margin-top: 0; }
+    .rule {
+      display: grid; grid-template-columns: 1fr 116px 28px; gap: 9px;
+      align-items: center; padding: 4px 0; font-size: 12.5px;
+    }
+    .rule-lbl { line-height: 1.35; }
+    .rule-lbl .th { display: block; font-size: 11px; color: var(--faint); }
+    .rule input { padding: 6px 9px; font-size: 13px; }
+    .rule input[type="checkbox"] { width: auto; justify-self: start; accent-color: var(--rose); }
+    .rule.changed input { border-color: var(--rose); background: var(--rose-light); }
+    .reset-auto {
+      width: 26px; height: 26px; border-radius: 7px; border: 1px solid transparent;
+      background: transparent; color: transparent; cursor: default; padding: 0;
+      display: grid; place-items: center; font-size: 13px; line-height: 1;
+    }
+    .rule.changed .reset-auto { border-color: var(--line); background: #fff; color: var(--muted); cursor: pointer; }
+    .rule.changed .reset-auto:hover { border-color: var(--rose); color: var(--rose); }
+    .verify-tag {
+      display: inline-block; margin-left: 5px; padding: 1px 6px; border-radius: 999px;
+      font-size: 9.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+      background: var(--warn-light); color: var(--warn); border: 1px solid var(--warn-border);
+      vertical-align: 1px;
+    }
+    .brk-row { display: grid; grid-template-columns: 1fr 1fr 88px 28px; gap: 9px; align-items: center; padding: 3px 0; font-size: 12.5px; }
+    .brk-row .from { color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; padding-right: 4px; }
+    .brk-row input { padding: 6px 9px; font-size: 13px; }
+    .brk-head { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--faint); }
+
+    /* ── Results ──────────────────────────────────── */
+    table.data { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-top: 4px; }
+    table.data td, table.data th { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line-soft); }
+    table.data th { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--faint); }
+    table.data td.num, table.data th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    table.data tr.total td { font-weight: 700; border-top: 2px solid var(--ink); border-bottom: none; }
+    table.data tr.sub td { font-weight: 600; border-top: 1px solid var(--line); }
+    table.data tr.muted td { color: var(--muted); }
+    table.data tr.hl td { color: var(--rose-dark); font-weight: 600; }
+    table.data tr.best td { background: var(--green-light); color: var(--green); font-weight: 600; }
+    table.data td .th { display: block; font-size: 11px; color: var(--faint); font-weight: 400; }
+    table.data td.ind { padding-left: 24px; }
+    .tbl-wrap { overflow-x: auto; }
+
+    .result-boxes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 11px; margin-top: 16px; }
+    @media (max-width: 660px) { .result-boxes { grid-template-columns: 1fr; } }
+    .amount-box { border: 1px solid var(--rose-border); border-radius: var(--radius-sm); padding: 14px 15px; background: var(--rose-light); }
+    .amount-box.green { border-color: var(--green-border); background: var(--green-light); }
+    .amount-box.plain { border-color: var(--line); background: rgba(255,255,255,0.7); }
+    .amount-label { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+    .amount-value { font-size: 23px; font-weight: 700; color: var(--rose-dark); margin-top: 2px; font-variant-numeric: tabular-nums; letter-spacing: -.5px; }
+    .amount-box.green .amount-value { color: var(--green); }
+    .amount-box.plain .amount-value { color: var(--ink); }
+    .amount-sub { font-size: 11.5px; color: var(--muted); margin-top: 4px; line-height: 1.45; }
+
+    .callout {
+      border-radius: 8px; padding: 11px 14px; font-size: 12.5px; line-height: 1.55;
+      background: var(--info-light); border: 1px solid var(--info-border); color: var(--info);
+      margin-top: 14px;
+    }
+    .callout.warn { background: var(--warn-light); border-color: var(--warn-border); color: var(--warn); }
+    .callout strong { font-weight: 600; }
+    .callout + .callout { margin-top: 9px; }
+
+    .actions-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #fff; border: 1px solid var(--line); border-radius: 8px;
+      padding: 8px 15px; font-size: 13px; font-weight: 500;
+      cursor: pointer; color: var(--ink-2); transition: background 0.14s, border-color 0.14s, color .14s;
+    }
+    .btn:hover { border-color: var(--rose); color: var(--rose); }
+    .btn.copied { background: var(--rose); border-color: var(--rose); color: #fff; }
+
+    footer {
+      width: min(var(--maxw), calc(100% - 32px)); margin: 24px auto 32px;
+      font-size: 12px; color: var(--faint); text-align: center; line-height: 1.65;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-brand" href="../index.html">
+    <div class="nav-icon">⚖️</div>
+    <span class="nav-wordmark">JuraTools</span>
+  </a>
+  <span class="nav-sep">/</span>
+  <a class="nav-crumb" href="index.html">Thai Tax Tools</a>
+  <span class="nav-sep hide-sm">/</span>
+  <span class="nav-crumb current">Personal Income Tax</span>
+  <a class="nav-back" href="index.html">← All tax tools</a>
+</nav>
+
+<!-- Sticky live summary -->
+<div class="summary-bar">
+  <div class="summary-inner">
+    <div class="sum-cell"><span class="sum-k">Net income</span><span class="sum-v" id="barNet">—</span></div>
+    <div class="sum-cell"><span class="sum-k">Tax</span><span class="sum-v rose" id="barTax">—</span></div>
+    <div class="sum-cell"><span class="sum-k">Effective</span><span class="sum-v" id="barEff">—</span></div>
+    <div class="sum-cell"><span class="sum-k">Marginal</span><span class="sum-v" id="barMarg">—</span></div>
+    <div class="sum-cell"><span class="sum-k" id="barSettleK">Refund / payable</span><span class="sum-v green" id="barSettle">—</span></div>
+  </div>
+</div>
+
+<div class="hero">
+  <h1>Personal Income Tax Calculator</h1>
+  <p class="sub">ภาษีเงินได้บุคคลธรรมดา — an approximate estimate. Enter income by §40 category and the tool applies the statutory เหมา expense deductions, itemised ค่าลดหย่อน with their real cap-groups, the §40(4) final-tax elections, and the progressive rates — down to refund or further tax payable. Every rate, bracket and cap is editable.</p>
+</div>
+
+<div class="wrap">
+
+  <!-- ══ SETUP ══════════════════════════════════════ -->
+  <div class="card">
+    <div class="card-title">Taxpayer <span class="th">ผู้มีเงินได้</span></div>
+    <div class="check-row">
+      <input type="checkbox" id="tpElderly" />
+      <label for="tpElderly"><strong>Aged 65 or over, or a disabled person</strong> — exempts the first <span id="elderlyAmtLbl">190,000</span> of assessable income <span class="hint">(ยกเว้นเงินได้ผู้สูงอายุ / ผู้พิการ)</span></label>
+    </div>
+    <div class="check-row">
+      <input type="checkbox" id="tpSpouse" />
+      <label for="tpSpouse"><strong>Spouse has no assessable income</strong> <span class="hint">— คู่สมรสไม่มีเงินได้. Filing jointly with an earning spouse is not modelled; run the tool once per spouse to approximate separate filing.</span></label>
+    </div>
+    <div class="field-row" style="margin-top:14px">
+      <div class="field">
+        <label for="decimals">Decimal places</label>
+        <select id="decimals">
+          <option value="0" selected>0</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="rounding">Rounding method</label>
+        <select id="rounding">
+          <option value="normal">Normal (round half up)</option>
+          <option value="floor">Floor (always round down)</option>
+          <option value="ceil">Ceiling (always round up)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ INCOME ═════════════════════════════════════ -->
+  <div class="card">
+    <div class="card-title">Income by category <span class="th">เงินได้พึงประเมิน มาตรา 40</span></div>
+
+    <!-- §40(1) & (2) — share one เหมา cap -->
+    <div class="sec">
+      <div class="sec-head">
+        <span class="sec-code">§40(1)–(2)</span>
+        <span class="sec-name">Employment · commissions &amp; fees</span>
+        <span class="sec-th">เงินเดือน · ค่านายหน้า ค่าธรรมเนียม</span>
+      </div>
+      <div class="row">
+        <div class="row-lbl">Salary, wages, benefits<span class="th">เงินเดือน ค่าจ้าง</span></div>
+        <div class="row-mid" id="mid-s1"></div>
+        <input type="text" inputmode="decimal" class="amt" id="s1" placeholder="0" />
+      </div>
+      <div class="row">
+        <div class="row-lbl">Commissions, fees, meeting allowances<span class="th">ค่านายหน้า ค่าธรรมเนียม เบี้ยประชุม</span></div>
+        <div class="row-mid" id="mid-s2"></div>
+        <input type="text" inputmode="decimal" class="amt" id="s2" placeholder="0" />
+      </div>
+      <div class="grp-note" id="note-s12"></div>
+    </div>
+
+    <!-- §40(3) -->
+    <div class="sec">
+      <div class="sec-head">
+        <span class="sec-code">§40(3)</span>
+        <span class="sec-name">Goodwill, copyright, royalties &amp; annuities</span>
+        <span class="sec-th">ค่าแห่งกู๊ดวิลล์ ค่าแห่งลิขสิทธิ์ ค่าสิทธิ</span>
+      </div>
+      <div class="line-grid" style="grid-template-columns:1.4fr 1fr">
+        <div>
+          <label for="s3kind">Nature of the right</label>
+          <select id="s3kind">
+            <option value="copyright">Copyright — ค่าแห่งลิขสิทธิ์</option>
+            <option value="other">Goodwill, other rights, annuity — กู๊ดวิลล์ ค่าสิทธิอื่น</option>
+          </select>
+        </div>
+        <div>
+          <label for="s3amt">Amount (THB)</label>
+          <input type="text" inputmode="decimal" class="amt" id="s3amt" placeholder="0" />
+        </div>
+      </div>
+      <div class="grp-note" id="note-s3"></div>
+    </div>
+
+    <!-- §40(4) -->
+    <div class="sec">
+      <div class="sec-head">
+        <span class="sec-code">§40(4)</span>
+        <span class="sec-name">Interest &amp; dividends</span>
+        <span class="sec-th">ดอกเบี้ย เงินปันผล</span>
+      </div>
+      <div class="row">
+        <div class="row-lbl">Interest — deposits, bonds, debentures<span class="th">ดอกเบี้ยเงินฝาก พันธบัตร หุ้นกู้</span></div>
+        <div class="row-mid" id="mid-s4int"></div>
+        <input type="text" inputmode="decimal" class="amt" id="s4int" placeholder="0" />
+      </div>
+      <div class="row">
+        <div class="row-lbl">Dividends from a Thai company<span class="th">เงินปันผลจากบริษัทไทย</span></div>
+        <div class="row-mid" id="mid-s4div"></div>
+        <input type="text" inputmode="decimal" class="amt" id="s4div" placeholder="0" />
+      </div>
+      <div class="check-row" style="margin-top:9px">
+        <input type="checkbox" id="s4noCredit" />
+        <label for="s4noCredit">Dividends paid out of <strong>exempt or non-CIT-bearing profits</strong> — no §47 ทวิ tax credit available <span class="hint">(e.g. BOI-promoted profits)</span></label>
+      </div>
+      <div class="check-row">
+        <input type="checkbox" id="autoElect" checked />
+        <label for="autoElect"><strong>Auto-pick the cheapest election</strong> — compare including vs. excluding interest and dividends, and apply whichever gives the lowest total tax borne</label>
+      </div>
+      <div id="forceWrap" style="display:none;margin-left:24px">
+        <div class="check-row"><input type="checkbox" id="forceInt" /><label for="forceInt">Include interest in the return (credit the 15% WHT)</label></div>
+        <div class="check-row"><input type="checkbox" id="forceDiv" /><label for="forceDiv">Include dividends in the return (gross up and credit under §47 ทวิ)</label></div>
+      </div>
+      <div class="grp-note" id="note-s4"></div>
+    </div>
+
+    <!-- §40(5) rent -->
+    <div class="sec">
+      <div class="sec-head">
+        <span class="sec-code">§40(5)</span>
+        <span class="sec-name">Rent &amp; letting of property</span>
+        <span class="sec-th">ค่าเช่าทรัพย์สิน</span>
+      </div>
+      <div id="lines5"></div>
+      <button class="add-line" data-add="5">+ add another rent line</button>
+    </div>
+
+    <!-- §40(6) professions -->
+    <div class="sec">
+      <div class="sec-head">
+        <span class="sec-code">§40(6)</span>
+        <span class="sec-name">Liberal professions</span>
+        <span class="sec-th">วิชาชีพอิสระ</span>
+      </div>
+      <div id="lines6"></div>
+      <button class="add-line" data-add="6">+ add another profession line</button>
+    </div>
+
+    <!-- §40(7) contract work -->
+    <div class="sec">
+      <div class="sec-head">
+        <span class="sec-code">§40(7)</span>
+        <span class="sec-name">Contract work supplying essential materials</span>
+        <span class="sec-th">รับเหมาที่ต้องลงทุนจัดหาสัมภาระ</span>
+      </div>
+      <div class="row">
+        <div class="row-lbl">Contract income<span class="th">ค่ารับเหมา</span></div>
+        <div class="row-mid" id="mid-s7"></div>
+        <input type="text" inputmode="decimal" class="amt" id="s7amt" placeholder="0" />
+      </div>
+      <div class="check-row" style="margin-top:4px">
+        <input type="checkbox" id="s7act" />
+        <label for="s7act">Deduct <strong>actual</strong> expenses instead of เหมา</label>
+      </div>
+      <div id="s7actWrap" style="display:none;margin-left:24px;max-width:200px">
+        <input type="text" inputmode="decimal" class="amt" id="s7actAmt" placeholder="actual expenses" />
+      </div>
+    </div>
+
+    <!-- §40(8) other -->
+    <div class="sec">
+      <div class="sec-head">
+        <span class="sec-code">§40(8)</span>
+        <span class="sec-name">Business, commerce, agriculture &amp; other income</span>
+        <span class="sec-th">เงินได้จากธุรกิจ การพาณิชย์ เกษตรกรรม และอื่น ๆ</span>
+      </div>
+      <div id="lines8"></div>
+      <button class="add-line" data-add="8">+ add another income line</button>
+      <div class="grp-note">Royal Decree No. 11 sets most §40(8) businesses at 60%; a handful sit higher. The rate on each line is editable — verify against the decree for the specific business.</div>
+    </div>
+
+    <!-- §48(5) severance -->
+    <div class="sec">
+      <div class="sec-head">
+        <span class="sec-code">§48(5)</span>
+        <span class="sec-name">Termination lump sum — separate computation</span>
+        <span class="sec-th">เงินได้จากการออกจากงาน (ใบแนบ)</span>
+      </div>
+      <div class="check-row">
+        <input type="checkbox" id="sevOn" />
+        <label for="sevOn"><strong>Elect the separate computation</strong> for a one-time payment on leaving employment <span class="hint">— requires at least <span id="sevMinLbl">5</span> years of service. The lump sum is taxed on its own schedule and kept out of the main computation.</span></label>
+      </div>
+      <div id="sevWrap" style="display:none;margin-left:24px">
+        <div class="line-grid" style="grid-template-columns:1fr 1fr">
+          <div>
+            <label for="sevAmt">Lump sum received (THB)</label>
+            <input type="text" inputmode="decimal" class="amt" id="sevAmt" placeholder="0" />
+          </div>
+          <div>
+            <label for="sevYears">Years of service <span class="hint">(≥6 months rounds up)</span></label>
+            <input type="number" id="sevYears" min="0" step="1" placeholder="0" />
+          </div>
+        </div>
+        <div class="grp-note" id="note-sev"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ALLOWANCES ═════════════════════════════════ -->
+  <div class="card">
+    <div class="card-title">Allowances <span class="th">ค่าลดหย่อน</span></div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="sec-name">Personal &amp; family</span><span class="sec-th">ส่วนตัวและครอบครัว</span></div>
+      <div id="allowFamily"></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="sec-name">Insurance</span><span class="sec-th">เบี้ยประกัน</span></div>
+      <div id="allowIns"></div>
+      <div class="grp" id="grpLH"></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="sec-name">Retirement &amp; long-term savings</span><span class="sec-th">กองทุนเพื่อการเกษียณ</span></div>
+      <div id="allowRet"></div>
+      <div class="grp" id="grpRET"></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="sec-name">Other allowances</span><span class="sec-th">ค่าลดหย่อนอื่น</span></div>
+      <div id="allowOther"></div>
+      <div class="grp-note">Use the free rows for any allowance not listed — investment schemes with their own separate ceiling, or a stimulus measure. Set its own cap alongside the amount.</div>
+      <div id="allowFree"></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="sec-name">Donations</span><span class="sec-th">เงินบริจาค — computed last, on income after every other allowance</span></div>
+      <div class="row">
+        <div class="row-lbl">Education, hospitals, sport, social enterprise — deductible at <strong>2×</strong><span class="th">สถานศึกษา สถานพยาบาล การกีฬา วิสาหกิจเพื่อสังคม</span></div>
+        <div class="row-mid" id="mid-don2x"></div>
+        <input type="text" inputmode="decimal" class="amt" id="don2x" placeholder="0" />
+      </div>
+      <div class="row">
+        <div class="row-lbl">General donations<span class="th">เงินบริจาคทั่วไป</span></div>
+        <div class="row-mid" id="mid-donGen"></div>
+        <input type="text" inputmode="decimal" class="amt" id="donGen" placeholder="0" />
+      </div>
+      <div class="grp" id="grpDON"></div>
+    </div>
+  </div>
+
+  <!-- ══ CREDITS ════════════════════════════════════ -->
+  <div class="card">
+    <div class="card-title">Tax already paid <span class="th">ภาษีที่ชำระไว้แล้ว</span></div>
+    <div class="row">
+      <div class="row-lbl">Withholding tax deducted at source<span class="th">ภาษีหัก ณ ที่จ่าย (50 ทวิ)</span></div>
+      <div class="row-mid"></div>
+      <input type="text" inputmode="decimal" class="amt" id="crWht" placeholder="0" />
+    </div>
+    <div class="row">
+      <div class="row-lbl">Half-year tax paid on P.N.D. 94<span class="th">ภาษีตามแบบ ภ.ง.ด. 94</span></div>
+      <div class="row-mid"></div>
+      <input type="text" inputmode="decimal" class="amt" id="crPnd94" placeholder="0" />
+    </div>
+    <div class="grp-note">WHT on interest and dividends is added automatically when the election includes them — don't enter it again here.</div>
+  </div>
+
+  <!-- ══ RULES ══════════════════════════════════════ -->
+  <div class="card">
+    <details class="rules" id="rulesPanel">
+      <summary>Rates, brackets &amp; caps <span class="th">— every figure editable</span></summary>
+      <div class="rules-body">
+        <div class="rule-grp-title">Progressive rates <span class="hint" style="text-transform:none;letter-spacing:0">— net income bands</span></div>
+        <div class="brk-row brk-head"><span class="from">From</span><span>Up to (blank = no ceiling)</span><span>Rate %</span><span></span></div>
+        <div id="brkRows"></div>
+        <div id="ruleGroups"></div>
+        <div style="margin-top:18px">
+          <button class="btn" id="resetRules">Reset all rules to defaults</button>
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <!-- ══ RESULTS ════════════════════════════════════ -->
+  <div class="card">
+    <div class="card-title">Result <span class="th">ผลการคำนวณ</span></div>
+    <div class="tbl-wrap"><table class="data" id="waterfall"></table></div>
+
+    <div class="result-boxes">
+      <div class="amount-box plain">
+        <div class="amount-label">Net income</div>
+        <div class="amount-value" id="boxNet">—</div>
+        <div class="amount-sub" id="boxNetSub">เงินได้สุทธิ</div>
+      </div>
+      <div class="amount-box">
+        <div class="amount-label">Tax liability</div>
+        <div class="amount-value" id="boxTax">—</div>
+        <div class="amount-sub" id="boxTaxSub"></div>
+      </div>
+      <div class="amount-box green" id="boxSettleWrap">
+        <div class="amount-label" id="boxSettleLabel">Refund due</div>
+        <div class="amount-value" id="boxSettle">—</div>
+        <div class="amount-sub" id="boxSettleSub"></div>
+      </div>
+    </div>
+
+    <div id="minTaxNote"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Bracket breakdown <span class="th">ภาษีตามขั้นเงินได้สุทธิ</span></div>
+    <div class="tbl-wrap"><table class="data" id="brkTable"></table></div>
+  </div>
+
+  <div class="card" id="electCard">
+    <div class="card-title">§40(4) election comparison <span class="th">เปรียบเทียบทางเลือกดอกเบี้ย / เงินปันผล</span></div>
+    <div class="tbl-wrap"><table class="data" id="electTable"></table></div>
+    <div class="grp-note" id="electNote"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Headroom &amp; marginal effect <span class="th">วงเงินคงเหลือ</span></div>
+    <div class="tbl-wrap"><table class="data" id="headroomTable"></table></div>
+    <div class="grp-note">Arithmetic only — unused capacity × marginal rate. Eligibility conditions for each allowance are not tested.</div>
+  </div>
+
+  <div class="actions-row">
+    <button class="btn" id="copyBtn">Copy summary</button>
+    <button class="btn" onclick="resetAll()">Reset everything</button>
+  </div>
+
+</div>
+
+<footer>
+  Revenue Code ss.40, 42, 42 ทวิ–47, 47 ทวิ, 48, 50, 56, 57 ฉ · Royal Decree No. 11 (§40(7)–(8) เหมา rates) · Royal Decree No. 470 (150,000 exemption) · Ministerial Regulation No. 126<br>
+  P.N.D. 90 / 91 is due 31 March following the tax year (extended for e-filing); P.N.D. 94 half-year return covers §40(5)–(8) income and is due September.<br>
+  <strong>Approximate reference tool only — not tax advice, and not a substitute for the return.</strong> Rates, brackets and caps are pre-filled defaults you should verify against the law in force for your tax year, and every one is editable. Runs entirely in your browser — nothing is sent anywhere.
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  Rule definitions — the single place every rate, cap and threshold lives.
+  //  Both the rules panel UI and the calculation engine are generated from
+  //  these, so adding or renaming a rule never means touching the maths.
+  //  u: '%' | 'THB' | 'bool' | 'yr'   ·   v: 1 marks a figure worth verifying
+  // ══════════════════════════════════════════════════════════════════════════
+  var BRACKETS_D = [
+    { upto: 150000,  rate: 0 },
+    { upto: 300000,  rate: 5 },
+    { upto: 500000,  rate: 10 },
+    { upto: 750000,  rate: 15 },
+    { upto: 1000000, rate: 20 },
+    { upto: 2000000, rate: 25 },
+    { upto: 5000000, rate: 30 },
+    { upto: null,    rate: 35 }
+  ];
+
+  var RULES_STATIC = [
+    { g: 'Expense deductions (เหมา)', k: 'exp12Rate',  l: '§40(1)+(2) deduction rate',                th: 'เงินเดือน ค่านายหน้า',        u: '%',   d: 50 },
+    { g: 'Expense deductions (เหมา)', k: 'exp12Cap',   l: '§40(1)+(2) combined ceiling',              th: 'หักได้ไม่เกิน',              u: 'THB', d: 100000 },
+    { g: 'Expense deductions (เหมา)', k: 'exp3Rate',   l: '§40(3) copyright deduction rate',          th: 'ค่าแห่งลิขสิทธิ์',            u: '%',   d: 50 },
+    { g: 'Expense deductions (เหมา)', k: 'exp3Cap',    l: '§40(3) copyright ceiling',                 th: 'หักได้ไม่เกิน',              u: 'THB', d: 100000 },
+    { g: 'Expense deductions (เหมา)', k: 'exp3Share',  l: '§40(3) copyright shares the §40(1)+(2) ceiling rather than having its own', u: '', v: 1, u2: 'bool', d: 0 },
+    { g: 'Expense deductions (เหมา)', k: 'exp5bldg',   l: '§40(5) buildings, structures, vehicles',   th: 'บ้าน โรงเรือน สิ่งปลูกสร้าง ยานพาหนะ', u: '%', d: 30 },
+    { g: 'Expense deductions (เหมา)', k: 'exp5agri',   l: '§40(5) agricultural land',                 th: 'ที่ดินใช้ในการเกษตร',        u: '%',   d: 20 },
+    { g: 'Expense deductions (เหมา)', k: 'exp5land',   l: '§40(5) non-agricultural land',             th: 'ที่ดินมิได้ใช้ในการเกษตร',    u: '%',   d: 15 },
+    { g: 'Expense deductions (เหมา)', k: 'exp5other',  l: '§40(5) other property',                    th: 'ทรัพย์สินอย่างอื่น',          u: '%',   d: 10 },
+    { g: 'Expense deductions (เหมา)', k: 'exp6med',    l: '§40(6) medical profession',                th: 'การประกอบโรคศิลปะ',          u: '%',   d: 60 },
+    { g: 'Expense deductions (เหมา)', k: 'exp6prof',   l: '§40(6) other liberal professions',         th: 'กฎหมาย วิศวกรรม สถาปัตยกรรม บัญชี ประณีตศิลปกรรม', u: '%', d: 30 },
+    { g: 'Expense deductions (เหมา)', k: 'exp7',       l: '§40(7) contract work',                     th: 'รับเหมา',                    u: '%',   d: 60 },
+    { g: 'Expense deductions (เหมา)', k: 'exp8',       l: '§40(8) default rate',                      th: 'อื่น ๆ',                     u: '%',   d: 60 },
+    { g: 'Expense deductions (เหมา)', k: 'exp8pA',     l: '§40(8) performer — rate on the first tier', th: 'นักแสดงสาธารณะ',            u: '%',   d: 60 },
+    { g: 'Expense deductions (เหมา)', k: 'exp8pB',     l: '§40(8) performer — rate on the excess',    th: '',                           u: '%',   d: 40 },
+    { g: 'Expense deductions (เหมา)', k: 'exp8pBreak', l: '§40(8) performer — tier break',            th: '',                           u: 'THB', d: 300000 },
+    { g: 'Expense deductions (เหมา)', k: 'exp8pCap',   l: '§40(8) performer — deduction ceiling',     th: '',                           u: 'THB', d: 600000 },
+
+    { g: 'Investment income (§40(4))', k: 'whtInt',    l: 'Interest WHT — rate if elected as final tax', th: 'ดอกเบี้ย',                u: '%',   d: 15 },
+    { g: 'Investment income (§40(4))', k: 'whtDiv',    l: 'Dividend WHT — rate if elected as final tax', th: 'เงินปันผล',               u: '%',   d: 10 },
+    { g: 'Investment income (§40(4))', k: 'citRate',   l: 'CIT rate used for the §47 ทวิ credit',     th: 'เครดิตภาษีเงินปันผล',        u: '%',   d: 20 },
+
+    { g: 'Group ceilings',           k: 'capLH',       l: 'Life + health insurance combined ceiling', th: 'ประกันชีวิตรวมประกันสุขภาพ',  u: 'THB', d: 100000 },
+    { g: 'Group ceilings',           k: 'capRET',      l: 'Retirement funds combined ceiling',        th: 'กองทุนเกษียณรวมกัน',         u: 'THB', d: 500000 },
+    { g: 'Group ceilings',           k: 'donCapPct',   l: 'Donation ceiling, % of income after allowances', th: 'เงินบริจาค',           u: '%',   d: 10 },
+
+    { g: 'Structural rules',         k: 'exElderly',   l: 'Elderly 65+ / disabled income exemption',  th: 'ยกเว้นเงินได้',              u: 'THB', d: 190000 },
+    { g: 'Structural rules',         k: 'minTaxOn',    l: 'Apply the §48(2) minimum tax floor',       th: '',                           u2: 'bool', d: 1 },
+    { g: 'Structural rules',         k: 'minTaxRate',  l: '§48(2) floor — rate on gross non-§40(1) income', th: '',                     u: '%',   d: 0.5 },
+    { g: 'Structural rules',         k: 'minTaxThr',   l: '§48(2) floor — income threshold',          th: 'เงินได้ตั้งแต่',             u: 'THB', d: 120000 },
+    { g: 'Structural rules',         k: 'minTaxDeMin', l: '§48(2) floor waived where the floor tax is at or below', th: '',             u: 'THB', d: 5000, v: 1 },
+    { g: 'Structural rules',         k: 'sevPerYear',  l: '§48(5) deduction per year of service',     th: '',                           u: 'THB', d: 7000 },
+    { g: 'Structural rules',         k: 'sevPct',      l: '§48(5) further deduction of the remainder', th: '',                          u: '%',   d: 50 },
+    { g: 'Structural rules',         k: 'sevMinYears', l: '§48(5) minimum years of service',          th: '',                           u: 'yr',  d: 5 },
+    { g: 'Structural rules',         k: 'sevZeroBand', l: '§48(5) — the zero-rate band applies to the severance computation', u2: 'bool', d: 0, v: 1 }
+  ];
+
+  // ── Allowance schema ──────────────────────────────────────────────────────
+  //  type: 'auto'   — always allowed, no input
+  //        'toggle' — checkbox, worth its cap when ticked
+  //        'count'  — integer count × unit
+  //        'amount' — money input, clamped to cap and any % sub-limit
+  //  grp: 'LH' | 'RET' membership in a shared ceiling
+  //  pctOf: 'wages' (§40(1)) | 'assessable' (gross assessable income)
+  var ALLOWS = [
+    { z: 'Family', k: 'personal',  l: 'Personal allowance',                          th: 'ค่าลดหย่อนส่วนตัว',            type: 'auto',   cap: 60000 },
+    { z: 'Family', k: 'spouse',    l: 'Spouse with no assessable income',            th: 'คู่สมรสไม่มีเงินได้',           type: 'linked', cap: 60000, link: 'tpSpouse' },
+    { z: 'Family', k: 'child1',    l: 'Children — first child, or born before 2561', th: 'บุตร',                          type: 'count',  unit: 30000 },
+    { z: 'Family', k: 'child2',    l: 'Children — second or later, born 2561 onwards', th: 'บุตรคนที่ 2 ขึ้นไป',          type: 'count',  unit: 60000 },
+    { z: 'Family', k: 'parent',    l: 'Parents cared for — aged 60+, income ≤ 30,000', th: 'อุปการะบิดามารดา',            type: 'count',  unit: 30000, maxCount: 4 },
+    { z: 'Family', k: 'disabled',  l: 'Disabled or incapacitated persons cared for', th: 'อุปการะคนพิการ / ทุพพลภาพ',     type: 'count',  unit: 60000 },
+    { z: 'Family', k: 'maternity', l: 'Antenatal care &amp; childbirth expenses',    th: 'ค่าฝากครรภ์และค่าคลอดบุตร',     type: 'amount', cap: 60000 },
+
+    { z: 'Ins',    k: 'life',      l: 'Life insurance premium',                      th: 'เบี้ยประกันชีวิต',              type: 'amount', cap: 100000, grp: 'LH' },
+    { z: 'Ins',    k: 'health',    l: 'Health insurance — self',                     th: 'เบี้ยประกันสุขภาพตนเอง',        type: 'amount', cap: 25000,  grp: 'LH' },
+    { z: 'Ins',    k: 'parHealth', l: "Parents' health insurance",                   th: 'เบี้ยประกันสุขภาพบิดามารดา',    type: 'amount', cap: 15000 },
+    { z: 'Ins',    k: 'spLife',    l: 'Spouse life insurance — spouse with no income', th: 'เบี้ยประกันชีวิตคู่สมรส',      type: 'amount', cap: 10000 },
+
+    { z: 'Ret',    k: 'pvd',       l: 'Provident fund',                              th: 'กองทุนสำรองเลี้ยงชีพ',          type: 'amount', grp: 'RET', pct: 15, pctOf: 'wages' },
+    { z: 'Ret',    k: 'gpf',       l: 'Government pension fund / private teacher aid fund', th: 'กบข. / กองทุนสงเคราะห์ครู', type: 'amount', grp: 'RET', pct: 15, pctOf: 'wages' },
+    { z: 'Ret',    k: 'rmf',       l: 'Retirement mutual fund (RMF)',                th: 'กองทุนรวมเพื่อการเลี้ยงชีพ',     type: 'amount', grp: 'RET', pct: 30, pctOf: 'assessable' },
+    { z: 'Ret',    k: 'annuity',   l: 'Annuity life insurance',                      th: 'ประกันชีวิตแบบบำนาญ',           type: 'amount', grp: 'RET', pct: 15, pctOf: 'assessable', cap: 200000 },
+    { z: 'Ret',    k: 'nsf',       l: 'National Savings Fund',                       th: 'กองทุนการออมแห่งชาติ (กอช.)',    type: 'amount', grp: 'RET', cap: 30000 },
+
+    { z: 'Other',  k: 'homeLoan',  l: 'Home loan interest',                          th: 'ดอกเบี้ยเงินกู้ยืมเพื่อที่อยู่อาศัย', type: 'amount', cap: 100000 },
+    { z: 'Other',  k: 'sso',       l: 'Social security contributions',               th: 'เงินสมทบกองทุนประกันสังคม',      type: 'amount', cap: 9000 },
+    { z: 'Other',  k: 'party',     l: 'Political party donation',                    th: 'เงินบริจาคพรรคการเมือง',        type: 'amount', cap: 10000 }
+  ];
+
+  var FREE_ROWS = 3; // free-form allowance rows: label + amount + own cap
+
+  // Sub-type tables for the multi-line categories.
+  var SUB5 = [
+    { v: 'bldg',    l: 'Buildings, structures, floating houses', th: 'บ้าน โรงเรือน สิ่งปลูกสร้าง แพ', r: 'exp5bldg' },
+    { v: 'vehicle', l: 'Vehicles',                               th: 'ยานพาหนะ',                       r: 'exp5bldg' },
+    { v: 'agri',    l: 'Agricultural land',                      th: 'ที่ดินใช้ในการเกษตร',            r: 'exp5agri' },
+    { v: 'land',    l: 'Non-agricultural land',                  th: 'ที่ดินมิได้ใช้ในการเกษตร',        r: 'exp5land' },
+    { v: 'other',   l: 'Other property',                         th: 'ทรัพย์สินอย่างอื่น',              r: 'exp5other' }
+  ];
+  var SUB6 = [
+    { v: 'med',  l: 'Medical profession',   th: 'การประกอบโรคศิลปะ', r: 'exp6med' },
+    { v: 'law',  l: 'Legal practice',       th: 'กฎหมาย',            r: 'exp6prof' },
+    { v: 'eng',  l: 'Engineering',          th: 'วิศวกรรม',           r: 'exp6prof' },
+    { v: 'arch', l: 'Architecture',         th: 'สถาปัตยกรรม',        r: 'exp6prof' },
+    { v: 'acct', l: 'Accounting',           th: 'การบัญชี',           r: 'exp6prof' },
+    { v: 'art',  l: 'Fine arts',            th: 'ประณีตศิลปกรรม',     r: 'exp6prof' }
+  ];
+  var SUB8 = [
+    { v: 'goods',  l: 'Sale of goods, retail &amp; wholesale', th: 'ขายของ ค้าปลีก-ค้าส่ง',  r: 'exp8' },
+    { v: 'mfg',    l: 'Manufacturing',                         th: 'ผลิตสินค้า',             r: 'exp8' },
+    { v: 'food',   l: 'Restaurant &amp; food',                 th: 'ภัตตาคาร ร้านอาหาร',     r: 'exp8' },
+    { v: 'hotel',  l: 'Hotel &amp; accommodation',             th: 'โรงแรม',                 r: 'exp8' },
+    { v: 'trans',  l: 'Transport',                             th: 'ขนส่ง',                  r: 'exp8' },
+    { v: 'agri8',  l: 'Agriculture, livestock, fishery',       th: 'เกษตรกรรม ปศุสัตว์ ประมง', r: 'exp8' },
+    { v: 'repair', l: 'Repair services',                       th: 'ซ่อมแซม',                r: 'exp8' },
+    { v: 'beauty', l: 'Hairdressing &amp; beauty',             th: 'เสริมสวย',               r: 'exp8' },
+    { v: 'print',  l: 'Printing &amp; publishing',             th: 'โรงพิมพ์',               r: 'exp8' },
+    { v: 'photo',  l: 'Photography',                           th: 'ถ่ายรูป',                r: 'exp8' },
+    { v: 'ads',    l: 'Advertising',                           th: 'โฆษณา',                  r: 'exp8' },
+    { v: 'perf',   l: 'Public performer — tiered deduction',   th: 'นักแสดงสาธารณะ',         r: 'exp8', special: 'perf' },
+    { v: 'other',  l: 'Other — set the rate',                  th: 'อื่น ๆ',                 r: 'exp8' }
+  ];
+  var SUBS = { '5': SUB5, '6': SUB6, '8': SUB8 };
+
+  // Every allowance cap / unit / percentage sub-limit becomes an editable rule.
+  var RULES = RULES_STATIC.slice();
+  ALLOWS.forEach(function (a) {
+    if (a.cap != null) RULES.push({ g: 'Allowance caps', k: 'cap_' + a.k, l: a.l + ' — ceiling', th: a.th, u: 'THB', d: a.cap });
+    if (a.unit != null) RULES.push({ g: 'Allowance caps', k: 'unit_' + a.k, l: a.l + ' — per head', th: a.th, u: 'THB', d: a.unit });
+    if (a.pct != null) RULES.push({ g: 'Allowance caps', k: 'pct_' + a.k, l: a.l + ' — sub-limit, % of ' + (a.pctOf === 'wages' ? '§40(1) wages' : 'assessable income'), th: '', u: '%', d: a.pct });
+  });
+  var RULE_BY_KEY = {};
+  RULES.forEach(function (r) { RULE_BY_KEY[r.k] = r; });
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  State
+  // ══════════════════════════════════════════════════════════════════════════
+  var KEY = 'pitCalc_v1';
+  var S;
+
+  function blankLine(cat) {
+    return { label: '', sub: SUBS[cat][0].v, rate: '', amt: '', act: false, actAmt: '' };
+  }
+  function freshState() {
+    var st = {
+      elderly: false, spouse: false,
+      s1: '', s2: '', s3kind: 'copyright', s3amt: '',
+      s4int: '', s4div: '', s4noCredit: false,
+      autoElect: true, forceInt: false, forceDiv: false,
+      lines: { '5': [blankLine('5')], '6': [blankLine('6')], '8': [blankLine('8')] },
+      s7amt: '', s7act: false, s7actAmt: '',
+      sevOn: false, sevAmt: '', sevYears: '',
+      al: {}, free: [],
+      don2x: '', donGen: '',
+      crWht: '', crPnd94: '',
+      dp: 0, rnd: 'normal',
+      rules: {}, brackets: null, rulesOpen: false
+    };
+    ALLOWS.forEach(function (a) { st.al[a.k] = ''; });
+    for (var i = 0; i < FREE_ROWS; i++) st.free.push({ l: '', amt: '', cap: '' });
+    return st;
+  }
+
+  // Rule accessor — override if the user has typed one, otherwise the default.
+  function R(k) {
+    var d = RULE_BY_KEY[k];
+    var base = d ? d.d : 0;
+    var o = S.rules[k];
+    if (o === undefined || o === null || o === '') return base;
+    var n = parseFloat(String(o).replace(/,/g, ''));
+    return isNaN(n) ? base : n;
+  }
+  function isBool(r) { return r.u2 === 'bool'; }
+  function brackets() {
+    return (S.brackets && S.brackets.length) ? S.brackets : BRACKETS_D;
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  Number helpers
+  // ══════════════════════════════════════════════════════════════════════════
+  function num(v) {
+    if (v === null || v === undefined || v === '') return 0;
+    var n = parseFloat(String(v).replace(/[,\s]/g, ''));
+    return isNaN(n) ? 0 : n;
+  }
+  function dp() { return parseInt(S.dp, 10) || 0; }
+  function fmt(n) {
+    if (n === null || n === undefined || isNaN(n)) return '—';
+    var d = dp();
+    return n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+  }
+  function fmt0(n) { return n.toLocaleString('en-US', { maximumFractionDigits: 0 }); }
+  // Rounds per the chosen precision + method (normal half-up / floor / ceiling).
+  function r2(n) {
+    var d = dp(), m = S.rnd;
+    var f = Math.pow(10, d), x = n * f;
+    var nearest = Math.round(x);
+    if (Math.abs(x - nearest) < 1e-6) x = nearest; // absorb float noise at exact values
+    else x = m === 'floor' ? Math.floor(x) : m === 'ceil' ? Math.ceil(x) : Math.round(x);
+    return x / f;
+  }
+  function pct(n) { return (Math.round(n * 100) / 100) + '%'; }
+  // Live thousands separators with caret preservation.
+  function liveFormat(el) {
+    var raw = el.value;
+    var caret = el.selectionStart == null ? raw.length : el.selectionStart;
+    var anchorsBefore = raw.slice(0, caret).replace(/[^0-9.]/g, '').length;
+    var clean = raw.replace(/[^0-9.]/g, '');
+    var firstDot = clean.indexOf('.');
+    var intp = firstDot >= 0 ? clean.slice(0, firstDot) : clean;
+    var frac = firstDot >= 0 ? clean.slice(firstDot + 1).replace(/\./g, '') : null;
+    var out = intp.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (frac !== null ? '.' + frac : '');
+    if (out === raw) return;
+    el.value = out;
+    if (document.activeElement === el && el.setSelectionRange) {
+      var pos = 0, seen = 0;
+      while (pos < out.length && seen < anchorsBefore) { if (/[0-9.]/.test(out[pos])) seen++; pos++; }
+      el.setSelectionRange(pos, pos);
+    }
+  }
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  Progressive tax
+  //  noZeroBand replaces the leading 0% band with the next positive rate —
+  //  used for the §48(5) severance schedule, where the 150,000 exemption
+  //  granted on net income under §48(1) is not available.
+  // ══════════════════════════════════════════════════════════════════════════
+  function taxOn(net, noZeroBand) {
+    var bs = brackets(), rows = [], tax = 0, lower = 0;
+    var firstPositive = 0;
+    for (var j = 0; j < bs.length; j++) { if (bs[j].rate > 0) { firstPositive = bs[j].rate; break; } }
+    for (var i = 0; i < bs.length && net > lower; i++) {
+      var upper = (bs[i].upto == null) ? Infinity : bs[i].upto;
+      var slice = Math.min(net, upper) - lower;
+      if (slice <= 0) { lower = upper; continue; }
+      var rate = bs[i].rate;
+      if (noZeroBand && rate === 0) rate = firstPositive;
+      var amt = slice * rate / 100;
+      tax += amt;
+      rows.push({ from: lower, to: upper, rate: rate, slice: slice, tax: amt });
+      lower = upper;
+      if (!isFinite(upper)) break;
+    }
+    return { tax: tax, rows: rows };
+  }
+  function marginalRate(net) {
+    var bs = brackets(), lower = 0;
+    for (var i = 0; i < bs.length; i++) {
+      var upper = (bs[i].upto == null) ? Infinity : bs[i].upto;
+      if (net <= upper) return bs[i].rate;
+      lower = upper;
+    }
+    return bs.length ? bs[bs.length - 1].rate : 0;
+  }
+  function nextThresholdDown(net) {
+    var bs = brackets(), lower = 0;
+    for (var i = 0; i < bs.length; i++) {
+      var upper = (bs[i].upto == null) ? Infinity : bs[i].upto;
+      if (net <= upper) return { floor: lower, over: net - lower, rate: bs[i].rate };
+      lower = upper;
+    }
+    return { floor: lower, over: 0, rate: 0 };
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  Expense deductions on the multi-line categories
+  // ══════════════════════════════════════════════════════════════════════════
+  function lineRate(cat, ln) {
+    if (ln.rate !== '' && ln.rate !== null && ln.rate !== undefined) {
+      var n = parseFloat(ln.rate);
+      if (!isNaN(n)) return n;
+    }
+    var sub = SUBS[cat].filter(function (s) { return s.v === ln.sub; })[0] || SUBS[cat][0];
+    return R(sub.r);
+  }
+  function lineDeduction(cat, ln) {
+    var amt = num(ln.amt);
+    if (amt <= 0) return { gross: 0, exp: 0, how: '' };
+    if (ln.act) {
+      var a = Math.min(num(ln.actAmt), amt);
+      return { gross: amt, exp: a, how: 'actual ' + fmt(a) };
+    }
+    var sub = SUBS[cat].filter(function (s) { return s.v === ln.sub; })[0] || SUBS[cat][0];
+    if (sub.special === 'perf') {
+      var brk = R('exp8pBreak'), rA = R('exp8pA'), rB = R('exp8pB'), capP = R('exp8pCap');
+      var first = Math.min(amt, brk), excess = Math.max(0, amt - brk);
+      var e = first * rA / 100 + excess * rB / 100;
+      var capped = Math.min(e, capP);
+      return { gross: amt, exp: capped, how: rA + '% of ' + fmt(first) + (excess > 0 ? ' + ' + rB + '% of ' + fmt(excess) : '') + (capped < e ? ' → capped ' + fmt(capP) : '') };
+    }
+    var r = lineRate(cat, ln);
+    return { gross: amt, exp: amt * r / 100, how: r + '%' };
+  }
+  function catTotals(cat) {
+    var g = 0, e = 0;
+    (S.lines[cat] || []).forEach(function (ln) {
+      var d = lineDeduction(cat, ln);
+      g += d.gross; e += d.exp;
+    });
+    return { gross: g, exp: e };
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  Allowances — with the shared cap-groups
+  // ══════════════════════════════════════════════════════════════════════════
+  function allowances(wages, assessable) {
+    var items = [], groups = { LH: { used: 0, cap: R('capLH'), members: [] }, RET: { used: 0, cap: R('capRET'), members: [] } };
+    var totalUngrouped = 0;
+
+    ALLOWS.forEach(function (a) {
+      var raw = 0, claimed = 0, note = '', subLimit = null;
+
+      if (a.type === 'auto') { raw = R('cap_' + a.k); claimed = raw; }
+      else if (a.type === 'linked') { raw = S[a.link === 'tpSpouse' ? 'spouse' : a.link] ? R('cap_' + a.k) : 0; claimed = raw; }
+      else if (a.type === 'count') {
+        var n = parseInt(S.al[a.k], 10) || 0;
+        if (a.maxCount && n > a.maxCount) { note = 'capped at ' + a.maxCount; n = a.maxCount; }
+        raw = n * R('unit_' + a.k); claimed = raw;
+      } else {
+        raw = num(S.al[a.k]);
+        claimed = raw;
+        if (a.pct != null) {
+          var base = a.pctOf === 'wages' ? wages : assessable;
+          subLimit = base * R('pct_' + a.k) / 100;
+          if (claimed > subLimit) { note = R('pct_' + a.k) + '% sub-limit ' + fmt(subLimit); claimed = subLimit; }
+        }
+        if (a.cap != null) {
+          var c = R('cap_' + a.k);
+          if (claimed > c) { note = (note ? note + ' · ' : '') + 'ceiling ' + fmt(c); claimed = c; }
+        }
+      }
+
+      var rec = { k: a.k, l: a.l, th: a.th, raw: raw, claimed: claimed, note: note, grp: a.grp || null, subLimit: subLimit, type: a.type };
+      items.push(rec);
+      if (a.grp) { groups[a.grp].members.push(rec); }
+      else { totalUngrouped += claimed; }
+    });
+
+    // Clamp each group to its shared ceiling, trimming from the last member back.
+    ['LH', 'RET'].forEach(function (gk) {
+      var G = groups[gk];
+      var sum = 0;
+      G.members.forEach(function (m) { sum += m.claimed; });
+      G.preGroup = sum;
+      if (sum > G.cap) {
+        var over = sum - G.cap;
+        for (var i = G.members.length - 1; i >= 0 && over > 1e-9; i--) {
+          var take = Math.min(G.members[i].claimed, over);
+          G.members[i].claimed -= take;
+          G.members[i].note = (G.members[i].note ? G.members[i].note + ' · ' : '') + fmt(take) + ' disallowed (group full)';
+          over -= take;
+        }
+        sum = G.cap;
+      }
+      G.used = sum;
+      G.headroom = Math.max(0, G.cap - sum);
+    });
+
+    var freeTotal = 0, freeItems = [];
+    S.free.forEach(function (f, i) {
+      var amt = num(f.amt), cap = num(f.cap);
+      var claimed = cap > 0 ? Math.min(amt, cap) : amt;
+      if (amt > 0 || (f.l || '').trim()) {
+        freeItems.push({ l: (f.l || '').trim() || ('Other allowance ' + (i + 1)), raw: amt, claimed: claimed, cap: cap, note: (cap > 0 && amt > cap) ? 'ceiling ' + fmt(cap) : '' });
+        freeTotal += claimed;
+      }
+    });
+
+    var total = totalUngrouped + groups.LH.used + groups.RET.used + freeTotal;
+    return { items: items, groups: groups, free: freeItems, total: total };
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  Core computation for one election combination
+  // ══════════════════════════════════════════════════════════════════════════
+  function core(inclInt, inclDiv) {
+    var g1 = num(S.s1), g2 = num(S.s2), g3 = num(S.s3amt);
+    var gInt = num(S.s4int), gDiv = num(S.s4div);
+    var cit = R('citRate');
+    var divCredit = (inclDiv && !S.s4noCredit && cit > 0 && cit < 100) ? gDiv * cit / (100 - cit) : 0;
+
+    var t5 = catTotals('5'), t6 = catTotals('6'), t8 = catTotals('8');
+    var g7 = num(S.s7amt);
+    var exp7 = S.s7act ? Math.min(num(S.s7actAmt), g7) : g7 * R('exp7') / 100;
+
+    var incInt = inclInt ? gInt : 0;
+    var incDiv = inclDiv ? gDiv : 0;
+
+    // Gross assessable income actually going into the return.
+    var gross = g1 + g2 + g3 + incInt + incDiv + divCredit + t5.gross + t6.gross + g7 + t8.gross;
+
+    // ── Expense deductions ──
+    var isCopy = S.s3kind === 'copyright';
+    var share = R('exp3Share') ? true : false;
+    var base12 = g1 + g2 + ((share && isCopy) ? g3 : 0);
+    var exp12 = Math.min(base12 * R('exp12Rate') / 100, R('exp12Cap'));
+    var exp3 = (share && isCopy) ? 0 : (isCopy ? Math.min(g3 * R('exp3Rate') / 100, R('exp3Cap')) : 0);
+    var totalExp = exp12 + exp3 + t5.exp + t6.exp + exp7 + t8.exp;
+
+    var afterExp = Math.max(0, gross - totalExp);
+
+    // ── Elderly / disabled exemption, applied to income after expenses ──
+    var exemption = S.elderly ? Math.min(R('exElderly'), afterExp) : 0;
+    var afterEx = afterExp - exemption;
+
+    // ── Allowances ──
+    var A = allowances(g1, gross);
+    var netBeforeDon = Math.max(0, afterEx - A.total);
+
+    // ── Donations, in order: 2× first, then general on what is left ──
+    var cp = R('donCapPct') / 100;
+    var cap2 = netBeforeDon * cp;
+    var d2raw = num(S.don2x) * 2;
+    var d2 = Math.min(d2raw, cap2);
+    var capG = Math.max(0, (netBeforeDon - d2) * cp);
+    var dgRaw = num(S.donGen);
+    var dg = Math.min(dgRaw, capG);
+    var net = Math.max(0, netBeforeDon - d2 - dg);
+
+    // ── Tax on net income ──
+    var t = taxOn(net, false);
+    var taxMain = t.tax;
+
+    // ── §48(2) minimum tax floor on gross non-§40(1) income ──
+    var grossNon1 = g2 + g3 + incInt + incDiv + t5.gross + t6.gross + g7 + t8.gross;
+    var floorTax = 0, floorApplied = false, floorWaived = false;
+    if (R('minTaxOn') && grossNon1 >= R('minTaxThr')) {
+      floorTax = grossNon1 * R('minTaxRate') / 100;
+      if (floorTax <= R('minTaxDeMin')) floorWaived = true;
+      else if (floorTax > taxMain) { taxMain = floorTax; floorApplied = true; }
+    }
+
+    // ── §48(5) severance, taxed on its own schedule ──
+    var sev = null;
+    if (S.sevOn) {
+      var sAmt = num(S.sevAmt), sYr = parseInt(S.sevYears, 10) || 0;
+      if (sAmt > 0 && sYr >= R('sevMinYears')) {
+        var d1 = Math.min(R('sevPerYear') * sYr, sAmt);
+        var rem = sAmt - d1;
+        var d2s = rem * R('sevPct') / 100;
+        var sNet = Math.max(0, rem - d2s);
+        var st = taxOn(sNet, !R('sevZeroBand'));
+        sev = { amt: sAmt, years: sYr, d1: d1, d2: d2s, net: sNet, tax: st.tax, rows: st.rows, eligible: true };
+      } else {
+        sev = { amt: sAmt, years: sYr, eligible: false, tax: 0 };
+      }
+    }
+    var sevTax = sev && sev.eligible ? sev.tax : 0;
+    var tax = taxMain + sevTax;
+
+    // ── Credits, and the final tax borne on anything excluded ──
+    var crInt = inclInt ? gInt * R('whtInt') / 100 : 0;
+    var crDiv = inclDiv ? gDiv * R('whtDiv') / 100 + divCredit : 0;
+    var crOther = num(S.crWht) + num(S.crPnd94);
+    var credits = crInt + crDiv + crOther;
+    var settle = credits - tax; // positive = refund, negative = further payable
+
+    var finalWht = (inclInt ? 0 : gInt * R('whtInt') / 100) + (inclDiv ? 0 : gDiv * R('whtDiv') / 100);
+    // Net tax borne, the only sound basis for ranking the elections.
+    //   · WHT is a prepayment of the taxpayer's own liability, so it is already
+    //     inside `tax` and must NOT be subtracted again.
+    //   · The §47 ทวิ credit is different in kind: it credits corporate tax the
+    //     company paid, so it genuinely reduces what the shareholder bears.
+    //   · Anything left out of the return still costs its final WHT.
+    // Treating WHT like the credit would put the interest crossover at 30%
+    // instead of 15%.
+    var burden = tax - (inclDiv ? divCredit : 0) + finalWht;
+
+    return {
+      inclInt: inclInt, inclDiv: inclDiv,
+      g1: g1, g2: g2, g3: g3, gInt: gInt, gDiv: gDiv, divCredit: divCredit,
+      t5: t5, t6: t6, t8: t8, g7: g7, exp7: exp7,
+      gross: gross, exp12: exp12, exp3: exp3, totalExp: totalExp,
+      afterExp: afterExp, exemption: exemption, afterEx: afterEx,
+      A: A, netBeforeDon: netBeforeDon,
+      d2raw: d2raw, d2: d2, cap2: cap2, dgRaw: dgRaw, dg: dg, capG: capG,
+      net: net, brkRows: t.rows, taxBeforeFloor: t.tax, taxMain: taxMain,
+      grossNon1: grossNon1, floorTax: floorTax, floorApplied: floorApplied, floorWaived: floorWaived,
+      sev: sev, sevTax: sevTax, tax: tax,
+      crInt: crInt, crDiv: crDiv, crOther: crOther, credits: credits, settle: settle,
+      finalWht: finalWht, burden: burden,
+      marginal: marginalRate(net),
+      effective: gross > 0 ? tax / gross * 100 : 0
+    };
+  }
+
+  function computeAll() {
+    var combos = [
+      { i: false, d: false, l: 'Exclude both — 15% / 10% final WHT' },
+      { i: true,  d: false, l: 'Include interest only' },
+      { i: false, d: true,  l: 'Include dividends only — with §47 ทวิ credit' },
+      { i: true,  d: true,  l: 'Include both' }
+    ].map(function (c) { var r = core(c.i, c.d); r.label = c.l; return r; });
+
+    var best = combos[0];
+    combos.forEach(function (c) { if (c.burden < best.burden - 1e-6) best = c; });
+
+    var chosen = S.autoElect ? best : combos.filter(function (c) {
+      return c.inclInt === !!S.forceInt && c.inclDiv === !!S.forceDiv;
+    })[0];
+
+    return { combos: combos, best: best, chosen: chosen || best };
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  Rendering — inputs
+  // ══════════════════════════════════════════════════════════════════════════
+  function renderLines(cat) {
+    var host = document.getElementById('lines' + cat);
+    var subs = SUBS[cat];
+    host.innerHTML = (S.lines[cat] || []).map(function (ln, i) {
+      var opts = subs.map(function (s) {
+        return '<option value="' + s.v + '"' + (s.v === ln.sub ? ' selected' : '') + '>' + s.l + (s.th ? ' — ' + s.th : '') + '</option>';
+      }).join('');
+      var autoRate = lineRate(cat, ln);
+      var isPerf = (subs.filter(function (s) { return s.v === ln.sub; })[0] || {}).special === 'perf';
+      return '' +
+        '<div class="line" data-cat="' + cat + '" data-i="' + i + '">' +
+          '<div class="line-grid">' +
+            '<div><label>Sub-type</label><select data-f="sub">' + opts + '</select></div>' +
+            '<div><label>Rate %</label><input type="number" step="0.01" min="0" max="100" data-f="rate" value="' + esc(ln.rate) + '" placeholder="' + autoRate + '"' + (isPerf ? ' disabled' : '') + ' /></div>' +
+            '<div><label>Amount (THB)</label><input type="text" inputmode="decimal" class="amt" data-f="amt" value="' + esc(ln.amt) + '" placeholder="0" /></div>' +
+            '<button class="del" data-del="1" title="Remove line">×</button>' +
+          '</div>' +
+          '<div class="line-sub">' +
+            '<div class="check-row" style="margin-bottom:0">' +
+              '<input type="checkbox" data-f="act"' + (ln.act ? ' checked' : '') + ' id="act-' + cat + '-' + i + '" />' +
+              '<label for="act-' + cat + '-' + i + '">Deduct <strong>actual</strong> expenses instead of เหมา</label>' +
+            '</div>' +
+            (ln.act ? '<div style="margin-left:24px;max-width:200px;margin-top:6px"><input type="text" inputmode="decimal" class="amt" data-f="actAmt" value="' + esc(ln.actAmt) + '" placeholder="actual expenses" /></div>' : '') +
+          '</div>' +
+          '<div class="line-calc" data-calc="1"></div>' +
+        '</div>';
+    }).join('');
+  }
+
+  function allowRowHtml(a) {
+    var lbl = '<div class="row-lbl">' + a.l + (a.th ? '<span class="th">' + a.th + '</span>' : '') + '</div>';
+    if (a.type === 'auto') {
+      return '<div class="row"><div class="row-lbl">' + a.l + '<span class="th">' + a.th + '</span></div>' +
+             '<div class="row-mid" id="mid-al-' + a.k + '"></div>' +
+             '<input type="text" class="amt" value="" disabled id="al-' + a.k + '" /></div>';
+    }
+    if (a.type === 'linked') {
+      return '<div class="row"><div class="row-lbl">' + a.l + '<span class="th">' + a.th + ' — set in Taxpayer above</span></div>' +
+             '<div class="row-mid" id="mid-al-' + a.k + '"></div>' +
+             '<input type="text" class="amt" value="" disabled id="al-' + a.k + '" /></div>';
+    }
+    if (a.type === 'count') {
+      return '<div class="row">' + lbl +
+             '<div class="row-mid" id="mid-al-' + a.k + '"></div>' +
+             '<input type="number" min="0" step="1" id="al-' + a.k + '" data-al="' + a.k + '" value="' + esc(S.al[a.k]) + '" placeholder="0" /></div>';
+    }
+    return '<div class="row">' + lbl +
+           '<div class="row-mid" id="mid-al-' + a.k + '"></div>' +
+           '<input type="text" inputmode="decimal" class="amt" id="al-' + a.k + '" data-al="' + a.k + '" value="' + esc(S.al[a.k]) + '" placeholder="0" /></div>';
+  }
+
+  function renderAllowances() {
+    var zones = { Family: 'allowFamily', Ins: 'allowIns', Ret: 'allowRet', Other: 'allowOther' };
+    Object.keys(zones).forEach(function (z) {
+      document.getElementById(zones[z]).innerHTML =
+        ALLOWS.filter(function (a) { return a.z === z; }).map(allowRowHtml).join('');
+    });
+    document.getElementById('allowFree').innerHTML = S.free.map(function (f, i) {
+      return '<div class="line" data-free="' + i + '"><div class="line-grid" style="grid-template-columns:1.6fr 1fr 1fr">' +
+        '<div><label>Label</label><input type="text" data-ff="l" value="' + esc(f.l) + '" placeholder="e.g. investment scheme, stimulus measure" /></div>' +
+        '<div><label>Amount (THB)</label><input type="text" inputmode="decimal" class="amt" data-ff="amt" value="' + esc(f.amt) + '" placeholder="0" /></div>' +
+        '<div><label>Its own ceiling <span class="hint">(blank = none)</span></label><input type="text" inputmode="decimal" class="amt" data-ff="cap" value="' + esc(f.cap) + '" placeholder="—" /></div>' +
+        '</div></div>';
+    }).join('');
+  }
+
+  function renderRules() {
+    // Brackets
+    var bs = brackets();
+    document.getElementById('brkRows').innerHTML = bs.map(function (b, i) {
+      var from = i === 0 ? 0 : ((bs[i - 1].upto == null) ? '∞' : bs[i - 1].upto);
+      var changed = S.brackets ? 'changed' : '';
+      return '<div class="brk-row ' + changed + '" data-brk="' + i + '">' +
+        '<span class="from">' + (typeof from === 'number' ? fmt0(from + (i === 0 ? 0 : 1)) : from) + '</span>' +
+        '<input type="text" inputmode="decimal" class="amt" data-bf="upto" value="' + (b.upto == null ? '' : fmt0(b.upto)) + '" placeholder="no ceiling" />' +
+        '<input type="number" step="0.01" min="0" max="100" data-bf="rate" value="' + b.rate + '" />' +
+        '<button class="reset-auto" data-brkdel="' + i + '" title="Remove band">×</button>' +
+        '</div>';
+    }).join('') + '<button class="add-line" id="addBrk">+ add a band</button>';
+
+    // Everything else, grouped
+    var groups = [];
+    RULES.forEach(function (r) { if (groups.indexOf(r.g) < 0) groups.push(r.g); });
+    document.getElementById('ruleGroups').innerHTML = groups.map(function (g) {
+      var rows = RULES.filter(function (r) { return r.g === g; }).map(function (r) {
+        var over = S.rules[r.k];
+        var changed = (over !== undefined && over !== null && over !== '') ? ' changed' : '';
+        var val = (over !== undefined && over !== null && over !== '') ? over : r.d;
+        var input;
+        if (isBool(r)) {
+          input = '<input type="checkbox" data-rk="' + r.k + '"' + (R(r.k) ? ' checked' : '') + ' />';
+        } else {
+          var unit = r.u === '%' ? ' %' : r.u === 'yr' ? ' yr' : '';
+          input = '<input type="text" inputmode="decimal" class="amt" data-rk="' + r.k + '" value="' + esc(r.u === 'THB' ? fmt0(num(val)) : val) + '" placeholder="' + r.d + '" title="default ' + r.d + unit + '" />';
+        }
+        return '<div class="rule' + changed + '" data-rrow="' + r.k + '">' +
+          '<div class="rule-lbl">' + r.l + (r.v ? '<span class="verify-tag">verify</span>' : '') + (r.th ? '<span class="th">' + r.th + '</span>' : '') + '</div>' +
+          input +
+          '<button class="reset-auto" data-rreset="' + r.k + '" title="Reset to default (' + r.d + ')">↻</button>' +
+          '</div>';
+      }).join('');
+      return '<div class="rule-grp-title">' + g + '</div>' + rows;
+    }).join('');
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  Rendering — results
+  // ══════════════════════════════════════════════════════════════════════════
+  var lastSummary = '';
+
+  function paint() {
+    var all = computeAll(), C = all.chosen;
+
+    // ── Sticky bar ──
+    document.getElementById('barNet').textContent = fmt(r2(C.net));
+    document.getElementById('barTax').textContent = fmt(r2(C.tax));
+    document.getElementById('barEff').textContent = C.gross > 0 ? pct(C.effective) : '—';
+    document.getElementById('barMarg').textContent = C.net > 0 ? C.marginal + '%' : '—';
+    var settleEl = document.getElementById('barSettle');
+    document.getElementById('barSettleK').textContent = C.settle >= 0 ? 'Refund due' : 'Further payable';
+    settleEl.textContent = fmt(r2(Math.abs(C.settle)));
+    settleEl.className = 'sum-v ' + (C.settle >= 0 ? 'green' : 'rose');
+
+    // ── Inline row notes ──
+    document.getElementById('elderlyAmtLbl').textContent = fmt0(R('exElderly'));
+    document.getElementById('sevMinLbl').textContent = R('sevMinYears');
+    document.getElementById('mid-s1').textContent = C.g1 > 0 ? '' : '';
+    document.getElementById('note-s12').innerHTML = (C.g1 + C.g2) > 0
+      ? 'Shared เหมา deduction — ' + R('exp12Rate') + '% of ' + fmt(C.g1 + C.g2 + ((R('exp3Share') && S.s3kind === 'copyright') ? C.g3 : 0)) +
+        ', ceiling ' + fmt(R('exp12Cap')) + ' → <strong>' + fmt(r2(C.exp12)) + '</strong>' +
+        ((R('exp3Share') && S.s3kind === 'copyright' && C.g3 > 0) ? ' <span class="hint">(§40(3) copyright folded into this group)</span>' : '')
+      : '<span class="hint">§40(1) and §40(2) share one deduction: ' + R('exp12Rate') + '% capped at ' + fmt0(R('exp12Cap')) + '. No actual-expense election is available for these categories.</span>';
+    document.getElementById('note-s3').innerHTML = C.g3 > 0
+      ? (S.s3kind === 'copyright'
+          ? (R('exp3Share')
+              ? 'Folded into the §40(1)+(2) group above.'
+              : 'Deduction ' + R('exp3Rate') + '% capped at ' + fmt0(R('exp3Cap')) + ' → <strong>' + fmt(r2(C.exp3)) + '</strong>')
+          : 'No standard deduction for goodwill, other rights or annuities — <strong>0</strong>.')
+      : '';
+    document.getElementById('note-s4').innerHTML = (C.gInt + C.gDiv) > 0
+      ? 'Applied: <strong>' + C.label + '</strong>' + (S.autoElect ? ' <span class="hint">(cheapest of the four)</span>' : ' <span class="hint">(forced)</span>') +
+        (C.divCredit > 0 ? '<br>§47 ทวิ credit at CIT ' + R('citRate') + '% — gross-up <strong>' + fmt(r2(C.divCredit)) + '</strong> added to income and credited against tax.' : '') +
+        (C.inclDiv && S.s4noCredit ? '<br><span class="hint">Dividends included but flagged as exempt-profit — no credit applied.</span>' : '')
+      : '';
+
+    var elderlyRow = document.getElementById('tpElderly');
+    document.getElementById('forceWrap').style.display = S.autoElect ? 'none' : '';
+    document.getElementById('s7actWrap').style.display = S.s7act ? '' : 'none';
+    document.getElementById('sevWrap').style.display = S.sevOn ? '' : 'none';
+    document.getElementById('mid-s7').innerHTML = C.g7 > 0 ? '− ' + fmt(r2(C.exp7)) + (S.s7act ? ' actual' : ' (' + R('exp7') + '%)') : '';
+    if (elderlyRow) { /* label already reflects the editable amount */ }
+
+    // Per-line calc notes
+    ['5', '6', '8'].forEach(function (cat) {
+      var host = document.getElementById('lines' + cat);
+      Array.prototype.forEach.call(host.querySelectorAll('.line'), function (el) {
+        var i = parseInt(el.getAttribute('data-i'), 10);
+        var ln = S.lines[cat][i];
+        if (!ln) return;
+        var d = lineDeduction(cat, ln);
+        var t = el.querySelector('[data-calc]');
+        t.innerHTML = d.gross > 0
+          ? 'Gross ' + fmt(d.gross) + ' − expenses ' + fmt(r2(d.exp)) + ' (' + d.how + ') = <strong>' + fmt(r2(d.gross - d.exp)) + '</strong>'
+          : '';
+      });
+    });
+
+    // Allowance row notes
+    C.A.items.forEach(function (it) {
+      var el = document.getElementById('mid-al-' + it.k);
+      if (!el) return;
+      var inp = document.getElementById('al-' + it.k);
+      if (inp && inp.disabled) inp.value = fmt(r2(it.claimed));
+      if (it.type === 'count') {
+        el.innerHTML = it.claimed > 0 ? '→ ' + fmt(r2(it.claimed)) + (it.note ? ' · ' + it.note : '') : '';
+      } else if (it.type === 'auto' || it.type === 'linked') {
+        el.innerHTML = '';
+      } else {
+        el.innerHTML = it.raw > 0
+          ? (it.claimed < it.raw ? '→ <strong>' + fmt(r2(it.claimed)) + '</strong> · ' + it.note : '→ ' + fmt(r2(it.claimed)))
+          : '';
+      }
+    });
+    document.getElementById('mid-don2x').innerHTML = C.d2raw > 0 ? '2× = ' + fmt(r2(C.d2raw)) + ' → deducted <strong>' + fmt(r2(C.d2)) + '</strong>' : '';
+    document.getElementById('mid-donGen').innerHTML = C.dgRaw > 0 ? '→ deducted <strong>' + fmt(r2(C.dg)) + '</strong>' : '';
+
+    // ── Group meters ──
+    paintGroup('grpLH', 'Life + health insurance group', 'ประกันชีวิต + สุขภาพ', C.A.groups.LH);
+    paintGroup('grpRET', 'Retirement funds group', 'กองทุนเพื่อการเกษียณ', C.A.groups.RET);
+    // The ceiling is two-stage, so total capacity is the 2× cap plus whatever the
+    // general cap allows on the remainder — not the first-stage figure alone.
+    var donUsed = C.d2 + C.dg, donCapTotal = C.cap2 + C.capG;
+    document.getElementById('grpDON').innerHTML =
+      '<div class="grp-head"><span>Donation ceiling — ' + R('donCapPct') + '% of income after allowances</span>' +
+      '<span class="grp-used' + (donUsed >= donCapTotal - 1e-6 && donCapTotal > 0 ? ' full' : '') + '">used ' + fmt(r2(donUsed)) + ' / ' + fmt(r2(donCapTotal)) + '</span></div>' +
+      meterHtml(donUsed, donCapTotal) +
+      '<div class="grp-note">2× donations are deducted first, capped at ' + R('donCapPct') + '% of ' + fmt(r2(C.netBeforeDon)) + ' = ' + fmt(r2(C.cap2)) + '. ' +
+      'General donations are then capped at ' + R('donCapPct') + '% of what remains = ' + fmt(r2(C.capG)) + '.' +
+      ((C.d2raw > C.d2 || C.dgRaw > C.dg) ? '<br><span class="warn">' + fmt(r2((C.d2raw - C.d2) + (C.dgRaw - C.dg))) + ' of donation deduction disallowed by the ceiling.</span>' : '') +
+      '</div>';
+
+    // ── Severance note ──
+    if (S.sevOn) {
+      var sv = C.sev;
+      document.getElementById('note-sev').innerHTML = !sv ? '' : (!sv.eligible
+        ? '<span class="warn">Service of ' + sv.years + ' year(s) is below the ' + R('sevMinYears') + '-year minimum — the separate computation is not available, and this amount is <strong>not</strong> included in the main computation either. Enter it as §40(1) salary instead.</span>'
+        : 'Deduction ' + fmt0(R('sevPerYear')) + ' × ' + sv.years + ' yr = ' + fmt(r2(sv.d1)) + ', then ' + R('sevPct') + '% of the remainder ' + fmt(r2(sv.d2)) +
+          ' → taxable <strong>' + fmt(r2(sv.net)) + '</strong>, tax <strong>' + fmt(r2(sv.tax)) + '</strong>' +
+          (!R('sevZeroBand') ? ' <span class="hint">(zero-rate band not applied — see the rules panel)</span>' : ''));
+    }
+
+    // ── Waterfall ──
+    var w = [];
+    function wrow(label, th, val, cls, ind) {
+      w.push('<tr' + (cls ? ' class="' + cls + '"' : '') + '><td' + (ind ? ' class="ind"' : '') + '>' + label + (th ? '<span class="th">' + th + '</span>' : '') + '</td><td class="num">' + val + '</td></tr>');
+    }
+    if (C.g1 > 0) wrow('§40(1) Salary, wages', 'เงินเดือน ค่าจ้าง', fmt(r2(C.g1)), '', true);
+    if (C.g2 > 0) wrow('§40(2) Commissions, fees', 'ค่านายหน้า', fmt(r2(C.g2)), '', true);
+    if (C.g3 > 0) wrow('§40(3) ' + (S.s3kind === 'copyright' ? 'Copyright' : 'Goodwill / other rights'), 'ค่าแห่งลิขสิทธิ์ / ค่าสิทธิ', fmt(r2(C.g3)), '', true);
+    if (C.inclInt && C.gInt > 0) wrow('§40(4) Interest', 'ดอกเบี้ย', fmt(r2(C.gInt)), '', true);
+    if (C.inclDiv && C.gDiv > 0) wrow('§40(4) Dividends', 'เงินปันผล', fmt(r2(C.gDiv)), '', true);
+    if (C.divCredit > 0) wrow('§47 ทวิ dividend tax credit — gross-up', 'เครดิตภาษีเงินปันผล', '+ ' + fmt(r2(C.divCredit)), 'muted', true);
+    if (C.t5.gross > 0) wrow('§40(5) Rent', 'ค่าเช่า', fmt(r2(C.t5.gross)), '', true);
+    if (C.t6.gross > 0) wrow('§40(6) Liberal professions', 'วิชาชีพอิสระ', fmt(r2(C.t6.gross)), '', true);
+    if (C.g7 > 0) wrow('§40(7) Contract work', 'รับเหมา', fmt(r2(C.g7)), '', true);
+    if (C.t8.gross > 0) wrow('§40(8) Business &amp; other', 'ธุรกิจและอื่น ๆ', fmt(r2(C.t8.gross)), '', true);
+    wrow('Gross assessable income', 'เงินได้พึงประเมิน', fmt(r2(C.gross)), 'sub');
+    wrow('Expense deductions', 'หักค่าใช้จ่าย', '− ' + fmt(r2(C.totalExp)), 'hl');
+    if (C.exemption > 0) wrow('Elderly / disabled exemption', 'ยกเว้นเงินได้', '− ' + fmt(r2(C.exemption)), 'hl');
+    wrow('Allowances', 'ค่าลดหย่อน', '− ' + fmt(r2(C.A.total)), 'hl');
+    if (C.d2 > 0) wrow('Donations at 2×', 'เงินบริจาค 2 เท่า', '− ' + fmt(r2(C.d2)), 'hl');
+    if (C.dg > 0) wrow('General donations', 'เงินบริจาคทั่วไป', '− ' + fmt(r2(C.dg)), 'hl');
+    wrow('<strong>Net income</strong>', 'เงินได้สุทธิ', '<strong>' + fmt(r2(C.net)) + '</strong>', 'sub');
+    wrow('Tax on net income', 'ภาษีตามขั้นอัตรา', fmt(r2(C.taxBeforeFloor)));
+    if (C.floorApplied) wrow('§48(2) minimum floor — ' + R('minTaxRate') + '% of ' + fmt(r2(C.grossNon1)), 'ภาษีขั้นต่ำ', fmt(r2(C.floorTax)), 'hl');
+    if (C.sevTax > 0) wrow('§48(5) severance tax — separate computation', 'ภาษีเงินได้จากการออกจากงาน', '+ ' + fmt(r2(C.sevTax)), 'hl');
+    wrow('<strong>Tax liability</strong>', 'ภาษีที่ต้องเสีย', '<strong>' + fmt(r2(C.tax)) + '</strong>', 'sub');
+    if (C.crInt > 0) wrow('WHT credited — interest', '', '− ' + fmt(r2(C.crInt)), 'muted', true);
+    if (C.crDiv > 0) wrow('WHT + §47 ทวิ credit — dividends', '', '− ' + fmt(r2(C.crDiv)), 'muted', true);
+    if (C.crOther > 0) wrow('WHT certificates &amp; P.N.D. 94', '', '− ' + fmt(r2(C.crOther)), 'muted', true);
+    wrow('<strong>' + (C.settle >= 0 ? 'Refund due' : 'Further tax payable') + '</strong>', C.settle >= 0 ? 'ภาษีที่ชำระไว้เกิน' : 'ภาษีที่ต้องชำระเพิ่ม',
+         '<strong>' + fmt(r2(Math.abs(C.settle))) + '</strong>', 'total');
+    document.getElementById('waterfall').innerHTML = w.join('');
+
+    // ── Boxes ──
+    document.getElementById('boxNet').textContent = fmt(r2(C.net));
+    document.getElementById('boxNetSub').innerHTML = 'เงินได้สุทธิ · effective ' + (C.gross > 0 ? pct(C.effective) : '—') + ' of gross · marginal ' + C.marginal + '%';
+    document.getElementById('boxTax').textContent = fmt(r2(C.tax));
+    document.getElementById('boxTaxSub').innerHTML = C.floorApplied
+      ? '§48(2) floor is what binds here'
+      : (C.sevTax > 0 ? 'incl. ' + fmt(r2(C.sevTax)) + ' on the severance schedule' : 'ภาษีตามอัตราก้าวหน้า');
+    var bw = document.getElementById('boxSettleWrap');
+    bw.className = 'amount-box ' + (C.settle >= 0 ? 'green' : '');
+    document.getElementById('boxSettleLabel').textContent = C.settle >= 0 ? 'Refund due' : 'Further tax payable';
+    document.getElementById('boxSettle').textContent = fmt(r2(Math.abs(C.settle)));
+    document.getElementById('boxSettleSub').innerHTML = 'credits ' + fmt(r2(C.credits)) + ' vs. tax ' + fmt(r2(C.tax)) +
+      (C.finalWht > 0 ? '<br>plus ' + fmt(r2(C.finalWht)) + ' final WHT borne outside the return' : '');
+
+    // ── §48(2) note ──
+    var mt = document.getElementById('minTaxNote');
+    if (!R('minTaxOn')) mt.innerHTML = '<div class="callout warn">The §48(2) minimum tax floor is switched off in the rules panel.</div>';
+    else if (C.floorApplied) mt.innerHTML = '<div class="callout warn"><strong>§48(2) minimum tax binds.</strong> Gross non-§40(1) assessable income of ' + fmt(r2(C.grossNon1)) + ' is at or above the ' + fmt0(R('minTaxThr')) + ' threshold, so tax cannot fall below ' + R('minTaxRate') + '% of it (' + fmt(r2(C.floorTax)) + '). That exceeds the ' + fmt(r2(C.taxBeforeFloor)) + ' produced by the progressive rates, so the floor is the liability.</div>';
+    else if (C.floorWaived) mt.innerHTML = '<div class="callout"><strong>§48(2) floor computed but waived.</strong> ' + R('minTaxRate') + '% of ' + fmt(r2(C.grossNon1)) + ' is ' + fmt(r2(C.floorTax)) + ', at or below the ' + fmt0(R('minTaxDeMin')) + ' de-minimis in the rules panel. Verify that carve-out against the law before relying on it.</div>';
+    else if (C.grossNon1 >= R('minTaxThr')) mt.innerHTML = '<div class="callout">§48(2) checked and not binding — the progressive tax of ' + fmt(r2(C.taxBeforeFloor)) + ' already exceeds the ' + R('minTaxRate') + '% floor of ' + fmt(r2(C.floorTax)) + '.</div>';
+    else mt.innerHTML = '';
+
+    // ── Bracket table ──
+    var bt = '<tr><th>Band of net income</th><th class="num">Rate</th><th class="num">Amount in band</th><th class="num">Tax</th></tr>';
+    if (!C.brkRows.length) bt += '<tr class="muted"><td colspan="4">No net income to tax.</td></tr>';
+    C.brkRows.forEach(function (r) {
+      bt += '<tr><td>' + fmt0(r.from + 1) + ' – ' + (isFinite(r.to) ? fmt0(r.to) : 'above') + '</td>' +
+            '<td class="num">' + r.rate + '%</td><td class="num">' + fmt(r2(r.slice)) + '</td><td class="num">' + fmt(r2(r.tax)) + '</td></tr>';
+    });
+    if (C.brkRows.length) bt += '<tr class="total"><td>Tax on net income</td><td class="num"></td><td class="num">' + fmt(r2(C.net)) + '</td><td class="num">' + fmt(r2(C.taxBeforeFloor)) + '</td></tr>';
+    if (C.sev && C.sev.eligible && C.sev.rows && C.sev.rows.length) {
+      bt += '<tr class="sub"><td colspan="4">§48(5) severance — separate schedule on ' + fmt(r2(C.sev.net)) + (!R('sevZeroBand') ? ', zero-rate band not applied' : '') + '</td></tr>';
+      C.sev.rows.forEach(function (r) {
+        bt += '<tr class="muted"><td class="ind">' + fmt0(r.from + 1) + ' – ' + (isFinite(r.to) ? fmt0(r.to) : 'above') + '</td>' +
+              '<td class="num">' + r.rate + '%</td><td class="num">' + fmt(r2(r.slice)) + '</td><td class="num">' + fmt(r2(r.tax)) + '</td></tr>';
+      });
+      bt += '<tr class="total"><td>Severance tax</td><td class="num"></td><td class="num">' + fmt(r2(C.sev.net)) + '</td><td class="num">' + fmt(r2(C.sev.tax)) + '</td></tr>';
+    }
+    document.getElementById('brkTable').innerHTML = bt;
+
+    // ── Election comparison ──
+    var ec = document.getElementById('electCard');
+    if (C.gInt + C.gDiv <= 0) {
+      ec.style.display = 'none';
+    } else {
+      ec.style.display = '';
+      var et = '<tr><th>Election</th><th class="num">Tax in the return</th><th class="num">§47 ทวิ credit</th><th class="num">Final WHT outside</th><th class="num">Net tax borne</th></tr>';
+      all.combos.forEach(function (c) {
+        var isBest = c === all.best, isChosen = (c.inclInt === C.inclInt && c.inclDiv === C.inclDiv);
+        et += '<tr class="' + (isBest ? 'best' : '') + '"><td>' + c.label + (isBest ? ' &nbsp;← cheapest' : '') + (isChosen && !isBest ? ' &nbsp;← applied' : '') + '</td>' +
+              '<td class="num">' + fmt(r2(c.tax)) + '</td>' +
+              '<td class="num">' + (c.inclDiv && c.divCredit > 0 ? '− ' + fmt(r2(c.divCredit)) : '—') + '</td>' +
+              '<td class="num">' + (c.finalWht > 0 ? fmt(r2(c.finalWht)) : '—') + '</td>' +
+              '<td class="num">' + fmt(r2(c.burden)) + '</td></tr>';
+      });
+      document.getElementById('electTable').innerHTML = et;
+      var save = C.burden - all.best.burden;
+      document.getElementById('electNote').innerHTML =
+        'Compared on <strong>net tax borne</strong> — tax assessed in the return, less the §47 ทวิ credit (which credits corporate tax the company already paid), plus the final withholding suffered on anything left out. ' +
+        'Withholding tax is a prepayment of your own liability, so it is not deducted again here. ' +
+        (S.autoElect
+          ? 'Applied automatically: <strong>' + all.best.label + '</strong>.'
+          : 'Forced: <strong>' + C.label + '</strong>' + (save > 1e-6 ? ' — <span class="warn">' + fmt(r2(save)) + ' more than the cheapest option.</span>' : ' — this is also the cheapest.')) +
+        '<br>Including any Thai dividend with the §47 ทวิ credit is an all-or-nothing election across every Thai dividend received in the year.';
+    }
+
+    // ── Headroom ──
+    var mr = C.marginal, hr = [];
+    hr.push('<tr><th>Capacity</th><th class="num">Unused</th><th class="num">× marginal ' + mr + '%</th></tr>');
+    function hrow(label, unused) {
+      if (unused <= 1e-6) { hr.push('<tr class="muted"><td>' + label + '</td><td class="num">—</td><td class="num">—</td></tr>'); return; }
+      hr.push('<tr><td>' + label + '</td><td class="num">' + fmt(r2(unused)) + '</td><td class="num">' + fmt(r2(unused * mr / 100)) + '</td></tr>');
+    }
+    hrow('Life + health insurance group', C.A.groups.LH.headroom);
+    hrow('Retirement funds group', C.A.groups.RET.headroom);
+    C.A.items.forEach(function (it) {
+      if (it.type !== 'amount' || it.grp) return;
+      var a = ALLOWS.filter(function (x) { return x.k === it.k; })[0];
+      if (!a || a.cap == null) return;
+      hrow(a.l, Math.max(0, R('cap_' + it.k) - it.claimed));
+    });
+    hrow('General donation ceiling', Math.max(0, C.capG - C.dg));
+    var nt = nextThresholdDown(C.net);
+    document.getElementById('headroomTable').innerHTML = hr.join('') +
+      '<tr class="sub"><td colspan="3">Net income ' + fmt(r2(C.net)) + ' — ' + fmt(r2(nt.over)) + ' above the ' + nt.rate + '% threshold at ' + fmt0(nt.floor) + '</td></tr>';
+
+    // ── Copy summary ──
+    var L = [];
+    L.push('Thai personal income tax — approximate estimate');
+    L.push('');
+    L.push('Gross assessable income      ' + fmt(r2(C.gross)));
+    L.push('Expense deductions          −' + fmt(r2(C.totalExp)));
+    if (C.exemption > 0) L.push('Elderly/disabled exemption  −' + fmt(r2(C.exemption)));
+    L.push('Allowances                  −' + fmt(r2(C.A.total)));
+    if (C.d2 + C.dg > 0) L.push('Donations                   −' + fmt(r2(C.d2 + C.dg)));
+    L.push('Net income                   ' + fmt(r2(C.net)));
+    L.push('');
+    L.push('Tax on net income            ' + fmt(r2(C.taxBeforeFloor)));
+    if (C.floorApplied) L.push('§48(2) minimum floor applied ' + fmt(r2(C.floorTax)));
+    if (C.sevTax > 0) L.push('§48(5) severance tax        +' + fmt(r2(C.sevTax)));
+    L.push('Tax liability                ' + fmt(r2(C.tax)));
+    L.push('Credits                     −' + fmt(r2(C.credits)));
+    L.push((C.settle >= 0 ? 'Refund due                   ' : 'Further tax payable          ') + fmt(r2(Math.abs(C.settle))));
+    L.push('');
+    L.push('Effective rate ' + (C.gross > 0 ? pct(C.effective) : '—') + ' · marginal ' + C.marginal + '%');
+    if (C.gInt + C.gDiv > 0) L.push('§40(4) election: ' + C.label + ' · total tax borne ' + fmt(r2(C.burden)));
+    L.push('');
+    L.push('Approximate reference figures only, not tax advice. Verify rates, caps and thresholds against the law in force.');
+    lastSummary = L.join('\n');
+
+    save();
+  }
+
+  function meterHtml(used, cap) {
+    var p = cap > 0 ? Math.min(100, used / cap * 100) : 0;
+    var full = cap > 0 && used >= cap - 1e-6;
+    return '<div class="meter"><i class="' + (full ? 'full' : '') + '" style="width:' + p.toFixed(1) + '%"></i></div>';
+  }
+  function paintGroup(id, label, th, G) {
+    var full = G.used >= G.cap - 1e-6;
+    var rows = G.members.map(function (m) {
+      var bits = [];
+      if (m.subLimit != null) bits.push('sub-limit ' + fmt(r2(m.subLimit)));
+      if (m.note) bits.push(m.note);
+      return '<div class="grp-note" style="margin-top:3px">' + m.l + ' — claimed <strong>' + fmt(r2(m.claimed)) + '</strong>' +
+        (m.raw > m.claimed ? ' of ' + fmt(r2(m.raw)) + ' entered' : '') +
+        (bits.length ? ' <span class="hint">· ' + bits.join(' · ') + '</span>' : '') + '</div>';
+    }).join('');
+    document.getElementById(id).innerHTML =
+      '<div class="grp-head"><span>' + label + ' <span class="hint">' + th + '</span></span>' +
+      '<span class="grp-used' + (full ? ' full' : '') + '">used ' + fmt(r2(G.used)) + ' / ' + fmt(r2(G.cap)) + '</span></div>' +
+      meterHtml(G.used, G.cap) + rows +
+      (G.headroom > 1e-6 ? '<div class="grp-note">' + fmt(r2(G.headroom)) + ' of headroom left in the group.</div>'
+                         : '<div class="grp-note warn">Group ceiling reached' + (G.preGroup > G.cap ? ' — ' + fmt(r2(G.preGroup - G.cap)) + ' disallowed.' : '.') + '</div>');
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  Persistence
+  // ══════════════════════════════════════════════════════════════════════════
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+  function load() {
+    var st = null;
+    try { st = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+    S = freshState();
+    if (!st) return;
+    Object.keys(S).forEach(function (k) {
+      if (st[k] === undefined || st[k] === null) return;
+      S[k] = st[k];
+    });
+    // Repair shapes that a schema change may have invalidated.
+    ['5', '6', '8'].forEach(function (c) {
+      if (!S.lines || !Array.isArray(S.lines[c]) || !S.lines[c].length) {
+        S.lines = S.lines || {}; S.lines[c] = [blankLine(c)];
+      }
+    });
+    if (!S.al) S.al = {};
+    ALLOWS.forEach(function (a) { if (S.al[a.k] === undefined) S.al[a.k] = ''; });
+    if (!Array.isArray(S.free)) S.free = [];
+    while (S.free.length < FREE_ROWS) S.free.push({ l: '', amt: '', cap: '' });
+    if (!S.rules) S.rules = {};
+  }
+  window.resetAll = function () {
+    if (!confirm('Clear every input, and reset all rates, brackets and caps to their defaults?')) return;
+    try { localStorage.removeItem(KEY); } catch (e) {}
+    location.reload();
+  };
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  Wiring
+  // ══════════════════════════════════════════════════════════════════════════
+  var SIMPLE = {
+    tpElderly: 'elderly', tpSpouse: 'spouse',
+    s1: 's1', s2: 's2', s3kind: 's3kind', s3amt: 's3amt',
+    s4int: 's4int', s4div: 's4div', s4noCredit: 's4noCredit',
+    autoElect: 'autoElect', forceInt: 'forceInt', forceDiv: 'forceDiv',
+    s7amt: 's7amt', s7act: 's7act', s7actAmt: 's7actAmt',
+    sevOn: 'sevOn', sevAmt: 'sevAmt', sevYears: 'sevYears',
+    don2x: 'don2x', donGen: 'donGen',
+    crWht: 'crWht', crPnd94: 'crPnd94',
+    decimals: 'dp', rounding: 'rnd'
+  };
+  var AMOUNT_IDS = ['s1', 's2', 's3amt', 's4int', 's4div', 's7amt', 's7actAmt', 'sevAmt', 'don2x', 'donGen', 'crWht', 'crPnd94'];
+
+  function pullSimple() {
+    Object.keys(SIMPLE).forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      S[SIMPLE[id]] = el.type === 'checkbox' ? el.checked : el.value;
+    });
+  }
+  function pushSimple() {
+    Object.keys(SIMPLE).forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      if (el.type === 'checkbox') el.checked = !!S[SIMPLE[id]];
+      else el.value = S[SIMPLE[id]];
+    });
+  }
+
+  function wire() {
+    // Simple fields
+    Object.keys(SIMPLE).forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      if (AMOUNT_IDS.indexOf(id) >= 0) el.addEventListener('input', function () { liveFormat(this); });
+      el.addEventListener('input', function () { pullSimple(); paint(); });
+      el.addEventListener('change', function () { pullSimple(); paint(); });
+    });
+
+    // Allowance inputs (delegated)
+    document.querySelector('.wrap').addEventListener('input', function (e) {
+      var t = e.target;
+      if (t.hasAttribute && t.hasAttribute('data-al')) {
+        if (t.type !== 'number') liveFormat(t);
+        S.al[t.getAttribute('data-al')] = t.value;
+        paint();
+      }
+    });
+
+    // Free-form allowance rows
+    document.getElementById('allowFree').addEventListener('input', function (e) {
+      var row = e.target.closest('[data-free]'); if (!row) return;
+      var i = parseInt(row.getAttribute('data-free'), 10);
+      var f = e.target.getAttribute('data-ff'); if (!f) return;
+      if (f !== 'l') liveFormat(e.target);
+      S.free[i][f] = e.target.value;
+      paint();
+    });
+
+    // Income lines — edit, add, delete
+    ['5', '6', '8'].forEach(function (cat) {
+      var host = document.getElementById('lines' + cat);
+      host.addEventListener('input', function (e) {
+        var line = e.target.closest('.line'); if (!line) return;
+        var i = parseInt(line.getAttribute('data-i'), 10);
+        var f = e.target.getAttribute('data-f'); if (!f) return;
+        if (f === 'amt' || f === 'actAmt') liveFormat(e.target);
+        S.lines[cat][i][f] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+        paint();
+      });
+      host.addEventListener('change', function (e) {
+        var line = e.target.closest('.line'); if (!line) return;
+        var i = parseInt(line.getAttribute('data-i'), 10);
+        var f = e.target.getAttribute('data-f'); if (!f) return;
+        S.lines[cat][i][f] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+        if (f === 'sub' || f === 'act') { renderLines(cat); }
+        paint();
+      });
+      host.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-del]'); if (!btn) return;
+        var line = btn.closest('.line');
+        var i = parseInt(line.getAttribute('data-i'), 10);
+        S.lines[cat].splice(i, 1);
+        if (!S.lines[cat].length) S.lines[cat].push(blankLine(cat));
+        renderLines(cat); paint();
+      });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-add]'), function (b) {
+      b.addEventListener('click', function () {
+        var cat = b.getAttribute('data-add');
+        S.lines[cat].push(blankLine(cat));
+        renderLines(cat); paint();
+      });
+    });
+
+    // Rules panel
+    var rp = document.getElementById('rulesPanel');
+    rp.addEventListener('toggle', function () { S.rulesOpen = rp.open; save(); });
+    document.getElementById('ruleGroups').addEventListener('input', function (e) {
+      var k = e.target.getAttribute && e.target.getAttribute('data-rk'); if (!k) return;
+      if (e.target.type === 'checkbox') S.rules[k] = e.target.checked ? 1 : 0;
+      else { liveFormat(e.target); S.rules[k] = e.target.value; }
+      markRuleRow(k); paint();
+    });
+    document.getElementById('ruleGroups').addEventListener('change', function (e) {
+      var k = e.target.getAttribute && e.target.getAttribute('data-rk'); if (!k) return;
+      if (e.target.type === 'checkbox') S.rules[k] = e.target.checked ? 1 : 0;
+      markRuleRow(k); paint();
+    });
+    document.getElementById('ruleGroups').addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-rreset]'); if (!btn) return;
+      var k = btn.getAttribute('data-rreset');
+      delete S.rules[k];
+      var row = document.querySelector('[data-rrow="' + k + '"]');
+      var inp = row.querySelector('[data-rk]');
+      var def = RULE_BY_KEY[k];
+      if (inp.type === 'checkbox') inp.checked = !!def.d;
+      else inp.value = def.u === 'THB' ? fmt0(def.d) : def.d;
+      row.classList.remove('changed');
+      paint();
+    });
+
+    // Brackets
+    var br = document.getElementById('brkRows');
+    br.addEventListener('input', function (e) {
+      var f = e.target.getAttribute && e.target.getAttribute('data-bf'); if (!f) return;
+      if (f === 'upto') liveFormat(e.target);
+      commitBrackets(); paint();
+    });
+    br.addEventListener('click', function (e) {
+      if (e.target.id === 'addBrk') {
+        var bs = brackets().slice();
+        bs.splice(bs.length - 1, 0, { upto: null, rate: 0 });
+        S.brackets = bs; renderRules(); paint(); return;
+      }
+      var del = e.target.closest('[data-brkdel]'); if (!del) return;
+      var i = parseInt(del.getAttribute('data-brkdel'), 10);
+      var b2 = brackets().slice();
+      if (b2.length <= 1) return;
+      b2.splice(i, 1);
+      S.brackets = b2; renderRules(); paint();
+    });
+
+    document.getElementById('resetRules').addEventListener('click', function () {
+      S.rules = {}; S.brackets = null;
+      renderRules(); paint();
+    });
+
+    // Copy
+    var cb = document.getElementById('copyBtn');
+    cb.addEventListener('click', function () {
+      if (!lastSummary) return;
+      navigator.clipboard.writeText(lastSummary).then(function () {
+        cb.classList.add('copied'); cb.textContent = '✓ Copied';
+        setTimeout(function () { cb.classList.remove('copied'); cb.textContent = 'Copy summary'; }, 1300);
+      });
+    });
+  }
+
+  function markRuleRow(k) {
+    var row = document.querySelector('[data-rrow="' + k + '"]');
+    if (!row) return;
+    var v = S.rules[k];
+    var def = RULE_BY_KEY[k];
+    var changed;
+    if (isBool(def)) changed = (v ? 1 : 0) !== (def.d ? 1 : 0);
+    else changed = !(v === undefined || v === null || v === '' || num(v) === def.d);
+    row.classList.toggle('changed', !!changed);
+  }
+
+  function commitBrackets() {
+    var rows = document.querySelectorAll('#brkRows .brk-row');
+    var out = [];
+    Array.prototype.forEach.call(rows, function (r) {
+      var u = r.querySelector('[data-bf="upto"]').value.trim();
+      var rt = parseFloat(r.querySelector('[data-bf="rate"]').value);
+      out.push({ upto: u === '' ? null : num(u), rate: isNaN(rt) ? 0 : rt });
+    });
+    S.brackets = out;
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  Boot
+  // ══════════════════════════════════════════════════════════════════════════
+  load();
+  renderAllowances();
+  ['5', '6', '8'].forEach(renderLines);
+  renderRules();
+  pushSimple();
+  document.getElementById('rulesPanel').open = !!S.rulesOpen;
+  wire();
+  paint();
+})();
+</script>
+</body>
+</html>
