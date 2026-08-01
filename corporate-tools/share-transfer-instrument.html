@@ -1,0 +1,1674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Share Transfer Instrument — JuraTools</title>
+<meta name="description" content="Fill a Thai/English Share Transfer Instrument (ตราสารการโอนหุ้น) and export it as a Word .docx with the Original and Duplicate copies both populated. Party directory, Excel batch, JSON backup. By Kornrawee Chanchom.">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{
+  --primary:#2563eb; --primary-dark:#1d4ed8;
+  --bg:#f6f8fb; --card:#fff; --text:#334155; --heading:#0f172a;
+  --border:#e4e9f0; --muted:#94a3b8; --hover-gray:#f1f5f9;
+  --success:#0d9488; --danger:#dc2626; --amber:#d97706;
+  --shadow:0 1px 2px rgba(15,23,42,.04), 0 4px 12px -4px rgba(15,23,42,.06);
+  /* one accent per section, so a glance tells you where you are */
+  --c-party:#7c3aed; --c-co:#0891b2; --c-tfr:#2563eb; --c-tfe:#0d9488;
+  --c-shares:#d97706; --c-sign:#db2777; --c-out:#059669;
+}
+*{box-sizing:border-box;}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);margin:0;font-size:14px;}
+
+/* ── Nav ─────────────────────────────────────── */
+.nav{position:sticky;top:0;z-index:200;height:54px;display:flex;align-items:center;gap:12px;padding:0 24px;
+  background:rgba(246,248,251,.88);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);
+  border-bottom:1px solid var(--border);}
+.nav a{color:inherit;text-decoration:none;}
+.nav-brand{display:flex;align-items:center;gap:9px;user-select:none;}
+.nav-icon{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;
+  background:linear-gradient(145deg,#2979ff,#1565c0);font-size:15px;
+  box-shadow:0 2px 6px rgba(41,121,255,.4), inset 0 1px 0 rgba(255,255,255,.2);}
+.nav-wordmark{font-size:15px;font-weight:700;letter-spacing:-.4px;color:var(--heading);}
+.nav-sep{color:#cbd5e1;}
+.nav-current{font-size:15px;font-weight:600;color:#64748b;}
+.nav-back{margin-left:auto;font-size:13px;font-weight:500;color:#3c3c43;background:rgba(0,0,0,.05);
+  border:1px solid rgba(0,0,0,.09);padding:6px 12px;border-radius:9px;transition:background .14s;}
+.nav-back:hover{background:rgba(0,0,0,.09);}
+
+/* ── Layout ──────────────────────────────────── */
+.app{display:flex;gap:20px;max-width:1760px;margin:0 auto;padding:20px 24px 72px;align-items:flex-start;}
+.app[data-view="form"] .pv{display:none;}
+.app[data-view="preview"] .sidebar,.app[data-view="preview"] .main{display:none;}
+/* the transfer list gives up width to the preview when both are on screen */
+.app[data-view="split"] .sidebar{width:212px;min-width:212px;}
+.app[data-view="split"] .sidebar .hint{display:none;}
+.app[data-view="preview"] .pv{width:auto;min-width:0;flex:1;max-height:none;position:static;}
+.sidebar{width:262px;min-width:262px;background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:16px;position:sticky;top:74px;box-shadow:var(--shadow);max-height:calc(100vh - 94px);overflow-y:auto;}
+.main{flex:1 1 380px;min-width:0;display:flex;flex-direction:column;gap:16px;}
+
+/* ── Sidebar ─────────────────────────────────── */
+.side-head{display:flex;align-items:center;gap:8px;margin-bottom:2px;}
+.side-head h2{margin:0;font-size:1.02em;color:var(--heading);}
+.count-pill{margin-left:auto;font-size:.72em;font-weight:700;color:var(--primary);
+  background:#eff6ff;border:1px solid #bfdbfe;border-radius:999px;padding:2px 9px;}
+.sidebar .hint{font-size:.78em;color:var(--muted);margin:0 0 12px;line-height:1.45;}
+.xfer-list{display:flex;flex-direction:column;gap:7px;margin-bottom:12px;}
+.xfer{padding:10px 11px 10px 13px;border-radius:10px;border:1px solid var(--border);cursor:pointer;
+  transition:.12s;background:#fff;position:relative;border-left:3px solid #e2e8f0;}
+.xfer:hover{background:var(--hover-gray);}
+.xfer.active{border-color:#bfdbfe;border-left-color:var(--primary);background:#f5f9ff;
+  box-shadow:0 0 0 3px rgba(37,99,235,.08);}
+.xfer-no{font-size:.67em;font-weight:800;color:var(--muted);letter-spacing:.06em;}
+.xfer.active .xfer-no{color:var(--primary);}
+.xfer-co{font-weight:700;font-size:.84em;color:var(--heading);margin:1px 0 4px;line-height:1.25;}
+.xfer-flow{font-size:.79em;color:var(--text);line-height:1.35;}
+.xfer-flow .arrow{color:var(--muted);margin:0 3px;}
+.xfer-facts{font-size:.72em;color:var(--muted);margin-top:5px;display:flex;flex-wrap:wrap;gap:3px 6px;}
+.xfer-facts span{background:#f1f5f9;border-radius:5px;padding:1px 6px;}
+.xfer-del{position:absolute;top:6px;right:7px;border:none;background:none;color:#cbd5e1;cursor:pointer;
+  font-size:1.05em;line-height:1;padding:2px 5px;border-radius:6px;}
+.xfer-del:hover{color:var(--danger);background:#fef2f2;}
+.empty{color:#cbd5e1;font-style:italic;}
+
+/* ── Cards ───────────────────────────────────── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:0;box-shadow:var(--shadow);overflow:hidden;}
+.card-hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:13px 18px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,#fcfdff,#f8fafc);}
+.card-hd .ico{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:13px;flex-shrink:0;
+  background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-line);}
+.card-hd h3{margin:0;font-size:.94em;color:var(--heading);font-weight:700;}
+.card-hd .th{font-weight:500;color:var(--muted);font-size:.88em;margin-left:-4px;}
+.card-hd .spacer{margin-left:auto;}
+.card-bd{padding:16px 18px 18px;}
+/* accent per section */
+.acc-party{--accent:var(--c-party);--accent-soft:#f5f3ff;--accent-line:#ddd6fe;}
+.acc-co{--accent:var(--c-co);--accent-soft:#ecfeff;--accent-line:#a5f3fc;}
+.acc-tfr{--accent:var(--c-tfr);--accent-soft:#eff6ff;--accent-line:#bfdbfe;}
+.acc-tfe{--accent:var(--c-tfe);--accent-soft:#f0fdfa;--accent-line:#99f6e4;}
+.acc-shares{--accent:var(--c-shares);--accent-soft:#fffbeb;--accent-line:#fde68a;}
+.acc-sign{--accent:var(--c-sign);--accent-soft:#fdf2f8;--accent-line:#fbcfe8;}
+.acc-out{--accent:var(--c-out);--accent-soft:#ecfdf5;--accent-line:#a7f3d0;}
+.acc-prev{--accent:#64748b;--accent-soft:#f1f5f9;--accent-line:#e2e8f0;}
+
+/* ── Fields ──────────────────────────────────── */
+label{display:block;font-size:.77em;font-weight:600;color:#64748b;margin-bottom:5px;}
+input[type=text],input[type=date],select{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;
+  font-family:inherit;font-size:.92em;color:var(--text);background:#fff;transition:border-color .12s, box-shadow .12s;}
+input:focus,select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.12);}
+input::placeholder{color:#cbd5e1;}
+input:disabled{background:#f8fafc;color:var(--muted);}
+input.is-ph{background:#fefce8;border-color:#fcd34d;font-weight:600;color:#a16207;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+.field{margin-bottom:14px;}
+.field:last-child{margin-bottom:0;}
+
+/* bilingual pair */
+.pair{margin-bottom:16px;}
+.pair:last-child{margin-bottom:0;}
+.pair-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.pair-head .ttl{font-size:.77em;font-weight:700;color:#475569;}
+.pair-head .opt{font-weight:400;color:#cbd5e1;}
+.swap{margin-left:auto;font-size:.71em;font-weight:600;color:var(--primary);background:#eff6ff;border:1px solid #bfdbfe;
+  border-radius:999px;padding:3px 10px;cursor:pointer;font-family:inherit;white-space:nowrap;transition:.12s;}
+.swap:hover{background:#dbeafe;}
+.pair-row{display:flex;align-items:center;gap:7px;margin-bottom:7px;}
+.pair-row:last-child{margin-bottom:0;}
+.rowtag{flex:0 0 112px;font-size:.71em;color:#94a3b8;text-align:right;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;font-variant-numeric:tabular-nums;}
+.pair-row input{flex:1;min-width:0;}
+
+/* mini field buttons */
+.mini{flex:0 0 auto;font-size:.7em;font-weight:700;font-family:inherit;border-radius:7px;padding:6px 8px;cursor:pointer;
+  border:1px solid var(--border);background:#fff;color:#94a3b8;line-height:1;transition:.12s;}
+.mini:hover{background:var(--hover-gray);color:var(--text);border-color:#cbd5e1;}
+.mini.on{background:#fef9c3;border-color:#fcd34d;color:#a16207;}
+.mini.up:hover{color:var(--primary);border-color:#bfdbfe;background:#eff6ff;}
+
+/* auto / override */
+.reset-auto{font-size:.71em;font-weight:600;color:var(--amber);background:#fffbeb;border:1px solid #fde68a;
+  border-radius:999px;padding:3px 10px;cursor:pointer;font-family:inherit;white-space:nowrap;}
+.reset-auto:hover{background:#fef3c7;}
+.reset-auto[hidden]{display:none;}
+
+/* pickers */
+.picker{width:auto;font-size:.79em;padding:5px 9px;border-radius:8px;max-width:230px;color:#475569;background:#fff;}
+
+/* ── Party directory ─────────────────────────── */
+.party-list{display:flex;flex-direction:column;gap:7px;margin-bottom:14px;max-height:300px;overflow-y:auto;}
+.party{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--border);border-radius:10px;background:#fff;transition:.12s;}
+.party:hover{background:#fcfcfd;border-color:#cbd5e1;}
+.party-av{width:30px;height:30px;border-radius:9px;flex-shrink:0;display:grid;place-items:center;
+  background:#f5f3ff;color:var(--c-party);border:1px solid #ddd6fe;font-size:.78em;font-weight:700;}
+.party-main{flex:1;min-width:0;}
+.party-nm{font-weight:600;font-size:.86em;color:var(--heading);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.party-sub{font-size:.75em;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.party-acts{display:flex;gap:4px;flex-shrink:0;align-items:center;}
+.party-acts .sep{width:1px;height:18px;background:var(--border);margin:0 2px;}
+.use{font-size:.7em;font-weight:600;font-family:inherit;border-radius:7px;padding:5px 8px;cursor:pointer;
+  border:1px solid var(--border);background:#fff;color:#64748b;line-height:1;white-space:nowrap;transition:.12s;}
+.use:hover{border-color:currentColor;}
+.use.u-tfr:hover{color:var(--c-tfr);background:#eff6ff;}
+.use.u-tfe:hover{color:var(--c-tfe);background:#f0fdfa;}
+.use.u-co:hover{color:var(--c-co);background:#ecfeff;}
+.use.u-w1:hover,.use.u-w2:hover{color:var(--c-sign);background:#fdf2f8;}
+.party-form{border-top:1px dashed var(--border);padding-top:14px;margin-top:4px;}
+
+/* ── Preview ─────────────────────────────────── */
+.preview{font-size:.82em;}
+.preview table{width:100%;border-collapse:collapse;}
+.preview td{padding:5px 8px;border-bottom:1px solid #f1f5f9;vertical-align:top;}
+.preview tr:last-child td{border-bottom:none;}
+.preview td:first-child{color:var(--muted);white-space:nowrap;width:1%;font-size:.92em;}
+.preview td:last-child{color:var(--heading);font-weight:500;}
+.preview .blank{color:#cbd5e1;font-weight:400;font-style:italic;}
+.preview .ph{background:#fef08a;padding:0 4px;border-radius:4px;font-weight:700;color:#854d0e;}
+.preview .grp td{background:#f8fafc;color:#475569;font-weight:700;font-size:.9em;letter-spacing:.02em;}
+
+/* ── Buttons ─────────────────────────────────── */
+.btn{padding:9px 15px;border-radius:9px;border:1px solid transparent;font-family:inherit;font-size:.87em;
+  font-weight:600;cursor:pointer;transition:.12s;display:inline-flex;align-items:center;gap:7px;justify-content:center;}
+.btn-primary{background:var(--primary);color:#fff;box-shadow:0 1px 2px rgba(37,99,235,.3);}
+.btn-primary:hover{background:var(--primary-dark);}
+.btn-ghost{background:#fff;color:var(--text);border-color:var(--border);}
+.btn-ghost:hover{background:var(--hover-gray);border-color:#cbd5e1;}
+.btn-danger{background:#fff;color:var(--danger);border-color:#fecaca;}
+.btn-danger:hover{background:#fef2f2;}
+.btn-sm{padding:6px 11px;font-size:.79em;}
+.btn-wide{width:100%;}
+.btn-row{display:flex;gap:9px;flex-wrap:wrap;}
+.sect-note{font-size:.78em;color:var(--muted);margin:0 0 12px;line-height:1.55;}
+/* grouped action blocks inside the Export card */
+.act{border:1px solid var(--border);border-radius:11px;padding:13px 14px;background:#fcfdfe;}
+.act + .act{margin-top:12px;}
+.act-hd{display:flex;align-items:center;gap:8px;font-size:.83em;font-weight:700;color:var(--heading);margin-bottom:3px;}
+.act-hd .ico{font-size:.95em;}
+.act.danger{border-color:#fecaca;background:#fffbfb;}
+
+/* ── Confirm dialog (native confirm() is blocked in some embeds) ── */
+.scrim{position:fixed;inset:0;background:rgba(15,23,42,.45);display:grid;place-items:center;z-index:600;padding:20px;}
+.scrim[hidden]{display:none;}
+.dlg{background:#fff;border-radius:14px;max-width:420px;width:100%;padding:20px;box-shadow:0 24px 48px -12px rgba(15,23,42,.35);}
+.dlg h4{margin:0 0 8px;font-size:1em;color:var(--heading);}
+.dlg p{margin:0 0 16px;font-size:.86em;color:#64748b;line-height:1.55;}
+.dlg .btn-row{justify-content:flex-end;}
+
+/* ── Toast ───────────────────────────────────── */
+#toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(16px);background:var(--heading);color:#fff;
+  padding:11px 20px;border-radius:10px;font-size:.86em;font-weight:500;opacity:0;pointer-events:none;transition:.2s;z-index:700;
+  box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:90vw;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ── View modes + preview panel ───────────────── */
+.toolbar{position:sticky;top:54px;z-index:150;background:rgba(246,248,251,.9);backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:8px 24px;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.segs{display:inline-flex;background:#eef2f7;border:1px solid var(--border);border-radius:10px;padding:3px;gap:2px;}
+.seg{border:none;background:none;font-family:inherit;font-size:.79em;font-weight:600;color:#64748b;
+  padding:6px 12px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:.12s;}
+.seg:hover{color:var(--heading);}
+.seg.on{background:#fff;color:var(--primary);box-shadow:0 1px 2px rgba(15,23,42,.08);}
+.tb-note{font-size:.76em;color:var(--muted);margin-left:auto;}
+
+.pv{width:380px;min-width:380px;position:sticky;top:106px;max-height:calc(100vh - 126px);
+  display:flex;flex-direction:column;background:var(--card);border:1px solid var(--border);
+  border-radius:14px;box-shadow:var(--shadow);overflow:hidden;}
+.pv-hd{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg,#fcfdff,#f8fafc);flex-wrap:wrap;}
+.pv-ttl{font-size:.82em;font-weight:700;color:var(--heading);display:flex;align-items:center;gap:7px;}
+.live{width:7px;height:7px;border-radius:50%;background:var(--success);box-shadow:0 0 0 3px rgba(13,148,136,.15);
+  animation:blip 2.4s ease-in-out infinite;}
+@keyframes blip{0%,100%{opacity:1}50%{opacity:.35}}
+.zoom{display:inline-flex;align-items:center;gap:1px;border:1px solid var(--border);border-radius:8px;background:#fff;margin-left:auto;}
+.zoom button{border:none;background:none;font-family:inherit;font-size:.95em;color:#64748b;cursor:pointer;
+  padding:4px 9px;line-height:1;border-radius:7px;}
+.zoom button:hover{background:var(--hover-gray);color:var(--heading);}
+.zoom .lvl{font-size:.72em;font-weight:700;color:#475569;min-width:38px;text-align:center;font-variant-numeric:tabular-nums;}
+.pv-tabs{display:flex;gap:4px;padding:8px 12px 0;}
+.pv-tab{border:1px solid var(--border);background:#fff;font-family:inherit;font-size:.72em;font-weight:600;
+  color:#64748b;padding:4px 10px;border-radius:999px;cursor:pointer;}
+.pv-tab.on{background:#eff6ff;border-color:#bfdbfe;color:var(--primary);}
+.pv-scroll{flex:1;overflow:auto;padding:12px;background:#e9edf3;}
+/* fixed natural width so the zoom maths never feeds back on itself */
+.pv-stage{transform-origin:top left;width:210mm;}
+#pvSizer{margin:0 auto;}
+.pv-ft{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--border);background:#fcfdfe;}
+.pv-ft .btn{flex:1;}
+
+/* the rendered instrument page */
+.pg{width:100%;min-height:297mm;background:#fff;margin:0 auto 14px;padding:15mm 25.4mm 10mm;
+  box-shadow:0 2px 10px rgba(15,23,42,.18);
+  font-family:'Browallia New','BrowalliaUPC','Leelawadee UI','Sarabun','Noto Sans Thai',sans-serif;
+  font-size:13pt;line-height:1.28;color:#000;}
+.pg table{width:100%;border-collapse:collapse;table-layout:fixed;}
+.pg td{vertical-align:top;padding:1pt 0;word-wrap:break-word;overflow-wrap:anywhere;}
+.pg .bt{border-top:.75pt solid #000;}
+.pg .bb{border-bottom:.75pt solid #000;}
+.pg p{margin:0;}
+.pg .seg-row{display:flex;justify-content:space-between;gap:6pt;flex-wrap:wrap;}
+.pg .seg-row>span{min-width:0;overflow-wrap:anywhere;}
+.pg .hl{background:#ffff00;}
+.pg .pgnum{text-align:center;font-size:.75em;color:#94a3b8;margin:-6px 0 12px;}
+
+/* ── Print: only the rendered pages ───────────── */
+@media print{
+  @page{size:A4;margin:0;}
+  body{background:#fff;}
+  .nav,.toolbar,.sidebar,.main,.pv-hd,.pv-tabs,.pv-ft,#toast,.scrim{display:none !important;}
+  .app{display:block;padding:0;margin:0;max-width:none;}
+  .pv{width:auto;min-width:0;position:static;max-height:none;border:none;box-shadow:none;border-radius:0;}
+  .pv-scroll{overflow:visible;padding:0;background:#fff;}
+  .pv-stage{transform:none !important;}
+  .pg{box-shadow:none;margin:0;break-after:page;}
+  .pg:last-child{break-after:auto;}
+  .pg .pgnum{display:none;}
+}
+
+@media(max-width:1040px){
+  .pv{width:100%;min-width:0;position:static;max-height:none;}
+  .app{flex-wrap:wrap;}
+}
+@media(max-width:980px){
+  .app{flex-direction:column;padding:16px;}
+  .sidebar{width:100%;min-width:0;position:static;max-height:none;}
+  .grid2,.grid3{grid-template-columns:1fr;}
+  .rowtag{flex:0 0 84px;}
+  .picker{max-width:100%;width:100%;}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-brand" href="../index.html">
+    <span class="nav-icon">⚖️</span><span class="nav-wordmark">JuraTools</span>
+  </a>
+  <span class="nav-sep">/</span>
+  <span class="nav-current">Share Transfer Instrument</span>
+  <a class="nav-back" href="index.html">← Corporate tools</a>
+</nav>
+
+<div class="toolbar">
+  <div class="segs" id="viewSegs">
+    <button class="seg" data-view="split">▤ Form + preview</button>
+    <button class="seg on" data-view="form">▥ Form only</button>
+    <button class="seg" data-view="preview">▦ Preview only</button>
+  </div>
+  <span class="tb-note">The preview is rendered from the same file the Export button writes.</span>
+</div>
+
+<div class="app" data-view="form" id="app">
+
+  <aside class="sidebar">
+    <div class="side-head">
+      <h2>Transfers</h2>
+      <span class="count-pill" id="xferCount">0</span>
+    </div>
+    <p class="hint">Each entry exports its own document — ต้นฉบับ + คู่ฉบับ in one file.</p>
+    <div class="xfer-list" id="xferList"></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost btn-wide btn-sm" id="btnAdd">➕ Add transfer</button>
+      <button class="btn btn-ghost btn-wide btn-sm" id="btnDup">⧉ Duplicate current</button>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- Party directory -->
+    <section class="card acc-party">
+      <div class="card-hd">
+        <span class="ico">👥</span>
+        <h3>Person directory</h3><span class="th">ทะเบียนบุคคล</span>
+        <span class="spacer"></span>
+        <button class="btn btn-ghost btn-sm" id="btnPartyNew">➕ New person</button>
+      </div>
+      <div class="card-bd">
+        <p class="sect-note">Enter a person or company once, then load it into any role with one click — transferor, transferee, company, or either witness. Stored on this device and included in the JSON backup.</p>
+        <div class="party-list" id="partyList"></div>
+        <div class="party-form" id="partyForm" hidden>
+          <div class="grid2">
+            <div class="field"><label>Name (Thai)</label><input type="text" id="pfNameTh" placeholder="นายกรรวี จันทร์โฉม"></div>
+            <div class="field"><label>Name (English)</label>
+              <div class="pair-row"><input type="text" id="pfNameEn" placeholder="MR. KORNRAWEE CHANCHOM"><button class="mini up" id="pfUpper" title="Make UPPERCASE">AA</button></div>
+            </div>
+          </div>
+          <div class="field"><label>Address (Thai) <span class="pair-head opt" style="display:inline">— optional</span></label><input type="text" id="pfAddrTh" placeholder="เลขที่ 9 ซอยพระราม 6 ซอย 30 ..."></div>
+          <div class="field"><label>Address (English) <span class="pair-head opt" style="display:inline">— optional</span></label><input type="text" id="pfAddrEn" placeholder="No. 9, Rama VI Soi 30, ..."></div>
+          <div class="btn-row">
+            <button class="btn btn-primary btn-sm" id="pfSave">Save person</button>
+            <button class="btn btn-ghost btn-sm" id="pfCancel">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Company -->
+    <section class="card acc-co">
+      <div class="card-hd">
+        <span class="ico">🏢</span>
+        <h3>Company</h3><span class="th">บริษัทที่ออกหุ้น</span>
+        <span class="spacer"></span>
+        <select class="picker" id="pickCo"></select>
+      </div>
+      <div class="card-bd">
+        <div class="pair" data-pair="co">
+          <div class="pair-head"><span class="ttl">Company name</span><button class="swap" data-swap="co">⇄ <span class="swaplbl"></span></button></div>
+          <div class="pair-row"><span class="rowtag">เป็นผู้ถือหุ้นใน</span><input type="text" data-f="co.th" placeholder="บริษัท สวัสดี จำกัด"></div>
+          <div class="pair-row"><span class="rowtag">holder of</span><input type="text" data-f="co.en" data-lang="en" placeholder="SAWASDEE COMPANY LIMITED"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Transferor -->
+    <section class="card acc-tfr">
+      <div class="card-hd">
+        <span class="ico">📤</span>
+        <h3>Transferor</h3><span class="th">ผู้โอน</span>
+        <span class="spacer"></span>
+        <select class="picker" id="pickTfr"></select>
+      </div>
+      <div class="card-bd">
+        <div class="pair" data-pair="tfrName">
+          <div class="pair-head"><span class="ttl">Name</span><button class="swap" data-swap="tfrName">⇄ <span class="swaplbl"></span></button></div>
+          <div class="pair-row"><span class="rowtag">ข้าพเจ้า</span><input type="text" data-f="tfr.nameTh" placeholder="นายกรรวี จันทร์โฉม"></div>
+          <div class="pair-row"><span class="rowtag">I</span><input type="text" data-f="tfr.nameEn" data-lang="en" placeholder="MR. KORNRAWEE CHANCHOM"></div>
+        </div>
+        <div class="pair" data-pair="tfrAddr">
+          <div class="pair-head"><span class="ttl">Address <span class="opt">— optional</span></span><button class="swap" data-swap="tfrAddr">⇄ <span class="swaplbl"></span></button></div>
+          <div class="pair-row"><span class="rowtag">อยู่ ณ</span><input type="text" data-f="tfr.addrTh" placeholder="ที่อยู่ภาษาไทย"></div>
+          <div class="pair-row"><span class="rowtag">of</span><input type="text" data-f="tfr.addrEn" data-lang="en" placeholder="English address"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Transferee -->
+    <section class="card acc-tfe">
+      <div class="card-hd">
+        <span class="ico">📥</span>
+        <h3>Transferee</h3><span class="th">ผู้รับโอน</span>
+        <span class="spacer"></span>
+        <select class="picker" id="pickTfe"></select>
+      </div>
+      <div class="card-bd">
+        <div class="pair" data-pair="tfeName">
+          <div class="pair-head"><span class="ttl">Name</span><button class="swap" data-swap="tfeName">⇄ <span class="swaplbl"></span></button></div>
+          <div class="pair-row"><span class="rowtag">ตกลงโอนให้แก่</span><input type="text" data-f="tfe.nameTh" placeholder="นางสาวพุทรี ดุจธรรม"></div>
+          <div class="pair-row"><span class="rowtag">hereby transfer to</span><input type="text" data-f="tfe.nameEn" data-lang="en" placeholder="MISS PUTHSEE DUJTHAM"></div>
+        </div>
+        <div class="pair" data-pair="tfeAddr">
+          <div class="pair-head"><span class="ttl">Address <span class="opt">— optional</span></span><button class="swap" data-swap="tfeAddr">⇄ <span class="swaplbl"></span></button></div>
+          <div class="pair-row"><span class="rowtag">อยู่ ณ</span><input type="text" data-f="tfe.addrTh" placeholder="ที่อยู่ภาษาไทย"></div>
+          <div class="pair-row"><span class="rowtag">of</span><input type="text" data-f="tfe.addrEn" data-lang="en" placeholder="English address"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Shares -->
+    <section class="card acc-shares">
+      <div class="card-hd">
+        <span class="ico">📊</span>
+        <h3>Shares transferred</h3><span class="th">รายละเอียดหุ้น</span>
+      </div>
+      <div class="card-bd">
+        <div class="grid3">
+          <div class="field"><label>Number of shares</label><div class="pair-row"><input type="text" data-f="sh.count" data-group placeholder="35,000"></div></div>
+          <div class="field"><label>Share no. from</label><div class="pair-row"><input type="text" data-f="sh.from" data-digits placeholder="12996"></div></div>
+          <div class="field"><label>Share no. to</label><div class="pair-row"><input type="text" data-f="sh.to" data-digits placeholder="47995"></div></div>
+        </div>
+        <div class="field">
+          <label>Share numbers — override <span class="opt">for non-contiguous ranges</span></label>
+          <div class="pair-row"><input type="text" data-f="sh.nosOverride" placeholder="e.g. 1-500, 1201-1400"></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label>Par value per share (Baht)</label><div class="pair-row"><input type="text" data-f="sh.par" data-group placeholder="100"></div></div>
+          <div class="field"><label>Paid up (%)</label><div class="pair-row"><input type="text" data-f="sh.paidUp" placeholder="100"></div></div>
+        </div>
+        <div class="field">
+          <label>Total agreed transfer price (Baht)
+            <button class="reset-auto" id="resetPrice" hidden style="float:right">↺ back to auto</button>
+          </label>
+          <div class="pair-row"><input type="text" data-f="sh.price" data-group placeholder="auto = par × shares"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Signing -->
+    <section class="card acc-sign">
+      <div class="card-hd">
+        <span class="ico">✍️</span>
+        <h3>Signing</h3><span class="th">การลงนาม</span>
+      </div>
+      <div class="card-bd"><div class="grid2" id="signGrid"></div></div>
+    </section>
+
+    <!-- Preview -->
+    <section class="card acc-prev">
+      <div class="card-hd">
+        <span class="ico">👁</span>
+        <h3>What goes into the document</h3><span class="th">ตรวจก่อนออกเอกสาร</span>
+      </div>
+      <div class="card-bd"><div class="preview" id="preview"></div></div>
+    </section>
+
+    <!-- Export -->
+    <section class="card acc-out">
+      <div class="card-hd">
+        <span class="ico">📄</span>
+        <h3>Export &amp; data</h3><span class="th">ออกเอกสารและข้อมูล</span>
+      </div>
+      <div class="card-bd">
+        <div class="field">
+          <label>File name <button class="reset-auto" id="resetName" hidden style="float:right">↺ back to auto</button></label>
+          <div class="pair-row"><input type="text" data-f="fileName" placeholder="auto"></div>
+        </div>
+
+        <div class="act">
+          <div class="act-hd"><span class="ico">📄</span> Word document</div>
+          <p class="sect-note">Each file holds the Original and the Duplicate, both filled.</p>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="btnExport">↓ Export this transfer</button>
+            <button class="btn btn-ghost" id="btnExportAll">↓ Export all as .zip</button>
+          </div>
+        </div>
+
+        <div class="act">
+          <div class="act-hd"><span class="ico">📗</span> Batch from Excel</div>
+          <p class="sect-note">Download the sheet, fill one row per transfer, upload it back. Uploading <strong>replaces</strong> the current list.</p>
+          <div class="btn-row">
+            <button class="btn btn-ghost" id="btnXlsxTemplate">↓ Excel template</button>
+            <button class="btn btn-ghost" id="btnXlsxUpload">↑ Upload filled sheet</button>
+            <input type="file" id="xlsxFile" accept=".xlsx" hidden>
+          </div>
+        </div>
+
+        <div class="act">
+          <div class="act-hd"><span class="ico">💾</span> Backup</div>
+          <p class="sect-note">Transfers and the person directory live in this browser only. Back up to JSON to move them to another device.</p>
+          <div class="btn-row">
+            <button class="btn btn-ghost" id="btnBackup">↓ Backup (.json)</button>
+            <button class="btn btn-ghost" id="btnRestore">↑ Restore</button>
+            <input type="file" id="jsonFile" accept=".json,application/json" hidden>
+          </div>
+        </div>
+
+        <div class="act danger">
+          <div class="act-hd"><span class="ico">⚠️</span> Danger zone</div>
+          <p class="sect-note">Deletes every transfer and every saved person on this device. Cannot be undone.</p>
+          <div class="btn-row">
+            <button class="btn btn-danger" id="btnClearAll">Clear everything</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <aside class="pv">
+    <div class="pv-hd">
+      <span class="pv-ttl"><span class="live"></span> Real-time preview</span>
+      <div class="zoom">
+        <button id="zOut" title="Zoom out">−</button>
+        <span class="lvl" id="zLvl">55%</span>
+        <button id="zIn" title="Zoom in">+</button>
+        <button id="zFit" title="Fit width" style="font-size:.72em;font-weight:700">FIT</button>
+      </div>
+    </div>
+    <div class="pv-tabs" id="pvTabs">
+      <button class="pv-tab on" data-page="all">ทั้งสองฉบับ</button>
+      <button class="pv-tab" data-page="0">ต้นฉบับ</button>
+      <button class="pv-tab" data-page="1">คู่ฉบับ</button>
+    </div>
+    <div class="pv-scroll" id="pvScroll"><div id="pvSizer"><div class="pv-stage" id="pvStage"></div></div></div>
+    <div class="pv-ft">
+      <button class="btn btn-ghost btn-sm" id="btnPrint">🖨 Save as PDF</button>
+      <button class="btn btn-primary btn-sm" id="btnExport2">↓ Export .docx</button>
+    </div>
+  </aside>
+</div>
+
+<div class="scrim" id="scrim" hidden>
+  <div class="dlg" role="dialog" aria-modal="true">
+    <h4 id="dlgTitle"></h4>
+    <p id="dlgBody"></p>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="dlgNo">Cancel</button>
+      <button class="btn btn-danger" id="dlgYes">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ===================================================================
+   Share Transfer Instrument — fills the firm's Word template and
+   exports a .docx with the Original and Duplicate copies both filled.
+
+   The template below is the firm's own corrected instrument with each
+   value swapped for a {{TOKEN}} run. Its XML declaration and
+   <w:document> start tag are byte-preserved: Word rejects the file as
+   "unreadable content" if the prefixes named in mc:Ignorable are not
+   all declared, which is what happens when the XML is re-serialised
+   by a library that only emits namespaces it happens to use.
+   =================================================================== */
+
+const TEMPLATE_B64 = "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";
+const STORAGE_KEY = 'jt-share-transfer-instrument';
+
+/* ── Text helpers ─────────────────────────────────────────────── */
+const escX = s => String(s == null ? '' : s)
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/[\r\n]+/g,' ');
+
+/* A value written "(*)" — or "(*something)" — is a deliberate blank the
+   firm highlights yellow in the signed document. */
+const isPlaceholder = v => /^\(\*.*\)$/.test(String(v == null ? '' : v).trim());
+const PLACEHOLDER = '(*)';
+
+/* Word tags Thai as complex script; Latin and digits are not. Splitting the
+   value this way is what makes w:cs / w:szCs apply to the right characters. */
+function splitScript(text){
+  const out = [];
+  const re = /[\u0E00-\u0E7F]+/g;
+  let last = 0, m;
+  while((m = re.exec(text)) !== null){
+    if(m.index > last) out.push([text.slice(last, m.index), false]);
+    out.push([m[0], true]);
+    last = m.index + m[0].length;
+  }
+  if(last < text.length) out.push([text.slice(last), false]);
+  return out.length ? out : [['', false]];
+}
+
+const MONTHS_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MONTHS_TH = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+function thaiDateParts(iso){
+  if(!iso) return {en:'', th:''};
+  const [y,m,d] = String(iso).split('-').map(Number);
+  if(!y || !m || !d || m < 1 || m > 12) return {en:'', th:''};
+  return {en:`${d} ${MONTHS_EN[m-1]} ${y}`, th:`${d} ${MONTHS_TH[m-1]} ${y+543}`};
+}
+
+function groupDigits(v){
+  let s = String(v).replace(/[^\d.]/g,'');
+  const i = s.indexOf('.');
+  if(i >= 0) s = s.slice(0,i+1) + s.slice(i+1).replace(/\./g,'');
+  let [a,b] = s.split('.');
+  a = a.replace(/^0+(?=\d)/,'').replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  return b === undefined ? a : a + '.' + b;
+}
+const numOf = v => { const n = parseFloat(String(v==null?'':v).replace(/,/g,'')); return isFinite(n) ? n : null; };
+/* Thai drafting convention: a whole-baht amount is written "100.-" */
+function baht(v){
+  if(isPlaceholder(v)) return String(v).trim();
+  const n = numOf(v);
+  if(n === null) return '';
+  return Number.isInteger(n) ? n.toLocaleString('en-US') + '.-'
+                             : n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+/* ── State ────────────────────────────────────────────────────── */
+function blankParty(){
+  return {nameTh:'', nameEn:'', nameSwap:false, addrTh:'', addrEn:'', addrSwap:false,
+          date:'', locTh:'กรุงเทพมหานคร', locEn:'Bangkok Metropolis', locSwap:false,
+          sig1:'', sig2:'', sigAuto:true, witTh:'', witEn:''};
+}
+function blankTransfer(){
+  return {co:{th:'', en:'', swap:false}, tfr:blankParty(), tfe:blankParty(),
+          sh:{count:'', from:'', to:'', nosOverride:'', par:'', paidUp:'100', price:'', priceAuto:true},
+          fileName:'', fileAuto:true};
+}
+let state = {transfers:[blankTransfer()], active:0, parties:[]};
+const cur = () => state.transfers[state.active];
+
+const getPath = (o,p) => p.split('.').reduce((a,k)=> a==null?a:a[k], o);
+function setPath(o,p,v){ const ks=p.split('.'), last=ks.pop(); ks.reduce((a,k)=>a[k],o)[last]=v; }
+
+/* ── Derived ──────────────────────────────────────────────────── */
+function autoPrice(t){
+  const par = numOf(t.sh.par), n = numOf(t.sh.count);
+  return (par === null || n === null) ? '' : groupDigits(String(par * n));
+}
+function shareNos(t){
+  if(t.sh.nosOverride.trim()) return t.sh.nosOverride.trim();
+  const f = t.sh.from.trim(), to = t.sh.to.trim();
+  return (f && to) ? `${f}-${to}` : (f || to || '');
+}
+/* Line 1 sits beside the Thai label, line 2 beside the English label. The swap
+   exists because a foreign entity's official name is its English one. */
+const lines = (th,en,swap) => swap ? [en,th] : [th,en];
+const partyLine1 = p => lines(p.nameTh,p.nameEn,p.nameSwap)[0];
+/* The signature block prints the Thai name then the English name. */
+const sigLines = p => p.sigAuto ? [p.nameTh, p.nameEn] : [p.sig1, p.sig2];
+
+/* Shorten a party name for the file name, following how the firm names files:
+   a Thai personal name is kept whole, title and all ("นายกรรวี จันทร์โฉม"),
+   while an English company name is trimmed to its distinctive words
+   ("ACME HOLDINGS LIMITED" -> "Acme Holdings"). Only company wrappers are dropped. */
+function shortName(s){
+  if(!s || isPlaceholder(s)) return '';
+  const thai = /[\u0E00-\u0E7F]/.test(s);
+  let x = String(s).replace(/[",]/g,' ')
+    .replace(/\(มหาชน\)/g,' ').replace(/บริษัท|บมจ\.|ห้างหุ้นส่วนจำกัด|หจก\.|จำกัด/g,' ')
+    .replace(/\s+/g,' ').trim();
+  if(thai) return x;
+  x = x.replace(/\./g,' ')
+       .replace(/\b(COMPANY|LIMITED|LTD|CO|PUBLIC|PCL|INC|CORP|CORPORATION|HOLDINGS|GROUP|PTE|LLC)\b/gi,' ')
+       .replace(/^\s*(MR|MRS|MISS|MS|DR)\b/i,' ')
+       .replace(/\s+/g,' ').trim();
+  return x.split(' ').slice(0,2).join(' ')
+          .replace(/\S+/g, w => w[0].toUpperCase() + w.slice(1).toLowerCase());
+}
+function autoFileName(t){
+  const d = t.tfr.date || t.tfe.date;
+  const stamp = d ? d.replace(/-/g,'.') : '';
+  const a = shortName(partyLine1(t.tfr)), b = shortName(partyLine1(t.tfe));
+  const who = (a || b) ? ` ${a}${a && b ? ' - ' : ''}${b}` : '';
+  return `${stamp ? stamp + ' ' : ''}Share Transfer Instrument${who}`;
+}
+function fileNameOf(t){
+  const base = (t.fileAuto || !t.fileName.trim()) ? autoFileName(t) : t.fileName.trim();
+  return base.replace(/[\/\\:*?"<>|]/g,'-').trim() || 'Share Transfer Instrument';
+}
+
+/* ── Token map ────────────────────────────────────────────────── */
+function tokensFor(t){
+  const co   = lines(t.co.th, t.co.en, t.co.swap);
+  const tfrN = lines(t.tfr.nameTh, t.tfr.nameEn, t.tfr.nameSwap);
+  const tfrA = lines(t.tfr.addrTh, t.tfr.addrEn, t.tfr.addrSwap);
+  const tfeN = lines(t.tfe.nameTh, t.tfe.nameEn, t.tfe.nameSwap);
+  const tfeA = lines(t.tfe.addrTh, t.tfe.addrEn, t.tfe.addrSwap);
+  const tfrL = lines(t.tfr.locTh, t.tfr.locEn, t.tfr.locSwap);
+  const tfeL = lines(t.tfe.locTh, t.tfe.locEn, t.tfe.locSwap);
+  const tfrD = thaiDateParts(t.tfr.date), tfeD = thaiDateParts(t.tfe.date);
+  const tfrS = sigLines(t.tfr), tfeS = sigLines(t.tfe);
+  const rawPrice = t.sh.priceAuto ? autoPrice(t) : t.sh.price;
+
+  const keepPh = v => isPlaceholder(v) ? String(v).trim() : v;
+
+  return {
+    CO_NAME_1:co[0],    CO_NAME_2:co[1],
+    TFR_NAME_1:tfrN[0], TFR_NAME_2:tfrN[1],
+    TFR_ADDR_1:tfrA[0], TFR_ADDR_2:tfrA[1],
+    TFE_NAME_1:tfeN[0], TFE_NAME_2:tfeN[1],
+    TFE_ADDR_1:tfeA[0], TFE_ADDR_2:tfeA[1],
+
+    SHARE_COUNT: isPlaceholder(t.sh.count) ? t.sh.count.trim() : (t.sh.count.trim() ? groupDigits(t.sh.count) : ''),
+    SHARE_NOS:   shareNos(t),
+    PAR_VALUE:   baht(t.sh.par),
+    PAID_UP:     keepPh(t.sh.paidUp.trim()),
+    PRICE:       baht(rawPrice),
+
+    TFR_DATE_TH: isPlaceholder(t.tfr.date) ? t.tfr.date : tfrD.th,
+    TFR_DATE_EN: isPlaceholder(t.tfr.date) ? t.tfr.date : tfrD.en,
+    TFR_LOC_TH:tfrL[0], TFR_LOC_EN:tfrL[1],
+    TFR_SIG_1:tfrS[0],  TFR_SIG_2:tfrS[1],
+    TFR_WIT_1:t.tfr.witTh, TFR_WIT_2:t.tfr.witEn,
+
+    TFE_DATE_TH: isPlaceholder(t.tfe.date) ? t.tfe.date : tfeD.th,
+    TFE_DATE_EN: isPlaceholder(t.tfe.date) ? t.tfe.date : tfeD.en,
+    TFE_LOC_TH:tfeL[0], TFE_LOC_EN:tfeL[1],
+    TFE_SIG_1:tfeS[0],  TFE_SIG_2:tfeS[1],
+    TFE_WIT_1:t.tfe.witTh, TFE_WIT_2:t.tfe.witEn
+  };
+}
+
+/* Second lines whose whole paragraph is dropped when empty, so an unused line
+   never leaves a blank row pushing the signature block down. */
+const DROP_WHEN_EMPTY = ['TFR_SIG_2','TFE_SIG_2','TFR_WIT_2','TFE_WIT_2'];
+
+/* ── docx generation ──────────────────────────────────────────── */
+/* Schema order inside w:rPr puts highlight (28) then cs (39) last of the
+   properties we touch, so both can simply be appended. */
+function buildRuns(rprInner, value){
+  const ph = isPlaceholder(value);
+  return splitScript(String(value == null ? '' : value)).map(([text, thai]) =>
+    `<w:r><w:rPr>${rprInner}` +
+      (ph ? '<w:highlight w:val="yellow"/>' : '') +
+      (thai ? '<w:cs/>' : '') +
+    `</w:rPr><w:t xml:space="preserve">${escX(text)}</w:t></w:r>`
+  ).join('');
+}
+
+/* Replace the whole run carrying the token, so one value can become several
+   runs with different script flags. */
+function fillToken(xml, token, value){
+  const mark = '{{' + token + '}}';
+  let out = xml, i;
+  while((i = out.indexOf(mark)) !== -1){
+    const s = Math.max(out.lastIndexOf('<w:r>', i), out.lastIndexOf('<w:r ', i));
+    const e = out.indexOf('</w:r>', i);
+    if(s === -1 || e === -1) break;
+    const run = out.slice(s, e + 6);
+    const m = run.match(/<w:rPr>([\s\S]*?)<\/w:rPr>/);
+    out = out.slice(0, s) + buildRuns(m ? m[1] : '', value) + out.slice(e + 6);
+  }
+  return out;
+}
+
+function dropParagraphs(xml, token){
+  const mark = '{{' + token + '}}';
+  let i;
+  while((i = xml.indexOf(mark)) !== -1){
+    const s = Math.max(xml.lastIndexOf('<w:p ', i), xml.lastIndexOf('<w:p>', i));
+    const e = xml.indexOf('</w:p>', i);
+    if(s === -1 || e === -1) break;
+    xml = xml.slice(0, s) + xml.slice(e + 6);
+  }
+  return xml;
+}
+
+/* The template's document.xml, unzipped once and reused — the live preview
+   re-fills it on every keystroke, so it must not pay for a zip round trip. */
+let TEMPLATE_XML = null;
+async function templateXml(){
+  if(TEMPLATE_XML === null){
+    const zip = await JSZip.loadAsync(TEMPLATE_B64, {base64:true});
+    TEMPLATE_XML = await zip.file('word/document.xml').async('string');
+  }
+  return TEMPLATE_XML;
+}
+
+/* The single source of truth for a filled document — both the preview and the
+   exported .docx go through here, so what you see cannot drift from what you get. */
+function fillXml(xml, t){
+  const vals = tokensFor(t);
+  for(const k of DROP_WHEN_EMPTY){
+    if(!String(vals[k] || '').trim()){ xml = dropParagraphs(xml, k); delete vals[k]; }
+  }
+  for(const [k,v] of Object.entries(vals)) xml = fillToken(xml, k, v);
+  return xml;
+}
+
+async function buildDocx(t){
+  const zip = await JSZip.loadAsync(TEMPLATE_B64, {base64:true});
+  zip.file('word/document.xml', fillXml(await templateXml(), t));
+  return zip.generateAsync({type:'blob', compression:'DEFLATE',
+    mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+}
+
+function download(blob, name){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=> URL.revokeObjectURL(url), 1000);
+}
+
+async function exportOne(){
+  const t = cur();
+  try{ download(await buildDocx(t), fileNameOf(t) + '.docx'); toast('✓ Exported “' + fileNameOf(t) + '.docx”'); }
+  catch(e){ toast('Error: ' + e.message); console.error(e); }
+}
+async function exportAll(){
+  if(state.transfers.length === 1) return exportOne();
+  try{
+    const bundle = new JSZip(), used = {};
+    for(const t of state.transfers){
+      let name = fileNameOf(t);
+      used[name] = (used[name] || 0) + 1;
+      if(used[name] > 1) name += ` (${used[name]})`;
+      bundle.file(name + '.docx', await buildDocx(t));
+    }
+    const stamp = (cur().tfr.date || '').replace(/-/g,'.');
+    download(await bundle.generateAsync({type:'blob'}), `${stamp ? stamp+' ' : ''}Share Transfer Instruments.zip`);
+    toast(`✓ Exported ${state.transfers.length} documents as .zip`);
+  }catch(e){ toast('Error: ' + e.message); console.error(e); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Live preview — WordprocessingML → HTML
+
+   This walks the *filled* document.xml rather than re-describing the
+   instrument in markup, so the preview follows the template automatically:
+   change the template and the preview changes with it. It is an HTML
+   rendering, not a picture of Word's own layout, so treat it as a proofing
+   view — the .docx remains the authoritative document.
+   ═══════════════════════════════════════════════════════════════ */
+const WNS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+const kids = (el, name) => [...el.children].filter(c => c.localName === name && c.namespaceURI === WNS);
+const kid  = (el, name) => kids(el, name)[0] || null;
+const wval = (el, name) => { const c = el ? kid(el, name) : null; return c ? c.getAttributeNS(WNS,'val') : null; };
+
+function runStyle(rPr){
+  if(!rPr) return {css:'', hl:false};
+  let css = '';
+  if(kid(rPr,'b')) css += 'font-weight:700;';
+  if(kid(rPr,'u')) css += 'text-decoration:underline;';
+  const sz = wval(rPr,'sz');            if(sz) css += `font-size:${(+sz)/2}pt;`;
+  const sp = wval(rPr,'spacing');       if(sp) css += `letter-spacing:${(+sp)/20}pt;`;
+  return {css, hl: !!kid(rPr,'highlight')};
+}
+
+/* Split a paragraph's runs on tabs: each tab starts a new segment, which is how
+   this template positions text (a leading tab centres on a centre stop). */
+function paraSegments(p){
+  const segs = [[]];
+  for(const r of kids(p,'r')){
+    const {css, hl} = runStyle(kid(r,'rPr'));
+    for(const n of r.children){
+      if(n.namespaceURI !== WNS) continue;
+      if(n.localName === 'tab'){ segs.push([]); continue; }
+      if(n.localName === 'br'){ segs[segs.length-1].push('<br>'); continue; }
+      if(n.localName === 'sym'){ segs[segs.length-1].push('<span style="font-weight:700">✓</span>'); continue; }
+      if(n.localName === 't'){
+        /* pre-wrap keeps the template's padding spaces without turning the
+           whole run into one unbreakable word */
+        segs[segs.length-1].push(
+          `<span class="${hl?'hl':''}" style="white-space:pre-wrap;${css}">${escHtml(n.textContent)}</span>`);
+      }
+    }
+  }
+  return segs.map(s => s.join(''));
+}
+
+function paraHtml(p){
+  const pPr  = kid(p,'pPr');
+  const jc   = wval(pPr,'jc');
+  const stops = pPr ? [...(kid(pPr,'tabs')?.children || [])]
+        .filter(t => t.localName === 'tab')
+        .map(t => t.getAttributeNS(WNS,'val')) : [];
+  const segs = paraSegments(p);
+  const filled = segs.filter(s => s.replace(/<[^>]*>|&nbsp;/g,'').trim());
+  const ind = kid(pPr,'ind');
+  const left = ind ? +(ind.getAttributeNS(WNS,'left') || 0) / 20 : 0;
+  const style = left ? `padding-left:${left}pt;` : '';
+
+  if(jc === 'center')  return `<p style="text-align:center;${style}">${segs.join(' ')}</p>`;
+  if(jc === 'right')   return `<p style="text-align:right;${style}">${segs.join(' ')}</p>`;
+  /* one value pushed to a centre stop by a leading tab */
+  if(filled.length === 1 && segs.length > 1 && stops.includes('center'))
+    return `<p style="text-align:center;${style}">${filled[0]}</p>`;
+  /* value on the left, unit (บาท) pushed right by a trailing tab */
+  if(filled.length > 1)
+    return `<p class="seg-row" style="${style}">${segs.filter(s=>s!=='').map(s=>`<span>${s}</span>`).join('')}</p>`;
+  return `<p style="${style}">${segs.join('')}</p>`;
+}
+
+function tblHtml(tbl){
+  const grid = (kid(tbl,'tblGrid') ? kids(kid(tbl,'tblGrid'),'gridCol') : [])
+                 .map(g => +g.getAttributeNS(WNS,'w'));
+  const total = grid.reduce((a,b)=>a+b, 0) || 1;
+  let out = '<table>';
+  for(const tr of kids(tbl,'tr')){
+    out += '<tr>';
+    for(const tc of kids(tr,'tc')){
+      const tcPr = kid(tc,'tcPr');
+      const span = +(wval(tcPr,'gridSpan') || 1);
+      const wEl  = kid(tcPr,'tcW');
+      const w    = wEl ? +wEl.getAttributeNS(WNS,'w') : 0;
+      const bd   = kid(tcPr,'tcBorders');
+      const cls  = [];
+      if(bd){
+        const on = s => { const e = kid(bd, s); const v = e && e.getAttributeNS(WNS,'val'); return v && v !== 'nil'; };
+        if(on('top')) cls.push('bt');
+        if(on('bottom')) cls.push('bb');
+      }
+      const pct = w ? (w / total * 100).toFixed(3) + '%' : 'auto';
+      out += `<td colspan="${span}" class="${cls.join(' ')}" style="width:${pct}">` +
+             kids(tc,'p').map(paraHtml).join('') + '</td>';
+    }
+    out += '</tr>';
+  }
+  return out + '</table>';
+}
+
+const hasPageBreak = p => [...p.getElementsByTagNameNS(WNS,'br')]
+  .some(b => b.getAttributeNS(WNS,'type') === 'page');
+
+function docToPages(xml){
+  const doc  = new DOMParser().parseFromString(xml, 'application/xml');
+  if(doc.getElementsByTagName('parsererror').length) return ['<p>Preview unavailable — the document XML could not be parsed.</p>'];
+  const body = doc.getElementsByTagNameNS(WNS,'body')[0];
+  const pages = [[]];
+  for(const node of body.children){
+    if(node.namespaceURI !== WNS) continue;
+    if(node.localName === 'p'){
+      if(hasPageBreak(node)) pages.push([]);
+      pages[pages.length-1].push(paraHtml(node));
+    } else if(node.localName === 'tbl'){
+      pages[pages.length-1].push(tblHtml(node));
+    }
+  }
+  return pages.map(p => p.join(''));
+}
+
+let pvZoom = .55, pvPage = 'all', pvTimer = null;
+const PV_LABEL = ['ต้นฉบับ / Original', 'คู่ฉบับ / Duplicate'];
+
+async function renderDocPreview(){
+  const stage = document.getElementById('pvStage');
+  if(!stage) return;
+  /* the panel is hidden in "Form only" — rebuilding it on every keystroke
+     would be pure waste, so it is refreshed when the view is switched back */
+  if(document.getElementById('app').dataset.view === 'form') return;
+  try{
+    const pages = docToPages(fillXml(await templateXml(), cur()));
+    const pick = pvPage === 'all' ? pages.map((h,i)=>[h,i]) : [[pages[+pvPage] || '', +pvPage]];
+    stage.innerHTML = pick.map(([html,i]) =>
+      `<div class="pgnum">${PV_LABEL[i] || 'Page ' + (i+1)}</div><div class="pg">${html}</div>`).join('');
+    applyZoom();
+  }catch(e){ stage.innerHTML = '<p style="color:#94a3b8;font-size:.85em">Preview unavailable: ' + escHtml(e.message) + '</p>'; }
+}
+function schedulePreview(){ clearTimeout(pvTimer); pvTimer = setTimeout(renderDocPreview, 140); }
+
+function applyZoom(){
+  const stage = document.getElementById('pvStage');
+  const sizer = document.getElementById('pvSizer');
+  const lvl = document.getElementById('zLvl');
+  if(!stage || !sizer) return;
+  stage.style.transform = `scale(${pvZoom})`;
+  /* transform does not change the layout box, so the wrapper carries the
+     scaled size — otherwise the panel scrolls sideways at every zoom level */
+  sizer.style.width  = Math.ceil(stage.offsetWidth  * pvZoom) + 'px';
+  sizer.style.height = Math.ceil(stage.offsetHeight * pvZoom) + 'px';
+  if(lvl) lvl.textContent = Math.round(pvZoom * 100) + '%';
+}
+function fitPreview(pass){
+  const box = document.getElementById('pvScroll');
+  const stage = document.getElementById('pvStage');
+  if(!box || !stage) return;
+  const natural = stage.offsetWidth || 210 * 3.7795;   /* A4 width in CSS px */
+  const cs = getComputedStyle(box);
+  const avail = box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 2;
+  if(avail < 80) return;          /* panel still hidden — the observer will call back */
+  pvZoom = Math.max(.25, Math.min(1.5, avail / natural));
+  applyZoom();
+  /* the vertical scrollbar only appears once the pages are laid out, which
+     changes clientWidth — measure again after that settles */
+  if(!pass) setTimeout(()=> fitPreview(1), 60);
+}
+
+/* Re-fit whenever the panel actually gets a size: showing it, resizing the
+   window and collapsing the sidebar all change the width at moments that are
+   awkward to time from a click handler. Manual zooming opts out. */
+let pvAutoFit = true;
+new ResizeObserver(() => { if(pvAutoFit) fitPreview(); })
+  .observe(document.getElementById('pvScroll'));
+
+document.getElementById('zIn').addEventListener('click', ()=>{ pvAutoFit = false; pvZoom = Math.min(1.5, pvZoom + .1); applyZoom(); });
+document.getElementById('zOut').addEventListener('click', ()=>{ pvAutoFit = false; pvZoom = Math.max(.25, pvZoom - .1); applyZoom(); });
+document.getElementById('zFit').addEventListener('click', ()=>{ pvAutoFit = true; fitPreview(); });
+document.getElementById('pvTabs').addEventListener('click', e=>{
+  const b = e.target.closest('.pv-tab'); if(!b) return;
+  pvPage = b.dataset.page;
+  document.querySelectorAll('.pv-tab').forEach(x=> x.classList.toggle('on', x === b));
+  renderDocPreview();
+});
+document.getElementById('viewSegs').addEventListener('click', e=>{
+  const b = e.target.closest('.seg'); if(!b) return;
+  document.getElementById('app').dataset.view = b.dataset.view;
+  document.querySelectorAll('.seg').forEach(x=> x.classList.toggle('on', x === b));
+  renderDocPreview().then(()=> requestAnimationFrame(()=> fitPreview()));
+});
+document.getElementById('btnPrint').addEventListener('click', ()=>{
+  /* print the pages at 1:1 whatever the on-screen zoom */
+  const app = document.getElementById('app');
+  const keep = pvZoom, keepPage = pvPage, keepView = app.dataset.view;
+  pvZoom = 1; pvPage = 'all';
+  if(keepView === 'form') app.dataset.view = 'split';   /* so the pages exist to print */
+  renderDocPreview().then(()=> setTimeout(()=>{
+    window.print();
+    pvZoom = keep; pvPage = keepPage; app.dataset.view = keepView;
+    renderDocPreview();
+  }, 150));
+});
+document.getElementById('btnExport2').addEventListener('click', ()=> exportOne());
+
+/* ── Excel batch ──────────────────────────────────────────────── */
+/* Written and read with JSZip directly: a .xlsx is just a zip of XML, and
+   avoiding a spreadsheet library keeps this file self-contained. */
+const XLSX_COLS = [
+  ['Company (Thai)',            t=>t.co.th],
+  ['Company (English)',         t=>t.co.en],
+  ['Company English first?',    t=>t.co.swap?'yes':''],
+  ['Transferor name (Thai)',    t=>t.tfr.nameTh],
+  ['Transferor name (English)', t=>t.tfr.nameEn],
+  ['Transferor English first?', t=>t.tfr.nameSwap?'yes':''],
+  ['Transferor address (Thai)', t=>t.tfr.addrTh],
+  ['Transferor address (English)', t=>t.tfr.addrEn],
+  ['Transferee name (Thai)',    t=>t.tfe.nameTh],
+  ['Transferee name (English)', t=>t.tfe.nameEn],
+  ['Transferee English first?', t=>t.tfe.nameSwap?'yes':''],
+  ['Transferee address (Thai)', t=>t.tfe.addrTh],
+  ['Transferee address (English)', t=>t.tfe.addrEn],
+  ['Shares',                    t=>t.sh.count],
+  ['Share no. from',            t=>t.sh.from],
+  ['Share no. to',              t=>t.sh.to],
+  ['Share numbers override',    t=>t.sh.nosOverride],
+  ['Par value',                 t=>t.sh.par],
+  ['Paid up %',                 t=>t.sh.paidUp],
+  ['Transfer price',            t=>t.sh.priceAuto?'':t.sh.price],
+  ['Transferor signed on',      t=>t.tfr.date],
+  ['Transferor place (Thai)',   t=>t.tfr.locTh],
+  ['Transferor place (English)',t=>t.tfr.locEn],
+  ['Transferee signed on',      t=>t.tfe.date],
+  ['Transferee place (Thai)',   t=>t.tfe.locTh],
+  ['Transferee place (English)',t=>t.tfe.locEn],
+  ['Transferor witness (Thai)', t=>t.tfr.witTh],
+  ['Transferor witness (English)', t=>t.tfr.witEn],
+  ['Transferee witness (Thai)', t=>t.tfe.witTh],
+  ['Transferee witness (English)', t=>t.tfe.witEn]
+];
+
+function colName(n){ let s=''; n++; while(n>0){ const r=(n-1)%26; s=String.fromCharCode(65+r)+s; n=Math.floor((n-1)/26);} return s; }
+
+function sheetXml(rows){
+  const body = rows.map((cells,ri)=>{
+    const r = ri+1;
+    const cs = cells.map((v,ci)=> v === '' || v == null ? '' :
+      `<c r="${colName(ci)}${r}" t="inlineStr"><is><t xml:space="preserve">${escX(v)}</t></is></c>`).join('');
+    return `<row r="${r}">${cs}</row>`;
+  }).join('');
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${body}</sheetData></worksheet>`;
+}
+
+async function xlsxBlob(rows){
+  const zip = new JSZip();
+  zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`);
+  zip.folder('_rels').file('.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`);
+  const xl = zip.folder('xl');
+  xl.file('workbook.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Transfers" sheetId="1" r:id="rId1"/></sheets></workbook>`);
+  xl.folder('_rels').file('workbook.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`);
+  xl.folder('worksheets').file('sheet1.xml', sheetXml(rows));
+  return zip.generateAsync({type:'blob', compression:'DEFLATE',
+    mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+
+async function downloadXlsxTemplate(){
+  try{
+    const rows = [XLSX_COLS.map(c=>c[0])];
+    for(const t of state.transfers) rows.push(XLSX_COLS.map(c=> String(c[1](t) ?? '')));
+    if(rows.length === 1) rows.push(XLSX_COLS.map(()=> ''));
+    download(await xlsxBlob(rows), 'Share Transfer Instrument — batch template.xlsx');
+    toast('✓ Excel template downloaded' + (state.transfers.length ? ' with your current transfers' : ''));
+  }catch(e){ toast('Error: ' + e.message); console.error(e); }
+}
+
+async function parseXlsx(file){
+  const zip = await JSZip.loadAsync(await file.arrayBuffer());
+  const sheetPath = Object.keys(zip.files).find(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n));
+  if(!sheetPath) throw new Error('no worksheet found in that file');
+  const doc = new DOMParser().parseFromString(await zip.file(sheetPath).async('string'), 'application/xml');
+
+  let shared = [];
+  const ssFile = zip.file('xl/sharedStrings.xml');
+  if(ssFile){
+    const ss = new DOMParser().parseFromString(await ssFile.async('string'), 'application/xml');
+    shared = [...ss.getElementsByTagNameNS('*','si')].map(si =>
+      [...si.getElementsByTagNameNS('*','t')].map(t=>t.textContent).join(''));
+  }
+
+  const rows = [];
+  for(const row of doc.getElementsByTagNameNS('*','row')){
+    const cells = [];
+    for(const c of row.getElementsByTagNameNS('*','c')){
+      const ref = (c.getAttribute('r')||'').match(/^([A-Z]+)/);
+      let idx = 0;
+      if(ref) for(const ch of ref[1]) idx = idx*26 + (ch.charCodeAt(0)-64);
+      idx = idx ? idx-1 : cells.length;
+      const type = c.getAttribute('t');
+      let v = '';
+      if(type === 'inlineStr') v = [...c.getElementsByTagNameNS('*','t')].map(t=>t.textContent).join('');
+      else{
+        const vEl = c.getElementsByTagNameNS('*','v')[0];
+        const raw = vEl ? vEl.textContent : '';
+        v = type === 's' ? (shared[Number(raw)] ?? '') : raw;
+      }
+      while(cells.length < idx) cells.push('');
+      cells[idx] = v;
+    }
+    rows.push(cells);
+  }
+  return rows;
+}
+
+/* Excel serial dates come back as a number when the column is date-formatted. */
+function toIsoDate(v){
+  const s = String(v || '').trim();
+  if(!s) return '';
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  if(/^\d+(\.\d+)?$/.test(s)){
+    const d = new Date(Date.UTC(1899,11,30) + Math.round(Number(s)) * 86400000);
+    return isNaN(d) ? '' : d.toISOString().slice(0,10);
+  }
+  const d = new Date(s);
+  return isNaN(d) ? s : d.toISOString().slice(0,10);
+}
+
+async function importXlsx(file){
+  try{
+    const rows = await parseXlsx(file);
+    if(rows.length < 2) throw new Error('the sheet has no data rows');
+    const header = rows[0].map(h => String(h||'').trim().toLowerCase());
+    const at = label => header.indexOf(label.toLowerCase());
+    const idx = XLSX_COLS.map(c => at(c[0]));
+    if(idx[0] === -1 && idx[3] === -1)
+      throw new Error('header row does not match the template — download it again and keep row 1 intact');
+
+    const get = (r,i) => idx[i] === -1 ? '' : String(r[idx[i]] ?? '').trim();
+    const yes = v => /^(y|yes|true|1|x|✓)$/i.test(String(v).trim());
+    const made = [];
+    for(const r of rows.slice(1)){
+      if(!r.some(c => String(c||'').trim())) continue;   // skip blank rows
+      const t = blankTransfer();
+      t.co.th = get(r,0);  t.co.en = get(r,1);  t.co.swap = yes(get(r,2));
+      t.tfr.nameTh = get(r,3); t.tfr.nameEn = get(r,4); t.tfr.nameSwap = yes(get(r,5));
+      t.tfr.addrTh = get(r,6); t.tfr.addrEn = get(r,7);
+      t.tfe.nameTh = get(r,8); t.tfe.nameEn = get(r,9); t.tfe.nameSwap = yes(get(r,10));
+      t.tfe.addrTh = get(r,11); t.tfe.addrEn = get(r,12);
+      t.sh.count = get(r,13) && !isPlaceholder(get(r,13)) ? groupDigits(get(r,13)) : get(r,13);
+      t.sh.from = get(r,14).replace(/[^\d]/g,''); t.sh.to = get(r,15).replace(/[^\d]/g,'');
+      t.sh.nosOverride = get(r,16);
+      t.sh.par = get(r,17); t.sh.paidUp = get(r,18) || '100';
+      const price = get(r,19);
+      if(price){ t.sh.price = price; t.sh.priceAuto = false; }
+      t.tfr.date = toIsoDate(get(r,20));
+      t.tfr.locTh = get(r,21) || 'กรุงเทพมหานคร'; t.tfr.locEn = get(r,22) || 'Bangkok Metropolis';
+      t.tfe.date = toIsoDate(get(r,23));
+      t.tfe.locTh = get(r,24) || 'กรุงเทพมหานคร'; t.tfe.locEn = get(r,25) || 'Bangkok Metropolis';
+      t.tfr.witTh = get(r,26); t.tfr.witEn = get(r,27);
+      t.tfe.witTh = get(r,28); t.tfe.witEn = get(r,29);
+      made.push(t);
+    }
+    if(!made.length) throw new Error('no filled rows found');
+    state.transfers = made; state.active = 0;
+    save(); render();
+    toast(`✓ Loaded ${made.length} transfer${made.length===1?'':'s'} from Excel`);
+  }catch(e){ toast('Excel: ' + e.message); console.error(e); }
+}
+
+/* ── Signing panel ────────────────────────────────────────────── */
+function signingHtml(side, title, thai){
+  return `
+  <div>
+    <div style="font-weight:600;color:var(--heading);font-size:.88em;margin-bottom:10px">
+      ${title} <span style="font-weight:500;color:var(--muted)">${thai}</span>
+    </div>
+    <div class="field"><label>Signed on</label><input type="date" data-f="${side}.date"></div>
+    <div class="pair" data-pair="${side}Loc">
+      <div class="pair-head"><span class="ttl">Place of signing</span><button class="swap" data-swap="${side}Loc">⇄ <span class="swaplbl"></span></button></div>
+      <div class="pair-row"><span class="rowtag">ณ</span><input type="text" data-f="${side}.locTh"></div>
+      <div class="pair-row"><span class="rowtag">At</span><input type="text" data-f="${side}.locEn" data-lang="en"></div>
+    </div>
+    <div class="field">
+      <label>Name under signature line
+        <button class="reset-auto" data-resetsig="${side}" hidden style="float:right">↺ auto</button>
+      </label>
+      <div class="pair-row"><span class="rowtag">Thai</span><input type="text" data-f="${side}.sig1" placeholder="auto = Thai name"></div>
+      <div class="pair-row"><span class="rowtag">English</span><input type="text" data-f="${side}.sig2" data-lang="en" placeholder="auto = English name"></div>
+    </div>
+    <div class="field">
+      <div class="pair-head">
+        <span class="ttl">Witness <span class="opt">พยาน</span></span>
+        <select class="picker" id="pickWit${side}" style="margin-left:auto;max-width:170px"></select>
+      </div>
+      <div class="pair-row"><span class="rowtag">Thai</span><input type="text" data-f="${side}.witTh" placeholder="ชื่อภาษาไทย"></div>
+      <div class="pair-row"><span class="rowtag">English</span><input type="text" data-f="${side}.witEn" data-lang="en" placeholder="English name"></div>
+    </div>
+  </div>`;
+}
+document.getElementById('signGrid').innerHTML =
+  signingHtml('tfr','Transferor','ผู้โอน') + signingHtml('tfe','Transferee','ผู้รับโอน');
+
+/* ── Per-field buttons: (*) placeholder, and UPPERCASE on English ── */
+document.querySelectorAll('input[data-f]').forEach(el=>{
+  if(el.dataset.f === 'fileName') return;
+  const row = el.parentElement;
+  const mk = (cls, txt, title) => {
+    const b = document.createElement('button');
+    b.className = 'mini ' + cls; b.textContent = txt; b.title = title; b.type = 'button';
+    return b;
+  };
+  if(el.dataset.lang === 'en'){
+    const up = mk('up','AA','Make this line UPPERCASE');
+    up.addEventListener('click', ()=>{
+      setPath(cur(), el.dataset.f, String(getPath(cur(), el.dataset.f) || '').toUpperCase());
+      save(); render();
+    });
+    el.after(up);
+  }
+  const ph = mk('ph','(*)','Mark as a to-be-determined blank — prints (*) highlighted yellow');
+  ph.dataset.ph = el.dataset.f;
+  ph.addEventListener('click', ()=>{
+    const p = el.dataset.f;
+    const now = String(getPath(cur(), p) || '');
+    setPath(cur(), p, isPlaceholder(now) ? '' : PLACEHOLDER);
+    if(p === 'sh.price') cur().sh.priceAuto = isPlaceholder(now);
+    save(); render();
+  });
+  el.after(ph);
+});
+
+/* ── Binding ──────────────────────────────────────────────────── */
+const SWAP_PATH = {co:'co.swap', tfrName:'tfr.nameSwap', tfrAddr:'tfr.addrSwap',
+                   tfeName:'tfe.nameSwap', tfeAddr:'tfe.addrSwap',
+                   tfrLoc:'tfr.locSwap', tfeLoc:'tfe.locSwap'};
+const ROW_TAGS = {};
+document.querySelectorAll('[data-pair]').forEach(p=>{
+  ROW_TAGS[p.dataset.pair] = [...p.querySelectorAll('.rowtag')].map(e=>e.textContent);
+});
+
+function reformat(el, fn){
+  const before = el.value.slice(0, el.selectionStart).replace(/[^\d]/g,'').length;
+  const out = fn(el.value);
+  let seen = 0, pos = before === 0 ? 0 : out.length;
+  if(before > 0) for(let i=0;i<out.length;i++){
+    if(/\d/.test(out[i])) seen++;
+    if(seen >= before){ pos = i+1; break; }
+  }
+  requestAnimationFrame(()=>{ try{ el.setSelectionRange(pos,pos); }catch(_){} });
+  return out;
+}
+
+document.querySelectorAll('[data-f]').forEach(el=>{
+  const path = el.dataset.f;
+  el.addEventListener('input', ()=>{
+    if(el.dataset.group !== undefined && !isPlaceholder(el.value)) el.value = reformat(el, groupDigits);
+    if(el.dataset.digits !== undefined) el.value = el.value.replace(/[^\d]/g,'');
+    setPath(cur(), path, el.value);
+    if(path === 'sh.price') cur().sh.priceAuto = false;
+    if(path === 'fileName') cur().fileAuto = false;
+    if(path === 'tfr.sig1' || path === 'tfr.sig2') cur().tfr.sigAuto = false;
+    if(path === 'tfe.sig1' || path === 'tfe.sig2') cur().tfe.sigAuto = false;
+    save(); render();
+  });
+});
+
+document.querySelectorAll('[data-swap]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const p = SWAP_PATH[btn.dataset.swap];
+    setPath(cur(), p, !getPath(cur(), p));
+    save(); render();
+  });
+});
+document.getElementById('resetPrice').addEventListener('click', ()=>{
+  cur().sh.priceAuto = true; cur().sh.price = ''; save(); render();
+});
+document.getElementById('resetName').addEventListener('click', ()=>{
+  cur().fileAuto = true; cur().fileName = ''; save(); render();
+});
+document.querySelectorAll('[data-resetsig]').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    const p = cur()[b.dataset.resetsig];
+    p.sigAuto = true; p.sig1 = ''; p.sig2 = ''; save(); render();
+  });
+});
+
+document.getElementById('btnAdd').addEventListener('click', ()=>{
+  state.transfers.push(blankTransfer()); state.active = state.transfers.length-1; save(); render();
+});
+document.getElementById('btnDup').addEventListener('click', ()=>{
+  const copy = JSON.parse(JSON.stringify(cur()));
+  copy.fileAuto = true; copy.fileName = '';
+  state.transfers.splice(state.active+1, 0, copy); state.active++; save(); render();
+});
+document.getElementById('btnExport').addEventListener('click', exportOne);
+document.getElementById('btnExportAll').addEventListener('click', exportAll);
+document.getElementById('btnXlsxTemplate').addEventListener('click', downloadXlsxTemplate);
+document.getElementById('btnXlsxUpload').addEventListener('click', ()=> document.getElementById('xlsxFile').click());
+document.getElementById('xlsxFile').addEventListener('change', e=>{
+  const f = e.target.files[0]; if(f) importXlsx(f); e.target.value='';
+});
+
+/* ── Party directory ──────────────────────────────────────────── */
+let editingParty = null;
+const PF = ['pfNameTh','pfNameEn','pfAddrTh','pfAddrEn'];
+function openPartyForm(p){
+  editingParty = p ? p.id : null;
+  pfNameTh.value = p ? p.nameTh : ''; pfNameEn.value = p ? p.nameEn : '';
+  pfAddrTh.value = p ? p.addrTh : ''; pfAddrEn.value = p ? p.addrEn : '';
+  partyForm.hidden = false; pfNameTh.focus();
+}
+document.getElementById('btnPartyNew').addEventListener('click', ()=> openPartyForm(null));
+document.getElementById('pfCancel').addEventListener('click', ()=>{ partyForm.hidden = true; editingParty = null; });
+document.getElementById('pfUpper').addEventListener('click', ()=>{ pfNameEn.value = pfNameEn.value.toUpperCase(); });
+document.getElementById('pfSave').addEventListener('click', ()=>{
+  const rec = {nameTh:pfNameTh.value.trim(), nameEn:pfNameEn.value.trim(),
+               addrTh:pfAddrTh.value.trim(), addrEn:pfAddrEn.value.trim()};
+  if(!rec.nameTh && !rec.nameEn){ toast('Give the party a name first'); return; }
+  if(editingParty){ Object.assign(state.parties.find(p=>p.id===editingParty), rec); }
+  else{ state.parties.push({id:'p'+Date.now()+Math.random().toString(36).slice(2,6), ...rec}); }
+  partyForm.hidden = true; editingParty = null; save(); render();
+  toast('✓ Party saved');
+});
+
+const ROLE_LABEL = {co:'Company', tfr:'Transferor', tfe:'Transferee',
+                    witTfr:'Transferor’s witness', witTfe:'Transferee’s witness'};
+
+/* Load a directory entry into one of this transfer's roles. Witnesses take only
+   the name — the instrument prints no address for them. */
+function applyParty(p, role){
+  const t = cur();
+  if(role === 'co'){ t.co.th = p.nameTh; t.co.en = p.nameEn; }
+  else if(role === 'witTfr' || role === 'witTfe'){
+    const side = t[role === 'witTfr' ? 'tfr' : 'tfe'];
+    side.witTh = p.nameTh; side.witEn = p.nameEn;
+  }
+  else{
+    const side = t[role];
+    side.nameTh = p.nameTh; side.nameEn = p.nameEn;
+    side.addrTh = p.addrTh; side.addrEn = p.addrEn;
+  }
+  save(); render();
+  toast('✓ Loaded into ' + ROLE_LABEL[role]);
+}
+/* Save whichever party is currently typed into a role back to the directory. */
+function captureParty(role){
+  const t = cur();
+  let rec;
+  if(role === 'co') rec = {nameTh:t.co.th, nameEn:t.co.en, addrTh:'', addrEn:''};
+  else if(role === 'witTfr' || role === 'witTfe'){
+    const s = t[role === 'witTfr' ? 'tfr' : 'tfe'];
+    rec = {nameTh:s.witTh, nameEn:s.witEn, addrTh:'', addrEn:''};
+  }
+  else rec = {nameTh:t[role].nameTh, nameEn:t[role].nameEn, addrTh:t[role].addrTh, addrEn:t[role].addrEn};
+  if(!rec.nameTh && !rec.nameEn){ toast('Nothing to save — fill the name first'); return; }
+  state.parties.push({id:'p'+Date.now()+Math.random().toString(36).slice(2,6), ...rec});
+  save(); render(); toast('✓ Added to the person directory');
+}
+const PICKERS = [['pickCo','co'],['pickTfr','tfr'],['pickTfe','tfe'],
+                 ['pickWittfr','witTfr'],['pickWittfe','witTfe']];
+PICKERS.forEach(([id,role])=>{
+  document.getElementById(id).addEventListener('change', e=>{
+    const v = e.target.value;
+    if(v === '__save') captureParty(role);
+    else{ const p = state.parties.find(x=>x.id===v); if(p) applyParty(p, role); }
+    e.target.value = '';
+  });
+});
+
+/* ── Backup / restore / clear ─────────────────────────────────── */
+document.getElementById('btnBackup').addEventListener('click', ()=>{
+  const blob = new Blob([JSON.stringify({tool:'share-transfer-instrument', version:2, savedAt:new Date().toISOString(), state}, null, 2)],
+                        {type:'application/json'});
+  download(blob, `Share Transfer Instrument backup ${new Date().toISOString().slice(0,10)}.json`);
+  toast('✓ Backup downloaded');
+});
+document.getElementById('btnRestore').addEventListener('click', ()=> document.getElementById('jsonFile').click());
+document.getElementById('jsonFile').addEventListener('change', async e=>{
+  const f = e.target.files[0]; e.target.value = '';
+  if(!f) return;
+  try{
+    const data = JSON.parse(await f.text());
+    const s = data.state || data;
+    if(!s || !Array.isArray(s.transfers)) throw new Error('not a backup from this tool');
+    adopt(s); save(); render();
+    toast(`✓ Restored ${state.transfers.length} transfer${state.transfers.length===1?'':'s'} and ${state.parties.length} part${state.parties.length===1?'y':'ies'}`);
+  }catch(err){ toast('Restore: ' + err.message); }
+});
+/* An in-page dialog rather than window.confirm(): native dialogs are suppressed
+   in some embedded/preview contexts, which makes a destructive button look dead. */
+let askResolve = null;
+function ask(title, body, yesLabel='Confirm'){
+  document.getElementById('dlgTitle').textContent = title;
+  document.getElementById('dlgBody').textContent = body;
+  document.getElementById('dlgYes').textContent = yesLabel;
+  document.getElementById('scrim').hidden = false;
+  document.getElementById('dlgYes').focus();
+  return new Promise(res => { askResolve = res; });
+}
+function closeAsk(v){
+  document.getElementById('scrim').hidden = true;
+  if(askResolve){ askResolve(v); askResolve = null; }
+}
+document.getElementById('dlgYes').addEventListener('click', ()=> closeAsk(true));
+document.getElementById('dlgNo').addEventListener('click', ()=> closeAsk(false));
+document.getElementById('scrim').addEventListener('click', e=>{
+  if(e.target.id === 'scrim') closeAsk(false);
+});
+document.addEventListener('keydown', e=>{
+  if(e.key === 'Escape' && !document.getElementById('scrim').hidden) closeAsk(false);
+});
+
+document.getElementById('btnClearAll').addEventListener('click', async ()=>{
+  const n = state.transfers.length, p = state.parties.length;
+  const ok = await ask('Clear everything?',
+    `This deletes ${n} transfer${n===1?'':'s'} and ${p} saved ${p===1?'person':'people'} from this device. ` +
+    `It cannot be undone — back up to JSON first if you might want any of it again.`,
+    'Yes, clear everything');
+  if(!ok) return;
+  localStorage.removeItem(STORAGE_KEY);
+  state = {transfers:[blankTransfer()], active:0, parties:[]};
+  render(); toast('✓ Everything cleared');
+});
+
+/* ── Render ───────────────────────────────────────────────────── */
+function render(){
+  const t = cur();
+
+  document.querySelectorAll('[data-f]').forEach(el=>{
+    const v = getPath(t, el.dataset.f);
+    if(document.activeElement !== el) el.value = v == null ? '' : v;
+  });
+
+  /* auto fields display their computed value while untouched */
+  const priceEl = document.querySelector('[data-f="sh.price"]');
+  if(document.activeElement !== priceEl && t.sh.priceAuto) priceEl.value = autoPrice(t);
+  document.getElementById('resetPrice').hidden = t.sh.priceAuto;
+
+  const nameEl = document.querySelector('[data-f="fileName"]');
+  if(document.activeElement !== nameEl && t.fileAuto) nameEl.value = autoFileName(t);
+  document.getElementById('resetName').hidden = t.fileAuto;
+
+  ['tfr','tfe'].forEach(side=>{
+    const p = t[side];
+    if(p.sigAuto){
+      const s1 = document.querySelector(`[data-f="${side}.sig1"]`);
+      const s2 = document.querySelector(`[data-f="${side}.sig2"]`);
+      if(document.activeElement !== s1) s1.value = p.nameTh;
+      if(document.activeElement !== s2) s2.value = p.nameEn;
+    }
+    document.querySelector(`[data-resetsig="${side}"]`).hidden = p.sigAuto;
+  });
+
+  /* placeholder styling + toggle state */
+  document.querySelectorAll('[data-ph]').forEach(btn=>{
+    const input = document.querySelector(`[data-f="${btn.dataset.ph}"]`);
+    const on = isPlaceholder(input.value);
+    btn.classList.toggle('on', on);
+    input.classList.toggle('is-ph', on);
+  });
+
+  /* the row tag names the document row that input feeds, so it follows the swap */
+  document.querySelectorAll('[data-pair]').forEach(pair=>{
+    const swapped = !!getPath(t, SWAP_PATH[pair.dataset.pair]);
+    const tags = pair.querySelectorAll('.rowtag');
+    const base = ROW_TAGS[pair.dataset.pair];
+    tags[0].textContent = swapped ? base[1] : base[0];
+    tags[1].textContent = swapped ? base[0] : base[1];
+    pair.querySelector('.swaplbl').textContent = swapped ? 'English first' : 'Thai first';
+  });
+
+  renderPickers(); renderParties(); renderList(); renderPreview(t);
+  schedulePreview();
+}
+
+const escHtml = s => String(s == null ? '' : s).replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+function renderPickers(){
+  const SAVE_AS = {co:'company', tfr:'transferor', tfe:'transferee',
+                   witTfr:'witness', witTfe:'witness'};
+  PICKERS.forEach(([id,role])=>{
+    const sel = document.getElementById(id);
+    sel.innerHTML = `<option value="">👤 Use saved person…</option>` +
+      state.parties.map(p=>`<option value="${p.id}">${escHtml(p.nameTh || p.nameEn)}</option>`).join('') +
+      `<option value="__save">➕ Save this ${SAVE_AS[role]} to directory</option>`;
+    sel.value = '';
+  });
+}
+
+/* Initials for the avatar chip: Thai has no case, so take the first letter
+   after any honorific; Latin takes the first letter of the first two words. */
+function initials(p){
+  const en = (p.nameEn || '').replace(/^\s*(MR|MRS|MISS|MS|DR)\.?\s*/i,'').trim();
+  if(en) return en.split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+  const th = (p.nameTh || '').replace(/^(นางสาว|นาย|นาง|บริษัท)\s*/,'').trim();
+  return th.slice(0,2) || '?';
+}
+
+function renderParties(){
+  const box = document.getElementById('partyList');
+  if(!state.parties.length){
+    box.innerHTML = `<div class="empty" style="font-size:.85em">No one saved yet — add a person above, or use the “Save this … to directory” option in any section's dropdown.</div>`;
+    return;
+  }
+  box.innerHTML = '';
+  state.parties.forEach(p=>{
+    const el = document.createElement('div');
+    el.className = 'party';
+    el.innerHTML = `
+      <div class="party-av">${escHtml(initials(p))}</div>
+      <div class="party-main">
+        <div class="party-nm">${escHtml(p.nameTh || p.nameEn)}</div>
+        <div class="party-sub">${escHtml(p.nameTh && p.nameEn ? p.nameEn : (p.addrTh || p.addrEn || 'no address saved'))}</div>
+      </div>
+      <div class="party-acts">
+        <button class="use u-tfr"  data-use="tfr" title="Load as transferor">📤 ผู้โอน</button>
+        <button class="use u-tfe"  data-use="tfe" title="Load as transferee">📥 ผู้รับโอน</button>
+        <button class="use u-co"   data-use="co"  title="Load as the company">🏢 บริษัท</button>
+        <button class="use u-w1"   data-use="witTfr" title="Load as the transferor's witness">✍️ พยาน 1</button>
+        <button class="use u-w2"   data-use="witTfe" title="Load as the transferee's witness">✍️ พยาน 2</button>
+        <span class="sep"></span>
+        <button class="mini" data-edit="1" title="Edit this person">✎</button>
+        <button class="mini" data-del="1" title="Remove from directory">×</button>
+      </div>`;
+    el.querySelectorAll('[data-use]').forEach(b=> b.addEventListener('click', ()=> applyParty(p, b.dataset.use)));
+    el.querySelector('[data-edit]').addEventListener('click', ()=> openPartyForm(p));
+    el.querySelector('[data-del]').addEventListener('click', async ()=>{
+      const ok = await ask('Remove this person?',
+        `“${p.nameTh || p.nameEn}” will be removed from the directory. Transfers already filled in keep their values.`,
+        'Remove');
+      if(!ok) return;
+      state.parties = state.parties.filter(x=>x.id!==p.id); save(); render();
+      toast('Removed from the directory');
+    });
+    box.appendChild(el);
+  });
+}
+
+function renderList(){
+  const box = document.getElementById('xferList');
+  document.getElementById('xferCount').textContent = state.transfers.length;
+  box.innerHTML = '';
+  state.transfers.forEach((t,i)=>{
+    const el = document.createElement('div');
+    el.className = 'xfer' + (i === state.active ? ' active' : '');
+    const co   = t.co.th || t.co.en;
+    const from = partyLine1(t.tfr) || t.tfr.nameEn;
+    const to   = partyLine1(t.tfe) || t.tfe.nameEn;
+    const n    = t.sh.count.trim();
+    const nos  = shareNos(t);
+    const d    = thaiDateParts(t.tfr.date).en;
+    const facts = [
+      n ? `${isPlaceholder(n) ? n : groupDigits(n)} shares` : '',
+      nos ? `no. ${nos}` : '',
+      d
+    ].filter(Boolean);
+    el.innerHTML =
+      `<div class="xfer-no">TRANSFER ${i+1}</div>` +
+      `<div class="xfer-co">${co ? escHtml(co) : '<span class="empty">no company yet</span>'}</div>` +
+      `<div class="xfer-flow">${from ? escHtml(from) : '<span class="empty">transferor?</span>'}` +
+        `<span class="arrow">→</span>${to ? escHtml(to) : '<span class="empty">transferee?</span>'}</div>` +
+      (facts.length ? `<div class="xfer-facts">${facts.map(f=>`<span>${escHtml(f)}</span>`).join('')}</div>` : '');
+    if(state.transfers.length > 1){
+      const del = document.createElement('button');
+      del.className = 'xfer-del'; del.textContent = '×'; del.title = 'Remove this transfer';
+      del.addEventListener('click', e=>{
+        e.stopPropagation();
+        state.transfers.splice(i,1);
+        state.active = Math.min(state.active, state.transfers.length-1);
+        save(); render();
+      });
+      el.appendChild(del);
+    }
+    el.addEventListener('click', ()=>{ state.active = i; save(); render(); });
+    box.appendChild(el);
+  });
+}
+
+function renderPreview(t){
+  const v = tokensFor(t);
+  const show = val => !val ? '<span class="blank">—</span>'
+    : (isPlaceholder(val) ? `<span class="ph">${escHtml(val)}</span>` : escHtml(val));
+  const both = (a,b) => [a,b].filter(Boolean).map(show).join('<span style="color:#cbd5e1"> · </span>') || '<span class="blank">—</span>';
+  const row = (label, html) => `<tr><td>${label}</td><td>${html}</td></tr>`;
+
+  const grp = label => `<tr class="grp"><td colspan="2">${label}</td></tr>`;
+
+  document.getElementById('preview').innerHTML = `<table>
+    ${grp('📤 ผู้โอน / Transferor')}
+    ${row('ข้าพเจ้า / I', both(v.TFR_NAME_1, v.TFR_NAME_2))}
+    ${row('อยู่ ณ / of', both(v.TFR_ADDR_1, v.TFR_ADDR_2))}
+    ${grp('🏢 บริษัท / Company')}
+    ${row('ผู้ถือหุ้นใน', both(v.CO_NAME_1, v.CO_NAME_2))}
+    ${grp('📥 ผู้รับโอน / Transferee')}
+    ${row('โอนให้แก่', both(v.TFE_NAME_1, v.TFE_NAME_2))}
+    ${row('อยู่ ณ / of', both(v.TFE_ADDR_1, v.TFE_ADDR_2))}
+    ${grp('📊 หุ้น / Shares')}
+    ${row('จำนวนหุ้น', v.SHARE_COUNT ? show(v.SHARE_COUNT) + ' หุ้น' : '<span class="blank">—</span>')}
+    ${row('หมายเลข', show(v.SHARE_NOS))}
+    ${row('ราคาพาร์', v.PAR_VALUE ? show(v.PAR_VALUE) + ' บาท' : '<span class="blank">—</span>')}
+    ${row('ชำระแล้ว', v.PAID_UP ? show(v.PAID_UP) + '%' : '<span class="blank">—</span>')}
+    ${row('ราคาโอน', v.PRICE ? show(v.PRICE) + ' บาท' : '<span class="blank">—</span>')}
+    ${grp('✍️ ลงนาม — ผู้โอน / Transferor')}
+    ${row('ลงชื่อเมื่อ', both(v.TFR_DATE_TH, v.TFR_DATE_EN))}
+    ${row('ณ', both(v.TFR_LOC_TH, v.TFR_LOC_EN))}
+    ${row('ชื่อใต้ลายเซ็น', both(v.TFR_SIG_1, v.TFR_SIG_2))}
+    ${row('พยาน', both(v.TFR_WIT_1, v.TFR_WIT_2))}
+    ${grp('✍️ ลงนาม — ผู้รับโอน / Transferee')}
+    ${row('ลงชื่อเมื่อ', both(v.TFE_DATE_TH, v.TFE_DATE_EN))}
+    ${row('ณ', both(v.TFE_LOC_TH, v.TFE_LOC_EN))}
+    ${row('ชื่อใต้ลายเซ็น', both(v.TFE_SIG_1, v.TFE_SIG_2))}
+    ${row('พยาน', both(v.TFE_WIT_1, v.TFE_WIT_2))}
+  </table>`;
+}
+
+/* ── Persistence ──────────────────────────────────────────────── */
+function adopt(s){
+  state = {
+    transfers: (s.transfers || []).map(t=>{
+      const b = blankTransfer();
+      return {...b, ...t,
+        co:{...b.co, ...(t.co||{})}, tfr:{...b.tfr, ...(t.tfr||{})},
+        tfe:{...b.tfe, ...(t.tfe||{})}, sh:{...b.sh, ...(t.sh||{})}};
+    }),
+    active: 0,
+    parties: Array.isArray(s.parties) ? s.parties : []
+  };
+  if(!state.transfers.length) state.transfers = [blankTransfer()];
+  state.active = Math.min(s.active || 0, state.transfers.length - 1);
+}
+function save(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(_){} }
+function load(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return;
+    const s = JSON.parse(raw);
+    if(s && Array.isArray(s.transfers) && s.transfers.length) adopt(s);
+  }catch(_){}
+}
+
+let toastTimer;
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> el.classList.remove('show'), 3400);
+}
+
+load();
+render();
+/* size the preview to the panel once fonts and layout have settled */
+window.addEventListener('load', ()=> setTimeout(()=> fitPreview(), 60));
+window.addEventListener('resize', ()=>{ clearTimeout(window.__rz); window.__rz = setTimeout(()=> fitPreview(), 150); });
+</script>
+</body>
+</html>
