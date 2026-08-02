@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Corporate Tools for Legal — JuraTools</title>
-  <meta name="description" content="Corporate legal tools — quorum and resolution checking, shareholder voting, share certificates, dividends and legal reserve, share register workbench, share transfer instruments, and instrument checklists. By Kornrawee Chanchom." />
+  <meta name="description" content="Corporate legal tools — quorum and resolution checking, shareholder voting, share certificate registers and .docx export, dividends and legal reserve, share register workbench, share transfer instruments, and instrument checklists. By Kornrawee Chanchom." />
   <style>
     /* ── Reset & Tokens ───────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -220,10 +220,26 @@
         <div class="card-sub">Documents &amp; signings</div>
         <h3 class="card-title">Share Transfer Instrument</h3>
         <p class="card-th">ตราสารการโอนหุ้น</p>
-        <p class="card-desc">Fill the bilingual transfer instrument beside a <strong>live page preview</strong> and export a Word .docx with the Original and Duplicate copies both populated — or save the preview straight to PDF. Converts the signing date to Buddhist Era, derives the total price from par value × shares, and lets each name sit Thai- or English-first. Keeps a reusable person directory, marks any field as a highlighted <strong>(*)</strong> blank, and runs batches from an Excel sheet.</p>
+        <p class="card-desc">Fill the bilingual transfer instrument beside a <strong>live page preview</strong> and export a Word .docx with the Original and Duplicate copies both populated — or save the preview straight to PDF. Converts the signing date to Buddhist Era, derives the total price from par value × shares, and lets each name sit Thai- or English-first. Keeps a reusable person directory, marks any field as a highlighted <strong>(*)</strong> blank, runs batches from an Excel sheet, and writes the share numbers plain or <strong>zero-padded</strong> to the company's share count. Works <strong>both ways with Share Certificates</strong>: it picks up a transfer handed over from the register, and hands this transfer back to have the new certificates issued — so both documents are filled from one set of figures.</p>
         <div class="card-actions">
           <a class="btn btn-open" href="share-transfer-instrument.html">Open →</a>
           <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/corporate-tools/share-transfer-instrument.html" target="_blank" rel="noopener">Source</a>
+        </div>
+      </article>
+
+      <!-- Share Certificates -->
+      <article class="card live">
+        <div class="card-head">
+          <div class="card-icon">📜</div>
+          <span class="card-badge badge-live">Live</span>
+        </div>
+        <div class="card-sub">Documents &amp; signings</div>
+        <h3 class="card-title">Share Certificates</h3>
+        <p class="card-th">ใบหุ้น</p>
+        <p class="card-desc">Keeps a company's whole certificate register — <strong>several companies side by side</strong>, one Word .docx each — one page per certificate, stub and body both filled, beside a <strong>live page preview</strong>. Chains share ranges from one certificate to the next, pads the numbers to the size of the capital, converts dates to Buddhist Era, strikes สามัญ or บุริมสิทธิ to match the share type, marks any field as a highlighted <strong>(*)</strong> blank for a figure you do not have yet, and clears the unused signature slot outright — line and labels — when a single director signs. <strong>Records a transfer end to end</strong>: cancels the old certificate, issues one to the transferee and one back for the balance, links them, and hands the same figures — padding included — to the <strong>Share Transfer Instrument</strong>, which can hand a transfer back the other way. The transferred block can come off the back, the front or <strong>anywhere inside the range</strong>, the new certificates can be numbered either party first, and the transferee's own certificate can be <strong>merged in</strong> instead of issued alongside. Every transfer is kept: the instrument can still be drawn up after the certificates are issued, and the last one <strong>can be undone</strong>. Carries the capital and board <strong>as they stood at each issue date</strong>, so a register spanning a capital increase stays accurate, and warns on gaps, overlaps and totals that miss the registered shares.</p>
+        <div class="card-actions">
+          <a class="btn btn-open" href="share-certificate.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/corporate-tools/share-certificate.html" target="_blank" rel="noopener">Source</a>
         </div>
       </article>
 
@@ -252,7 +268,7 @@
         <div class="card-sub">Registers · CCC §§1222 · 1224</div>
         <h3 class="card-title">CorpDesk — Share Register Workbench</h3>
         <p class="card-th">สมุดทะเบียนผู้ถือหุ้นแบบ replay</p>
-        <p class="card-desc">Full share-register lifecycle in one file. Set up the initial cap table, then drop transaction cards on a pile — transfers, capital increases (§1222 pro-rata rights), capital decreases (§1224), paid-up updates, and renumbering. The replay engine derives the current shareholding, certificate history, and per-shareholder ledgers. Exports master-data JSON for Thai share documents.</p>
+        <p class="card-desc">Full share-register lifecycle in one file. Set up the initial cap table, then drop transaction cards on a pile — transfers, capital increases (§1222 pro-rata rights), capital decreases (§1224), paid-up updates, and renumbering. A part transfer takes its share numbers off the back or the front of the certificate, or — under an advanced control — from <strong>a block anywhere inside it</strong>, leaving the transferor holding the shares on both sides. The replay engine derives the current shareholding, certificate history, and per-shareholder ledgers. Exports master-data JSON for Thai share documents.</p>
         <div class="card-actions">
           <a class="btn btn-open" href="corpdesk.html">Open →</a>
           <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/corporate-tools/corpdesk.html" target="_blank" rel="noopener">Source</a>

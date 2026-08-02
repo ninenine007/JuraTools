@@ -1,0 +1,2794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Share Certificates — JuraTools</title>
+<meta name="description" content="Fill a Thai/English Share Certificate (ใบหุ้น) register and export every certificate as one Word .docx — stub and body both filled, ordinary/preferred struck correctly, cancellations and replacements recorded. Person directory, Excel batch, JSON backup. By Kornrawee Chanchom.">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{
+  --primary:#2563eb; --primary-dark:#1d4ed8;
+  --bg:#f6f8fb; --card:#fff; --text:#334155; --heading:#0f172a;
+  --border:#e4e9f0; --muted:#94a3b8; --hover-gray:#f1f5f9;
+  --success:#0d9488; --danger:#dc2626; --amber:#d97706;
+  --shadow:0 1px 2px rgba(15,23,42,.04), 0 4px 12px -4px rgba(15,23,42,.06);
+  /* one accent per section, so a glance tells you where you are */
+  --c-party:#7c3aed; --c-co:#0891b2; --c-dir:#db2777; --c-cert:#2563eb;
+  --c-shares:#d97706; --c-out:#059669;
+}
+*{box-sizing:border-box;}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);margin:0;font-size:14px;}
+
+/* ── Nav ─────────────────────────────────────── */
+.nav{position:sticky;top:0;z-index:200;height:54px;display:flex;align-items:center;gap:12px;padding:0 24px;
+  background:rgba(246,248,251,.88);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);
+  border-bottom:1px solid var(--border);}
+.nav a{color:inherit;text-decoration:none;}
+.nav-brand{display:flex;align-items:center;gap:9px;user-select:none;}
+.nav-icon{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;
+  background:linear-gradient(145deg,#2979ff,#1565c0);font-size:15px;
+  box-shadow:0 2px 6px rgba(41,121,255,.4), inset 0 1px 0 rgba(255,255,255,.2);}
+.nav-wordmark{font-size:15px;font-weight:700;letter-spacing:-.4px;color:var(--heading);}
+.nav-sep{color:#cbd5e1;}
+.nav-current{font-size:15px;font-weight:600;color:#64748b;}
+.nav-back{margin-left:auto;font-size:13px;font-weight:500;color:#3c3c43;background:rgba(0,0,0,.05);
+  border:1px solid rgba(0,0,0,.09);padding:6px 12px;border-radius:9px;transition:background .14s;}
+.nav-back:hover{background:rgba(0,0,0,.09);}
+
+/* ── Layout ──────────────────────────────────── */
+.app{display:flex;gap:20px;max-width:1900px;margin:0 auto;padding:20px 24px 72px;align-items:flex-start;}
+.app[data-view="form"] .pv{display:none;}
+.app[data-view="preview"] .sidebar,.app[data-view="preview"] .main{display:none;}
+/* the certificate list gives up width to the preview when both are on screen */
+.app[data-view="split"] .sidebar{width:208px;min-width:208px;}
+.app[data-view="split"] .sidebar .hint{display:none;}
+.app[data-view="preview"] .pv{width:auto;min-width:0;flex:1;max-height:none;position:static;}
+.sidebar{width:268px;min-width:268px;background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:16px;position:sticky;top:74px;box-shadow:var(--shadow);max-height:calc(100vh - 94px);overflow-y:auto;}
+.main{flex:1 1 380px;min-width:0;display:flex;flex-direction:column;gap:16px;}
+
+/* ── Sidebar ─────────────────────────────────── */
+.side-head{display:flex;align-items:center;gap:8px;margin-bottom:2px;}
+.side-head h2{margin:0;font-size:1.02em;color:var(--heading);}
+.count-pill{margin-left:auto;font-size:.72em;font-weight:700;color:var(--primary);
+  background:#eff6ff;border:1px solid #bfdbfe;border-radius:999px;padding:2px 9px;}
+.sidebar .hint{font-size:.78em;color:var(--muted);margin:0 0 12px;line-height:1.45;}
+.cert-list{display:flex;flex-direction:column;gap:7px;margin-bottom:12px;}
+.cert{padding:9px 11px 9px 13px;border-radius:10px;border:1px solid var(--border);cursor:pointer;
+  transition:.12s;background:#fff;position:relative;border-left:3px solid #e2e8f0;}
+.cert:hover{background:var(--hover-gray);}
+.cert.active{border-color:#bfdbfe;border-left-color:var(--primary);background:#f5f9ff;
+  box-shadow:0 0 0 3px rgba(37,99,235,.08);}
+.cert.dead{opacity:.62;}
+.cert.dead .cert-nm{text-decoration:line-through;}
+.cert-no{font-size:.67em;font-weight:800;color:var(--muted);letter-spacing:.06em;display:flex;gap:6px;align-items:center;}
+.cert.active .cert-no{color:var(--primary);}
+.cert-no .tag{font-weight:700;letter-spacing:0;border-radius:999px;padding:0 6px;font-size:.95em;}
+.cert-no .t-x{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;}
+.cert-no .t-p{background:#f5f3ff;color:#6d28d9;border:1px solid #ddd6fe;}
+.cert-no .t-g{background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;}
+.cert-nm{font-weight:700;font-size:.84em;color:var(--heading);margin:2px 0 4px;line-height:1.25;}
+.cert-facts{font-size:.72em;color:var(--muted);display:flex;flex-wrap:wrap;gap:3px 6px;}
+.cert-facts span{background:#f1f5f9;border-radius:5px;padding:1px 6px;font-variant-numeric:tabular-nums;}
+.cert-del{position:absolute;top:6px;right:7px;border:none;background:none;color:#cbd5e1;cursor:pointer;
+  font-size:1.05em;line-height:1;padding:2px 5px;border-radius:6px;}
+.cert-del:hover{color:var(--danger);background:#fef2f2;}
+.empty{color:#cbd5e1;font-style:italic;}
+
+/* running total under the list */
+.tally{border-top:1px dashed var(--border);margin-top:10px;padding-top:10px;font-size:.76em;line-height:1.6;}
+.tally .row{display:flex;justify-content:space-between;gap:8px;}
+.tally .row b{font-variant-numeric:tabular-nums;color:var(--heading);}
+.tally .ok{color:var(--success);font-weight:600;}
+.tally .bad{color:var(--danger);font-weight:600;}
+
+/* ── Cards ───────────────────────────────────── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:0;box-shadow:var(--shadow);overflow:hidden;}
+.card-hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:13px 18px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,#fcfdff,#f8fafc);}
+.card-hd .ico{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:13px;flex-shrink:0;
+  background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-line);}
+.card-hd h3{margin:0;font-size:.94em;color:var(--heading);font-weight:700;}
+.card-hd .th{font-weight:500;color:var(--muted);font-size:.88em;margin-left:-4px;}
+.card-hd .spacer{margin-left:auto;}
+.card-bd{padding:16px 18px 18px;}
+.acc-party{--accent:var(--c-party);--accent-soft:#f5f3ff;--accent-line:#ddd6fe;}
+.acc-co{--accent:var(--c-co);--accent-soft:#ecfeff;--accent-line:#a5f3fc;}
+.acc-dir{--accent:var(--c-dir);--accent-soft:#fdf2f8;--accent-line:#fbcfe8;}
+.acc-cert{--accent:var(--c-cert);--accent-soft:#eff6ff;--accent-line:#bfdbfe;}
+.acc-shares{--accent:var(--c-shares);--accent-soft:#fffbeb;--accent-line:#fde68a;}
+.acc-out{--accent:var(--c-out);--accent-soft:#ecfdf5;--accent-line:#a7f3d0;}
+.acc-prev{--accent:#64748b;--accent-soft:#f1f5f9;--accent-line:#e2e8f0;}
+
+/* ── Fields ──────────────────────────────────── */
+label{display:block;font-size:.77em;font-weight:600;color:#64748b;margin-bottom:5px;}
+input[type=text],input[type=date],select,textarea{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;
+  font-family:inherit;font-size:.92em;color:var(--text);background:#fff;transition:border-color .12s, box-shadow .12s;}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.12);}
+input::placeholder{color:#cbd5e1;}
+input:disabled{background:#f8fafc;color:var(--muted);}
+input.is-ph{background:#fefce8;border-color:#fcd34d;font-weight:600;color:#a16207;}
+input.is-auto{background:#fcfdfe;color:#475569;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+.grid4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px;}
+.field{margin-bottom:14px;}
+.field:last-child{margin-bottom:0;}
+.num input{font-variant-numeric:tabular-nums;}
+
+/* bilingual pair */
+.pair{margin-bottom:16px;}
+.pair:last-child{margin-bottom:0;}
+.pair-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.pair-head .ttl{font-size:.77em;font-weight:700;color:#475569;}
+.pair-head .opt{font-weight:400;color:#cbd5e1;}
+.pair-row{display:flex;align-items:center;gap:7px;margin-bottom:7px;}
+.pair-row:last-child{margin-bottom:0;}
+.rowtag{flex:0 0 96px;font-size:.71em;color:#94a3b8;text-align:right;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;font-variant-numeric:tabular-nums;}
+.pair-row input{flex:1;min-width:0;}
+
+/* mini field buttons */
+.mini{flex:0 0 auto;font-size:.7em;font-weight:700;font-family:inherit;border-radius:7px;padding:6px 8px;cursor:pointer;
+  border:1px solid var(--border);background:#fff;color:#94a3b8;line-height:1;transition:.12s;}
+.mini:hover{background:var(--hover-gray);color:var(--text);border-color:#cbd5e1;}
+.mini.on{background:#fef9c3;border-color:#fcd34d;color:#a16207;}
+.mini.up:hover{color:var(--primary);border-color:#bfdbfe;background:#eff6ff;}
+
+/* auto / override */
+.reset-auto{font-size:.71em;font-weight:600;color:var(--amber);background:#fffbeb;border:1px solid #fde68a;
+  border-radius:999px;padding:3px 10px;cursor:pointer;font-family:inherit;white-space:nowrap;}
+.reset-auto:hover{background:#fef3c7;}
+.reset-auto[hidden]{display:none;}
+
+/* segmented choice inside the form */
+.choice{display:inline-flex;background:#eef2f7;border:1px solid var(--border);border-radius:9px;padding:3px;gap:2px;flex-wrap:wrap;}
+.choice button{border:none;background:none;font-family:inherit;font-size:.76em;font-weight:600;color:#64748b;
+  padding:5px 11px;border-radius:7px;cursor:pointer;white-space:nowrap;transition:.12s;}
+.choice button:hover{color:var(--heading);}
+.choice button.on{background:#fff;color:var(--primary);box-shadow:0 1px 2px rgba(15,23,42,.08);}
+
+/* pickers */
+.picker{width:auto;font-size:.79em;padding:5px 9px;border-radius:8px;max-width:230px;color:#475569;background:#fff;}
+
+/* ── Person directory ────────────────────────── */
+.party-list{display:flex;flex-direction:column;gap:7px;margin-bottom:14px;max-height:300px;overflow-y:auto;}
+.party{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--border);border-radius:10px;background:#fff;transition:.12s;}
+.party:hover{background:#fcfcfd;border-color:#cbd5e1;}
+.party-av{width:30px;height:30px;border-radius:9px;flex-shrink:0;display:grid;place-items:center;
+  background:#f5f3ff;color:var(--c-party);border:1px solid #ddd6fe;font-size:.78em;font-weight:700;}
+.party-main{flex:1;min-width:0;}
+.party-nm{font-weight:600;font-size:.86em;color:var(--heading);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.party-sub{font-size:.75em;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.party-acts{display:flex;gap:4px;flex-shrink:0;align-items:center;}
+.party-acts .sep{width:1px;height:18px;background:var(--border);margin:0 2px;}
+.use{font-size:.7em;font-weight:600;font-family:inherit;border-radius:7px;padding:5px 8px;cursor:pointer;
+  border:1px solid var(--border);background:#fff;color:#64748b;line-height:1;white-space:nowrap;transition:.12s;}
+.use:hover{border-color:currentColor;}
+.use.u-hold:hover{color:var(--c-cert);background:#eff6ff;}
+.use.u-d1:hover,.use.u-d2:hover{color:var(--c-dir);background:#fdf2f8;}
+.party-form{border-top:1px dashed var(--border);padding-top:14px;margin-top:4px;}
+
+/* ── Summary preview table ───────────────────── */
+.preview{font-size:.82em;}
+.preview table{width:100%;border-collapse:collapse;}
+.preview td{padding:5px 8px;border-bottom:1px solid #f1f5f9;vertical-align:top;}
+.preview tr:last-child td{border-bottom:none;}
+.preview td:first-child{color:var(--muted);white-space:nowrap;width:1%;font-size:.92em;}
+.preview td:last-child{color:var(--heading);font-weight:500;}
+.preview .blank{color:#cbd5e1;font-weight:400;font-style:italic;}
+.preview .ph{background:#fef08a;padding:0 4px;border-radius:4px;font-weight:700;color:#854d0e;}
+.preview .grp td{background:#f8fafc;color:#475569;font-weight:700;font-size:.9em;letter-spacing:.02em;}
+.preview .strike{text-decoration:line-through;color:var(--muted);}
+
+/* ── Buttons ─────────────────────────────────── */
+.btn{padding:9px 15px;border-radius:9px;border:1px solid transparent;font-family:inherit;font-size:.87em;
+  font-weight:600;cursor:pointer;transition:.12s;display:inline-flex;align-items:center;gap:7px;justify-content:center;}
+.btn-primary{background:var(--primary);color:#fff;box-shadow:0 1px 2px rgba(37,99,235,.3);}
+.btn-primary:hover{background:var(--primary-dark);}
+.btn-ghost{background:#fff;color:var(--text);border-color:var(--border);}
+.btn-ghost:hover{background:var(--hover-gray);border-color:#cbd5e1;}
+.btn-danger{background:#fff;color:var(--danger);border-color:#fecaca;}
+.btn-danger:hover{background:#fef2f2;}
+.btn-sm{padding:6px 11px;font-size:.79em;}
+.btn-wide{width:100%;}
+.btn-row{display:flex;gap:9px;flex-wrap:wrap;}
+.sect-note{font-size:.78em;color:var(--muted);margin:0 0 12px;line-height:1.55;}
+.act{border:1px solid var(--border);border-radius:11px;padding:13px 14px;background:#fcfdfe;}
+.act + .act{margin-top:12px;}
+.act-hd{display:flex;align-items:center;gap:8px;font-size:.83em;font-weight:700;color:var(--heading);margin-bottom:3px;}
+.act-hd .ico{font-size:.95em;}
+.act.danger{border-color:#fecaca;background:#fffbfb;}
+
+/* transfer log */
+.xlog{display:flex;flex-direction:column;gap:9px;}
+.xrow{border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:#fff;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.xrow .xmain{flex:1 1 260px;min-width:0;}
+.xrow .xttl{font-size:.85em;font-weight:600;color:var(--heading);}
+.xrow .xsub{font-size:.75em;color:var(--muted);margin-top:3px;line-height:1.5;}
+.xrow .use{flex:0 0 auto;white-space:nowrap;}
+.use.u-inst:hover{color:var(--c-shares);background:#fffbeb;}
+.use.u-undo:hover{color:#991b1b;background:#fef2f2;}
+
+/* warnings */
+.warn{border-radius:10px;padding:9px 12px;font-size:.79em;line-height:1.5;margin-bottom:12px;}
+.warn.bad{background:#fef2f2;border:1px solid #fecaca;color:#991b1b;}
+.warn.ok{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;}
+.warn ul{margin:5px 0 0;padding-left:18px;}
+
+/* ── Confirm dialog (native confirm() is blocked in some embeds) ── */
+.scrim{position:fixed;inset:0;background:rgba(15,23,42,.45);display:grid;place-items:center;z-index:600;padding:20px;}
+.scrim[hidden]{display:none;}
+/* The transfer dialog is taller than a phone screen, and a centred box taller
+   than its container puts its own top out of reach — so it scrolls itself. */
+.dlg{background:#fff;border-radius:14px;max-width:420px;width:100%;padding:20px;box-shadow:0 24px 48px -12px rgba(15,23,42,.35);
+  max-height:calc(100vh - 40px);overflow-y:auto;}
+.dlg h4{margin:0 0 8px;font-size:1em;color:var(--heading);}
+.dlg p{margin:0 0 16px;font-size:.86em;color:#64748b;line-height:1.55;}
+.dlg .btn-row{justify-content:flex-end;}
+
+/* ── Toast ───────────────────────────────────── */
+#toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(16px);background:var(--heading);color:#fff;
+  padding:11px 20px;border-radius:10px;font-size:.86em;font-weight:500;opacity:0;pointer-events:none;transition:.2s;z-index:700;
+  box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:90vw;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ── View modes + preview panel ───────────────── */
+.toolbar{position:sticky;top:54px;z-index:150;background:rgba(246,248,251,.9);backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:8px 24px;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.segs{display:inline-flex;background:#eef2f7;border:1px solid var(--border);border-radius:10px;padding:3px;gap:2px;}
+.seg{border:none;background:none;font-family:inherit;font-size:.79em;font-weight:600;color:#64748b;
+  padding:6px 12px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:.12s;}
+.seg:hover{color:var(--heading);}
+.seg.on{background:#fff;color:var(--primary);box-shadow:0 1px 2px rgba(15,23,42,.08);}
+.tb-note{font-size:.76em;color:var(--muted);margin-left:auto;}
+
+/* company switcher — one register per company, all of them in this browser */
+.cosel{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--border);border-radius:10px;
+  background:#fff;padding:2px 3px 2px 10px;}
+.cosel .co-lbl{font-size:.71em;font-weight:700;color:#94a3b8;letter-spacing:.02em;}
+.co-pick{border:none;background:none;font-family:inherit;font-size:.79em;font-weight:600;color:var(--heading);
+  padding:5px 2px;max-width:250px;cursor:pointer;}
+.co-pick:focus{outline:none;}
+.co-btn{border:none;background:none;font-family:inherit;font-size:.85em;color:#64748b;cursor:pointer;
+  padding:4px 8px;line-height:1;border-radius:7px;}
+.co-btn:hover{background:var(--hover-gray);color:var(--heading);}
+.co-btn.dang:hover{background:#fef2f2;color:var(--danger);}
+.side-co{font-size:.76em;font-weight:600;color:var(--primary);background:#eff6ff;border:1px solid #bfdbfe;
+  border-radius:8px;padding:5px 9px;margin:0 0 10px;display:flex;gap:6px;align-items:baseline;}
+.side-co .n{color:#64748b;font-weight:400;font-size:.9em;margin-left:auto;white-space:nowrap;}
+
+.pv{width:470px;min-width:470px;position:sticky;top:106px;max-height:calc(100vh - 126px);
+  display:flex;flex-direction:column;background:var(--card);border:1px solid var(--border);
+  border-radius:14px;box-shadow:var(--shadow);overflow:hidden;}
+.pv-hd{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg,#fcfdff,#f8fafc);flex-wrap:wrap;}
+.pv-ttl{font-size:.82em;font-weight:700;color:var(--heading);display:flex;align-items:center;gap:7px;}
+.live{width:7px;height:7px;border-radius:50%;background:var(--success);box-shadow:0 0 0 3px rgba(13,148,136,.15);
+  animation:blip 2.4s ease-in-out infinite;}
+@keyframes blip{0%,100%{opacity:1}50%{opacity:.35}}
+.zoom{display:inline-flex;align-items:center;gap:1px;border:1px solid var(--border);border-radius:8px;background:#fff;margin-left:auto;}
+.zoom button{border:none;background:none;font-family:inherit;font-size:.95em;color:#64748b;cursor:pointer;
+  padding:4px 9px;line-height:1;border-radius:7px;}
+.zoom button:hover{background:var(--hover-gray);color:var(--heading);}
+.zoom .lvl{font-size:.72em;font-weight:700;color:#475569;min-width:38px;text-align:center;font-variant-numeric:tabular-nums;}
+.pv-tabs{display:flex;gap:4px;padding:8px 12px 0;flex-wrap:wrap;}
+.pv-tab{border:1px solid var(--border);background:#fff;font-family:inherit;font-size:.72em;font-weight:600;
+  color:#64748b;padding:4px 10px;border-radius:999px;cursor:pointer;}
+.pv-tab.on{background:#eff6ff;border-color:#bfdbfe;color:var(--primary);}
+.pv-scroll{flex:1;overflow:auto;padding:12px;background:#e9edf3;}
+/* fixed natural width so the zoom maths never feeds back on itself */
+.pv-stage{transform-origin:top left;width:355.6mm;}
+#pvSizer{margin:0 auto;}
+.pv-ft{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--border);background:#fcfdfe;}
+.pv-ft .btn{flex:1;}
+
+/* the rendered certificate page — landscape 14in × 8.5in, as the template is */
+.pg{width:100%;min-height:215.9mm;background:#fff;margin:0 auto 14px;padding:10mm 10mm 8mm;
+  box-shadow:0 2px 10px rgba(15,23,42,.18);
+  font-family:'Browallia New','BrowalliaUPC','Leelawadee UI','Sarabun','Noto Sans Thai',sans-serif;
+  font-size:12pt;line-height:1.2;color:#000;}
+.pg table{width:100%;border-collapse:collapse;table-layout:fixed;}
+/* Never break inside a word: "5,779" split across two lines reads as two
+   different figures. Browallia New is narrower than the web fallbacks, so a
+   value can be a little wider here than in Word — let it spill past the cell
+   rather than mangle it. */
+.pg td{vertical-align:bottom;padding:0;overflow-wrap:normal;word-break:keep-all;hyphens:none;}
+.pg .bt{border-top:.75pt solid #000;}
+.pg .bb{border-bottom:.75pt dotted #000;}
+.pg p{margin:0;}
+.pg .seg-row{display:flex;justify-content:space-between;gap:4pt;flex-wrap:nowrap;}
+.pg .seg-row>span{min-width:0;}
+.pg .hl{background:#ffff00;}
+.pg .st{text-decoration:line-through;}
+.pg .pgnum{text-align:center;font-size:.75em;color:#94a3b8;margin:-6px 0 12px;}
+
+/* ── Print: only the rendered pages ───────────── */
+@media print{
+  @page{size:355.6mm 215.9mm;margin:0;}
+  body{background:#fff;}
+  .nav,.toolbar,.sidebar,.main,.pv-hd,.pv-tabs,.pv-ft,#toast,.scrim{display:none !important;}
+  .app{display:block;padding:0;margin:0;max-width:none;}
+  .pv{width:auto;min-width:0;position:static;max-height:none;border:none;box-shadow:none;border-radius:0;}
+  .pv-scroll{overflow:visible;padding:0;background:#fff;}
+  .pv-stage{transform:none !important;width:auto;}
+  .pg{box-shadow:none;margin:0;break-after:page;}
+  .pg:last-child{break-after:auto;}
+  .pg .pgnum{display:none;}
+}
+
+@media(max-width:1240px){
+  .pv{width:100%;min-width:0;position:static;max-height:none;}
+  .app{flex-wrap:wrap;}
+}
+@media(max-width:980px){
+  .app{flex-direction:column;padding:16px;}
+  .sidebar{width:100%;min-width:0;position:static;max-height:none;}
+  .grid2,.grid3,.grid4{grid-template-columns:1fr;}
+  .rowtag{flex:0 0 76px;}
+  .picker{max-width:100%;width:100%;}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-brand" href="../index.html">
+    <span class="nav-icon">⚖️</span><span class="nav-wordmark">JuraTools</span>
+  </a>
+  <span class="nav-sep">/</span>
+  <span class="nav-current">Share Certificates</span>
+  <a class="nav-back" href="index.html">← Corporate tools</a>
+</nav>
+
+<div class="toolbar">
+  <div class="segs" id="viewSegs">
+    <button class="seg" data-view="split">▤ Form + preview</button>
+    <button class="seg on" data-view="form">▥ Form only</button>
+    <button class="seg" data-view="preview">▦ Preview only</button>
+  </div>
+  <div class="cosel">
+    <span class="co-lbl">บริษัท</span>
+    <select class="co-pick" id="coPick" title="Switch company"></select>
+    <button class="co-btn" id="btnCoAdd" title="New company · เพิ่มบริษัท">＋</button>
+    <button class="co-btn" id="btnCoDup" title="Duplicate this company · ทำสำเนา">⧉</button>
+    <button class="co-btn dang" id="btnCoDel" title="Delete this company · ลบบริษัทนี้">✕</button>
+  </div>
+  <span class="tb-note">The preview is rendered from the same file the Export button writes.</span>
+</div>
+
+<div class="app" data-view="form" id="app">
+
+  <aside class="sidebar">
+    <div class="side-head">
+      <h2>ใบหุ้น</h2>
+      <span class="count-pill" id="certCount">0</span>
+    </div>
+    <div class="side-co" id="sideCo"></div>
+    <p class="hint">Every certificate below becomes one page of a single Word file — เรียงตามลำดับใบหุ้น</p>
+    <div class="cert-list" id="certList"></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost btn-wide btn-sm" id="btnAdd">➕ Add certificate</button>
+      <button class="btn btn-ghost btn-wide btn-sm" id="btnDup">⧉ Duplicate current</button>
+    </div>
+    <div class="tally" id="tally"></div>
+  </aside>
+
+  <main class="main">
+
+    <!-- Person directory -->
+    <section class="card acc-party">
+      <div class="card-hd">
+        <span class="ico">👤</span>
+        <h3>Person directory</h3><span class="th">ทะเบียนบุคคล</span>
+        <span class="spacer"></span>
+        <select class="picker" id="peopleFrom" hidden style="max-width:230px"></select>
+        <button class="btn btn-ghost btn-sm" id="btnPartyNew">➕ New person</button>
+      </div>
+      <div class="card-bd">
+        <p class="sect-note">Enter a shareholder or director once, then load them into any certificate or signature slot.</p>
+        <div class="party-list" id="partyList"></div>
+        <div class="party-form" id="partyForm" hidden>
+          <div class="grid2">
+            <div class="field"><label>Name (Thai) · ชื่อภาษาไทย</label><input type="text" id="pfNameTh" placeholder="นายสมชาย ใจดี"></div>
+            <div class="field"><label>Name (English)</label>
+              <div class="pair-row"><input type="text" id="pfNameEn" placeholder="Mr. Somchai Jaidee">
+                <button class="mini up" id="pfUpper" title="Make it UPPERCASE">AA</button></div>
+            </div>
+            <div class="field"><label>Address (Thai) · ที่อยู่</label><input type="text" id="pfAddrTh" placeholder="99 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพมหานคร"></div>
+            <div class="field"><label>Address (English)</label><input type="text" id="pfAddrEn" placeholder="99 Sukhumvit Road, Khlong Toei, Khlong Toei, Bangkok"></div>
+          </div>
+          <div class="btn-row"><button class="btn btn-primary btn-sm" id="pfSave">Save</button>
+            <button class="btn btn-ghost btn-sm" id="pfCancel">Cancel</button></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Company -->
+    <section class="card acc-co">
+      <div class="card-hd">
+        <span class="ico">🏢</span>
+        <h3>Company &amp; capital</h3><span class="th">บริษัทและทุนจดทะเบียน</span>
+      </div>
+      <div class="card-bd">
+        <p class="sect-note">These print on every certificate. The registered-capital line is Thai only — the English line beneath keeps the template's blank spacing, which is how the firm's precedents read.</p>
+        <div class="grid2">
+          <div class="field"><label>Company name (Thai) · ชื่อบริษัท</label><input type="text" data-c="co.th" placeholder="บริษัท ตัวอย่าง จำกัด"></div>
+          <div class="field"><label>Company name (English)</label>
+            <div class="pair-row"><input type="text" data-c="co.en" placeholder="EXAMPLE CO., LTD.">
+              <button class="mini up" id="coUpper" title="Make it UPPERCASE">AA</button></div>
+          </div>
+        </div>
+        <div class="grid3">
+          <div class="field num"><label>Ordinary shares · หุ้นสามัญ</label><input type="text" data-c="co.ord" data-group placeholder="100,000"></div>
+          <div class="field num"><label>Preferred shares · หุ้นบุริมสิทธิ</label><input type="text" data-c="co.pref" data-group placeholder="-"></div>
+          <div class="field num"><label>Par value · มูลค่าหุ้นละ (บาท)</label><input type="text" data-c="co.par" data-group placeholder="10"></div>
+        </div>
+        <div class="field num">
+          <label>Registered capital · ทุนจดทะเบียน (บาท)
+            <button class="reset-auto" id="resetCap" hidden style="float:right">↺ back to auto</button></label>
+          <input type="text" data-c="co.cap" data-group placeholder="auto = shares × par value">
+        </div>
+        <div class="grid4">
+          <div class="field">
+            <label>Certificates issued on · วันที่ออกใบหุ้น</label>
+            <input type="date" data-c="co.issue">
+          </div>
+          <div class="field">
+            <label>File dated “as of” · ณ วันที่
+              <button class="reset-auto" id="resetAsOf" hidden style="float:right">↺</button></label>
+            <input type="date" data-c="co.asOf">
+          </div>
+          <div class="field num">
+            <label>Share numbers padded to
+              <button class="reset-auto" id="resetPad" hidden style="float:right">↺</button></label>
+            <input type="text" data-c="co.pad" data-digits placeholder="auto">
+            <p class="sect-note" id="padNote" style="margin:5px 0 0"></p>
+          </div>
+          <div class="field num">
+            <label>First certificate number</label>
+            <input type="text" data-c="co.firstNo" data-digits placeholder="1">
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label>Short name for the file · ชื่อย่อ
+              <button class="reset-auto" id="resetShort" hidden style="float:right">↺ back to auto</button></label>
+            <input type="text" data-c="co.short" placeholder="auto — from the English name">
+          </div>
+          <div class="field">
+            <label>Day on the English seal line · วันที่บรรทัดภาษาอังกฤษ</label>
+            <div class="choice" id="sealDay">
+              <button data-seal="">เว้นไว้ · leave blank</button>
+              <button data-seal="1">พิมพ์ซ้ำ · repeat it</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Signing directors -->
+    <section class="card acc-dir">
+      <div class="card-hd">
+        <span class="ico">✍️</span>
+        <h3>Signing directors</h3><span class="th">กรรมการผู้ลงนาม</span>
+      </div>
+      <div class="card-bd">
+        <p class="sect-note">With one signer the unused slot is cleared completely — the กรรมการ and DIRECTOR labels go too, so no empty signature line is left on the page.</p>
+        <div class="field">
+          <label>How many sign</label>
+          <div class="choice" id="dirMode">
+            <button data-mode="two">Two directors jointly · ลงนามร่วมกัน</button>
+            <button data-mode="one">One director alone · ลงนามคนเดียว</button>
+          </div>
+        </div>
+        <div class="field" id="slotField" hidden>
+          <label>Which side the signature sits on</label>
+          <div class="choice" id="dirSlot">
+            <button data-slot="left">Left · ซ้าย</button>
+            <button data-slot="right">Right · ขวา</button>
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field" id="dirLField">
+            <label>Director — left slot</label>
+            <div class="pair-row"><input type="text" data-c="dirs.l" placeholder="นายสมชาย ใจดี">
+              <select class="picker" id="pickD1"></select></div>
+          </div>
+          <div class="field" id="dirRField">
+            <label>Director — right slot</label>
+            <div class="pair-row"><input type="text" data-c="dirs.r" placeholder="นางสาวสมหญิง รักไทย">
+              <select class="picker" id="pickD2"></select></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Certificate -->
+    <section class="card acc-cert">
+      <div class="card-hd">
+        <span class="ico">📜</span>
+        <h3>This certificate</h3><span class="th">รายละเอียดใบหุ้น</span>
+        <span class="spacer"></span>
+        <button class="btn btn-ghost btn-sm" id="btnXfer">⇄ โอนหุ้น</button>
+        <select class="picker" id="pickHolder"></select>
+      </div>
+      <div class="card-bd">
+        <div class="grid4">
+          <div class="field num">
+            <label>Certificate no. · ใบหุ้นเลขที่
+              <button class="reset-auto" data-reset="no" hidden style="float:right">↺</button></label>
+            <input type="text" data-f="no" placeholder="auto">
+          </div>
+          <div class="field"><label>Share group · หุ้นกลุ่ม</label><input type="text" data-f="group" placeholder="-"></div>
+          <div class="field">
+            <label>Share type · ชนิดหุ้น</label>
+            <div class="choice" id="certType">
+              <button data-type="ordinary">สามัญ Ordinary</button>
+              <button data-type="preferred">บุริมสิทธิ Preferred</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Issued on · วันที่ที่ออก
+              <button class="reset-auto" data-reset="issue" hidden style="float:right">↺</button></label>
+            <input type="date" data-f="issue">
+          </div>
+        </div>
+
+        <div class="pair">
+          <div class="pair-head"><span class="ttl">Shareholder · ชื่อผู้ถือหุ้น</span></div>
+          <div class="pair-row"><span class="rowtag">ไทย</span><input type="text" data-f="holderTh" placeholder="นายสมชาย ใจดี"></div>
+          <div class="pair-row"><span class="rowtag">English</span><input type="text" data-f="holderEn" placeholder="Mr. Somchai Jaidee">
+            <button class="mini up" data-upper="holderEn" title="Make it UPPERCASE">AA</button></div>
+        </div>
+        <div class="pair">
+          <div class="pair-head"><span class="ttl">Address · ที่อยู่</span></div>
+          <div class="pair-row"><span class="rowtag">ไทย</span><input type="text" data-f="addrTh" placeholder="99 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพมหานคร"></div>
+          <div class="pair-row"><span class="rowtag">English</span><input type="text" data-f="addrEn" placeholder="99 Sukhumvit Road, Khlong Toei, Khlong Toei, Bangkok"></div>
+        </div>
+
+        <div class="grid4">
+          <div class="field num"><label>Shares · จำนวนหุ้น</label><input type="text" data-f="count" data-group placeholder="25,000"></div>
+          <div class="field num">
+            <label>Numbered from
+              <button class="reset-auto" data-reset="from" hidden style="float:right">↺</button></label>
+            <input type="text" data-f="from" data-digits placeholder="auto">
+          </div>
+          <div class="field num">
+            <label>to
+              <button class="reset-auto" data-reset="to" hidden style="float:right">↺</button></label>
+            <input type="text" data-f="to" data-digits placeholder="auto">
+          </div>
+          <div class="field num">
+            <label>Range as printed
+              <button class="reset-auto" data-reset="rangeText" hidden style="float:right">↺</button></label>
+            <input type="text" data-f="rangeText" placeholder="auto">
+          </div>
+        </div>
+
+        <div class="grid4">
+          <div class="field num">
+            <label>Par value · มูลค่าหุ้นละ
+              <button class="reset-auto" data-reset="par" hidden style="float:right">↺</button></label>
+            <input type="text" data-f="par" data-group placeholder="auto">
+          </div>
+          <div class="field num">
+            <label>Paid up · ชำระแล้วหุ้นละ
+              <button class="reset-auto" data-reset="paid" hidden style="float:right">↺</button></label>
+            <input type="text" data-f="paid" data-group placeholder="auto">
+          </div>
+          <div class="field"><label>Cancelled on · วันที่ที่ยกเลิก</label><input type="date" data-f="cancel"></div>
+          <div class="field num">
+            <label>Replaced by cert. no. · ใบหุ้นฉบับใหม่ที่ออกให้แทนใบหุ้นฉบับนี้ คือหมายเลขใด</label>
+            <div class="pair-row">
+              <input type="text" data-f="replacedBy" placeholder="">
+              <select class="picker" id="pickReplaced" style="max-width:150px"></select>
+            </div>
+            <p class="sect-note" id="replNote" style="margin:5px 0 0"></p>
+          </div>
+        </div>
+
+        <div class="act" style="margin-top:4px">
+          <div class="act-hd">
+            <span class="ico">🕰</span> As at this certificate's issue date
+            <span style="margin-left:auto">
+              <button class="use" id="histToggle">off</button>
+            </span>
+          </div>
+          <p class="sect-note" style="margin-bottom:0">A register spans years. Turn this on for a certificate issued before a
+            capital increase or a change of board, and it keeps the figures and the signatures it was actually issued with.</p>
+          <div id="histBox" hidden style="margin-top:12px">
+            <div class="grid3">
+              <div class="field num">
+                <label>Registered capital then · ทุนจดทะเบียน
+                  <button class="reset-auto" data-reset="hCap" hidden style="float:right">↺</button></label>
+                <input type="text" data-f="hCap" data-group placeholder="auto">
+              </div>
+              <div class="field num"><label>Ordinary shares then</label><input type="text" data-f="hOrd" data-group></div>
+              <div class="field num"><label>Preferred shares then</label><input type="text" data-f="hPref" data-group></div>
+            </div>
+            <div class="grid2">
+              <div class="field">
+                <label>Who signed it</label>
+                <div class="choice" id="histMode">
+                  <button data-hmode="two">Two jointly</button>
+                  <button data-hmode="one">One alone</button>
+                </div>
+              </div>
+              <div class="field" id="histSlotField" hidden>
+                <label>Which side</label>
+                <div class="choice" id="histSlot">
+                  <button data-hslot="left">Left · ซ้าย</button>
+                  <button data-hslot="right">Right · ขวา</button>
+                </div>
+              </div>
+            </div>
+            <div class="grid2">
+              <div class="field"><label>Director — left slot</label>
+                <div class="pair-row"><input type="text" data-f="hL"><select class="picker" id="pickH1"></select></div></div>
+              <div class="field"><label>Director — right slot</label>
+                <div class="pair-row"><input type="text" data-f="hR"><select class="picker" id="pickH2"></select></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Transfers already recorded -->
+    <section class="card acc-shares" id="xferCard" hidden>
+      <div class="card-hd">
+        <span class="ico">⇄</span>
+        <h3>Transfers recorded</h3><span class="th">การโอนหุ้นที่บันทึกไว้</span>
+      </div>
+      <div class="card-bd">
+        <p class="sect-note">ออกใบหุ้นใหม่ไปแล้ว แต่ยังเปิดตราสารการโอนหุ้นได้จากที่นี่ — และย้อนรายการล่าสุดกลับได้</p>
+        <div class="xlog" id="xferLog"></div>
+      </div>
+    </section>
+
+    <!-- Summary -->
+    <section class="card acc-prev">
+      <div class="card-hd">
+        <span class="ico">👁</span>
+        <h3>What goes onto this page</h3><span class="th">ตรวจก่อนออกเอกสาร</span>
+      </div>
+      <div class="card-bd"><div class="preview" id="preview"></div></div>
+    </section>
+
+    <!-- Export -->
+    <section class="card acc-out">
+      <div class="card-hd">
+        <span class="ico">📄</span>
+        <h3>Export &amp; data</h3><span class="th">ออกเอกสารและข้อมูล</span>
+      </div>
+      <div class="card-bd">
+        <div class="field">
+          <label>File name <button class="reset-auto" id="resetName" hidden style="float:right">↺ back to auto</button></label>
+          <div class="pair-row"><input type="text" data-c="fileName" placeholder="auto"></div>
+        </div>
+
+        <div class="act">
+          <div class="act-hd"><span class="ico">📄</span> Word document</div>
+          <p class="sect-note">One file per company, one page per certificate — the same shape as the sets the firm already keeps. Several companies open at once export as a .zip, one Word file each.</p>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="btnExport">↓ Export all certificates</button>
+            <button class="btn btn-ghost" id="btnExportOne">↓ This certificate only</button>
+            <button class="btn btn-ghost" id="btnExportCos" hidden>↓ ทุกบริษัท (.zip)</button>
+          </div>
+        </div>
+
+        <div class="act">
+          <div class="act-hd"><span class="ico">📗</span> Batch from Excel</div>
+          <p class="sect-note">Download the sheet, fill one row per certificate, upload it back. Uploading <strong>replaces</strong> the certificate list; the company and directors stay as they are.</p>
+          <div class="btn-row">
+            <button class="btn btn-ghost" id="btnXlsxTemplate">↓ Excel template</button>
+            <button class="btn btn-ghost" id="btnXlsxUpload">↑ Upload filled sheet</button>
+            <input type="file" id="xlsxFile" accept=".xlsx" hidden>
+          </div>
+        </div>
+
+        <div class="act">
+          <div class="act-hd"><span class="ico">💾</span> Backup</div>
+          <p class="sect-note">Every company, its certificates and its person directory live in this browser only. One backup file holds all of them — restore puts them all back.</p>
+          <div class="btn-row">
+            <button class="btn btn-ghost" id="btnBackup">↓ Backup (.json)</button>
+            <button class="btn btn-ghost" id="btnRestore">↑ Restore</button>
+            <input type="file" id="jsonFile" accept=".json,application/json" hidden>
+          </div>
+        </div>
+
+        <div class="act danger">
+          <div class="act-hd"><span class="ico">⚠️</span> Danger zone</div>
+          <p class="sect-note">Deletes every certificate, the company details and every saved person on this device. Cannot be undone.</p>
+          <div class="btn-row">
+            <button class="btn btn-danger" id="btnClearAll">Clear everything</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <aside class="pv">
+    <div class="pv-hd">
+      <span class="pv-ttl"><span class="live"></span> Real-time preview</span>
+      <div class="zoom">
+        <button id="zOut" title="Zoom out">−</button>
+        <span class="lvl" id="zLvl">55%</span>
+        <button id="zIn" title="Zoom in">+</button>
+        <button id="zFit" title="Fit width" style="font-size:.72em;font-weight:700">FIT</button>
+      </div>
+    </div>
+    <div class="pv-tabs" id="pvTabs">
+      <button class="pv-tab on" data-page="cur">ใบนี้ · this certificate</button>
+      <button class="pv-tab" data-page="all">ทั้งชุด · every page</button>
+    </div>
+    <div class="pv-scroll" id="pvScroll"><div id="pvSizer"><div class="pv-stage" id="pvStage"></div></div></div>
+    <div class="pv-ft">
+      <button class="btn btn-ghost btn-sm" id="btnPrint">🖨 Save as PDF</button>
+      <button class="btn btn-primary btn-sm" id="btnExport2">↓ Export .docx</button>
+    </div>
+  </aside>
+</div>
+
+<div class="scrim" id="xferScrim" hidden>
+  <div class="dlg" role="dialog" aria-modal="true" style="max-width:560px">
+    <h4>โอนหุ้น · Record a transfer</h4>
+    <p>Cancels this certificate and issues new ones in its place — one to the transferee, and one
+       back to the transferor for any balance. They are added to the end of the register, which is
+       how the firm's own sets are ordered.</p>
+    <div class="grid2">
+      <div class="field"><label>วันที่โอน · Transfer date</label><input type="date" id="xfDate"></div>
+      <div class="field num"><label>จำนวนหุ้นที่โอน · Shares transferred</label><input type="text" id="xfCount" data-group></div>
+    </div>
+    <!-- Only on a part transfer: which block of numbers moves, and which of the
+         new certificates is numbered first. Both follow CorpDesk, so a register
+         and a replay of one describe the same transfer the same way. -->
+    <div id="xfPartial" hidden>
+      <div class="field">
+        <label>หมายเลขหุ้นที่โอน · Share numbers taken from</label>
+        <div class="choice" id="xfTake">
+          <button data-take="back">ท้ายช่วง · the back</button>
+          <button data-take="front">ต้นช่วง · the front</button>
+          <button data-take="custom">ช่วงกลาง · a block inside ⚙</button>
+        </div>
+        <div class="pair-row" id="xfTakeStartRow" hidden style="margin-top:8px">
+          <span class="rowtag">เริ่มที่เลข</span><input type="text" id="xfTakeStart">
+        </div>
+      </div>
+      <div class="field">
+        <label>ลำดับเลขใบหุ้นใหม่ · Number the new certificates</label>
+        <div class="choice" id="xfOrder">
+          <button data-order="transferor">ใบของผู้โอนก่อน</button>
+          <button data-order="transferee">ใบของผู้รับโอนก่อน</button>
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <label>ผู้รับโอน · Transferee <select class="picker" id="xfPick" style="float:right;max-width:190px"></select></label>
+      <div class="pair-row"><span class="rowtag">ชื่อ ไทย</span><input type="text" id="xfNameTh"></div>
+      <div class="pair-row"><span class="rowtag">Name</span><input type="text" id="xfNameEn"></div>
+      <div class="pair-row"><span class="rowtag">ที่อยู่ ไทย</span><input type="text" id="xfAddrTh"></div>
+      <div class="pair-row"><span class="rowtag">Address</span><input type="text" id="xfAddrEn"></div>
+    </div>
+    <!-- Offered only when the transferee already holds a certificate whose numbers
+         run straight into the ones being transferred: both are cancelled and one
+         certificate covering the whole run is issued in their place. -->
+    <div class="field" id="xfMergeField" hidden>
+      <label>รวมกับใบหุ้นเดิมของผู้รับโอน · Merge into a certificate the transferee already holds</label>
+      <select id="xfMerge"></select>
+    </div>
+    <div class="field num">
+      <label>ราคาโอนต่อหุ้น · Price per share <span style="font-weight:400;color:#cbd5e1">— ตราสารการโอนหุ้นเท่านั้น</span></label>
+      <input type="text" id="xfPrice" data-group placeholder="เว้นว่างได้">
+    </div>
+    <p class="sect-note" id="xfSummary" style="margin-bottom:16px"></p>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="xfClose">ยกเลิก</button>
+      <button class="btn btn-ghost" id="xfInstrument" title="เปิดตราสารการโอนหุ้นพร้อมข้อมูลชุดนี้">↗ ตราสารการโอนหุ้น</button>
+      <button class="btn btn-primary" id="xfGo">ออกใบหุ้นใหม่</button>
+    </div>
+  </div>
+</div>
+
+<div class="scrim" id="scrim" hidden>
+  <div class="dlg" role="dialog" aria-modal="true">
+    <h4 id="dlgTitle"></h4>
+    <p id="dlgBody"></p>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="dlgNo">Cancel</button>
+      <button class="btn btn-danger" id="dlgYes">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ===================================================================
+   Share Certificates — fills the firm's Word certificate template and
+   exports one .docx holding every certificate, one page each.
+
+   The template below is a single certificate page lifted out of the
+   firm's own set, with each value swapped for a {{TOKEN}} run. Its XML
+   declaration and <w:document> start tag are byte-preserved: Word
+   rejects the file as "unreadable content" if the prefixes named in
+   mc:Ignorable are not all declared, which is what happens when the XML
+   is re-serialised by a library that only emits the namespaces it
+   happens to use.
+
+   The page is repeated once per certificate and the copies are joined
+   with PAGE_BREAK, so the number of pages follows the list.
+   =================================================================== */
+
+const TEMPLATE_B64 = "UEsDBBQAAAAIAAAAIQCBheM7kwEAAK4HAAATAAAAW0NvbnRlbnRfVHlwZXNdLnhtbLWVTU/jMBCG7yvxHyJfUePCAa1QUw58HAFpWWmvrj1pLfwlzxTov2eSlAitug1Lm0ukZGbe9/FEej27evOueIGMNoZKnJVTUUDQ0diwrMTvp7vJT1EgqWCUiwEqsQEUV/OTH7OnTQIseDpgJVZE6VJK1CvwCsuYIHCljtkr4te8lEnpZ7UEeT6dXkgdA0GgCTUaYj67gVqtHRW3b/y5I8ngUBTXXWPjVQmVkrNaEdflSzB/uUy2DiVPtj24sglPuUHInQ5N5d8G27kHXk22BopHleleee6SrzEbaaJee54s98vs4Ix1bTX0841aylEDIu/cu7KveGXD6R4OvUaK/o930hL4xxwTnh2M04s2epDJAu5jaHcR1n4BmemPv4xeehACaeMAj0/Q6Q7bAxEPjAGwVR5EeIXFr9EoPokPgtQxUog0xt/opQchIJiRGD6Uv7AHdlQLB2PsYSs9CEEcydA9D0+HVmafJXe2QcQRn79x7I8Mb6Yn6UsJ1Duy9MHng+Z6MGD+17tLzSOF7w5z2d6283dQSwMEFAAAAAgAAAAhAJlVfgX4AAAA4QIAAAsAAABfcmVscy8ucmVsc62STUsDMRCG74L/Icy9O9sqItLdXkToTWT9AUMy+4GbD5Kptv/eKIou1LWHHjN558kzQ9abvR3VK8c0eFfBsihBsdPeDK6r4Ll5WNyCSkLO0OgdV3DgBJv68mL9xCNJbkr9EJLKFJcq6EXCHWLSPVtKhQ/s8k3royXJx9hhIP1CHeOqLG8w/mZAPWGqrakgbs0VqOYQ+BS2b9tB873XO8tOjjyBvBd2hs0ixNwfZcjTqIZix1KB8foxlxNSCEVGAx43Wp1u9Pe0aFnIkBBqH3ne5yMxJ7Q854qmiR+bNx8Nmq/ynM31OW30Lom3/6znM/OthJOPWb8DUEsDBBQAAAAIAAAAIQAfL3rUmhcAAPjZAQARAAAAd29yZC9kb2N1bWVudC54bWztXVuP20aWfl9g/wPRT57F2OJFEilj3AO1JF8wdruh7sxsngyKrG5xIpECSbndGQwwzhhwEuzsS5LNuGexGCcYeDdBgEkm2VX/G/2UrSpeREmURFGiWEWVYbQkXg6LVafO5TunTv3ily/6Pe45sB3DMu8dCHf4Aw6YmqUb5sW9g/fO7t9WDjjHVU1d7VkmuHdwBZyDXx7+8z/94vKubmnDPjBdDpIwnbuXA+3eQdd1B3dLJUfrgr7q3Okbmm051rl7R7P6Jev83NBA6dKy9ZLICzz+NrAtDTgOfF5DNZ+rzoFPTnuRjJpuq5fwZkSwXNK6qu2CFxMawtpEKqVaSZknJKYgBN9QFOZJSWuTqpZQq+YIlVMRgq2ao1RJRynm5arpKInzlOR0lKR5Sko6SnPs1J9ncGsATHjy3LL7qgt/2helvmp/MBzchoQHqmt0jJ7hXkGafDUgoxrmBylaBO8KKfQlfW0Kcqlv6aAn6QEV697B0Dbv+vffDu9HTb/r3e9/hHeAXrLHwsfVSuCF23Pc4F47Sd95tzd9wYJ7rWSDHuxHy3S6xiCUDv201ODJbkDk+bIOeN7vHYSSTUg41RaJtqY3DBOCSZrvj12/57V8OUWBTzCaiER4R5ImTD8zaEkfcvDkwam6JtK5QkLhExAQ5whUNZBQWQQ0FJ9GSZvMbkTHSDitAjrVkI6hR+ika0yEgD5ci4QoBe1AH+j2CC1Hd/XueuSCMSqhe1VX7apOd5rieUJBEFAsRyh6DNaztA+iNMF6nVYJCV71I2M4uNhsoj6wreFgQs3YjNqjici+NNd7Qb46yxUDZ7PGnHbVAZTkfe3uowvTstVOD7YITl8OzkAOjwDnTQH0wXmzigv4hwuGncPcySGReHAIjcCOpV+hT7fT8z9ObP/Lb7hLJGWEmqRAIxIeuhrAJ+ov1AOu5F/yyNS9i25L/IJLHqtX1tANz50bL4AeOWtZH8Bzz1XIjzz8h4icG7bjti1IFf/sqdFf+GTD6g37ZuT81AHTengEDd7w16/DX/Cppel3fGAbOvp6AT8hEe9lJN5v4PTRmhB3uMzHXq1U4o6K1djDghx3VFak2IslJfaB1XLsE5XYw0JVjD1elmNfUhDE2Geud7US23BRjO0TJbZbRSWWdK0a21XlamzHxjdPiu/XqliNO1yJJy3Hv4wsxY/7Wi0RhHgOrPLxoyDK8S2XYluuxPOxwMdTkcTYh8qKEJlmwexybXgWuqh6G81ypSo3WtJBcOjERgcliT8S+ODgGT5WkyWlcnTgUfCmLHrYEYAaCARSI2jGZXjYn8Gz0qg0oeJq3t/g12+CnhHFOCmGHno6UM3wkcEznz8B9kXYEhtAR9t2g3P1nnER3tKxXNfqh+3wnzxYs1vaTXCuDntu5HJMxqPmDFQN6gl4bQd3BWKBYEx/qwUt0aApDWz/sN8f9n3LdB14hepoBtSZR7Z1qfZ6hsodg0v08G7ddOKOa87cQUzX+TB4nCSGhxrOzMGS34BS+Ap27NuT01LYtXbIIAP1AoRnC9D6LBva8T9g21I1HINUmMNR0+FMA/ZzcHD4u981nj47e/j73+NZNXkXaDVZ5y178rbOAPR6p5HpGX9FywxsE/LHckGXcFNdgaaWL3KWCL6aIiWRe+Ku5FfPQNa25JmD6Ed7iIxd8ELV3LwFWmgORAfHPzgr0JL1vsSLtSTdrxDU/TT2s8yXq2uod9bRaTta4ReYX/l3p4EdVtu46EJqtwVeybibF+u9dbp9Th01G0JVrmeqjtK1HNGbUVOH49G349FofPPJePRmPHo5Hv0N//x4PHqbQleJghyLRszO4sAhXGaju9qRZevAdvCbYhM9uFBXne5pH3bKA3WAHud8CN1J/MVTuJjHNKtnwfFQh6414fGQJBkcT4WizNj6NK0TZO7NtVCJa6FyMMPAi0zPB+2n753MmJ4eDxMg4nrgHEm4cu4OYGr1gv11PADFRg+I0Y07ZpHNXML1LBLm4DAHp/h295oOzjLbKLNBGJy6V73wkWfgRWiLqR3H/5xlfHiXBbtTkvlJDMe/egHmCcfrHN4aBH1IG8484KXF4ja0EaItL/NTLffGZQdoIbzYMCHvaM622r0EOXzYbBcFPdy0mzp2vkg2Jey5E5ZsHc+x5MyAVJq8fL8VSNwm6EUOUvjmaTBrBjJRqITWayniCZzQszuYaG9goXiUgIxx30c4YC2u8OHfNbmCkqyAWQh5RxjhrGpbgBluHq6e0+4MwiBGyCzsfaGiyEm6v0JQ97NYVw6xrps/jkfXUxGvmz/giNdH49GX49FP45uPl5v2JFphC6z2BrBd49zQVBdwx8N+B9gp5JpQLifSk4GhRoVxxsvS/Vaj2IIzY32cTcyu0WqfPTt+mkoDp4VXve87TwfNCWn1tA5O03+MOT1r3yIdJrHIymTgA9P6KTJcPh6P/oHTW97Bv4VR8GeWq/bS6HSplshaDnypKZ3uWoONFDq5VkER3amcvPVsrIPTh/V26zSdcYAWvsxz/FY5m0SmnMIRBR53QqB8qlWme3aaXVkYxXPaVW1wy/nZ4olIFhyMiDwEiO3DW/lJNkt+QPFW/IWJPJiY+mvIhhhXgEhNRmd87F/i/zGAOffR2TuAuUZmnDsLGJKk/g9sL6V4k2IDxI1mNVnLZyTTAWkMQCN4AuUKxJDorhZJOMYhDmT0cq6gwB7mGglCORZ9mp3mZTo9yCkLk5DY0h4BTOumNCQTX2UhHjGd5Vl5mzw7H5dnqEcBcPtNovpkwB6MDdOZt3wl2ehl7Laz4WPWFC08lZ81VWQcfioX0rqTuUE046vTk/KwQVqaUK1N1PBcWtr+Clhm2xRw7JhtQ+jw0aGPbi3PBdkBArFJSstLXB7su/Hoi/Hoeww6vMZww/8GVcT+Oh79MB59hbGJL/DBl+PRv2OQ4m1w6iX6iejAe7/GBz/FNOGXz/DfjxFxdOPX45tXGMv4ir4MmkOKk2Qqk2j2Nk3ybWXbr7PMcl+t9SX5nzuXOFvEPLdasnAjy367UTiipkaMxY9iRqG9X5P31dwvVFb14jqJzH+hgRmZ/1Ko4aPDqr31yNQse2DZqgt0bmhC9cW5XcA9Vi8dDooo9P1XcPR0q49+nnVVo6eaOjOGszKGSZhytCUCJDaOiZyCaUsvkQVkM4s3Zy01O3VSGJmbLdZmViSJZgizIoszfIUxrSRRTJQvHWToE2RaJajqoUxS9rPTLmSxKe0w5De4rsS3OIDx/Xh0PRufIO89EgBCZ+8Lz562m3Gll0kqPJzUTi4VZlBO2q37CUaFpjm0YIH5sootCS0TvINujO6Juh7IuA/aaBq94OVI9XHoVUTeWhNPedNqUlEJ7m9QMgXvNT0/gQhi5a0wpbeEMAJe8bRzKb3aYHG1FAYl0MuS2UAJREmi1UpV5OXa5OLgoil0UZRrqy6RxDgqM4+qKOHoLKJTrUqr6dT4uIumAdFqLeZRs3nBQkVZ1SBBDB5Gpfe7mdlfFNn9JZLdyGaHxvvn+Off8VrEa7QKcfQVCRWwNvbPctzHZpGFuJlj2aifPKs/OSuCqz8zNlTPpWucAvslGxSCBgWlLF8HKcvf4f8vsYD7y/jmNRZ80bTEb/AIvsXA4J8KgEFxufMiycI6O+H8tN0kQDjv87yPTGsOC4G/IctmarJfY9Pn6/HoRzzlv8FfoAH0Z/iF+rEjqm3LpgoCyNlcIWeuoKnwE/57gyfNK6w8f5ieOmgy5T5klPgFa2y/uo3pVG8TMJuYBbrCLSA41yNBSkdtl2XSMs985clcBrYSaSJRKx7et9LsWCVWKolKxe4mv5VELFooizvIYyWDj6ji+KimSsjsEgoIrGZ2StMvV8tVKiJgtPhQQebX6h3OSZw9u8302n5mF529nnqLEBbFp0qGZRPFJ9E8EsVwF+lNQvVKZRWV+Cj8dIBdWZk2IIi8sG1zLtC7cpm5M1tTT21wYThwMIDONdSB4aq9u8vFPTFVgFaL+9h/hVFmR2rX5QyTvvdRfexprWFbPXSUMiZ947f4pQo0QMUZlqe2bpiqfRVav5wK1WkxZ1VxRq1gY0PfwBye2OAc2MgwCieOdU7fe4Ta9hAbDEDVurQEai7TL8pV5GpyBJKorG1qgz7pIoorvSbKYqHRYqL+jicx041xU07ctAsJHXY5btntcmoNdDzsd5BnngKuLJeT7YIYLOTbbT2dCKJInYClFSq9zDbykE2qabt+/KDFykASyITbkc+JkydircPZwazSOZjFiSdTbbl9hNdO+DVT8Jfv8JqKd15+aKGtOCqFBxXu9+FZ13A4+N+1OA3v93PFuV3VTaHSBL7CJ1JqAoFZZCTUxfdqK0jVWs6+zBarGWZn1a3M6s6mNsjDp4+brfZ8QaHkEnefOY3KSvGbuQg+w8zlKRGMa66GL1F1giSSfgKHUmXx0o8jUWbbfjoe/V+wPdJ/ooVPaJnTf6CD6MhG5W3KQjW2plm8c1YkqN0T8opMpIzP0VDIVM4vMAwYHEQjZJA8fTPJ4FG6t+6iim+E+Or7qTC/w6WBbrDOvMa68Qe0LjgI6eFl9D/BsylEkSJKybz4LPjZP3OCDlXKlZpQ2aE7tGtNuYGHmrNLtJkPXW82UytKqSIkEraUeh45ceIWsZOCSFi0eernWLAurMs2XcVomdsSgPevA+T+x/HofzCQX6BF6QXHBEjftJTO6ANOXexaPR2kWbW+rm9PULxhLUuo2izXj3ZiCU2zdYghVEhl8TyMnx3gwQwnoMqbZDhBfqZrkbXj0/MUImJN/50urcj4uAAqEPv/KRUg8/+JYj4KhCjKbeoCzp4sJPf8jWDH5YbVh3xzVRxHXI6rDlcYG5G2/ZILhosFgYVoCKIIqacM1dmiyK3rOlT3ThpEpyIlEl7hZqVPgH0R8gV8qKvaYdEacuzalTl/XATtqVUgNyprcj/pFgYVOaWbxj5W2bynZ+8dxe5FSez7dOzgN9ntTNDvDHHbO8RtvYVZ28r920qCd4IdRyU+nAX0FaTdjklaFKN68ca9GQvdzXyaJXL37H2R7YdN4qDE74e9Y6+t6NKtyM6dlSYoIcpSItiWxkg9TQxPhXFHpaOxwabhYk2Wk8c0tmWmkuB++LnlsteMohXzocwIXbrMinFUPhxFjnROYOzTWYyf2i0QRLYFQlSNCmJ8UcXCqUsh4Uos4oUb7eqyQJUUi81aJArAQ9Mvn8id21Y/81Qounxq/wyOhx7VxEr9PouGEOcwZ1w7keVdkaQgiEdPM00woU6AMo5gAX6aVVpCl4/4ndP2ao4xjZ110GhqEzulImQfMcqX3RYlfOyVss8qoYgxE7MT9sNOkHghUYRVLszgUQbQUYb9vsVFYN6i5S8I+H3llWCfLvkCj/+dYkCYfp4iEvS9BU2JLmeYWm/oGM/B3J5tCf2eSjmRMmJLvAul7GgJTZ/U26kSoZRyLVnpguIYWZTJVMr09DXWyl9y3Hj01yBW+8fx6Auso7/Favp7XJbtm6BoW1if7dV49Bm65ubf8Fl45Z/R8ZuXnmZHJd0QEe8Wj8irYG+Wdaq9Md7dmnAcoChVy7ZDCXJhq/3TyIpQGgwEtAvqTDZP7Hu1TJ2et1qQ7IM2e4W2EC7DoHas52Exhp9zzrDzW6C5aFsadPYJ6Fu2aurDPt4dum67htYDDqrhUHccSzNU17DMn7NgIhMmDGekeQ+kgnEGAw1JGMP9AQ2Zs5FfxejAM5iUjv4UL+v9Oigd/Rq7Am8W4IVTa4DJhxILxWkk2syHyNBFWzFiA9iBlu/uoULXGmxkjORt0TAludEkybJR2SSVntQfNRn0SINdXTDtH4EaPUMAqe53M0AOBVpnAVKT0vpgHuVaRWwYgEnqWy2YFl3V4ToAmNxANXTOMj1E0y8s66BjwXrGO2tDk4Jckb2qlDuFJhGRhwAtAAt7Qwi7Y9UWMLVyIhysulSHJnjxqCSZvvwkcmgfhUvR1Oo7HDh7E6k7Gy1AC/+/TGHsSZKSiE+XFxGnnE+ZE5KVE/Lo9PS9Vq47wVLOmmTxYEKcZUtLUXY6dKuSwgWhMmG0gmaFUwkOqp3gAPUqHiXkfIvcZYSbv8N+83yuzufYEniNfiI8/Qeck/OPIOXmT0tSbjDy/jayv/ysRUGLYc7M7yXl+3deqKLAsuWwqboAObGG4wxB5uZ1XikQNPE5M993br7nWS6esSaz6plVv3+aV/XNavfwwaNft45zjh6tGRWioocPhyba+s3f961vmdwpUHszW8HB78aSzYuYW0ChTiKDA9dMQNzEjt40dYcZ0XQxCzM8CzWcAs/HBmf3ajxpHDhRqm4ha5zygaNiIlIJTpy26o+fNevvpwInqmJMgewisOBqHJgWjpzubsoiOX/AgRpvIXXcJhIrZScvJpKdW8VaFKXSFI62iLXMbOwj8NVJHklhNvZB7kRDHWxr976M2govNkw4ypoT3+4MZfSTp8dpU0DKyXatLI7pFxSf56erzy/ck5sJ8x1k3v3XnfHov5ekrS52XeSauJ/868E1FDMspfbw+616+9nR0mLyi4VtwkoLDB3dGSMytJ0qfqI+CYcyxbwkJf6r8ehlsBvRjyw3nhpvan/0daN+3Gg9ZsnxBedNFuQogu21pSDHTGSaZXgWaKJTqYSCIEraJE8WRyGeKWO7m5yWIpbT1at0JX3WC5NQIn1ZGCYV00U4TCFAQC9sTpJwSUppzMIlhQyXECmz63ea2YdEKJHYRMwBFnLJx3rGIZd6ulprLORCHCMmCbkQWyt9OyGXzTcqF4+qjXKLDD+NLPaiQ7kH65411dRAr4e3FMg8gpKXsqeJ3Zl6332EJs/1z4w3SQH6891gO+WIrlr/LEuVWvZQEFnDPaeB6Up6mNTU/4tfUB8lPXi7bW1SG8gvOcSNR59xkTyKN/jLJ7j6kFc1CG8Who78MCUUqe7WaBEpgh2Ay/mKpGU+oWtQkcREwIsgEC2+ZrHsslL4zbrT6StmfjDzI+8RXWV+lKWaOLk03kLhFYotlHQKik7M4Gx5JZFL1eG6wAZD07U49fzceAH0YMdD7HSZGoIcbi83Knbw5puN2baMiSMRvmgYBJ43JhYo+XK1nEjJpxASK3cwiAqJ+02x0RL3ElBesraPXgPZK056Pb0Z1yfBjr/XfunS0dvYuuSRwqYv8dk3/sV+bVMvS/uj3Gf+9mY66VZZrtOzSFaZIOzveApCWaB47Mo1PlHuWOYO8RqDt8qgluRJl2zJWo5PsZHLLNq2c/txsRiqiLX9EkO0cyXRDLgw3eXRg8fPHh+lXrNUFmuJ8hOXL6ijiU2JZ8WkZg6/hToGm3uVEQc4F/mya/GyHfcte7EzV1wmSxHUTiCCskdaRIFPpHIVJsuKbOytD5O2gYd2ukDnOlecCS5TJVZVKnuvSQuEIzBYqFDDudewEJnKIRNM6JLajNWde+qVGnPNt+2K/2sqL5yBRQwsyoojkWeWdu3qWuAQUZJ32oMkhu0JZ/TLu8NwwODwAZ129m+nFcjZoWtrcSbh6No0pkQ1n6wWk+sAWAnzjmdThzGAVUqSOrx/WBer/rJDRKwBbNc4NzTVBbecn3HHw34H2EDPHBYjyoYgdCJQzPlZNmrRekMlroWJy7+0WyeP641W89lRuk1NGIpICXcyFJGhiAtRxN1sV0h5iveOp/m075FK/u8+Kp+hpsJgz3H9SbqNBhgCSTQwk1LobYLf5SjzisExVJg9tIq69gaiLjtsby3GJRzbI4RB4yA49NHpZTAkDaHSUOTokGTTGfEvCfsDaO7JFLpYbUhlqTrzTnVRqDUrwcFTeFPkfRAdYOqm5QKv7eawf78fQow60AwoyoNmTF2JZkQos+ALG+bQGgb5g4OL0w85v8KvUMU92oWTScTlDi7vWrYBUL5hTzV1R1MHwNMJOpiol8HFExW9HNQs8KBXo91nRv+Xh/egoqmYOT2+9c91gaqHrH9uWZN5cDF0gx+eUWf1nIlyksXguG5pD+Ac9yfLieFq8AWkCd95vY+/diz9Cn+B9wz78MUO/x9QSwMEFAAAAAgAAAAhAAxG6KAsAQAATAUAABwAAAB3b3JkL19yZWxzL2RvY3VtZW50LnhtbC5yZWxzrZTLTsMwEEX3SPxD5D1xUqA8VKcbhNQtFImt40weIrYjewLk77GocFNaWV14Odeae488Y6/W37JPPsHYTitG8jQjCSihq041jLxtn6/uSWKRq4r3WgEjE1iyLi4vVi/Qc3RNtu0GmzgXZRlpEYdHSq1oQXKb6gGUO6m1kRxdaRo6cPHBG6CLLFtSM/cgxYFnsqkYMZvK5W+nAc7x1nXdCXjSYpSg8EQErbXCLS97cKbcNICMeCl1boSehriOCWFx6t0teoJdHYq/ixkPqlIa5wB/SghhERNBjbIE41Zsz+ClEEQeE0KMFrV8d2keIk33Ku0QZB6iWcbdTI3/xuKlEMRtTIgvKF8B0U1hhjETQyA3UZ/IEYU9A+EhJgK63tk38VvuRL8U9OAPLH4AUEsDBBQAAAAIAAAAIQBfkGDPOwMAAOYOAAASAAAAd29yZC9mb290bm90ZXMueG1s1ZbbbpswGMfvJ+0dEFfbRWoOCUlQk2o5dOrNNK3b9eQaJ7CCjWwnJHd7mj3YnmQfEA4taQtUqjQuQrD9/fz3d7B9eXWIQm1PhQw4m+nmhaFrlBHuBWw70398vx5MdE0qzDwcckZn+pFK/Wr+/t1l4m44V4wrKjVgMOkmMZnpvlKxi5AkPo2wvIgCIrjkG3VBeIT4ZhMQihIuPGQZppH9iwUnVEqYcInZHkv9hCOHdjRP4ASMU+AQER8LRQ8Vw+wMGaEpmjRBVg8QrNAymyi7M8pBqaoGaNgLBKoapFE/0pnFOf1IVpM07keym6RJP1IjnaJmgvOYMujccBFhBZ9iiyIs7nfxAMAxVsFdEAbqCEzDKTA4YPc9FIFVSYhsrzNhjCLu0dD2Cgqf6TvB3JP9oLRPpbu5/elVWtCw3bQw3RTRgwqlKmxFG9/l5itOdhFlKvMaEjQEP3Im/SAud4eoLw06/QKyf84B+yjUy53NbFlqT21tqzwMFbCN/FPsojBX/jzRNFpEM0WUFm0kPJyzUBJBBlcT93JNzblmy82nAFgNgENoy8OiYExODESq6k45QcuyKjhOyQm8GqefmBrA23VCWHahI32l5jWW9JTnd8MVMUKpLVbYx9J/SNy03AgK4rBGzBMs5OS+zqTdnDYqgceoFsN4+7pC/Sz4Lq5owetoN9WWnbBuCzScx1kRy9eJufVxDDt5RNybLeMC34WgCMpXgwrUsghoeQmkLy2vKq3IH60Iu5Zlp5Zuifq8dgvUElcdYyBKGmOBFRc6NKX1NDCzgTFYDt207wYaLWM9Hk9NW89a4YxVaev49KSmcCX1vs10w1itncXaLptWdIN3oar1ZPSvInvdqmOYatljSNBr0EaFjuaXqByR/aj5zyeedKTKxovcqindWZjL6dJ+K+mJmwQeT5acKcHDot/Iu2SMCYQWWvEGxsMN3jLq681XgKownQ0ZAXbAdtkpe/s4fMaZ6Jmrqbmy16P/MHrj9fjTwjbfSvrLISoX9eHv7z+nSFDv45mldAnjF66ye1sew3MVOBwtrMnEebs0rhxxR+EIoKUnEvcXKQxEsPXVefeUvgE/veie2oec/wNQSwMEFAAAAAgAAAAhAIVN/fr2AgAAZgwAABEAAAB3b3JkL2VuZG5vdGVzLnhtbL2WW2+bMBSA3yftPyDeUwNJSIqaVGuTTn3ppqX7Aa5xAgvYlm1y+fc75t7SVYRKy0MMts93js/N3Nye0sQ6UKlizha2e+XYFmWEhzHbLezfzw+juW0pjVmIE87owj5TZd8uv365OQaUhYxrqixAMBUcBVnYkdYiQEiRiKZYXaUxkVzxrb4iPEV8u40JRUcuQ+Q5rpM/CckJVQr03WN2wMouceTUjxZKfARhA5wgEmGp6alhuBdDpugazbsgbwAITui5XdT4YpSPjFUd0GQQCKzqkKbDSO8czh9G8rqk2TDSuEuaDyN10intJjgXlMHilssUa3iVO5Riuc/ECMAC6/glTmJ9BqbjVxgcs/0Ai0CqJqTj8GLCDKU8pMk4rCh8YWeSBaX8qJY3pgeFfDnUEjTppxbUXSN60onSlazs47tCfMVJllKmc68hSRPwI2cqikXdHdKhNFiMKsjhIwcc0sSuO5vbs9T+1dpWRRgaYB/zy9ilSWH5x0TX6RFNg6gl+pjwWmdlSQoZ3Cge5JqWc92ezacCeB2AT2jPy6JizEsGIk11G07cs6wqjl9z4rDFGWZMCxBmFyG8cWWHGYx4i6VCHUaX4aoYISOLNY6wil4Ttz0bQUWctIhFgiWc7NtMepnTpjXwnLZiKHafK9TvkmeiocWfoz02LfvILjug47/NCqE+Z8wmwgI6eUqCxx3jEr8kYBGUrwUVaOURsIoSMINVVJVV5Y9Vhd3Ks9MyLdFeNh+B1jHQZwFARQWWWHNpw5Qpp5Gb7xMgOAnM2iNMOuv19GF6983OZ+GK1WZ2Vv6MKHyQhr9go7Na+3frcT21olucJbq1ktN/ynzY6HNibDlgyM8HDoZJG5mVPaXiCdTkL0pgAg6BfS8UkhGsdj3HaMBbEFjYY98ppP6QikXgAilYqNZW/BXPWbXReDqh5cZyUS/XT6unH8/rjZnUxVJByv9LH77nTsKZjlmWX4Cbt6513vHsZHJ/fe/N/pdnK290z9I8q+VfUEsDBBQAAAAIAAAAIQDQVXaS+QYAAA0iAAAVAAAAd29yZC90aGVtZS90aGVtZTEueG1s7Vpbj9vGFX4v0P8w4LvMi0RdDMuBrnHsXXuxu3aRxxE5IscacoiZ0e4KRYDCeepLgABpkYcE6FsfgqABGqBBX/pjDNho0x/R4ZCiONLQl3gdGOjuArua4fed+XjOmTNHlO58dJUQcIEYxzQdWu4txwIoDWiI02hoPT6ft/oW4AKmISQ0RUNrg7j10d3f/uYOvC1ilCAg+Sm/DYdWLER227Z5IKchv0UzlMprS8oSKOSQRXbI4KW0mxDbc5yunUCcWiCFiTT7aLnEAQLnuUnr7tb4jMg/qeD5REDYWaBWrDMUNly5+T++4RPCwAUkQ0uuE9LLc3QlLEAgF/LC0HLUj2XfvWNXJCIauDXeXP2UvJIQrjzFY9GiIjozr99xK/teYf8QN+vnv5U9BYBBIO/UPcC6ftfpeyW2BipeGmwPem5bx9fstw/tD7pjr6Ph2zt85/Ae54PZ1NfwnR3eP8CPHG88aGt4f4fvHuA7s1HPm2l4BYoJTleH6G6v3++W6AqypOSeET7odp3etITvUHYtuwp+KppyLYFPKZtLgAouFDgFYpOhJQwkbpQJysEU84zAjQUymFIupx3PdWXidRyv+lUeh7cRrLGLqYAfTOV6AA8YzsTQui+tWjXIi59+ev7sx+fP/vH888+fP/sbOMJRLAy8ezCN6ryf//rlf7/9A/jP3//y81d/MuN5Hf/y+z++/Oe/XmVeaLL+/MPLH3948fUX//7uKwN8xOCiDj/HCeLgIboEpzSRN2hYAC3Y2zHOY4jrjFEacZjCnGNAz0SsoR9uIIEG3BjpfnzCZLkwAT9eP9UEn8VsLbAB+CBONOAxpWRMmfGeHuRr1b2wTiPz4mxdx51CeGFae7IX5dk6k3mPTSYnMdJknhAZchihFAmQX6MrhAy0TzHW/HqMA0Y5XQrwKQZjiI0uOccLYSbdw4mMy8YkUMZb883xEzCmxGR+ii50pNwbkJhMIqK58WO4FjAxKoYJqSOPoIhNIs82LNAczoWMdIQIBbMQcW7iPGIbTe4DKOuWMezHZJPoSCbwyoQ8gpTWkVO6msQwyYyacRrXsZ/wlUxRCE6oMIqg+g7JxzIOMG0M9xOMxNvt7ceyDJkTJL+yZqYtgai+HzdkCZHJ+IglWokdMWzMjvE60lL7CCECL2GIEHj8iQlPM2oWfT+WVeUeMvnmPtRzNR+niMteKW9uDIHFXEvZMxTRBj3Hm73Cs4FpAlmT5YcrPWVmCyY3oylfSbDSSilm+aY1i3jEE/hGVk9iqKVVPubmfN2w9G33mOQ8/QUc9NYcWdjf2DfnkCBzwpxDDI5M5VZS1mZKvp0UbW3kLfVNuwuDvdf0JDh9TQf063U+sr948c23763buf4+p6mU7Hc3Tbj9nmZCWYg//JZmCtfpCZKnyE1Hc9PR/D92NE37+aaPueljbvqYX62P2bUudv0xj7KSND7zWWJCzsSGoCOumh4u9344l5NqoEjVI6Ysli/L5TRcxKB6DRgVv8MiPothJpdx1QoRL01HHGSUy8bJarSt2q51ckzD8gmeu32qKQlQ7OYdv5qXTZooZru93SPQyrwaRbwuwFdG31xEbTFdRNsgotd+MxGuc10qBgYVffdVKuxaVOThBGD+QNzvFIpkusmUDvM4FfxtdK890k3O1G/bM9zeoHNtkdZE1NJNF1FLw1geHvvT1xzrwcAcas8oo9d/H7G2D2sDSfURuMw19XI7AcyG1lK+Y5Ivk0wa5HmpgiRKh1YgSk//ktKSMS6mkMcFTF0qHJBggRggOJHJXo8DSWviBnLTfKjivDwIH5o4ez/KaLlEgWiY2Q3ltcKI8eo7gvMBXUvRZ3F4CRZkzU6hdJTfc/PohpiLKtQhZrXs3nlxr16Ve1H78Ge3RyHJYlgeKfVqXsDV60pO7T6U0v27sk0uXETz6zh2X0/aq5oNJ0ivsYy9v1O+pqptVuUbi92g77z6mHj3E6EmrW+W1jZLazo8rrEjqC3XbfCb1xjNdzwO9rPWrjWWanTwuTZdPJWZP5Xt6poUMySVIyU5O2FK+4KGm/Il4cUuKe5pWwZIeoqWAIdXsmSanFN+cFwVsdNigfzwqohGr+rEEr8rPBXZfT25Ymx79oqs2nKTAXFVrVzgi4BVVaP0lG3yonzvx+Bk+7FuUU7V7LZEXwmwZnho/d7xR52J509aTt+ftTrtjtPq+6N2a+T7bXfmu8507H0m5Yk4cf0igHOYYLIpv/ug5g++/5Bs37DcCmhiU/VuwlZk9f0H12v+/oP0ipTlzdyON/ImrcnU7bY63rTb6vfao9bE6069kazk3fnoMwtcKLA7nk7nc99rdScS13FGfms0bk9a3f5s7M3dWWfqSHAZiCux/b/NUaXr7v8AUEsDBBQAAAAIAAAAIQB8kgc2bx0AAM6PAAARAAAAd29yZC9zZXR0aW5ncy54bWy1fWuPXLeV7fcB7n8QeoD7aRQdvsm+kQd8Jp7EjhE5Mx8vSl0ldcHdVY2qasvKYP77LHZ3qSV77SCeQQADVp91yLO5ublf3GT99l9/ur158ePmcNzud68v1G+Wixeb3dV+vd29f33xl+/Hy3jx4nha7darm/1u8/ri4+Z48a9f/Z9/+u2Hy+PmdMJrxxfoYne8vL16fXF9Ot1dvnp1vLre3K6Ov9nfbXYA3+0Pt6sT/jy8f3W7Ovxwf/fyan97tzpt325vtqePr/Sy+IunbvavL+4Pu8unLl7ebq8O++P+3Wk2udy/e7e92jz979zi8Pd897FJ21/d3252p4cvvjpsbkDDfne83t4dz73d/k97A3h97uTHvzWIH29vzu99UMvfMdwP+8P6U4u/h7zZ4O6wv9ocj5ig25szgdvd84ftLzr69O3f4NtPQ3zoCs3V8vCvzyl3v64D/YsO/NXmp1/XR3zq4xVaft7Pdv3r+vGf+tmuP+vnf0bMZx2s739VF9qc6Zj/m80/6+u4Pq2vf1135zl6NduuTqvr1fH6yx7f3fy6Hu1nPT4K2M3+6ofP+9z8Oqa5Tx1+vH2ew+MvySJS/Qj9cfv2sDp8/Fykb68uv36/2x9Wb29ADkT7BaTzxQN1Lx7FY/7vxaPEvTjz9sWZJS8eZu7iK6i0v+73ty8+XN5tDldY19CHy3LxagLX2/Xmzd3m5gbrqR8O+8Px4TEW2f7dm9PqhA9dHp/w1xdXN5sV6Ppw+f6wuoXGOz95aLM6nVYYyfr7ze3dzWx5uJzye/h6rR5fOJ4+3my+W+0242HwY3tz2hzQ2Y8rsMmMRc2eVzc3b+Z7RxA5/766P572t+dHy3w0O9+dvnj00PXx691f5rw9PLnerKau/+Kt3f3t283h509Pk71fPFlvD5ur0yOV0xL8affn+92ZoF+C360OKzDk7lp+5dvzl8U3vp9UfBo0uHp4Rp+envZ35vdfDuvh+Y/b4/bnQ1hN3u7AqIen365uH5GHeVhv3q3ub0744ht0eZ6AoM/wYfUBn/jdYbv+/f6w/et+d1rdvLlbXeHh+WVFXv73zeG0vfrlq948vbo9Qi4+PvfZntt2WOqP5xb6i/fP3UpvPxGy2393v7s63T8Yvj9g7Hj3Abi6xvRcgRtPdFV8+7C/OTdf77/dnyqs9gFG5WlNrA9vrld3m/bIp+NXv91fHueDJ8YdX/x4ufkJq2iz3p7gRdxt17craHy9uAdiXrEuPly+2+9Pu/1p893h879Ax1wlL5/WyM8eL/SpevrKlz1uduvnPyDq4/b0aZCbq+3t6uaxs6f3fvbhL5+ex/FFn4++zcNSv7u7+VgOm9UPYOif7yF2r55fePPoPs31BrGDivjcJfpmv95M+bw/bP9+BXvxSZbcxd/40B5iAenYfP9pQQ/M9ZvtXzd5t/436JEtenyQj/8FBX+LgM1ufvlP0PDff7zbjM3qdA+p+gd97EFwx8327pvt1Ntf79ZQiv+wj23fvdsc8IEtVMo3kOjtYf/hgc9TIcHL/gd99/64+Q+8DANrvscq/qHsT7AGv/94dw1e/+9m8iziz1K93l/9++pwfP7nJzL+4/+ubu/+X/3/cIz/+ZnwJQSbnnQVfx82/dPrJX/7uz/86Q9/833oun/+kjGvviAL0cz60z/+jNX/aTCLV7qUJ3Ux0WdkgUtnooD00Dii4+I4YlVQAuJ75ohPUaAtNGUpopSPvDelktEcsUvjVE/nuFLEGDU4D4xXQ2jjU+PjsUZqY40ZfDzWJcMpsGERZs6BBP4d5+3g8+N1yUZAauaz4J2uSUB859+BJyHITtBNcx4EMzofT1y047yOS+mcbxGTLSHNDo74EL2A9EVoE3SSkGQ5r9NSFOdoUq0LSIiF05ax6jmvs66Vy05RJXNeF+sKX1nFe2GdllA150EJvfE2dXGNU1BVrXykVXfNOVpNb1wSq229C0gPXBKrz0mg2hfNqW6LU5xvTeXKKWhuEbRl80qQ3hasCRTpiOj4bHe3OE5bdybykXY3ozGKeGeF3oIPnDtjMZmv4GHrKBxxznEKRtCKypta1BhUdtRiuqOrRC22KDo/QDpfp2rxJfDelPGBt1FOGzqeiTg6C4ixxkK5o7Qyhq6FiTihjc6Byg6Q0vl4tNHcLijtWuazoH33fBYM1j3njlE2CYhNikoVkNI4BSa4wnltVc8CYkeja05BJWa6TpX1husqIL7wWXCLYAGBDEtXiXIqcv2mnNHc5wNiFz7bzrohId4IVDsVBMQnxXngguL+gfJw4Pia8wYmXUCS4TLqbdGcB0EHrvlUcCFRbakCfD4u8QGrnq+5EELkshO14A0CsZ1LbzRa8fFEazsfT9KqcdqSrp0j2dnKacuuWM6D7Lrl6zT77PnMlUWICoBk7veqopugq4qxgdNW/OIlRFWO1KU0Lr0V7jqnoNogtGlLiJzX8AIWPnPN6sS/03w0XEL6EjzvreM7fM11NRzndUcAxNvA+gjWbCjFZ2F6/txT1YtOPALTS0iF96bgR1MeaAWIaiQgg+sDrXTklglGMy6cNuVqpNzRKixaoCA4bjGAwBeiiIaUUl5rrRv30rQ2VaBAh8BtI5DMY0AgvVNJhOMSuIwCydwyaWPhQAkIjCNHXBF6w2LktlHDbnPLpK3T3H+biOXjsR6eL0XgRAtz6oyQQ9EOELUy2nkMSEBa41TDnlaBtmB5rKk9/EFqNbW3OVMdor0zhlPgYTY5D3zIwiz40BfOnbBkgddBLZnaEiCRe2kaQYGSkMA9VR0gVHwWAtwNzrdoEs9+QbdEninRSSXui00kc74ljUiLI3Bv+Swkr3leDCZm4TpeZ+0150E2jsfBQEriFGTnuMXQ2aeFr+AckuW6tyxL4HJQlhr5d8rSBU1ejNJ8FopdEped4vzgK7j4agXafHMCbXAUhTahJj5zJTSe49JVtcZpqy4K3Kl+CDqxSb6YbvCj+fppiHa5VDXreCZL95moFpDM4xLd9WL4nMIbFexct1nQVR3Kikti961z/6D7zrMEeiyRZ5z1UPA8BcTzrIceYeGekFkWz2XHPEg2R0wxdKRmsW3Q+TGLE/xeIJb7lkCSpnwzcFQjlVGDIN3y3hTiOd6bcmNQXiNiKtwTMtN7onJg4FRwCQESDOe19on7vQamaVAbDMTxDKBBsMsjPWP0wmNnY9zCc0/G+MT1Dlyxwa2ZsabziN9Yu/BVb6xDxM0R3/huBYhWjnPHmcp9MeOskHsy8KsKp82FMjhHvc6Nf8c7z70N473gdZqgPPfFTAB1nOqkoiAhKQzui5mMlcrnNBtoK46A2Zy27A3PqZocKs9TAOk8zjLFSjwoTsj8ACk8R2yKj46v+gLdy/lWQuTZfSBJoKCqRdAu1WtuT4F0HtOaZiPfYwHS+U6KafCR+HgQ8XMfyXREHwKiKrenc2VbTvVYELsKSNWco0OB2QKSAufBME3QysNW7jnAxKRO1w+QziOwqal4jstCEvg+rYU55foAcavi2S+rtLATCaQoygOrrOfZCCCd57yt8ppz1OrFc8/bai3EMtaoljivjVGJzg+QwjPo1jgd6aoHknkm2MJN5NEujEzhu1bWqs59cmtt9JyjNhTuoSDgRyDKETP4/qmF/eH5UetC5LsI1k93WUK4b2m9F3zYmSdpfH6CEjIlQITdWCCdWzMb4PBw7gTruFa2wS18v95G1fhuko06ci1mo+2Zz3b0VZCdGCq3jUCGINdJC36iTabxmgWbHEReQIrh3El+4bvlQCr3UGxGtMs5mhfH9wEtbL3jM5e94v4BEC2srOy9MKc5OO4jARHiYCCDZ79sMUJtkS1Y9wLiMCKO+M5rCWyFXPORVuN4VA1kVP6darOgD8ABQVtWZwQ7V33mexKwjINXGdiG/7j2b/D6eG/NCtUMtsFVFb4TLM/Q2q4EX9l2Vwqf7e61MHOIkHkEBiTw/Sw7EBpxCRmIGLjmG04LPBguCfZ0+CJYmeEbz3HZAaVIR+rmDjf10ub65dKLOM/wXVKn8CkB8a7S8QARaqWcXrSjM+c0Qkr+HS3t2DjjG89tYCVUvvfh7ExDCojl2tJBT3AtBiR3oY02VUIGX43OmsTzsEC6orrXWZe4FgOSuc1y05zy8YBxlvfmQnd8frzp3O913lu+RwmkcZ/C+RB4NYMLofJVAmQEPqdxeoQC0vkOrou68WyRizbxzKmLLvM9fhfDwnNcQCLf23VpEbI4mGtVeG/JGe4JueQz39NzKSTurQNpfPcSoaHlXjQQXzkF2XXN5a0sgXsOQDLPV7mitDBziNErn59qtSA7FR4pH2n1idfqurYEQSc2E7jv75oNvB7JtaB4bOb64nmVqBtLTnw8w3i+A+WXJfMY3cNu8n1njxCQWxmvFFQ5R6TacK/g91L745UVMmZAKvcC/CwuonwDIlTGeRUKrw9B4ByFNgh2ea4GvoZQQ4uYOvE9Sm+M97w3Yzr3+TxiWp6rAZJ59ngiPI/krdJ8z9Vb3blce4ShAgU2ZB7TAhGqaz2sDLclHoZOkDcXNK/O8F5rri2BDO4JebBHamMijySANF6Z4OdQBdp8EeRg2jnOHegjfn5hIpnzOujMM1lAaqIW0AeL4EhACs8J+QC7KSA+Rs7rEDLfD/ZJL7xmG0gufC0km3j07pMT8i4+a2GvGojhe5RAkiC92Whe6eez1QJ3MugWeoN15iMtyvIIGUjmUZsvevBqLV+s4xUQvrggIFUZYaRVCbXuvmrDPZSZW+EZDI9Yk9dT+AYVy/U1Yk1B7zQ3hPXTF8szMr4rxfemfDfKc+50ZwVJ7EHYN/NDNS5VYZ7VEBBluW0Ms0aSysFEuK4C0vluRVDKesprIIFHRkHpzqPdoOATC4gXauaCCpafFQFSecwUNBpxvmk9LB+PtkkYKVY2r/yF6u28YiCYxXDPDohQOQJkcIkPBhEl54Ex0iyYaWo54gs/MxSsbgIPLCZBQgb3OhE0fjp5/QvEcW8D01YX/p1Z/8apdkvhdZ0T4fmD4LTm+Z0wUzUCBbbyGozgnOV7yMEFw21w8EvluxUBbqcgvV4n7ocE+CF8ZzUEtOHSG2zjFiMEXwUKQlCCVMVFCas+Ksf39ELUWJAUSUqIS4AU7iOFZIX665AQNXEeJK/5aZWQFyeshbwkbrPg0wweO4dsLI/aQkYkwVd9dr5yqSpYwnw8xQj7mqFYxWsWgARemR2K8/zcYajGWd4GkiO0aUrYHQvNN15pHrqKPJ4LXVdBEjvsD/9Ot0I9UoDd5rVSQLxgs7pUZweVXHnVURgqCBZ9aKuF3uzgPkUYLvLINU5bT3kQF1sK/U6ceV1KdURYz20wEM9rv+KsnKccjUoXXm8ZZ5k3RzRUHKdaq4VzJ8Jq873DqJ3nFjBqb/n5HyCd1yxEoxPfe4/GZp4LiMYp4TsGnjfnm3GZR2ARIQa3CxPhHgoQzaP3aI1uVCsDEfY1o3VFGKmbaTuOWMX9USCO13pEFwr3NqKfZQsC4rhHHBHX8xgdSOInqoA0YTwI7IX58YhZBCRY7icCEc5NxbBk7vMB6VVoowzfkwBiuecQg3E8Sx1BNI/RI/wDvtcWo8l8nzZG17junQiPNWNyg2cAYwqK14fErASvM2bJZgERTpXFDKePS1X2gi2JOQi7l7EoxU9lAumC5itQcJzqYgbPk8cyPR4ByfzWhli1E1YWbD3fRYg1ZO7ZxaazwINmB6+Pj80J2ePYvFCvDMTy3bHYlVBpEbsNPF8VuzO88ir2oHhWKg4YJi4HQ0dhPMNUHtfH4Qa/vSMOeKR0ftKiDLdzQDy/yyAt0v52mvUMlOqkTB78O8pUbmWScpXXJyblHa8WTlp5zoOkbeO7PAnRe+S9GfgulNdAhDzsRHiOKxlt+b0EyRghX5WM6/wUPQKMyv2DBOvMz6MDiYV/x0qVmMk6IRuenErch00uWB6JJ4/p5hR43fiqT0EHYeaCidwTSpMAzrfgOs/zpeBt4DwIQTh5kuIyuB+SovLcyqRoEz+/naJPXIekODMvFElKc0ubkl6kNrbzzHZKM7vOEQTifKRgD9dVQOLC2+SlcZ2YsumZWrNU5jFCjihp5oqxvKYRSOG2JBVr+R0dQJwgB8UWXseVShBuZAEyuBedKtxlztGKxcWlqi6Dx1mpGuGOjlRd5z5fqkHxc/xArCAhNUjashnHb4IC0ni8nZpNvBoISOfnmVLzju8ZARHOFKcWhMgo9XnKkiPK8gq81LHmuH7rJvCzl6lbLDuOINbksw2fgp9wAaJ59Uwaygo8GCrw+iooKsNzdkAcz6Wl4QqvmUvDa37GJs+ri+ic5nmjEJWDPG9rodolz5OuVN7yAi+N8hqI49UMQCqXKjhVjmtyIIFrCiCF24UMx4GfHctqcbzWIysrRIcIZQqvCssqGH5qKWuV+MqCqy6cz8oatoRToEPh2iUbFfhJgGzmRT8csUIsk42LXBKz8Zb7YhmLkZ9hz3ZxjbdBtMCrN4EMHlXPrV2e0QRSuFYG0vj+QrbG8HqxbJ2gq4BYfhIAiJCNQLAr7PpmfIb710AEDyXPkw3UlgBpgowics6cNmgdftoreyVkqYFUQVNAIXFvA0jlZx4QvAuZ+uxD4D5SDogX+HegyLk/moOzgrzBUxU0UvCZZ/dzhBfNeR11lRBjBNmJ3lQ+CzPJxWc7ac137jLCHKkNAiM+p8l3XhGVof55Hiln+OS8t6yFPFLOtvB62Ayx4tYZiLCzmosS4rlcbOa3UOTiM6+uzVW0gBUSL7TRgfuJuc5TXQIi3KGSq6uChq1Qo1xCmhZOr+VmhTskc3PCXTpZzPzkhlCP86DD/nBedyfccZO7rzyvnAcUApfrEQbfnyvz3BKVnbK4zs+5lkU6c1dmfROduTJrYSivETIprvmAFJ5hKspbfq8HEMczzgjAhAiszAPP/DsgjVfcFLij/Pz2DM14lXWxYeE3mJR5SJtT4Kzm9b1AusADB3tK13bxS+P15AUqhFfBl3mxL5XR4o1QzQ1EuOkBiFBLUOAicQ8F7qPhUQ6QwPcOi5cyP0CaQFuYgYGAFO4NlqAaP8tTZuDK10+wjuvrEnzkJzVKnDf4ckQ3YbajtbxqHIjjJx9LdEIcXKJPXPeWtGheu1KSEuKFkrRQIwPECyNNOvLzP2WeVeRUJ925lSnJCrdQAAk8J1SST3xXsaSwCLOd54EIjljhvuiSQxbGU5bIY/RSVOD5t1LmuVmOOMuj6jLrKbgWg/gKvVW78FimzFN/nG8VSoSvxqaE3Vggie90Aan85pfSXJOQUHgMiKBRqDEriDR5nq90W3ltROlOCVamu1b4qh/zDkUBCQJtQ0dBHwwtnGMpw3Rh5oaNvCoMBku4SaDiP377QF2MzZRvcBIFfTARfs4ITmfjeYoKn4KPtConxFl13l5I5wcGK/O69apCHHSVVK0iX41AkuHc0XbhHheQzuWtarg7nDbtI4/N4Hgn7vNVswRe8VmNFs6fAsm84gZI4fv11djBTxdWEzrXsFAuC88a1nnoQkIMPxFSbRBuXq5OCTfhAulcI1VnvCCJfjH8jGf1euHns+rMBXBew/Hmd6jU6cIKbaTzztUHx3etaphSwhEj3Che5w2BnLbgLD83BSTzG6dq8JXHCzUqwQbXqAOvSq7RBV59VqPvvLIHyiDyPbCaVOd+VU1YDJw78Cl4DhJIFCQk+cCzx0Aq9/1rntf+CkgWNF82meddaraN+6M1O2FXpJbpvwiI5ifIgVRBIxWzCDJaXBBWffFZkNGCpS20CZ77/rUa4Z7GWm3ke8i1OsF3AdKU0MZLq7HO8wMUaXA8JUTIEtSmDN/7qF0rXicEpPCzSbUjaBJ6C8JtcnWowX2+Okzj0WEdznMPBUjmsVkds1qXIW0e6qXfaYsuXHrbrDah3GlqFnByRDdetYdJGPw8YIPvwk/fwCH2/E4YMK1xfdD00nnE37TSvC66aS3c0dG0KTzib9oJdZDzCBSvMWs6WEstRjNu8Mxcs6pxr7NZbXlFVHNwsfl3nA78noXmrOVVos15YecbiPD7Jc0rxeurmteG178BEaodm4cXzSUEKoTbbSCFV5817y3fOwTSBXmDYRLWT1ga31VsQVWeQW/BeF6B14LzfF+mhWAEGY3KcC8ASOWnjVvUgn/dohFuN27RFu55t+gSj3ZbWoTaopZU4hmZlkzjO+wtzXp7iuTFCBRkqWYOSOOR60S4f9CyFTKNLTshQ9sQTnFPdSI80msITPjJExCm+W0XDS4xz6G0KtW7tKaE+yCBeO6LAan893KAdF5t35p0BreJv3QEJPL6t4ZFx61mw/d5ZVzrvgh6dCxeGM9YBve42jCee4NAOs8ntgHZ4eOBree/99EXvXCvZh6N5fmQPu8RozarL85zawZk8H2zvgTLrfP8oQl+MmgivK6zKzU4r/v8mR8BsY7HjV0vnseN07Hja7vDyPCduw67zetQMKGG34jc5+W1nDYLYy8gRvglnW6tUEPb54+7cNqs0zyz0C2CKeE7IXGrCaQII4VPwf237qxQjQqk83ihO6d49AEkCZLoQuX1Lt1LNc5AKq+m694Ke+Ldu8hPkAMpPBvR4R/wncgedOC3kfQIvnGJT8Hy/QW4J8LdDD07J1Cdg/CLML2Ywf2DXqTfb+zFO14f0uuSeO6pVx35rkhHdMhtVq+YIM7RpjOvvAJSeBYUiHBOrzfjeUYTSBBktJkscKf5yuuReoei4Hzri/B7Rr0r4ZRCh+LhUXXvToizevdD4Nu8a4+PZyA44+MZOvHovQ9TeO1KH17x2xT6CMIZKCBe+k6o/BTjWLTna2EscxtbQDzX/mNxitelzS0JoTc4T3xvdxZ88ts/h54XBQuIcLJhaK15HnZo6RwykMy1y0B8zGOZAV+DVy4OHTyPdoFknncZxmguIUA6rxgYxhaBbyYId2sNuwi/gTSsEn7vcFhj+V1Hwy2O714OrEUeN8LZWfhOF1w+xXOqQIyAeCxTahuH1wuvZhjeLnwPeXgYRwmxvEpneOlW9RGwgHibeQiLz0Iwwt21I7jGcxtjXjfI5WD+ri/ViUAqrykZUfqliRGD4dVnIykraJekhV/SARJ4ZDSSNfz3S4AIt96PBLXD+ZYXK+jEvES+HzyyNnyHfWTX+GmVkX0U1lz2g+fjR5bOB48C+8OpLk6wp0AaryAasxiHz0LxQaCtLor7B0AGz4uNqgL3yUf1kZ8pBpKEtdC04KmO5oVbRkfDcDhtHeae99ZV4DelDIQSPAIbff4wqYBYHs8B8YI16y4LUtV9FfTbWIRfaRzDaX7/zoBSfLTbrx6h41e/vb28XZ2uvzuc/zX2u9OL28cWdXX79rBdvfgGz2er28u3hx/KdnfG327e7Q+bz5E392/P4MuXj8DxdnVzMw6rqzOwPD5fb493bfPu4d8336wO75/7fXrjQJ+uN+/+7VNfV5vdaXP43WF/f/eIfjis7r7erTfPg5inEh6x7e70x+3t+fnx/u2bc6vd6vDxM+h+t/7Tj4cHPj2z58Pl6Xpzu5n8+eNq9/7M1c3u5V/eXOCvt9v19vXF6vDyzZPGvbo5vLmaTb5Z3d1tH1q8fa9eX9xs31+f1Gxywl/r1eGHhz/evtdPmH7A9CP28Mfqag4Ubz/94/mZPj/77D1zfmaen9nzM/v8zJ2fuedn/vzMz2fXH+82h5vt7ofXF5/+OZ+/29/c7D9s1r9/xn/x6JEJ6/23+9PXu6ub+/UGwrHeXx2/3r05rU7HB/h4vbrbQApW9zcnCOP+8cH66cGLHy83P53A4/X2dPHieLdd365+en2hl8dN2ae3b1Yf9/enL96d2Hz57sse1qvTCs0fJvaLxg8L4me0gPbN1RbC++bj7dv9zXm+f/M4rpvt8fRmc7c6rE77wxn7lwdMWYz66musO/zrUQSHCz0+1Yoqd3l1vTqcvseS+AFi8efNu7I6btZP2Lmpe2z6n3AZdWndvNQ12JfzesuXOQXz0rUS5y3VLjX7X09L+rg5ndDj8av/BlBLAwQUAAAACAAAACEAJs0V3QEBAACCAQAAHAAAAHdvcmQvX3JlbHMvc2V0dGluZ3MueG1sLnJlbHONkE9Lw0AUxO+C3yEs6M1s2oNIzaaUmEigISVZ6SWXJfuSBrN/2F2l/fY+BMGCB49vhvnNY9LtWS3RJzg/G83IKk5IBHowctYTI2+8fHgikQ9CS7EYDYxcwJNtdnuTtrCIgCF/mq2PkKI9I6cQ7IZSP5xACR8bCxqd0TglAp5uolYM72ICuk6SR+p+M0h2xYwqyYir5IpE/GLhP2wzjvMAL2b4UKDDHxVUhCAwLzkoizogW7gJAiPjvADSab7pD23z2u7qu3VSVvui6+sqb5uuKTkqTVlWedEfc17Uh/2Oo328F8o+52h23zs5GUsTfsi1kfh7cQ7gtFgIzVJ6tVz2BVBLAwQUAAAACAAAACEAt/GuJKkAAAAOAQAAEwAAAGN1c3RvbVhtbC9pdGVtMS54bWytj8EKwjAQRH8l7N2mehApbaUgnkSEKnjwkqbbNpDsliSK/r1BxC/wOG/gDVNun86KB/pgmCpYZjkIJM29obGCy3m/2IAIUVGvLBNWQAzbuuyKlu9eYxAtWtQR+za+bKpvzanJru0BxAcclUswMRBph0LRVTDFOBdSBj2hUyHjGSl1A3unYop+lDwMRuOO9d0hRbnK87XsTGcNj17N0+sr+4uqLuXvTP0GUEsDBBQAAAAIAAAAIQBG5MqJ2wAAAFUBAAAYAAAAY3VzdG9tWG1sL2l0ZW1Qcm9wczEueG1snZDBasMwEETvhfyD2bsiq7h2HCwHJ7Eh19JCr4os2wJLayS5tJT+exV6ao49LTPLzhu2OnyYOXlXzmu0HNg2hURZib22I4fXl47sIPFB2F7MaBUHi3CoNw9V7/e9CMIHdOoSlEmioeO8nDl8sbQ8ncqiJW3RNiR7ahlpWMFI1hVNt8vLMj9m35BEtI0xnsMUwrKn1MtJGeG3uCgblwM6I0KUbqQ4DFqqM8rVKBvoY5rmVK4Rb97MDPWtz+/1sxr8X3mrtjr9X8pVX2eNoxPL9Am0rugdit6/ov4BUEsDBBQAAAAIAAAAIQC07kqWugMAAL0SAAASAAAAd29yZC9udW1iZXJpbmcueG1svZjbbuM2EIbvC/QdBAG9TKiTZVlYZ7GbwEWKbVG06QPQFG0R4UEgKTt++5KSKduRN5AUwDemTXI+zs8ZkgN/+frGqLfDUhHBl354H/ge5kgUhG+X/n8vq7vM95SGvIBUcLz0D1j5Xx9+/eXLPuc1W2NpJnqGwVW+r9DSL7WucgAUKjGD6p4RJIUSG32PBANisyEIg72QBYiCMGi+VVIgrJThPEK+g8o/4tDbMFoh4d4YW2ACUAmlxm8nRjgaMgMLkPVB0QSQURiFfVQ8GpUC61UPlEwCGa96pNk00hVx6TRS1CfNp5HiPimbRuqlE+snuKgwN4MbIRnU5qfcAgbla13dGXAFNVkTSvTBMIPUYSDhrxM8MlYdgcXFaMIcMFFgGheOIpZ+LXl+tL/r7K3reWt/bDoLTIcta5ZbAPymqdLOVg7Zu9b8SaCaYa6bXQMSU7OPgquSVN3twKbSzGDpILuPNmDHqN/dbOHAo/azq+2pDcMJOMT9Y+wYbT3/mBgGA6JpEZ3FEBcu13SeMJPBp4Unbc3Z5oYDLx8HiHqAFOGBj4VjZEcGQKfTbTlk4LFynLTjkOKMM82ZM0BRj0JEsfPDNtb8jKUKXZTjcC5GwNpCDUuoykviZuBF4IjJGbFNMCrQ6zkTj9u0WQc8sLMYVtvPHdTfpairE418jvZ8urL3fJzAIH2fFZX6nDP/lrAyNzlD+fOWCwnX1Hhkjq9nTqDXRMBrj4BtvPZUeS5/PBd2r8lOz16J/oOpAuFaaQmR/qtm3sWvZ3OUTDVp4LnEpoSUtrMtGL9tNJbfJYbmGQwbCld22XwHTVpFj0+LeP648IEdYTXV5AfeYfpyqLCbUx7WkhR/2jFqx9q5mlXUzYijOHhafXtsR+jODhDTtE7luqLmMQ+SYBEEwar1oWYrpp19gRFhkHbmL+Y1c2O/hfdd/x/I9VK80W139be0DeFWk+1e+vOoWbaEfNuU1nEa2LmgmyyPzUpwrexMwrX1YgONyOPUZg5oln0vKnwvKlw0PebdM4/nDruNbgLhPA5bdy+FU7HH8gfWJkTXxUejxYdJ8qH665KinqTvn5H0j2CQX1cUX1Mkybb8uaQoTC8lhdkASfGV1Jsm6cP0TEZHKMqyCRFKbpd0s9GSjIIJkmY3S7p0fNIlcTQh6dLbJN18dIRmwZRrYX67pMvGS5qnEyRlN0u6xfikS5NsUNKBi9f/6JrXfNpSwD5QTXWRF3VTezSd2SLIkjSYhe9rieeuHHCLcQsFZ387PfwPUEsDBBQAAAAIAAAAIQBzUxDwGA8AAEKIAAAPAAAAd29yZC9zdHlsZXMueG1s7V1Zc+M2En7fqv0PLD3sm6NblmfjpHzMZFw1hzOya55hEpKYIQktSfnIr18APESyAQoNUXMk2Ycdi0R/BPrrbnSDIPLzr89h4DzSOPFZdN4b/jToOTRymedHq/Pe/d2bk3nPSVISeSRgET3vvdCk9+sv//7Xz0+vkvQloInDAaLkVeie99ZpunnV7yfumoYk+YltaMRvLlkckpT/jFf9kMRftpsTl4UbkvoPfuCnL/3RYDDr5TCxCQpbLn2XXjN3G9IolfL9mAYckUXJ2t8kBdqTCdoTi71NzFyaJHzQYZDhhcSPSpjhBACFvhuzhC3Tn/hg8h5JKC4+HMi/wmAHMMUBjADAzKXPOIx5jtHnklUc38PhzEoc36vg2HWmAuBtURCjcdEP8Y8Qr2AlXuqtcXAFR30hS1KyJsm6jrgMcIiTCmJmYAFzv1QxKU5p0xLwJRQchu6rm1XEYvIQcCRulQ43LEcCOxmz4h8nMxanUItTjMaRSu/9wl3XY+41XZJtkCbiZ3wb5z/zX/KfNyxKE+fpFUlc3z/v3fkh9/YP9Mn5xELCnePpFSVJepH4RHlzfRElajE3Oe9dRKuERETc6PXF4wISrfi9R8K1TqOT+0X9AeWlB9/jqCQ+WVwIwX7e335zFJvyV9aqMWQeLXjsWGQhjN+ly3ecLOotUn7jvDfoZRfvb25jn8U8TO2uLWjov/U9j0aVdtHa9+jnNY3uE+rtrv/+RhpCfsFl24j/PT6dSRaCxHv97NKNiFv8bkRC/uQPQiAQrf9XyA5zDamarykRsdoZoiVGaIkxWmIiJJKKvmQ3tw1l4fs+PRLu7Ei4p0fCnR8J96xjXJfI3x2j3vlpQI1bL7YPKU4gjVm0Mm7+OtzwOcRPjAUyT3fuRDg31EyLLgSKs/DDDf9n2C3cqFu4cUdwVwHhKZvb2WgLvK6GW+B1PV7ToLoXjwUsXm6D7hRYAHamwQKwMxWyYBtGSZcjlngdDljidT3eDk1G4pnOv/vwfot5ztoVGRKsKyYkWFc0SLCuOJBgnRJgmvUYgZmmOkZgpvnNPrB3fpJ2ZmcSrCs7k2Bd2ZkE68rOJFhXdibBurIzCdaVnUmwruxsfO3Q5ZK6aXdTTAWyK5urQHY30UQpDTcsJvFLR5CvA7oiUdoR2m3MlmKFj0VZcd1FOssLii6T7QyuK5I/04fOuiawuuxXV1Z3t6bh4aXTbUBcumaBR2Pnjj5rLM7fLQSdnbVWdc5iQ1w/qxyrYuaF7Tt/tU6dxVoW402Y2WCvpIhpQGz/A8WUC8RGLWLvqedvw6KjDlDUbGwuPALCk/3Cu3m9Jjk1lITPnO2X3OWsNclTQ0n4zLmh5BhIttnhNYm/KA3htM1+yopLY3ynbVZUCisf22ZIpaTKBE/brKjmKs6F69JIZRFmPqOXN3MevTzGi/QoGHfSoxj7lR6izcE+0Uc/0S72mYZR2YNbEpNVTDbrpuh4YhxLf9+ylDblR2fG8jc8sYkS6ihxxgNjnFrc0WvWOADpIYwjkR7COCTpIYxik1YcFaT0KMbRSg9hHLb0EOj4BecIXPyC8rj4BeVt4hdEsYlfB+QFegjjBEEPgXZUCIF21ANyBz0EylGBuJWjQhS0o0IItKNCCLSjwpQM56hQHueoUN7GUSGKjaNCFLSjQgi0o0IItKNCCLSjQgi0o1pm+1pxK0eFKGhHhRBoR4UQaEedHOioUB7nqFDexlEhio2jQhS0o0IItKNCCLSjQgi0o0IItKNCCJSjAnErR4UoaEeFEGhHhRBoR50e6KhQHueoUN7GUSGKjaNCFLSjQgi0o0IItKNCCLSjQgi0o0IIlKMCcStHhShoR4UQaEeFEGhHnR3oqFAe56hQ3sZRIYqNo0IUtKNCCLSjQgi0o0IItKNCCLSjQgiUowJxK0eFKGhHhRBoR4UQbfaZv0Ks7kSsvYDCr3rqoEbmL7PyTn2iSxrTyIVrqOZQRa/0WOabmi8Z++KUO0hrIOb7nC/9h8Bncola89q7inuKfsv58cp5S8sXMe3oZ2p006HcBsSPss2ocAlzYioJ1lQmbSZflQRF3qTN0quSIOuctEXfqiSYBidtQVf6ZbFphE9HQLgtzFSEhxrxtmhdEYcqbovRFUGo4bbIXBGECm6LxxXBqSOCc1N6aqinWbn/EyC0mWMF4VSP0GaWkCvt2r4xaXoEU/b0CKY06hFQfGph8MTqodAM66HsqIZuhqXa3lH1CFiqIYIV1QDGnmoIZU01hLKjGgZGLNUQAUu1fXDWI1hRDWDsqYZQ1lRDKDuq4VSGpRoiYKmGCFiqD5yQtTD2VEMoa6ohlB3VMLnDUg0RsFRDBCzVEMGKagBjTzWEsqYaQtlRDapkNNUQAUs1RMBSDRGsqAYw9lRDKGuqIVQb1XIVxb5aqojjkrCKIG5CrgjignNF0KJaqkhbVksVBMtqCXJlVy1VSbOrlqrs2VVLVRrtqiXAp121pCTWrlpSMmxXLempxlVLKqrtHdWuWlJRjauWtFTjqqVWqnHVUivVuGpJTzWuWlJRjauWVFTbB2e7aklLNa5aaqUaVy21Uo2rlvRU46olFdW4aklFNa5aUlF94IRsVy21Uo2rllqpxlVLeqpx1ZKKaly1pKIaVy2pqMZVS1qqcdVSK9W4aqmValy1pKcaVy2pqMZVSyqqcdWSimpctaSlGlcttVKNq5ZaqcZVS++5iG/2wY2DewG5CEmcOm9fNjQO/OjLEZ7wliTrlOx/vYlHvo9imrDgkXrOsRX07kDd9J9q55GJp8nDFXn7lOv+vLepfgjlZceY5Y+QDW+88uAwISz65uRnqeWX5RDyF8Hy7012yht7pPEyYE+328hNC5ncBcg2ZeJbVnr9WnvnQ/OO98c2ST+JeHMTeY2bKX1OLwJ/FYlzG4t7DySh3Lhoroi8X/khdMmfRbNR/lI3+fMqaV7Lz47LjoZL1yd3b3Ow4mg4qaQ9ai0Vmb9xHwJV7s5ak08VHfc+RipFR3yghgR8oXTzgTfPBpd9OSzGQpcspmKI8hMzskxpvNtjxbapUNm7x6CmYaC+h6yjV0k/e1Rc9nY0L9QJr1QUPO9AkSOtIkfWihTRqLhePOZqTWKsmoUW+TBnUsnix6etOFuRPhM3zbD+cIvniMhMYx0BQyUBzUMUL2P2RILAzw4+dMpTEsF1cUZi/WIfErojbzyC5GXXDiRvrCVv/B16wUgTRPAW7XJj4jbA+dZH3Pw8yfIrVcE1UFfeaPctqyObyQHspoeaFVUnkqxdbdLot/U7FRlFS59lxtE6VeQH0mk6WHy0u6+HvD8PQaZ+/kc2FTzlx2BmPfWeSa9oeEWD4D3JWrONvmlAl2l2dziYK+4/sDRloV4+lnmwFqBf70y/HIRe39E2fKBxvkFLOzPLD+KhurMP5Q/UtI1jc7NWuXUR3Vp8OvcsbmZJ/m8jPPKfG5aI7VujYtbftYmLpXzZZD6bFNNWhld4LnZIbxhLFUNaZpf7ynxiWGTU9XNnf7vs2WQStXBR9uuWrOgHaSCgbxt+y8mMR6lzZWyxYFuoJuJqkAebqBQkbjoiMVN245L/lCf4Km1RbwzCUaumUKO5GuHzkD4qNs/5MlII8UxOTJGcIXkc+Q4HYyUuz0dZKDNrEMBj/nievNPPVzBul/f+Q8LNf69M1JPrYxlznNs4izPj4UwGmrWokmUJv67mGKIR7ykPJCy9pAl3bXHp8SJy1yzOzCRPE7ILvN5Y+bKSeZaZdMWn5LbcmRwhka3Fica7KWWPypd+nMjxim3Kg2bukz1kT4Y+UCSQg0P853XkCfPcbfdtkkSzBk5ctlCZqfmB1iLral6WEK4o0IuniuqnqdRqmVPNs/NL3A/8vHCsXjYrb7bFhYhF+Qh51ZZVUsWtZMtr9MSN/U1qpnF1uMg1rowWhbL/YsFCbXpF3NTbXhk8/zG+joyPZ4n0GZbdvrh8QNFtbIdlJA1kLsTTQrazy7PxbNAwzKr55RVKaX6jycDM/EznKqVL3hm6Yj5mxBwwnHQ9gGuS0kXK51LVZFvea5lsFWlobaadzOaDfKYVM1g5s5KYbSOvfVotLrzkk2pWSGim0iffY0/ixMOY1ddfDPSoWZqJ2G3M2LLhl0NFVT+0qer30XKn4+TuwOxnMhuc5ZzwbF+f/WA4epZaHRrSBRR/ZFXvHPbjFYxlKXM1kcxo8hTLJMKukqKwOjSE7VtqGY4UU23uXfJZ573p6awW+U5HNoGjqja4YCjUpl4stM05Don10qePqQC46CYUoF5w+zZ2U5v6hrPjqmOiVMfke1XHfN69OtoSAx5nBjAz+HjlaCLNLmlQLb7+dUNMiw6F1VzEvmJNdHenqrF/3poZKjVzRZVSYeLwt1ZqrQptUap4yaW31vrdrurPPGNqaBClj2J59X5xHHWo7ax+9wdWh6nLLbhBk3Qb00v5n55r6qNxu31yqJbTyimjdZaorelMT8fDPe8CzgaD/RPHZK6YKqaDRum9m4KsEo73xI2ZstoOxZ2D1raK/usanM32NCjKyZYWZ4r3LrUWfPrd12K+r6Pj8b6ejuf7elq8IapQ/lWngMyI8hTjhOcUx5oa5jXfP9p8+45Fq2vmfuAWqyjnq3cPWmT5uxX0LRq/uVaunMjLVR1/n4r8gTIuPZldvcA1p1xJ+CEuVRSMu3XLwy3h661jfjvv4yVucTiOovotbu1jRPfWQLdkPpmXe8XKSlaxcazT+n6kqe/VS2IgWduXlpy27dRAV/m5nhSZ2lHWzdo1N9ZoTr2W9t1q7ihLbO2am2g0p152+3419/VX46ZqxU1/LMVxqa+tuJlacbMfS3GyrPmKivt81bLNrHazugACS5Yj5FE7cuU5e4BdeXXfBK3YLWy6Qdh077Y6s2muEWWLak65Z7uyyPaQ/X/+Mre2X2Mg/5c1a9+A3/0e7ksSBIxFysWM/J6j3UKg225fAd3tuI8Tf5fvD95MZ+X6gEaZC7pi1Lm/qeizvNTMJVUfJiiS/+cTuUWF/6QkSS8Sn5TXOl1zbCqgTbPOTkUaHX5L/XWnk9o3GE2FvC0+99Boo/xORKGK18PJ9M11qyp+nG8qyv80VlND5Q35wHVlt7fptvC61q4vBuPLyz0BvzauQc2f9ob94q/kl/8DUEsDBBQAAAAIAAAAIQDrtFPTDgwAAB75AQAUAAAAd29yZC93ZWJTZXR0aW5ncy54bWzt3ctu3ceRBvD9AHkHgvtYVdV1FWIHMIIAA8xqknkAiqQkIiSPQNJWnKef/lOSLcezCGeTb/FJgkgd6jQO+Tt9qb5U/+GPf7+7Pfvx+uHx5nT/7bl+I+dn1/eXp6ub+3ffnv/PX//8+z4/e3y6uL+6uD3dX397/tP14/kfv/vdf/zh4+uP12/+cv30tP/n49ku5f7x9d3lt+fvn54+vH716vHy/fXdxeM3pw/X9/uLb08PdxdP+58P717dXTz87YcPv7883X24eLp5c3N78/TTKxPJ88/FPPwrpZzevr25vP7T6fKHu+v7p+fnv3q4vt0lnu4f3998ePxS2sd/pbSPp4erDw+ny+vHx/393N1+Ku/u4ub+52LUf1PQ3c3lw+nx9Pbpm/3NfH5Fz0Xtp6s8f3Z3+0sB8bIC7DcF5OX1319WRn8u49V+5tfl3Fy9rJz8uZybq6/K+f+9mK8KuPrhRUXY+vI6jg/H078q6/Hq6er9y4r7YvTqeO7F08X7i8f3vy7x7e3LSvSvSvz0Brs9Xf7t6zKvX/ZDi58L/OnuMLy7fP2f7+5PDxdvbndJ+115tt9YZ88Fn32SPT6cfXqznH35sZx9+W7Onn/o59/t+nt18+Pj549nH18f74jVJTr+/NU3p6uf/vT8lR8v9s9Az18dj+66+1/Xb5++PCo/P/rfN+/e/x8P//X04bcPfn96ejrd/dPj+1V8f/VwfPb0y3Pud5tzvv/x+I/j/x2ffLi4vP78+eXp9rSbiosfnk6firj96pW97JlvfvWKXvbch6+/85c89dUv3/SnT3+NMdM1FcRAwLBdNXRlUgNCw5fVNBsqCI1lOj1GDQyNNVmRRQ0IDW8dNWpAaIR6pq6hBoSGpaUOR7gYGt0ZbKlANHKsVdiLY2jU8qpdOagBoZHmvYp1A0Kju3WpLGogaMzS1aEcU4ForKVaTQ0EDRWJZWFCDgyOkF4rOW+IwpG59h9yQHBop3srR7kYHFYmQw4Yjo4JV46sMDiqY4eBweVxDI6R9srF+SoQjmMmN7nshMFhUlFawzAQg8PEetTZd4BwWK8YJQcGx9r1I1coOTA4okLGOb8OwtG++w5h7cDg8D3U1ShOIYJweLsbty2AcGTs9kqMjRUIR60QMQ50MTjKK0yFE+wgHBE2E5xgB+FIyZxiV47B0ccoN5wcIBzH5tzgeUAMjiW+O/PiegcIh5WK1jDuwOBYEmbNY08gHL525+HGOSsMjlg7MA+uBqJw+KSGsivH4EidimGGHhSO3VZNNRsrEI5ls4MPcoBwuKvsDoQcEBzlVu3OgS4IR4bG4lo5CEcfCcUmGJVDcLhIpWlxjy4IR7vt4IOLsxgc6iY27DtAOJb07smdUTkGh7fXrh4MAzE4UizHOGeFwhEdFTzfAcLRPnUkpSQHBsdEqibjDgiOkM1RwzAQhmMiml05CMdup1YHU7aCcNgOAVOZlxKEY1lLL6bQBeHwnDluxSIHBEeUaK3hFCIGRx4pYiK4Vg7C4T4Wi7UDhGOqynjDEAhHjasvzlnBcMx4NhsrDI7uWqLGk7MgHJPhkeTA4Bg5eg5OksBwRLjyvggUjhDb41w2VhAcKRolDAOROHZfzqwLIBzjq5i4FYVDfUeBGRxZgXCES7RwzgqEo2dcmfQbhWOOy2YX+w4MDjNpDWVjhcGxQlWLWaZROErFmiliQDjcNVN59xMIR9iEO5efQDiyNMe4KRSEo7p37WAYCMLRsUEYlcNw7M7czDjQxeAY2b9D2JVDcJSo+XD5CYaj1SOcU4gYHBqZFty6gMJRu71y4eIsCMd0LuOMLgiHHaneXHi+A4PDVSV6OIUIwmEtOwpkYwXCkTq7uWLtAOGY3XUkGysQjl05htfH43AcmXS92HdgcNRxkSOPasJwuNoY18pROGIHgsMrgEE4emoHguQA4ZjUI9M0+w4Qjj6WO4wzuhAcbSISyhQxKBx5ZMHg6ScQDlfxUM5ZoXD4slWsHSgcIX5kNiYHBEd4WSkPFIBw5NQMM4WicNRx/2/wbCAIx5HOyoI52EE4RjW6eNwGhmPyOOJBDgyONdbD2oHBMRLpHbyoDoUja3skGysQjjpOzi5OsGNwmM4eWgUnSUA4VtdIs7HC4Fjurc20xiAcvpbvsS5XA0E4XERKyYHBESuOOzx4NhCEo8Z3ZE4ODI6U9CzjBDsKx+juzMkBwqGVXTxQgMKRadZsrFA4apbyMBoKR8WOAzvIgcJRmtuEHBAcnS42xdoBwjGmRypdciBwqMjzUJcJrWA8duXYf9EDxmNkBff2oHioTEcVQ0EUDxNrSXqAeFitMt6PBuOxPMqzueyB4hFpazU3+KB4VO7RVXK8C+Lhk17Bu5lRPKIjYphLCcUjNaJ58RCOR5UtGY53QTxKwmWcm+BQPFYeiXXpgeKRal3c0Y7jsUyG61E4Hm07/uD4CsSjXdbSxfkrFI/wiR0W0gPEo3OC8QeMx6wVFcn+A8WjdgcizDoG4rEbrGP9g5tFUTw0tYLz7TAeqyPHhe0ViEe4ey1mj4HxmDFLzpegeNT+Zcw9BuOxKdqC+xlQPOa4W96M4ysMDzNZmUwDgOOx26swZXuF4rGHV2LF9VoQj+Xiq5mmHcYjN8li/UDxcDV14aXmMB65B1jC5McoHik1vXi9IIpH7fBcV3H+CsSjq9qYUhTG4wg/vLnfB8ZjlSTv0kbxWHJs3i2uR+F49FRxPhHGY7JslPkAQDxUxqV43QeMh1p4KD1QPGxahPvhYDziWD03rkfBeEyvac7vgnjY8oxyzl+heITXWtx/BeOx48EOnq9F8VhaOygsxucgHq7hNkylD+Nx7IhbXD+H8cgwSfbnMB7trcp4EMUjJKaE+a9gPDQ9ltADxcNVtXjrIIpHhhyHcnj+A8RjJERUuH6O4eFidiT5YXuF4hErZ5i/HcZj9+Wtix4gHmolIsynj+Jhs8TTub8dxGN1mSr3+6B4uHYdGZfoAeIxqaM8H4Xj0akeXI8C8Tg2J+YYx1cgHhlWWlw/R/Go6Gph/isUjzbGH1geVTsK4XotiseyZTwfheNxXF4bvN8ZxWNMUpjfB8djujWG67UYHiGpac78iTge5i7Mf4XioZ3d7Zy/QvGYNVLcn4jiYbbjj+H8LozHMmnl/C6MR7TFMN8SiofL1MqgB4rHWtaL++FgPLxtFsdXMB6RdZxBpweIR81zp04PDI84jhs08++ieKSIZwrbKxQPE7VkvgwYj7RIH86XwHiUyf5FDwyPTstI5k+E8ag+7tzmehSKRy/XFdzPAOIx7b5mcbyL4ZGS2VPB/hzFY6Z0eP4cxUOlTZXn1WA8dI7lKK5/gHjYavFVjD9QPHb1MO4XhfFYUVrJ+3FgPGbXDmV+OBSPmKg1yv4cxCNrRI35d1E8qjwtF9srEI/x1SHK+RIUj5AVsbifAcVjegfpzfYKw6PUjjM53E+N4rFWiBnzt8N4hFXrsL0C8fAj22sxHxmKR2R0rGR7heJR1mnK8S6IR46tdKEHiEe5yQ4KOd5F8Zi2aea/QvEYkRZNrg+ieITERmH8geKxw48Y7vcB8WiRLdKMz2E8rGwJ9++ieOiRXdR5HgfHo8aD8SCMR/fq4PoHiodFpi+uD6J4rFnuxvwlKB5ema3C9grFo3ODBPtzEI+wHaPvKJ0eIB7pkZ30QPHoJbGK7RWIR6pmWTM+B/EYXz5qPK+G4TF7qFseQw8QjyM7dQ73J6J4rG5rZT4AGI/Riub5DxQPV4seZf1A8ejnE7acTwTxiJyVyf0+KB65YgfoxfqB4rEryO5CGH+geJTUsQmLHhgeJXvI25wvgfE4rjgIZ/1A8SibxftrYTw6yjWS7RWKR1l1MH87iseUHfks2V6hePQcM4rsz1E8Jqyb+cIxPEzEfIfoPB8F47FUSxfHVyAeelznxfu8YDxsg4RyPhHGI3drxfvoYTxWl+wIhONdEI/j8MdaxvVBFI+RXM77o1A8RvboSoT9B4qH7eDceP8HjEeGmvG+VBiP8QpfrB8YHqriZov3c8J49O5AhPvbUTwsUqaD87v/No9PHx+PYk8fnm7ubv5x/efTw/cPp4+P1w+fnvLx+s1frp+ebu7fPX73v1BLAwQUAAAACAAAACEAwRdkaFECAAAGCwAAEgAAAHdvcmQvZm9udFRhYmxlLnhtbN2U3U7bMBSA7yftHSzfQ5w0LaWiIBhU4mYXAx7AOE5j4Z/IxyX07Wc7SQnqfggSG1urKM6xzxefz3ZOzp6URI/cgjB6idNDghHXzBRCr5f47nZ1MMcIHNUFlUbzJd5ywGennz+dNIvSaAfI52tYKLbElXP1IkmAVVxRODQ1176zNFZR5x/tOlHUPmzqA2ZUTZ24F1K4bZIRMsMdxr6GYspSMH5p2EZx7WJ+Yrn0RKOhEjX0tOY1tMbYoraGcQBfs5ItT1Ghd5g03wMpwawBU7pDX0w3o4jy6SmJLSWfAdNxgGwPMGP8aRxj3jESnznkiGIcZ7bjiGLAedtkBoBiMwqRTfp5hFtIH7CgcEU1DtevURJyqaMVheolsZTjiPmA2G4wadjDkMnHSZvugFsV1lCxxfVaG0vvpSf5XYn8xkIRjNqVDTfUbhbUa0F9NShKx6fdyUXNQlPlQbdCcUBfeYO+GUV1HFBTbYCnfswj9RpIEDYjEzIlub8y38pxEgayilrgbjeQtOGSKiG3fdRGbuyohWNVH3+kVoRi2i4Qa9+xgXuyxFeEkOxqtcJtJF3iLz5yNJ9edJEsvCv+jrvIZBchIcIiJz6mLYdFzm6Mf2fSmtgzcq7XQDUNTj6EjXkapzx5tjGs9IUN8hsbgZSOs3FhTUOlFL/yceF95NFL+x/jAxoB8A/5OPfTkh/Cw989JTd8bTi6u/6pinA08u7yh+R9VeQ/UnGVH63+yAejdgbQpYBa0i1+xzKzMJNsfrS38yejd74v8/gtZf5H5XUNOP0OUEsDBBQAAAAIAAAAIQC7YsZIrwEAAEUDAAARAAAAZG9jUHJvcHMvY29yZS54bWx9kk1P4zAQhu9I+x8s31M7LZRtlBoVVly6ILQpC+I22NPW28SJbLeh/34TtwlQIW6eed95NB9Or96KnOzQOl2aKY0HnBI0slTarKb0cXEb/aTEeTAK8tLglO7R0Svx4yyVVSJLiw+2rNB6jY40JOMSWU3p2vsqYczJNRbgBo3DNOKytAX4JrQrVoHcwArZkPMxK9CDAg+sBUZVT6RHpJI9straPACUZJhjgcY7Fg9i9u71aAv3ZUFQPjgL7fcVfmntxN795nRvrOt6UI+Ctek/Zs93v7MwaqRNuyuJVKRKJl77HMXf6yjTUJDMI+Yk00ZpCR6JxYRka7BIbtpxlyGbsr6uJbjt6z+UXoR0HzRvaRF8aUU2mz/ez2dB73LtaTa4r0urnHgFs9qUGxLzy8vzCdnFKfsot94cnL9rLr7UqK73Yg6mBgvkD/hmFohmZmtC0YmvLbW40+3PEeeTYOnjjvtgtfGoxJAPL6J4GPHJIh4lfJxw/tJDO1N6PN5hElSkWXpyOFGnPI1ufi1u6SmPH3gn9e/A4tj298RxxFvogk8SfvGZ2AFEaPrzxxf/AVBLAwQUAAAACAAAACEAojnB5zcCAADgBAAAEAAAAGRvY1Byb3BzL2FwcC54bWylVMuO0zAU3SPxD1YW7Fo3nWmpiusRdIRmAZpKybRrk9y0Folt2Z5qyoodI36DNWs6f9NP4TqhmRQQCyar+8rJucfHYRd3VUm2YJ3UahbF/UFEQGU6l2o9i27St71JRJwXKhelVjCLduCiC/78GVtYbcB6CY4ghHKzaOO9mVLqsg1UwvWxrbBTaFsJj6ldU10UMoNLnd1WoDwdDgZjCnceVA55z7SAUYM43fr/Bc11Fvi5ZboziMdZCpUphQe+eiEq82pOknonmzPatliqvShTWQGPBxNstClbiDU4HseMNhFbaZs7fjY5GzHaxGy+EVZkHqXkw3gyPmO0U2GvjSllJjzKzN/LzGqnC0+ua+4kIDDaHWG4TwLZrZV+xweMdlP2TqrAZjJktAmRnxVrK8zG8VFNsk1ZkokS5igGL0TpgNHHArsCEQ56IWSguPXTLWReW+LkJzzq84h8EA6ChLNoK6wUykfNWJPUcWmctzyVvkTsNq/D7lg3luc8rgcw+Odgg3XYfz3sfxwe7g/774eHz4f9t8d0/+XpH6Xt4hifSlKv5a4LFNT/RaFhV6GaQ9ThvXzTS6So0GoAJUmkysPpArEwJQlaA8g8+L2oq901no5wstJvS8x1ZYTa8dVGIlR9HchcBGccO8FgH92NSfVluBe/fHNa7Nh9Jf0mMSJDIw5H4/OXXeN3eqxmnKOTWye2BXaFEtoyfAHfVWvIjzN/NsJVWjY/LB6P+wN86rtzrKH92z8J/wlQSwMEFAAAAAgAAAAhAOane4EKAgAAnQgAABMAAABkb2NQcm9wcy9jdXN0b20ueG1svZbvj5owHMbfL9n/QHi1JeNo+SGFKBcV3Uy2edl5LveyllbJQUto9WaW/e+resCZbG82JSGB0ub5PP22faB/+6PIjR2tZCb4wIQ3wDQoJyLN+HpgPiymFjINqTBPcS44HZh7Ks3b+O2b/l0lSlqpjEpDS3A5MDdKlZFtS7KhBZY3upvrHiaqAivdrNa2YCwjNBFkW1CubAeAnk22UonCKhs586QX7dS/SqaCHNzJ5WJfar24/yK+N1ihsnRg/kz8cZL4wLecSTi2IIAjK3TDwAIIAGfkjKfhcPLLNMrDYMc0OC701L+P50eYFtypKC+fparie10oXIqK9u32Zd+uif/Jdmv2Z8zXW7ym8Aw+4es8kxvj3cP9+6vwvZqfYEWnx7KfGfgy/7r4ZCTDxw/G42T47Soe/NrDH6o/0mV5Ek9X4fbadR8L/nJEzugQ2vrSW84zYBC5TuTCqzgJWidTIRStlq/NZF58wuqHiyFRs/CCzJIWBJzg4qywZi0z+nxCrYTIY1VtT6fq2LoYDoJmQx129Ssgw7m8ChE2xMOtC2ITWvM7rDZdEJuomnU1xyacZiTPdPh3wWzCaKYDoYO92murui064DVR87HCRYGrfF9/WmfpWfaFDAXAZ4hBhhFDPnEJc12aBsBLfZIiCih2IUOO66xSApCLg5UeRVHqpRh76G9Babf/FfFvUEsDBBQAAAAIAAAAIQB0Pzl6vAAAACgBAAAeAAAAY3VzdG9tWG1sL19yZWxzL2l0ZW0xLnhtbC5yZWxzjc+xisMwDAbg/eDewWhvnNxQyhGnSyl0O0oOuhpHSUxjy1hqad++5qYrdOgoif/7Ubu9hUVdMbOnaKCpalAYHQ0+TgZ++/1qA4rFxsEuFNHAHRm23edHe8TFSgnx7BOrokQ2MIukb63ZzRgsV5QwlstIOVgpY550su5sJ9Rfdb3W+b8B3ZOpDoOBfBgaUP094Ts2jaN3uCN3CRjlRYV2FxYKp7D8ZCqNqrd5QjHgBcPfqqmKCbpr9dN/3QNQSwECLQAUAAAACAAAACEAgYXjO5MBAACuBwAAEwAAAAAAAAAAAAAAgAEAAAAAW0NvbnRlbnRfVHlwZXNdLnhtbFBLAQItABQAAAAIAAAAIQCZVX4F+AAAAOECAAALAAAAAAAAAAAAAACAAcQBAABfcmVscy8ucmVsc1BLAQItABQAAAAIAAAAIQAfL3rUmhcAAPjZAQARAAAAAAAAAAAAAACAAeUCAAB3b3JkL2RvY3VtZW50LnhtbFBLAQItABQAAAAIAAAAIQAMRuigLAEAAEwFAAAcAAAAAAAAAAAAAACAAa4aAAB3b3JkL19yZWxzL2RvY3VtZW50LnhtbC5yZWxzUEsBAi0AFAAAAAgAAAAhAF+QYM87AwAA5g4AABIAAAAAAAAAAAAAAIABFBwAAHdvcmQvZm9vdG5vdGVzLnhtbFBLAQItABQAAAAIAAAAIQCFTf369gIAAGYMAAARAAAAAAAAAAAAAACAAX8fAAB3b3JkL2VuZG5vdGVzLnhtbFBLAQItABQAAAAIAAAAIQDQVXaS+QYAAA0iAAAVAAAAAAAAAAAAAACAAaQiAAB3b3JkL3RoZW1lL3RoZW1lMS54bWxQSwECLQAUAAAACAAAACEAfJIHNm8dAADOjwAAEQAAAAAAAAAAAAAAgAHQKQAAd29yZC9zZXR0aW5ncy54bWxQSwECLQAUAAAACAAAACEAJs0V3QEBAACCAQAAHAAAAAAAAAAAAAAAgAFuRwAAd29yZC9fcmVscy9zZXR0aW5ncy54bWwucmVsc1BLAQItABQAAAAIAAAAIQC38a4kqQAAAA4BAAATAAAAAAAAAAAAAACAAalIAABjdXN0b21YbWwvaXRlbTEueG1sUEsBAi0AFAAAAAgAAAAhAEbkyonbAAAAVQEAABgAAAAAAAAAAAAAAIABg0kAAGN1c3RvbVhtbC9pdGVtUHJvcHMxLnhtbFBLAQItABQAAAAIAAAAIQC07kqWugMAAL0SAAASAAAAAAAAAAAAAACAAZRKAAB3b3JkL251bWJlcmluZy54bWxQSwECLQAUAAAACAAAACEAc1MQ8BgPAABCiAAADwAAAAAAAAAAAAAAgAF+TgAAd29yZC9zdHlsZXMueG1sUEsBAi0AFAAAAAgAAAAhAOu0U9MODAAAHvkBABQAAAAAAAAAAAAAAIABw10AAHdvcmQvd2ViU2V0dGluZ3MueG1sUEsBAi0AFAAAAAgAAAAhAMEXZGhRAgAABgsAABIAAAAAAAAAAAAAAIABA2oAAHdvcmQvZm9udFRhYmxlLnhtbFBLAQItABQAAAAIAAAAIQC7YsZIrwEAAEUDAAARAAAAAAAAAAAAAACAAYRsAABkb2NQcm9wcy9jb3JlLnhtbFBLAQItABQAAAAIAAAAIQCiOcHnNwIAAOAEAAAQAAAAAAAAAAAAAACAAWJuAABkb2NQcm9wcy9hcHAueG1sUEsBAi0AFAAAAAgAAAAhAOane4EKAgAAnQgAABMAAAAAAAAAAAAAAIABx3AAAGRvY1Byb3BzL2N1c3RvbS54bWxQSwECLQAUAAAACAAAACEAdD85erwAAAAoAQAAHgAAAAAAAAAAAAAAgAECcwAAY3VzdG9tWG1sL19yZWxzL2l0ZW0xLnhtbC5yZWxzUEsFBgAAAAATABMA3gQAAPpzAAAAAA==";
+
+/* The paragraph that separates one certificate page from the next. */
+const PAGE_BREAK = '<w:p w:rsidR="004D4A94" w:rsidRDefault="004D4A94"><w:pPr><w:overflowPunct /><w:autoSpaceDE /><w:autoSpaceDN /><w:adjustRightInd /><w:textAlignment w:val="auto" /><w:rPr><w:rFonts w:ascii="Browallia New" w:hAnsi="Browallia New" w:cs="Browallia New" /></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Browallia New" w:hAnsi="Browallia New" w:cs="Browallia New" /></w:rPr><w:br w:type="page" /></w:r></w:p>';
+
+const STORAGE_KEY = 'jt-share-certificate';
+
+/* ── Text helpers ─────────────────────────────────────────────── */
+const escX = s => String(s == null ? '' : s)
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/[\r\n]+/g,' ');
+const escHtml = s => String(s == null ? '' : s).replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+/* A value written "(*)" — or "(*something)" — is a deliberate blank the
+   firm highlights yellow in the signed document. */
+const isPlaceholder = v => /^\(\*.*\)$/.test(String(v == null ? '' : v).trim());
+const PLACEHOLDER = '(*)';
+const keepPh = v => isPlaceholder(v) ? String(v).trim() : null;
+
+/* Word tags Thai as complex script; Latin and digits are not. Splitting the
+   value this way is what makes w:cs / w:szCs apply to the right characters. */
+function splitScript(text){
+  const out = [];
+  const re = /[฀-๿]+/g;
+  let last = 0, m;
+  while((m = re.exec(text)) !== null){
+    if(m.index > last) out.push([text.slice(last, m.index), false]);
+    out.push([m[0], true]);
+    last = m.index + m[0].length;
+  }
+  if(last < text.length) out.push([text.slice(last), false]);
+  return out.length ? out : [['', false]];
+}
+
+const MONTHS_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MONTHS_TH = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+function thaiDateParts(iso){
+  if(!iso) return {en:'', th:'', d:'', mTh:'', mEn:'', be:'', ad:''};
+  const [y,m,d] = String(iso).split('-').map(Number);
+  if(!y || !m || !d || m < 1 || m > 12) return {en:'', th:'', d:'', mTh:'', mEn:'', be:'', ad:''};
+  return {en:`${d} ${MONTHS_EN[m-1]} ${y}`, th:`${d} ${MONTHS_TH[m-1]} ${y+543}`,
+          d:String(d), mTh:MONTHS_TH[m-1], mEn:MONTHS_EN[m-1], be:String(y+543), ad:String(y)};
+}
+
+function groupDigits(v){
+  let s = String(v).replace(/[^\d.]/g,'');
+  const i = s.indexOf('.');
+  if(i >= 0) s = s.slice(0,i+1) + s.slice(i+1).replace(/\./g,'');
+  let [a,b] = s.split('.');
+  a = a.replace(/^0+(?=\d)/,'').replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  return b === undefined ? a : a + '.' + b;
+}
+/* "-" is how the firm writes "none" for a share count, and "(*)" is a
+   deliberate blank — neither is a number to be grouped. */
+function groupOrDash(v){
+  const s = String(v == null ? '' : v).trim();
+  if(!s || s === '-' || isPlaceholder(s)) return s;
+  return groupDigits(s);
+}
+const numOf = v => { const n = parseFloat(String(v==null?'':v).replace(/,/g,'')); return isFinite(n) ? n : null; };
+const intOf = v => { const n = parseInt(String(v==null?'':v).replace(/[^\d]/g,''), 10); return isFinite(n) ? n : null; };
+/* Thai drafting convention: a whole-baht amount is written "10.-" */
+function baht(v){
+  if(isPlaceholder(v)) return String(v).trim();
+  const n = numOf(v);
+  if(n === null) return '';
+  return Number.isInteger(n) ? n.toLocaleString('en-US') + '.-'
+                             : n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+/* ── State ────────────────────────────────────────────────────── */
+function blankCert(){
+  return {no:'', noAuto:true, group:'-', type:'ordinary',
+          holderTh:'', holderEn:'', addrTh:'', addrEn:'',
+          count:'', from:'', fromAuto:true, to:'', toAuto:true, rangeText:'', rangeAuto:true,
+          issue:'', issueAuto:true, cancel:'', replacedBy:'',
+          par:'', parAuto:true, paid:'', paidAuto:true,
+          /* A register is a history: an old certificate carries the capital and
+             the board as they stood when it was issued, not as they stand now. */
+          histOn:false, hCap:'', hCapAuto:true, hOrd:'', hPref:'-',
+          hMode:'two', hSlot:'left', hL:'', hR:''};
+}
+/* One company's whole register — the unit the tool used to hold on its own. */
+function blankState(){
+  return {
+    id:'b'+Date.now()+Math.random().toString(36).slice(2,6),
+    co:{th:'', en:'', short:'', shortAuto:true, ord:'', pref:'-', par:'',
+        cap:'', capAuto:true, issue:'', asOf:'', asOfAuto:true,
+        pad:'', padAuto:true, firstNo:'1', sealDayEn:false},
+    dirs:{mode:'two', slot:'left', l:'', r:''},
+    certs:[blankCert()], active:0, people:[], fileName:'', fileAuto:true,
+    /* What was transferred, kept after the certificates are issued so the
+       ตราสารการโอนหุ้น can still be drawn up — and taken back if it was wrong. */
+    xfers:[], undo:[]
+  };
+}
+/* Several companies at once: one register each, one Word file each. `state`
+   always points at the open one, so every function below is unchanged by this —
+   switching companies is a reassignment, not a rewrite. */
+const blankDoc = () => ({books:[blankState()], activeBook:0});
+let doc = blankDoc();
+let state = doc.books[0];
+function selectBook(i){
+  doc.activeBook = Math.min(Math.max(0, i), doc.books.length - 1);
+  state = doc.books[doc.activeBook];
+}
+const cur = () => state.certs[state.active] || blankCert();
+
+const getPath = (o,p) => p.split('.').reduce((a,k)=> a==null?a:a[k], o);
+function setPath(o,p,v){ const ks=p.split('.'), last=ks.pop(); ks.reduce((a,k)=>a[k],o)[last]=v; }
+
+/* ── Derived values ───────────────────────────────────────────── */
+/* Every computed value here is overridable and every override can be reset,
+   which is the house rule for this toolset. */
+const idxOf = c => state.certs.indexOf(c);
+
+function autoNo(c){
+  const first = intOf(state.co.firstNo);
+  const i = idxOf(c);
+  return first === null || i < 0 ? '' : String(first + i);
+}
+const certNo = c => c.noAuto ? autoNo(c) : c.no;
+
+/* The next certificate starts where the previous one stopped. A reissue after
+   a transfer re-uses old numbers, so this is a starting point, not a rule. */
+function autoFrom(c){
+  const i = idxOf(c);
+  if(i <= 0) return '1';
+  const prev = state.certs[i-1];
+  const t = intOf(certTo(prev));
+  return t === null ? '' : String(t + 1);
+}
+const certFrom = c => c.fromAuto ? autoFrom(c) : c.from;
+
+function autoTo(c){
+  /* an unknown share count leaves the end of the range unknown too, which is
+     what the certificate should say rather than nothing at all */
+  if(isPlaceholder(c.count)) return PLACEHOLDER;
+  const f = intOf(certFrom(c)), n = intOf(c.count);
+  return f === null || n === null || n < 1 ? '' : String(f + n - 1);
+}
+const certTo = c => c.toAuto ? autoTo(c) : c.to;
+
+/* Share numbers are padded to the width of the highest number there is, so a
+   100,000-share company reads 000001-025000 and a 47,368-share one 00001-25000.
+   It follows the capital, not a fixed setting. */
+function autoPad(){
+  const total = (intOf(state.co.ord) || 0) + (intOf(state.co.pref) || 0);
+  return total > 0 ? String(total).length : 0;
+}
+const padWidth = () => state.co.padAuto ? autoPad() : (intOf(state.co.pad) || 0);
+const padNum = v => {
+  if(isPlaceholder(v)) return String(v).trim();   /* a blank has no width to pad */
+  const w = padWidth();
+  const n = intOf(v);
+  return n === null ? '' : (w ? String(n).padStart(w,'0') : String(n));
+};
+function autoRange(c){
+  const f = certFrom(c), t = certTo(c);
+  if(!f) return '';
+  if(!t || intOf(t) === intOf(f)) return padNum(f);
+  return padNum(f) + '-' + padNum(t);
+}
+const certRange = c => c.rangeAuto ? autoRange(c) : c.rangeText;
+
+const certIssue = c => c.issueAuto ? state.co.issue : c.issue;
+const certPar   = c => c.parAuto ? state.co.par : c.par;
+const certPaid  = c => c.paidAuto ? certPar(c) : c.paid;
+
+/* A figure left as (*) cannot be multiplied, so the capital stops computing and
+   waits to be filled in — or marked (*) itself. */
+function autoCap(){
+  if([state.co.ord, state.co.pref, state.co.par].some(isPlaceholder)) return '';
+  const ord = intOf(state.co.ord) || 0, pref = intOf(state.co.pref) || 0;
+  const par = numOf(state.co.par);
+  if(par === null || !(ord + pref)) return '';
+  return groupDigits(String((ord + pref) * par));
+}
+const capital = () => state.co.capAuto ? autoCap() : state.co.cap;
+
+/* Capital and board as at this certificate's issue date. Both fall back to the
+   company block, which is what a set issued in one go needs. */
+function autoHCap(c){
+  if([c.hOrd, c.hPref, certPar(c)].some(isPlaceholder)) return '';
+  const ord = intOf(c.hOrd) || 0, pref = intOf(c.hPref) || 0;
+  const par = numOf(certPar(c));
+  if(par === null || !(ord + pref)) return '';
+  return groupDigits(String((ord + pref) * par));
+}
+const coAt = c => c.histOn
+  ? {cap: c.hCapAuto ? autoHCap(c) : c.hCap, ord: c.hOrd, pref: c.hPref}
+  : {cap: capital(), ord: state.co.ord, pref: state.co.pref};
+const dirsAt = c => c.histOn
+  ? {mode: c.hMode, slot: c.hSlot, l: c.hL, r: c.hR}
+  : state.dirs;
+
+/* "EXAMPLE CO., LTD." → "Hug And Heal". The firm's own file names shorten
+   further ("Exampl"), which is why this stays editable. */
+function autoShort(b){
+  const co = (b || state).co;
+  const s = co.en || co.th;
+  if(!s) return '';
+  if(/[฀-๿]/.test(s))
+    return s.replace(/บริษัท|จำกัด|\(มหาชน\)|ห้างหุ้นส่วนจำกัด/g,' ').replace(/\s+/g,' ').trim();
+  return s.replace(/[.,]/g,' ')
+          .replace(/\b(COMPANY|LIMITED|LTD|CO|PUBLIC|PCL|INC|CORP|CORPORATION|HOLDINGS|GROUP|PTE|LLC)\b/gi,' ')
+          .replace(/\s+/g,' ').trim()
+          .replace(/\S+/g, w => w[0].toUpperCase() + w.slice(1).toLowerCase());
+}
+const shortName = b => { const k = b || state; return k.co.shortAuto ? autoShort(k) : k.co.short; };
+/* What the company tab says: the short name, else either full name, else a
+   placeholder — a company with nothing filled in yet still needs a handle. */
+const bookLabel = b => shortName(b) || b.co.th || b.co.en ||
+  ('บริษัทที่ ' + (doc.books.indexOf(b) + 1));
+
+/* One file per company, named for the date the register speaks as of — by
+   default the latest certificate in it, but the firm dates some sets to a
+   board meeting or a filing instead, so it stays editable. */
+function autoAsOf(){
+  const dates = state.certs.map(certIssue).filter(Boolean).sort();
+  return dates.length ? dates[dates.length-1] : state.co.issue;
+}
+const asOfDate = () => state.co.asOfAuto ? autoAsOf() : state.co.asOf;
+
+function autoFileName(){
+  const n = shortName() || 'Share';
+  const plural = state.certs.length === 1 ? 'Certificate' : 'Certificates';
+  const d = thaiDateParts(asOfDate()).en;
+  return `${n}-Share ${plural}${d ? ' (as of ' + d + ')' : ''}`;
+}
+
+/* Which certificates took this one's place: issued the day it was cancelled,
+   over share numbers it covered. Offered, never filled in automatically — the
+   firm leaves the box empty as often as not. */
+function replacementsFor(c){
+  if(!c.cancel) return [];
+  const f = intOf(certFrom(c)), t = intOf(certTo(c));
+  return state.certs.filter(o => o !== c && certIssue(o) === c.cancel).filter(o => {
+    const of_ = intOf(certFrom(o)), ot = intOf(certTo(o));
+    if(f === null || t === null || of_ === null || ot === null) return true;
+    return of_ <= t && ot >= f;                 /* ranges overlap */
+  });
+}
+const fileName = () => (state.fileAuto ? autoFileName() : state.fileName) || 'Share Certificates';
+
+/* ── Token map ────────────────────────────────────────────────── */
+const DIR_TH = 'กรรมการ', DIR_EN = 'DIRECTOR';
+function sigSlots(c){
+  const d = dirsAt(c);
+  const filled = n => ({lbl:DIR_TH, x:'X', en:DIR_EN, name:n});
+  const empty  = {lbl:'', x:'', en:'', name:''};
+  if(d.mode === 'one') return d.slot === 'right' ? [empty, filled(d.r || d.l)] : [filled(d.l), empty];
+  return [filled(d.l), filled(d.r)];
+}
+
+/* A date marked (*) has no day, month or year to split, so every part of it
+   prints the marker — each blank on the seal line is a blank in its own right. */
+function dateParts(v){
+  const ph = keepPh(v);
+  return ph ? {en:ph, th:ph, d:ph, mTh:ph, mEn:ph, be:ph, ad:ph} : thaiDateParts(v);
+}
+
+function tokensFor(c){
+  const co = state.co;
+  const at = coAt(c);
+  const issue = dateParts(certIssue(c));
+  const cancel = dateParts(c.cancel);
+  const [L, R] = sigSlots(c);
+  const shares = isPlaceholder(c.count) ? c.count : groupDigits(c.count || '');
+  return {
+    CO_TH: co.th, CO_HDR_TH: co.th,
+    CO_EN: co.en, CO_HDR_EN: co.en,
+    CAP_AMT: at.cap,
+    CAP_ORD: groupOrDash(at.ord),
+    CAP_PREF: groupOrDash(at.pref) || '-',
+    CAP_PAR: baht(certPar(c)),
+
+    /* "สำหรับ" and "จำนวน" stay in the template: only the share-type word
+       itself is struck through, never the word that introduces it. */
+    TY1_ORD_TH:'หุ้นสามัญ', TY1_PREF_TH:'หุ้นบุริมสิทธิ',
+    TY1_ORD_EN:'Ordinary',  TY1_PREF_EN:'Preferred',
+    TY2_ORD_TH:'หุ้นสามัญ', TY2_PREF_TH:'หุ้นบุริมสิทธิ',
+    TY2_ORD_EN:'Ordinary',  TY2_PREF_EN:'Preferred',
+
+    CERT_NO: certNo(c),
+    GROUP: c.group || '-',
+    SHARES: shares,
+    RANGE: certRange(c),
+    HOLDER_TH: c.holderTh, HOLDER_EN: c.holderEn,
+    ADDR_TH: c.addrTh,     ADDR_EN: c.addrEn,
+    ADDR_STUB_TH: c.addrTh, ADDR_STUB_EN: c.addrEn,
+    PAR: baht(certPar(c)), PAID: baht(certPaid(c)),
+    ISSUE_TH: issue.th, ISSUE_EN: issue.en,
+    SEAL_DAY: issue.d, SEAL_MON_TH: issue.mTh, SEAL_YEAR_BE: issue.be,
+    /* The day is a shared figure, so the firm's precedents print it on the
+       Thai row only. Kalguroo repeats it; that is what this switch is for. */
+    SEAL_DAY_EN: co.sealDayEn ? issue.d : '',
+    SEAL_MON_EN: issue.mEn, SEAL_YEAR_AD: issue.ad,
+    CANCEL_TH: cancel.th, CANCEL_EN: cancel.en,
+    REPLACED_BY: c.replacedBy,
+
+    SIGL_LBL_TH:L.lbl, SIGL_X:L.x, SIGL_LBL_EN:L.en, SIGL_NAME:L.name,
+    SIGR_LBL_TH:R.lbl, SIGR_X:R.x, SIGR_LBL_EN:R.en, SIGR_NAME:R.name
+  };
+}
+
+/* The label for the share type that does NOT apply is struck through — that is
+   how the printed form distinguishes ordinary from preferred. */
+const ORD_TOKENS  = ['TY1_ORD_TH','TY1_ORD_EN','TY2_ORD_TH','TY2_ORD_EN'];
+const PREF_TOKENS = ['TY1_PREF_TH','TY1_PREF_EN','TY2_PREF_TH','TY2_PREF_EN'];
+const strikeSet = c => new Set(c.type === 'preferred' ? ORD_TOKENS : PREF_TOKENS);
+
+/* ── docx generation ──────────────────────────────────────────── */
+/* w:rPr children are order-sensitive. highlight (28) and cs (39) come after
+   sz/szCs so they can be appended, but strike (9) comes before them and has to
+   be spliced in ahead of w:sz. */
+function withStrike(rprInner){
+  if(/<w:strike[ />]/.test(rprInner)) return rprInner;
+  return /<w:sz[ />]/.test(rprInner)
+    ? rprInner.replace(/<w:sz[ />]/, m => '<w:strike/>' + m)
+    : rprInner + '<w:strike/>';
+}
+
+function buildRuns(rprInner, value, strike){
+  const ph = isPlaceholder(value);
+  const base = strike ? withStrike(rprInner) : rprInner;
+  /* Trimmed: a space picked up while typing or pasting into the form is
+     invisible there but shows as an indent on the certificate. */
+  return splitScript(String(value == null ? '' : value).trim()).map(([text, thai]) =>
+    `<w:r><w:rPr>${base}` +
+      (ph ? '<w:highlight w:val="yellow"/>' : '') +
+      (thai ? '<w:cs/>' : '') +
+    `</w:rPr><w:t xml:space="preserve">${escX(text)}</w:t></w:r>`
+  ).join('');
+}
+
+/* Replace the whole run carrying the token, so one value can become several
+   runs with different script flags. */
+function fillToken(xml, token, value, strike){
+  const mark = '{{' + token + '}}';
+  let out = xml, i;
+  while((i = out.indexOf(mark)) !== -1){
+    const s = Math.max(out.lastIndexOf('<w:r>', i), out.lastIndexOf('<w:r ', i));
+    const e = out.indexOf('</w:r>', i);
+    if(s === -1 || e === -1) break;
+    const run = out.slice(s, e + 6);
+    const m = run.match(/<w:rPr>([\s\S]*?)<\/w:rPr>/);
+    out = out.slice(0, s) + buildRuns(m ? m[1] : '', value, strike) + out.slice(e + 6);
+  }
+  return out;
+}
+
+/* The template's document.xml, unzipped once and reused — the live preview
+   re-fills it on every keystroke, so it must not pay for a zip round trip. */
+let TEMPLATE_XML = null, PAGE_UNIT = null, DOC_HEAD = null, DOC_TAIL = null;
+async function templateXml(){
+  if(TEMPLATE_XML === null){
+    const zip = await JSZip.loadAsync(TEMPLATE_B64, {base64:true});
+    TEMPLATE_XML = await zip.file('word/document.xml').async('string');
+    /* The body is exactly one certificate table plus its trailing blank
+       paragraph, followed by the section properties. */
+    const s = TEMPLATE_XML.search(/<w:tbl[ >]/);
+    const e = TEMPLATE_XML.indexOf('<w:sectPr');
+    if(s === -1 || e === -1) throw new Error('template layout not recognised');
+    DOC_HEAD  = TEMPLATE_XML.slice(0, s);
+    PAGE_UNIT = TEMPLATE_XML.slice(s, e);
+    DOC_TAIL  = TEMPLATE_XML.slice(e);
+  }
+  return TEMPLATE_XML;
+}
+
+/* The single source of truth for one filled page — both the preview and the
+   exported .docx go through here, so what you see cannot drift from what you get. */
+/* Emptying a signature slot is not enough — the cell keeps the ruled line the
+   signature sits on, and a ruled line with nothing on it reads as a signature
+   that was never given. Runs before the tokens are replaced, while the marker
+   is still there to locate the cell by. */
+function dropCellBorders(xml, token){
+  const i = xml.indexOf('{{' + token + '}}');
+  if(i === -1) return xml;
+  const tc = Math.max(xml.lastIndexOf('<w:tc>', i), xml.lastIndexOf('<w:tc ', i));
+  if(tc === -1) return xml;
+  const s = xml.indexOf('<w:tcBorders', tc);
+  if(s === -1 || s > i) return xml;              /* the borders are a later cell's */
+  const m = /^<w:tcBorders(?:\s[^>]*?)?(?:\/>|>[\s\S]*?<\/w:tcBorders>)/.exec(xml.slice(s));
+  return m ? xml.slice(0, s) + xml.slice(s + m[0].length) : xml;
+}
+
+function fillPage(c){
+  const vals = tokensFor(c);
+  const strike = strikeSet(c);
+  let xml = PAGE_UNIT;
+  const [L, R] = sigSlots(c);
+  if(!L.lbl) for(const t of ['SIGL_X','SIGL_NAME']) xml = dropCellBorders(xml, t);
+  if(!R.lbl) for(const t of ['SIGR_X','SIGR_NAME']) xml = dropCellBorders(xml, t);
+  for(const [k,v] of Object.entries(vals)) xml = fillToken(xml, k, v, strike.has(k));
+  return xml;
+}
+
+function fillDoc(certs){
+  const pages = (certs.length ? certs : [blankCert()]).map(fillPage);
+  return DOC_HEAD + pages.join(PAGE_BREAK) + DOC_TAIL;
+}
+
+async function buildDocx(certs){
+  await templateXml();
+  const zip = await JSZip.loadAsync(TEMPLATE_B64, {base64:true});
+  zip.file('word/document.xml', fillDoc(certs));
+  return zip.generateAsync({type:'blob', compression:'DEFLATE',
+    mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+}
+
+function download(blob, name){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=> URL.revokeObjectURL(url), 1000);
+}
+
+async function exportAll(){
+  try{
+    download(await buildDocx(state.certs), fileName() + '.docx');
+    toast(`✓ Exported ${state.certs.length} certificate${state.certs.length===1?'':'s'}`);
+  }catch(e){ toast('Error: ' + e.message); console.error(e); }
+}
+async function exportOne(){
+  try{
+    const c = cur();
+    download(await buildDocx([c]), `${fileName()} — no. ${certNo(c) || '?'}.docx`);
+    toast('✓ Exported certificate no. ' + (certNo(c) || '?'));
+  }catch(e){ toast('Error: ' + e.message); console.error(e); }
+}
+
+/* Every company at once — one .docx each, zipped. The documents are built
+   synchronously, one book at a time, before any awaiting starts: `state` is
+   borrowed for each book in turn, and nothing may run in between. */
+async function exportEveryCompany(){
+  try{
+    await templateXml();
+    const keep = state, keepIdx = doc.activeBook;
+    const jobs = [], used = {};
+    for(const b of doc.books){
+      state = b;
+      let name = fileName();
+      used[name] = (used[name] || 0) + 1;
+      if(used[name] > 1) name += ` (${used[name]})`;
+      jobs.push({name, xml: fillDoc(b.certs), pages: b.certs.length});
+    }
+    state = keep; doc.activeBook = keepIdx;
+
+    const out = new JSZip();
+    for(const j of jobs){
+      const zip = await JSZip.loadAsync(TEMPLATE_B64, {base64:true});
+      zip.file('word/document.xml', j.xml);
+      out.file(j.name + '.docx', await zip.generateAsync({type:'blob', compression:'DEFLATE'}));
+    }
+    const total = jobs.reduce((a,j)=> a + j.pages, 0);
+    download(await out.generateAsync({type:'blob', compression:'DEFLATE'}),
+             `Share Certificates — ${jobs.length} companies.zip`);
+    toast(`✓ Exported ${jobs.length} companies · ${total} certificate${total===1?'':'s'}`);
+  }catch(e){ toast('Error: ' + e.message); console.error(e); }
+}
+
+/* ── Companies ────────────────────────────────────────────────── */
+function renderCompanies(){
+  const pick = document.getElementById('coPick');
+  pick.innerHTML = doc.books.map((b,i)=>
+    `<option value="${i}"${i===doc.activeBook?' selected':''}>${escHtml(bookLabel(b))} · ${b.certs.length} ใบ</option>`
+  ).join('');
+  document.getElementById('btnCoDel').disabled = doc.books.length < 2;
+  document.getElementById('btnCoDel').style.opacity = doc.books.length < 2 ? '.35' : '';
+  const many = doc.books.length > 1;
+  document.getElementById('btnExportCos').hidden = !many;
+  document.getElementById('sideCo').innerHTML =
+    `<span>${escHtml(bookLabel(state))}</span>` +
+    (many ? `<span class="n">บริษัทที่ ${doc.activeBook+1} จาก ${doc.books.length}</span>` : '');
+  const from = document.getElementById('peopleFrom');
+  const sources = doc.books.map((b,i)=> ({b,i}))
+    .filter(x => x.i !== doc.activeBook && x.b.people.length);
+  from.hidden = !sources.length;
+  from.innerHTML = '<option value="">⇩ นำเข้าจากบริษัทอื่น…</option>' +
+    sources.map(x => `<option value="${x.i}">${escHtml(bookLabel(x.b))} · ${x.b.people.length} คน</option>`).join('');
+}
+
+document.getElementById('coPick').addEventListener('change', e=>{
+  selectBook(+e.target.value); save(); render();
+  toast('บริษัท: ' + bookLabel(state));
+});
+document.getElementById('btnCoAdd').addEventListener('click', ()=>{
+  doc.books.push(blankState());
+  selectBook(doc.books.length - 1); save(); render();
+  toast('✓ เพิ่มบริษัทใหม่ — กรอกชื่อบริษัทในช่อง Company & capital');
+});
+document.getElementById('btnCoDup').addEventListener('click', ()=>{
+  const copy = JSON.parse(JSON.stringify(state));
+  copy.id = 'b'+Date.now()+Math.random().toString(36).slice(2,6);
+  copy.co.short = ''; copy.co.shortAuto = true;
+  copy.fileName = ''; copy.fileAuto = true;
+  copy.undo = [];   /* an editing session does not belong to the copy */
+  doc.books.splice(doc.activeBook + 1, 0, copy);
+  selectBook(doc.activeBook + 1); save(); render();
+  toast('✓ ทำสำเนาบริษัทแล้ว — เปลี่ยนชื่อบริษัทได้เลย');
+});
+document.getElementById('btnCoDel').addEventListener('click', async ()=>{
+  if(doc.books.length < 2){ toast('ต้องมีอย่างน้อยหนึ่งบริษัท'); return; }
+  const n = state.certs.length, p = state.people.length;
+  const ok = await ask('Delete this company?',
+    `${bookLabel(state)} — ${n} certificate${n===1?'':'s'} and ${p} saved ${p===1?'person':'people'} go with it. ` +
+    `The other companies are untouched. This cannot be undone.`, 'Yes, delete it');
+  if(!ok) return;
+  const gone = bookLabel(state);
+  doc.books.splice(doc.activeBook, 1);
+  selectBook(Math.max(0, doc.activeBook - 1)); save(); render();
+  toast('✓ ลบบริษัท ' + gone + ' แล้ว');
+});
+/* The same people turn up in several of a group's companies, so the directory
+   can be copied across rather than retyped. Copies, not shares: a company's
+   register stays self-contained. */
+document.getElementById('peopleFrom').addEventListener('change', e=>{
+  const b = doc.books[+e.target.value];
+  e.target.value = '';
+  if(!b) return;
+  const key = p => (p.nameTh || '') + '|' + (p.nameEn || '');
+  const have = new Set(state.people.map(key));
+  const added = b.people.filter(p => !have.has(key(p)));
+  state.people.push(...added.map(p => ({...p, id:'p'+Date.now()+Math.random().toString(36).slice(2,6)})));
+  save(); render();
+  toast(added.length ? `✓ นำเข้า ${added.length} คนจาก ${bookLabel(b)}` : 'มีครบอยู่แล้ว — ไม่มีใครใหม่');
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   Live preview — WordprocessingML → HTML
+
+   This walks the *filled* document.xml rather than re-describing the
+   certificate in markup, so the preview follows the template automatically:
+   change the template and the preview changes with it. It is an HTML
+   rendering, not a picture of Word's own layout, so treat it as a proofing
+   view — the .docx remains the authoritative document.
+   ═══════════════════════════════════════════════════════════════ */
+const WNS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+const kids = (el, name) => [...el.children].filter(c => c.localName === name && c.namespaceURI === WNS);
+const kid  = (el, name) => kids(el, name)[0] || null;
+const wval = (el, name) => { const c = el ? kid(el, name) : null; return c ? c.getAttributeNS(WNS,'val') : null; };
+
+function runStyle(rPr){
+  if(!rPr) return {css:'', hl:false, st:false};
+  let css = '';
+  if(kid(rPr,'b')) css += 'font-weight:700;';
+  if(kid(rPr,'u')) css += 'text-decoration:underline;';
+  const sz = wval(rPr,'sz');            if(sz) css += `font-size:${(+sz)/2}pt;`;
+  const sp = wval(rPr,'spacing');       if(sp) css += `letter-spacing:${(+sp)/20}pt;`;
+  return {css, hl: !!kid(rPr,'highlight'), st: !!kid(rPr,'strike')};
+}
+
+/* Split a paragraph's runs on tabs: each tab starts a new segment, which is how
+   this template positions text (a leading tab centres on a centre stop). */
+function paraSegments(p){
+  const segs = [[]];
+  for(const r of kids(p,'r')){
+    const {css, hl, st} = runStyle(kid(r,'rPr'));
+    for(const n of r.children){
+      if(n.namespaceURI !== WNS) continue;
+      if(n.localName === 'tab'){ segs.push([]); continue; }
+      if(n.localName === 'br'){ segs[segs.length-1].push('<br>'); continue; }
+      if(n.localName === 'sym'){ segs[segs.length-1].push('<span style="font-weight:700">✓</span>'); continue; }
+      if(n.localName === 't'){
+        /* pre-wrap keeps the template's padding spaces without turning the
+           whole run into one unbreakable word */
+        const cls = [hl?'hl':'', st?'st':''].filter(Boolean).join(' ');
+        segs[segs.length-1].push(
+          `<span class="${cls}" style="white-space:pre-wrap;${css}">${escHtml(n.textContent)}</span>`);
+      }
+    }
+  }
+  return segs.map(s => s.join(''));
+}
+
+function paraHtml(p){
+  const pPr  = kid(p,'pPr');
+  const jc   = wval(pPr,'jc');
+  const stops = pPr ? [...(kid(pPr,'tabs')?.children || [])]
+        .filter(t => t.localName === 'tab')
+        .map(t => t.getAttributeNS(WNS,'val')) : [];
+  const segs = paraSegments(p);
+  const filled = segs.filter(s => s.replace(/<[^>]*>|&nbsp;/g,'').trim());
+  const ind = kid(pPr,'ind');
+  const left = ind ? +(ind.getAttributeNS(WNS,'left') || 0) / 20 : 0;
+  const style = left ? `padding-left:${left}pt;` : '';
+
+  if(jc === 'center')  return `<p style="text-align:center;${style}">${segs.join(' ')}</p>`;
+  if(jc === 'right')   return `<p style="text-align:right;${style}">${segs.join(' ')}</p>`;
+  /* one value pushed to a centre stop by a leading tab */
+  if(filled.length === 1 && segs.length > 1 && stops.includes('center'))
+    return `<p style="text-align:center;${style}">${filled[0]}</p>`;
+  /* value on the left, unit (บาท) pushed right by a trailing tab */
+  if(filled.length > 1)
+    return `<p class="seg-row" style="${style}">${segs.filter(s=>s!=='').map(s=>`<span>${s}</span>`).join('')}</p>`;
+  return `<p style="${style}">${segs.join('')}</p>`;
+}
+
+function tblHtml(tbl){
+  const grid = (kid(tbl,'tblGrid') ? kids(kid(tbl,'tblGrid'),'gridCol') : [])
+                 .map(g => +g.getAttributeNS(WNS,'w'));
+  const total = grid.reduce((a,b)=>a+b, 0) || 1;
+  let out = '<table>';
+  for(const tr of kids(tbl,'tr')){
+    out += '<tr>';
+    for(const tc of kids(tr,'tc')){
+      const tcPr = kid(tc,'tcPr');
+      const span = +(wval(tcPr,'gridSpan') || 1);
+      const wEl  = kid(tcPr,'tcW');
+      const w    = wEl ? +wEl.getAttributeNS(WNS,'w') : 0;
+      const bd   = kid(tcPr,'tcBorders');
+      const cls  = [];
+      if(bd){
+        const on = s => { const e = kid(bd, s); const v = e && e.getAttributeNS(WNS,'val'); return v && v !== 'nil'; };
+        if(on('top')) cls.push('bt');
+        if(on('bottom')) cls.push('bb');
+      }
+      const pct = w ? (w / total * 100).toFixed(3) + '%' : 'auto';
+      out += `<td colspan="${span}" class="${cls.join(' ')}" style="width:${pct}">` +
+             kids(tc,'p').map(paraHtml).join('') + '</td>';
+    }
+    out += '</tr>';
+  }
+  return out + '</table>';
+}
+
+const hasPageBreak = p => [...p.getElementsByTagNameNS(WNS,'br')]
+  .some(b => b.getAttributeNS(WNS,'type') === 'page');
+
+function docToPages(xml){
+  const doc  = new DOMParser().parseFromString(xml, 'application/xml');
+  if(doc.getElementsByTagName('parsererror').length) return ['<p>Preview unavailable — the document XML could not be parsed.</p>'];
+  const body = doc.getElementsByTagNameNS(WNS,'body')[0];
+  const pages = [[]];
+  for(const node of body.children){
+    if(node.namespaceURI !== WNS) continue;
+    if(node.localName === 'p'){
+      if(hasPageBreak(node)) pages.push([]);
+      pages[pages.length-1].push(paraHtml(node));
+    } else if(node.localName === 'tbl'){
+      pages[pages.length-1].push(tblHtml(node));
+    }
+  }
+  return pages.map(p => p.join(''));
+}
+
+let pvZoom = .55, pvPage = 'cur', pvTimer = null;
+
+async function renderDocPreview(){
+  const stage = document.getElementById('pvStage');
+  if(!stage) return;
+  /* the panel is hidden in "Form only" — rebuilding it on every keystroke
+     would be pure waste, so it is refreshed when the view is switched back */
+  if(document.getElementById('app').dataset.view === 'form') return;
+  try{
+    await templateXml();
+    /* "this certificate" is the default: a long register would otherwise
+       re-render every page on every keystroke */
+    const list = pvPage === 'all' ? state.certs : [cur()];
+    const pages = docToPages(fillDoc(list));
+    stage.innerHTML = pages.map((html,i) =>
+      `<div class="pgnum">ใบหุ้นเลขที่ ${escHtml(certNo(list[i]) || '—')}` +
+      `${list.length > 1 ? ` · page ${i+1} of ${list.length}` : ''}</div>` +
+      `<div class="pg">${html}</div>`).join('');
+    applyZoom();
+  }catch(e){ stage.innerHTML = '<p style="color:#94a3b8;font-size:.85em">Preview unavailable: ' + escHtml(e.message) + '</p>'; }
+}
+function schedulePreview(){ clearTimeout(pvTimer); pvTimer = setTimeout(renderDocPreview, 140); }
+
+function applyZoom(){
+  const stage = document.getElementById('pvStage');
+  const sizer = document.getElementById('pvSizer');
+  const lvl = document.getElementById('zLvl');
+  if(!stage || !sizer) return;
+  stage.style.transform = `scale(${pvZoom})`;
+  /* transform does not change the layout box, so the wrapper carries the
+     scaled size — otherwise the panel scrolls sideways at every zoom level */
+  sizer.style.width  = Math.ceil(stage.offsetWidth  * pvZoom) + 'px';
+  sizer.style.height = Math.ceil(stage.offsetHeight * pvZoom) + 'px';
+  if(lvl) lvl.textContent = Math.round(pvZoom * 100) + '%';
+}
+function fitPreview(pass){
+  const box = document.getElementById('pvScroll');
+  const stage = document.getElementById('pvStage');
+  if(!box || !stage) return;
+  const natural = stage.offsetWidth || 355.6 * 3.7795;   /* page width in CSS px */
+  const cs = getComputedStyle(box);
+  const avail = box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 2;
+  if(avail < 80) return;          /* panel still hidden — the observer will call back */
+  pvZoom = Math.max(.15, Math.min(1.5, avail / natural));
+  applyZoom();
+  /* the vertical scrollbar only appears once the pages are laid out, which
+     changes clientWidth — measure again after that settles */
+  if(!pass) setTimeout(()=> fitPreview(1), 60);
+}
+
+/* Re-fit whenever the panel actually gets a size: showing it, resizing the
+   window and collapsing the sidebar all change the width at moments that are
+   awkward to time from a click handler. Manual zooming opts out. */
+let pvAutoFit = true;
+new ResizeObserver(() => { if(pvAutoFit) fitPreview(); })
+  .observe(document.getElementById('pvScroll'));
+
+document.getElementById('zIn').addEventListener('click', ()=>{ pvAutoFit = false; pvZoom = Math.min(1.5, pvZoom + .1); applyZoom(); });
+document.getElementById('zOut').addEventListener('click', ()=>{ pvAutoFit = false; pvZoom = Math.max(.15, pvZoom - .1); applyZoom(); });
+document.getElementById('zFit').addEventListener('click', ()=>{ pvAutoFit = true; fitPreview(); });
+document.getElementById('pvTabs').addEventListener('click', e=>{
+  const b = e.target.closest('.pv-tab'); if(!b) return;
+  pvPage = b.dataset.page;
+  document.querySelectorAll('.pv-tab').forEach(x=> x.classList.toggle('on', x === b));
+  renderDocPreview();
+});
+document.getElementById('viewSegs').addEventListener('click', e=>{
+  const b = e.target.closest('.seg'); if(!b) return;
+  document.getElementById('app').dataset.view = b.dataset.view;
+  document.querySelectorAll('.seg').forEach(x=> x.classList.toggle('on', x === b));
+  renderDocPreview().then(()=> requestAnimationFrame(()=> fitPreview()));
+});
+document.getElementById('btnPrint').addEventListener('click', ()=>{
+  /* print every page at 1:1 whatever the on-screen zoom */
+  const app = document.getElementById('app');
+  const keep = pvZoom, keepPage = pvPage, keepView = app.dataset.view;
+  pvZoom = 1; pvPage = 'all';
+  if(keepView === 'form') app.dataset.view = 'split';   /* so the pages exist to print */
+  renderDocPreview().then(()=> setTimeout(()=>{
+    window.print();
+    pvZoom = keep; pvPage = keepPage; app.dataset.view = keepView;
+    renderDocPreview();
+  }, 150));
+});
+document.getElementById('btnExport2').addEventListener('click', ()=> exportAll());
+
+/* ── Excel batch ──────────────────────────────────────────────── */
+/* Written and read with JSZip directly: a .xlsx is just a zip of XML, and
+   avoiding a spreadsheet library keeps this file self-contained. */
+const XLSX_COLS = [
+  ['Certificate no.',        c=> c.noAuto ? '' : c.no],
+  ['Share group',            c=> c.group],
+  ['Share type',             c=> c.type === 'preferred' ? 'preferred' : 'ordinary'],
+  ['Shareholder (Thai)',     c=> c.holderTh],
+  ['Shareholder (English)',  c=> c.holderEn],
+  ['Address (Thai)',         c=> c.addrTh],
+  ['Address (English)',      c=> c.addrEn],
+  ['Shares',                 c=> c.count],
+  ['Numbered from',          c=> c.fromAuto ? '' : c.from],
+  ['Numbered to',            c=> c.toAuto ? '' : c.to],
+  ['Range as printed',       c=> c.rangeAuto ? '' : c.rangeText],
+  ['Issued on',              c=> c.issueAuto ? '' : c.issue],
+  ['Cancelled on',           c=> c.cancel],
+  ['Replaced by cert no.',   c=> c.replacedBy],
+  ['Par value',              c=> c.parAuto ? '' : c.par],
+  ['Paid up per share',      c=> c.paidAuto ? '' : c.paid],
+  /* Filling any of these marks the certificate as issued under an earlier
+     capital or board — see the "as at issue date" block in the form. */
+  ['Capital at issue',       c=> c.histOn && !c.hCapAuto ? c.hCap : ''],
+  ['Ordinary shares at issue', c=> c.histOn ? c.hOrd : ''],
+  ['Preferred shares at issue', c=> c.histOn ? c.hPref : ''],
+  ['Director left at issue', c=> c.histOn ? c.hL : ''],
+  ['Director right at issue', c=> c.histOn ? c.hR : '']
+];
+
+function colName(n){ let s=''; n++; while(n>0){ const r=(n-1)%26; s=String.fromCharCode(65+r)+s; n=Math.floor((n-1)/26);} return s; }
+
+function sheetXml(rows){
+  const body = rows.map((cells,ri)=>{
+    const r = ri+1;
+    const cs = cells.map((v,ci)=> v === '' || v == null ? '' :
+      `<c r="${colName(ci)}${r}" t="inlineStr"><is><t xml:space="preserve">${escX(v)}</t></is></c>`).join('');
+    return `<row r="${r}">${cs}</row>`;
+  }).join('');
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${body}</sheetData></worksheet>`;
+}
+
+async function xlsxBlob(rows){
+  const zip = new JSZip();
+  zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`);
+  zip.folder('_rels').file('.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`);
+  const xl = zip.folder('xl');
+  xl.file('workbook.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Certificates" sheetId="1" r:id="rId1"/></sheets></workbook>`);
+  xl.folder('_rels').file('workbook.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`);
+  xl.folder('worksheets').file('sheet1.xml', sheetXml(rows));
+  return zip.generateAsync({type:'blob', compression:'DEFLATE',
+    mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+
+async function downloadXlsxTemplate(){
+  try{
+    const rows = [XLSX_COLS.map(c=>c[0])];
+    for(const c of state.certs) rows.push(XLSX_COLS.map(col=> String(col[1](c) ?? '')));
+    if(rows.length === 1) rows.push(XLSX_COLS.map(()=> ''));
+    download(await xlsxBlob(rows), 'Share Certificates — batch template.xlsx');
+    toast('✓ Excel template downloaded with your current certificates');
+  }catch(e){ toast('Error: ' + e.message); console.error(e); }
+}
+
+async function parseXlsx(file){
+  const zip = await JSZip.loadAsync(await file.arrayBuffer());
+  const sheetPath = Object.keys(zip.files).find(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n));
+  if(!sheetPath) throw new Error('no worksheet found in that file');
+  const doc = new DOMParser().parseFromString(await zip.file(sheetPath).async('string'), 'application/xml');
+
+  let shared = [];
+  const ssFile = zip.file('xl/sharedStrings.xml');
+  if(ssFile){
+    const ss = new DOMParser().parseFromString(await ssFile.async('string'), 'application/xml');
+    shared = [...ss.getElementsByTagNameNS('*','si')].map(si =>
+      [...si.getElementsByTagNameNS('*','t')].map(t=>t.textContent).join(''));
+  }
+
+  const rows = [];
+  for(const row of doc.getElementsByTagNameNS('*','row')){
+    const cells = [];
+    for(const c of row.getElementsByTagNameNS('*','c')){
+      const ref = (c.getAttribute('r')||'').match(/^([A-Z]+)/);
+      let idx = 0;
+      if(ref) for(const ch of ref[1]) idx = idx*26 + (ch.charCodeAt(0)-64);
+      idx = idx ? idx-1 : cells.length;
+      const type = c.getAttribute('t');
+      let v = '';
+      if(type === 'inlineStr') v = [...c.getElementsByTagNameNS('*','t')].map(t=>t.textContent).join('');
+      else{
+        const vEl = c.getElementsByTagNameNS('*','v')[0];
+        const raw = vEl ? vEl.textContent : '';
+        v = type === 's' ? (shared[Number(raw)] ?? '') : raw;
+      }
+      while(cells.length < idx) cells.push('');
+      cells[idx] = v;
+    }
+    rows.push(cells);
+  }
+  return rows;
+}
+
+/* Excel serial dates come back as a number when the column is date-formatted. */
+function toIsoDate(v){
+  const s = String(v || '').trim();
+  if(!s) return '';
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  if(/^\d+(\.\d+)?$/.test(s)){
+    const d = new Date(Date.UTC(1899,11,30) + Math.round(Number(s)) * 86400000);
+    return isNaN(d) ? '' : d.toISOString().slice(0,10);
+  }
+  const d = new Date(s);
+  return isNaN(d) ? s : d.toISOString().slice(0,10);
+}
+
+async function importXlsx(file){
+  try{
+    const rows = await parseXlsx(file);
+    if(rows.length < 2) throw new Error('the sheet has no data rows');
+    const header = rows[0].map(h => String(h||'').trim().toLowerCase());
+    const at = label => header.indexOf(label.toLowerCase());
+    const idx = XLSX_COLS.map(c => at(c[0]));
+    if(idx[3] === -1 && idx[7] === -1)
+      throw new Error('header row does not match the template — download it again and keep row 1 intact');
+
+    const get = (r,i) => idx[i] === -1 ? '' : String(r[idx[i]] ?? '').trim();
+    const made = [];
+    for(const r of rows.slice(1)){
+      if(!r.some(x => String(x||'').trim())) continue;   // skip blank rows
+      const c = blankCert();
+      const no = get(r,0);
+      if(no){ c.no = no; c.noAuto = false; }
+      c.group = get(r,1) || '-';
+      c.type = /pref|บุริม/i.test(get(r,2)) ? 'preferred' : 'ordinary';
+      c.holderTh = get(r,3); c.holderEn = get(r,4);
+      c.addrTh = get(r,5);   c.addrEn = get(r,6);
+      const n = get(r,7);
+      c.count = n && !isPlaceholder(n) ? groupDigits(n) : n;
+      /* strip the separators off a number, but let a (*) through whole */
+      const digitsOrPh = v => keepPh(v) || v.replace(/[^\d]/g,'');
+      const from = get(r,8); if(from){ c.from = digitsOrPh(from); c.fromAuto = false; }
+      const to = get(r,9);   if(to){ c.to = digitsOrPh(to); c.toAuto = false; }
+      const rg = get(r,10);  if(rg){ c.rangeText = rg; c.rangeAuto = false; }
+      const iss = toIsoDate(get(r,11)); if(iss){ c.issue = iss; c.issueAuto = false; }
+      c.cancel = toIsoDate(get(r,12));
+      c.replacedBy = get(r,13);
+      const par = get(r,14); if(par){ c.par = par; c.parAuto = false; }
+      const paid = get(r,15); if(paid){ c.paid = paid; c.paidAuto = false; }
+      const hCap = get(r,16), hOrd = get(r,17), hPref = get(r,18),
+            hL = get(r,19), hR = get(r,20);
+      if(hCap || hOrd || hPref || hL || hR){
+        c.histOn = true;
+        if(hCap){ c.hCap = hCap; c.hCapAuto = false; }
+        c.hOrd = hOrd || state.co.ord;
+        c.hPref = hPref || state.co.pref || '-';
+        c.hL = hL; c.hR = hR;
+        c.hMode = (hL && hR) ? 'two' : 'one';
+        c.hSlot = hL ? 'left' : 'right';
+      }
+      made.push(c);
+    }
+    if(!made.length) throw new Error('no filled rows found');
+    state.certs = made; state.active = 0;
+    save(); render();
+    toast(`✓ Loaded ${made.length} certificate${made.length===1?'':'s'} from Excel`);
+  }catch(e){ toast('Excel: ' + e.message); console.error(e); }
+}
+
+/* ── Reconciliation ───────────────────────────────────────────── */
+/* The skill's mandatory arithmetic check, surfaced as you type: live
+   certificates should account for the registered shares exactly once. */
+function reconcile(){
+  const live = state.certs.filter(c => !c.cancel);
+  const held = live.reduce((a,c)=> a + (intOf(c.count) || 0), 0);
+  const registered = (intOf(state.co.ord) || 0) + (intOf(state.co.pref) || 0);
+  const problems = [];
+  /* A certificate still carrying a (*) has no figure to add up. Counting it as
+     zero would raise a mismatch the drafter already knows about, so the sums are
+     reported as provisional instead of wrong. */
+  const pending = live.filter(c => [c.count, certFrom(c), certTo(c)].some(isPlaceholder))
+                      .map(c => certNo(c) || '—');
+  if(isPlaceholder(state.co.ord) || isPlaceholder(state.co.pref)) pending.push('ทุนจดทะเบียน');
+
+  const spans = live.map(c => [intOf(certFrom(c)), intOf(certTo(c)), certNo(c)])
+                    .filter(s => s[0] !== null && s[1] !== null)
+                    .sort((a,b)=> a[0]-b[0]);
+  /* Gaps only mean something when every live certificate is on the number line. */
+  if(!pending.length) for(let i=1;i<spans.length;i++){
+    if(spans[i][0] <= spans[i-1][1])
+      problems.push(`no. ${spans[i-1][2]} and no. ${spans[i][2]} both cover share ${spans[i][0]}`);
+    else if(spans[i][0] > spans[i-1][1] + 1)
+      problems.push(`no gap-free run between no. ${spans[i-1][2]} and no. ${spans[i][2]} (${spans[i-1][1]+1}–${spans[i][0]-1} unissued)`);
+  }
+  for(const c of live){
+    const f = intOf(certFrom(c)), t = intOf(certTo(c)), n = intOf(c.count);
+    if(f !== null && t !== null && n !== null && t - f + 1 !== n)
+      problems.push(`no. ${certNo(c)} says ${n.toLocaleString('en-US')} shares but its range covers ${(t-f+1).toLocaleString('en-US')}`);
+  }
+  return {held, registered, live: live.length, cancelled: state.certs.length - live.length, problems, pending};
+}
+
+/* ── Person directory ─────────────────────────────────────────── */
+let editingParty = null;
+function openPartyForm(p){
+  editingParty = p ? p.id : null;
+  pfNameTh.value = p ? p.nameTh : ''; pfNameEn.value = p ? p.nameEn : '';
+  pfAddrTh.value = p ? p.addrTh : ''; pfAddrEn.value = p ? p.addrEn : '';
+  partyForm.hidden = false; pfNameTh.focus();
+}
+document.getElementById('btnPartyNew').addEventListener('click', ()=> openPartyForm(null));
+document.getElementById('pfCancel').addEventListener('click', ()=>{ partyForm.hidden = true; editingParty = null; });
+document.getElementById('pfUpper').addEventListener('click', ()=>{ pfNameEn.value = pfNameEn.value.toUpperCase(); });
+document.getElementById('pfSave').addEventListener('click', ()=>{
+  const rec = {nameTh:pfNameTh.value.trim(), nameEn:pfNameEn.value.trim(),
+               addrTh:pfAddrTh.value.trim(), addrEn:pfAddrEn.value.trim()};
+  if(!rec.nameTh && !rec.nameEn){ toast('Give the person a name first'); return; }
+  if(editingParty){ Object.assign(state.people.find(p=>p.id===editingParty), rec); }
+  else{ state.people.push({id:'p'+Date.now()+Math.random().toString(36).slice(2,6), ...rec}); }
+  partyForm.hidden = true; editingParty = null; save(); render();
+  toast('✓ Person saved');
+});
+
+const ROLE_LABEL = {hold:'this certificate', d1:'the left signature', d2:'the right signature',
+                    h1:'the left signature on this certificate', h2:'the right signature on this certificate'};
+function applyParty(p, role){
+  if(role === 'hold'){
+    const c = cur();
+    c.holderTh = p.nameTh; c.holderEn = p.nameEn;
+    c.addrTh = p.addrTh;   c.addrEn = p.addrEn;
+  } else if(role === 'h1' || role === 'h2'){
+    cur()[role === 'h1' ? 'hL' : 'hR'] = p.nameTh || p.nameEn;
+  } else {
+    state.dirs[role === 'd1' ? 'l' : 'r'] = p.nameTh || p.nameEn;
+  }
+  save(); render();
+  toast('✓ Loaded into ' + ROLE_LABEL[role]);
+}
+function captureHolder(){
+  const c = cur();
+  if(!c.holderTh && !c.holderEn){ toast('Nothing to save — fill the shareholder name first'); return; }
+  state.people.push({id:'p'+Date.now()+Math.random().toString(36).slice(2,6),
+    nameTh:c.holderTh, nameEn:c.holderEn, addrTh:c.addrTh, addrEn:c.addrEn});
+  save(); render(); toast('✓ Added to the person directory');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Recording a transfer
+
+   A transfer is the one event that touches both of the firm's documents: the
+   transferor's certificate is cancelled, fresh certificates are issued, and a
+   ตราสารการโอนหุ้น is drawn up for the same shares. This does the certificate
+   side here and hands the same facts to the instrument tool, so the two are
+   filled from one set of numbers instead of two.
+   ═══════════════════════════════════════════════════════════════ */
+const XFER_TOOL = 'share-transfer-instrument.html';
+const nameKey = s => String(s || '').trim().toLowerCase();
+
+/* Which block of numbers moves, and which new certificate is numbered first.
+   Both choices exist in CorpDesk and mean the same thing here — a register and
+   a replay of one have to describe the same transfer the same way. */
+let xf = {take:'back', takeStart:'', order:'transferor', mergeIdx:''};
+const dlgVal = id => document.getElementById(id).value.trim();
+
+function xferPlan(){
+  const c = cur();
+  const f = intOf(certFrom(c)), t = intOf(certTo(c));
+  const held = intOf(c.count);
+  const total = held !== null ? held : (f !== null && t !== null ? t - f + 1 : null);
+  const moving = intOf(document.getElementById('xfCount').value);
+  let from = null;
+  if(f !== null && t !== null && moving > 0){
+    from = xf.take === 'front' ? f
+         : xf.take === 'custom' ? intOf(xf.takeStart)
+         : t - moving + 1;
+  }
+  const to = from === null ? null : from + moving - 1;
+  /* what the transferor is left with — a block taken from the middle leaves two */
+  const keeps = from === null ? [] : [[f, from - 1], [to + 1, t]].filter(([a,b]) => b >= a);
+  return {c, f, t, total, moving, from, to, keeps,
+          keeping: (total !== null && moving !== null) ? total - moving : null};
+}
+
+/* Certificates the transferee already holds whose numbers run straight into the
+   ones moving — the only ones that can become a single certificate with them. */
+function mergeCandidates(p){
+  const th = nameKey(dlgVal('xfNameTh')), en = nameKey(dlgVal('xfNameEn'));
+  if(p.from === null || (!th && !en)) return [];
+  return state.certs.filter(o => {
+    if(o === p.c || o.cancel) return false;
+    if(!((th && nameKey(o.holderTh) === th) || (en && nameKey(o.holderEn) === en))) return false;
+    const of_ = intOf(certFrom(o)), ot = intOf(certTo(o));
+    return of_ !== null && ot !== null && (ot + 1 === p.from || p.to + 1 === of_);
+  });
+}
+
+/* The certificate chosen to merge into, or null. Resolved through the candidate
+   list every time, so a stale index — the transferee's name changed, the shares
+   moved — silently means "a separate certificate" rather than the wrong one. */
+function mergedCert(p){
+  if(xf.mergeIdx === '' || xf.mergeIdx == null) return null;
+  const o = state.certs[+xf.mergeIdx];
+  return o && mergeCandidates(p).includes(o) ? o : null;
+}
+
+function renderXferOptions(p){
+  const partial = p.moving !== null && p.total !== null && p.moving > 0 && p.moving < p.total;
+  document.getElementById('xfPartial').hidden = !partial;
+  document.getElementById('xfTakeStartRow').hidden = !partial || xf.take !== 'custom';
+  document.querySelectorAll('#xfTake button').forEach(b=> b.classList.toggle('on', b.dataset.take === xf.take));
+  document.querySelectorAll('#xfOrder button').forEach(b=> b.classList.toggle('on', b.dataset.order === xf.order));
+
+  const cands = mergeCandidates(p);
+  const chosen = mergedCert(p);
+  if(!chosen) xf.mergeIdx = '';
+  document.getElementById('xfMergeField').hidden = !cands.length;
+  document.getElementById('xfMerge').innerHTML =
+    '<option value="">ออกเป็นใบใหม่ต่างหาก · a separate certificate</option>' +
+    cands.map(o => `<option value="${state.certs.indexOf(o)}"${o === chosen ? ' selected' : ''}>` +
+      `รวมกับใบหุ้นเลขที่ ${escHtml(certNo(o))} (${escHtml(certRange(o))})</option>`).join('');
+}
+
+function renderXferSummary(){
+  const p = xferPlan();
+  renderXferOptions(p);
+  const el = document.getElementById('xfSummary');
+  const go = document.getElementById('xfGo');
+  const name = dlgVal('xfNameTh') || dlgVal('xfNameEn');
+  const problems = [];
+  if(p.f === null || p.t === null) problems.push('ใบหุ้นนี้ยังไม่มีหมายเลขหุ้น');
+  if(!p.moving || p.moving < 1) problems.push('ใส่จำนวนหุ้นที่โอน');
+  else if(p.total !== null && p.moving > p.total) problems.push(`โอนได้ไม่เกิน ${p.total.toLocaleString('en-US')} หุ้น`);
+  else if(p.from === null) problems.push('ใส่หมายเลขหุ้นที่เริ่มโอน');
+  else if(p.from < p.f || p.to > p.t) problems.push(`หมายเลข ${padNum(p.from)}–${padNum(p.to)} อยู่นอกช่วง ${certRange(p.c)}`);
+  if(!name) problems.push('ใส่ชื่อผู้รับโอน');
+  if(!document.getElementById('xfDate').value) problems.push('ใส่วันที่โอน');
+  go.disabled = problems.length > 0;
+  go.style.opacity = problems.length ? '.45' : '';
+  if(problems.length){ el.textContent = '· ' + problems.join('  · '); return; }
+
+  const merged = mergedCert(p);
+  const cancels = [`ยกเลิกใบหุ้นเลขที่ ${certNo(p.c)} (${certRange(p.c)})`];
+  if(merged) cancels[0] += ` และเลขที่ ${certNo(merged)} (${certRange(merged)})`;
+  let nf = p.from, nt = p.to;
+  if(merged){ nf = Math.min(nf, intOf(certFrom(merged))); nt = Math.max(nt, intOf(certTo(merged))); }
+  const keeper = p.c.holderTh || p.c.holderEn;
+  const forTfe = `ออกใบใหม่ให้ ${name}: ${padNum(nf)}–${padNum(nt)} จำนวน ${(nt - nf + 1).toLocaleString('en-US')} หุ้น`;
+  const forTfr = p.keeps.map(([a,b]) =>
+    `ออกใบใหม่ให้ ${keeper}: ${padNum(a)}–${padNum(b)} จำนวน ${(b - a + 1).toLocaleString('en-US')} หุ้น`);
+  /* listed in the order they will be numbered */
+  el.textContent = cancels.concat(xf.order === 'transferee' ? [forTfe, ...forTfr] : [...forTfr, forTfe])
+                          .join('  →  ');
+}
+
+function openXfer(){
+  const c = cur();
+  xf = {take:'back', takeStart:'', order:'transferor', mergeIdx:''};
+  document.getElementById('xfDate').value = c.cancel || state.co.issue || '';
+  document.getElementById('xfCount').value = c.count || '';
+  document.getElementById('xfTakeStart').value = '';
+  for(const id of ['xfNameTh','xfNameEn','xfAddrTh','xfAddrEn','xfPrice'])
+    document.getElementById(id).value = '';
+  document.getElementById('xfPick').innerHTML =
+    '<option value="">ทะเบียนบุคคล…</option>' +
+    state.people.map(p=>`<option value="${p.id}">${escHtml(p.nameTh || p.nameEn)}</option>`).join('');
+  document.getElementById('xferScrim').hidden = false;
+  renderXferSummary();
+  document.getElementById('xfNameTh').focus();
+}
+const closeXfer = () => { document.getElementById('xferScrim').hidden = true; };
+
+/* One transfer, in plain values. Written down when the certificates are issued
+   so the instrument can still be drawn up afterwards — pressing "ออกใบหุ้นใหม่"
+   used to throw the dialog's contents away with it. */
+function xferRecord(){
+  const p = xferPlan(), c = p.c;
+  const date = document.getElementById('xfDate').value;
+  return {
+    id:'x'+Date.now()+Math.random().toString(36).slice(2,6), date,
+    tfr:{nameTh:c.holderTh, nameEn:c.holderEn, addrTh:c.addrTh, addrEn:c.addrEn},
+    tfe:{nameTh:dlgVal('xfNameTh'), nameEn:dlgVal('xfNameEn'),
+         addrTh:dlgVal('xfAddrTh'), addrEn:dlgVal('xfAddrEn')},
+    from:p.from, to:p.to, moving:p.moving,
+    price: numOf(document.getElementById('xfPrice').value),
+    par: certPar(c), srcNo: certNo(c), mergedNo:'', madeNos:[]
+  };
+}
+
+/* Everything the instrument tool needs, in its own field names. */
+function xferPayload(rec){
+  const r = rec || xferRecord();
+  return {
+    co:{th:state.co.th, en:state.co.en},
+    tfr:{...r.tfr, date:r.date},
+    tfe:{...r.tfe, date:r.date},
+    sh:{count:groupOrDash(String(r.moving)), from:String(r.from), to:String(r.to),
+        par:r.par, paidUp:'100',
+        price: r.price === null || r.price === undefined ? '' : groupOrDash(String(r.price * r.moving)),
+        /* so the instrument can write the share numbers the same width the
+           certificates do — it has no capital of its own to derive it from */
+        padMode: padWidth() ? (state.co.padAuto ? 'auto' : 'fixed') : 'none',
+        padTotal: String((intOf(state.co.ord) || 0) + (intOf(state.co.pref) || 0) || ''),
+        pad: String(padWidth() || '')}
+  };
+}
+
+const openInstrument = rec =>
+  window.open(XFER_TOOL + '#xfer=' + encodeURIComponent(JSON.stringify(xferPayload(rec))), '_blank', 'noopener');
+
+/* Enough of the register to put it back exactly as it was. Certificates and
+   people are small, so a copy is simpler — and more certain — than replaying
+   the transfer backwards. Only the last few are kept. */
+const UNDO_DEPTH = 8;
+function pushUndo(xferId){
+  state.undo.push({xferId, certs:JSON.parse(JSON.stringify(state.certs)),
+                   people:JSON.parse(JSON.stringify(state.people)), active:state.active});
+  while(state.undo.length > UNDO_DEPTH) state.undo.shift();
+}
+
+function applyXfer(){
+  const p = xferPlan(), c = p.c;
+  const date = document.getElementById('xfDate').value;
+  const tfe = {th:dlgVal('xfNameTh'), en:dlgVal('xfNameEn'),
+               addrTh:dlgVal('xfAddrTh'), addrEn:dlgVal('xfAddrEn')};
+  const merged = mergedCert(p);
+
+  const issue = (holder, from, to) => {
+    const n = blankCert();
+    n.group = c.group; n.type = c.type;
+    n.holderTh = holder.th; n.holderEn = holder.en;
+    n.addrTh = holder.addrTh; n.addrEn = holder.addrEn;
+    n.count = groupOrDash(String(to - from + 1));
+    n.fromAuto = false; n.from = String(from);
+    n.toAuto   = false; n.to   = String(to);
+    n.issueAuto = false; n.issue = date;
+    n.parAuto = c.parAuto; n.par = c.par;
+    n.paidAuto = c.paidAuto; n.paid = c.paid;
+    /* the new certificates are issued under today's capital and board, so they
+       only inherit the historical block if this one had one */
+    n.histOn = c.histOn;
+    if(c.histOn) Object.assign(n, {hCap:c.hCap, hCapAuto:c.hCapAuto, hOrd:c.hOrd,
+      hPref:c.hPref, hMode:c.hMode, hSlot:c.hSlot, hL:c.hL, hR:c.hR});
+    return n;
+  };
+
+  const rec = xferRecord();
+  pushUndo(rec.id);
+
+  /* the transferee's share of the register, widened by whatever is merged in */
+  let nFrom = p.from, nTo = p.to;
+  if(merged){ nFrom = Math.min(nFrom, intOf(certFrom(merged))); nTo = Math.max(nTo, intOf(certTo(merged))); }
+
+  c.cancel = date;
+  if(merged) merged.cancel = date;
+
+  const forTfr = () => p.keeps.map(([a,b]) =>
+    issue({th:c.holderTh, en:c.holderEn, addrTh:c.addrTh, addrEn:c.addrEn}, a, b));
+  const forTfe = () => issue(tfe, nFrom, nTo);
+  /* the array order is the numbering: a register numbers by position */
+  let tfeCert, made;
+  if(xf.order === 'transferee'){ tfeCert = forTfe(); made = [tfeCert, ...forTfr()]; }
+  else { made = forTfr(); tfeCert = forTfe(); made.push(tfeCert); }
+
+  /* appended, not inserted: a register runs in issue order, and inserting
+     would renumber every certificate after it */
+  state.certs.push(...made);
+  c.replacedBy = made.map(certNo).join(', ');
+  if(merged){ merged.replacedBy = certNo(tfeCert); rec.mergedNo = certNo(merged); }
+  rec.madeNos = made.map(certNo);
+  state.active = state.certs.indexOf(tfeCert);
+  state.xfers.push(rec);
+
+  if(tfe.th || tfe.en){
+    const known = state.people.some(x => x.nameTh === tfe.th && x.nameEn === tfe.en);
+    if(!known) state.people.push({id:'p'+Date.now()+Math.random().toString(36).slice(2,6),
+      nameTh:tfe.th, nameEn:tfe.en, addrTh:tfe.addrTh, addrEn:tfe.addrEn});
+  }
+  closeXfer(); save(); render();
+  toast(`✓ ยกเลิกใบหุ้นเลขที่ ${rec.srcNo}${rec.mergedNo ? ', ' + rec.mergedNo : ''} · ` +
+        `ออกใบใหม่ ${rec.madeNos.join(', ')} — ตราสารการโอนหุ้นเปิดได้ที่การ์ด "การโอนหุ้นที่บันทึกไว้"`);
+}
+
+/* Putting a transfer back. Restoring the copy taken beforehand undoes every
+   part of it at once — the cancellations, the new certificates, the "replaced
+   by" boxes — which no amount of unpicking would do as reliably. */
+async function undoXfer(){
+  const u = state.undo[state.undo.length - 1];
+  if(!u) return;
+  const rec = state.xfers.find(x => x.id === u.xferId);
+  const ok = await ask('ย้อนการโอนกลับ?',
+    rec ? `ใบหุ้นเลขที่ ${rec.madeNos.join(', ')} จะถูกลบ และใบหุ้นเลขที่ ${rec.srcNo}` +
+          `${rec.mergedNo ? ' และ ' + rec.mergedNo : ''} จะกลับมาใช้ได้เหมือนเดิม`
+        : 'ทะเบียนจะกลับไปเป็นเหมือนก่อนการโอนครั้งล่าสุด',
+    'ย้อนกลับ');
+  if(!ok) return;
+  state.undo.pop();
+  state.certs = u.certs; state.people = u.people;
+  state.active = Math.min(u.active, state.certs.length - 1);
+  state.xfers = state.xfers.filter(x => x.id !== u.xferId);
+  save(); render();
+  toast('✓ ย้อนการโอนกลับแล้ว');
+}
+
+function renderXferLog(){
+  const card = document.getElementById('xferCard');
+  const box = document.getElementById('xferLog');
+  card.hidden = !state.xfers.length;
+  if(!state.xfers.length){ box.innerHTML = ''; return; }
+  const undoable = state.undo.length ? state.undo[state.undo.length - 1].xferId : null;
+  box.innerHTML = [...state.xfers].reverse().map(r=>{
+    const to = r.tfe.nameTh || r.tfe.nameEn || '—', from = r.tfr.nameTh || r.tfr.nameEn || '—';
+    const d = thaiDateParts(r.date).th || r.date || '—';
+    return `<div class="xrow" data-x="${r.id}">
+      <div class="xmain">
+        <div class="xttl">${escHtml(from)} → ${escHtml(to)}</div>
+        <div class="xsub">${escHtml(d)} · ${r.moving ? r.moving.toLocaleString('en-US') : '—'} หุ้น
+          (${escHtml(padNum(r.from))}–${escHtml(padNum(r.to))}) · ยกเลิกใบ ${escHtml(r.srcNo)}${
+            r.mergedNo ? ', ' + escHtml(r.mergedNo) : ''} → ออกใบ ${escHtml(r.madeNos.join(', '))}</div>
+      </div>
+      <button class="use u-inst" data-inst title="เปิดตราสารการโอนหุ้นพร้อมข้อมูลชุดนี้">↗ ตราสารการโอนหุ้น</button>
+      ${r.id === undoable ? '<button class="use u-undo" data-undo title="ย้อนการโอนนี้กลับ">↶ ย้อนกลับ</button>' : ''}
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('xferLog').addEventListener('click', e=>{
+  const row = e.target.closest('.xrow'); if(!row) return;
+  const rec = state.xfers.find(x => x.id === row.dataset.x); if(!rec) return;
+  if(e.target.closest('[data-inst]')) openInstrument(rec);
+  else if(e.target.closest('[data-undo]')) undoXfer();
+});
+
+/* ── The other direction: a transfer arriving from the instrument ──
+   The instrument knows the parties, the shares and the date; the register
+   knows which certificate is being given up. This matches the two where it
+   can and stops at the transfer dialog, so nothing is cancelled without the
+   user pressing the button. Inert unless the page is opened with a #cert=
+   link, so the tool behaves exactly as before when it is not. */
+function findBookFor(co){
+  const th = nameKey(co.th), en = nameKey(co.en);
+  if(!th && !en) return -1;
+  return doc.books.findIndex(b =>
+    (th && nameKey(b.co.th) === th) || (en && nameKey(b.co.en) === en));
+}
+const bookIsUntouched = b => !b.co.th && !b.co.en && !b.people.length &&
+  b.certs.length === 1 && !b.certs[0].holderTh && !b.certs[0].holderEn && !b.certs[0].count;
+
+function matchingCert(tfr, from, to){
+  const th = nameKey(tfr.nameTh), en = nameKey(tfr.nameEn);
+  if(!th && !en) return null;
+  const hits = state.certs.filter(c => {
+    if(c.cancel) return false;
+    if(!((th && nameKey(c.holderTh) === th) || (en && nameKey(c.holderEn) === en))) return false;
+    if(from === null || to === null) return true;
+    const f = intOf(certFrom(c)), t = intOf(certTo(c));
+    return f !== null && t !== null && f <= from && t >= to;
+  });
+  return hits.length === 1 ? hits[0] : null;
+}
+
+function importInstrument(){
+  const m = /^#cert=(.*)$/.exec(location.hash || '');
+  if(!m) return '';
+  let msg = '';
+  try{
+    const d = JSON.parse(decodeURIComponent(m[1]));
+    const co = d.co || {}, tfr = d.tfr || {}, tfe = d.tfe || {}, sh = d.sh || {};
+    const date = d.date || tfr.date || tfe.date || '';
+    const from = intOf(sh.from), to = intOf(sh.to);
+    const count = intOf(sh.count);
+
+    /* the company the transfer is in: the one already open under that name,
+       else this blank register, else a new one */
+    const found = findBookFor(co);
+    if(found >= 0) selectBook(found);
+    else{
+      if(!bookIsUntouched(state)){ doc.books.push(blankState()); selectBook(doc.books.length - 1); }
+      if(co.th) state.co.th = co.th;
+      if(co.en) state.co.en = co.en;
+      if(sh.par && !state.co.par) state.co.par = sh.par;
+    }
+
+    if(tfe.nameTh || tfe.nameEn){
+      const known = state.people.some(x => nameKey(x.nameTh) === nameKey(tfe.nameTh) &&
+                                           nameKey(x.nameEn) === nameKey(tfe.nameEn));
+      if(!known) state.people.push({id:'p'+Date.now()+Math.random().toString(36).slice(2,6),
+        nameTh:tfe.nameTh || '', nameEn:tfe.nameEn || '',
+        addrTh:tfe.addrTh || '', addrEn:tfe.addrEn || ''});
+    }
+
+    const src = matchingCert(tfr, from, to);
+    if(src){
+      /* the transferor's certificate is in the register — offer to cancel it */
+      state.active = state.certs.indexOf(src);
+      save(); render();
+      openXfer();
+      if(date) document.getElementById('xfDate').value = date;
+      const moving = count !== null ? count : (from !== null && to !== null ? to - from + 1 : null);
+      if(moving !== null) document.getElementById('xfCount').value = groupDigits(String(moving));
+      document.getElementById('xfNameTh').value = tfe.nameTh || '';
+      document.getElementById('xfNameEn').value = tfe.nameEn || '';
+      document.getElementById('xfAddrTh').value = tfe.addrTh || '';
+      document.getElementById('xfAddrEn').value = tfe.addrEn || '';
+      if(sh.price && moving) document.getElementById('xfPrice').value =
+        groupDigits(String((numOf(sh.price) || 0) / moving));
+      /* the instrument names the exact share numbers, so the register follows
+         them rather than guessing which end of the certificate they came from */
+      const sf = intOf(certFrom(src)), st = intOf(certTo(src));
+      if(from !== null && sf !== null && st !== null)
+        xf.take = from === sf ? 'front' : (to === st ? 'back' : 'custom');
+      if(xf.take === 'custom') xf.takeStart = String(from);
+      document.getElementById('xfTakeStart').value = xf.takeStart;
+      renderXferSummary();
+      msg = `พบใบหุ้นเลขที่ ${certNo(src)} ของผู้โอน — ตรวจแล้วกดยืนยันเพื่อออกใบใหม่`;
+    }else{
+      /* no matching certificate: start a fresh one for the transferee */
+      const n = blankCert();
+      n.holderTh = tfe.nameTh || ''; n.holderEn = tfe.nameEn || '';
+      n.addrTh = tfe.addrTh || '';   n.addrEn = tfe.addrEn || '';
+      if(count !== null || (from !== null && to !== null))
+        n.count = groupDigits(String(count !== null ? count : to - from + 1));
+      if(from !== null){ n.fromAuto = false; n.from = String(from); }
+      if(to !== null){ n.toAuto = false; n.to = String(to); }
+      if(date){ n.issueAuto = false; n.issue = date; }
+      if(sh.par){ n.parAuto = false; n.par = sh.par; }
+      if(bookIsUntouched(state) || (state.certs.length === 1 && !state.certs[0].holderTh &&
+         !state.certs[0].holderEn && !state.certs[0].count)) state.certs[0] = n;
+      else state.certs.push(n);
+      state.active = state.certs.indexOf(n);
+      save(); render();
+      msg = 'ตั้งใบหุ้นใหม่ให้ผู้รับโอนแล้ว — ตรวจรายละเอียดก่อนออกเอกสาร';
+    }
+  }catch(_){ /* a malformed link must not stop the page loading */ }
+  history.replaceState(null, '', location.pathname + location.search);
+  return msg;
+}
+
+document.getElementById('btnXfer').addEventListener('click', openXfer);
+document.getElementById('xfClose').addEventListener('click', closeXfer);
+document.getElementById('xfGo').addEventListener('click', applyXfer);
+document.getElementById('xfInstrument').addEventListener('click', ()=>{
+  const p = xferPlan();
+  if(!p.moving || p.from === null){ toast('ใส่จำนวนหุ้นที่โอนก่อน'); return; }
+  openInstrument();
+});
+document.getElementById('xfTake').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  xf.take = b.dataset.take;
+  if(xf.take !== 'custom') xf.takeStart = '';
+  document.getElementById('xfTakeStart').value = xf.takeStart;
+  renderXferSummary();
+});
+document.getElementById('xfOrder').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  xf.order = b.dataset.order; renderXferSummary();
+});
+document.getElementById('xfTakeStart').addEventListener('input', e=>{
+  e.target.value = e.target.value.replace(/[^\d]/g,'');
+  xf.takeStart = e.target.value; renderXferSummary();
+});
+document.getElementById('xfMerge').addEventListener('change', e=>{
+  xf.mergeIdx = e.target.value; renderXferSummary();
+});
+document.getElementById('xfPick').addEventListener('change', e=>{
+  const p = state.people.find(x=>x.id===e.target.value);
+  if(p){
+    document.getElementById('xfNameTh').value = p.nameTh;
+    document.getElementById('xfNameEn').value = p.nameEn;
+    document.getElementById('xfAddrTh').value = p.addrTh;
+    document.getElementById('xfAddrEn').value = p.addrEn;
+    renderXferSummary();
+  }
+  e.target.value = '';
+});
+for(const id of ['xfDate','xfCount','xfNameTh','xfNameEn']){
+  const el = document.getElementById(id);
+  el.addEventListener('input', ()=>{
+    if(el.dataset.group !== undefined) el.value = reformat(el, groupOrDash);
+    renderXferSummary();
+  });
+}
+document.getElementById('xferScrim').addEventListener('click', e=>{
+  if(e.target.id === 'xferScrim') closeXfer();
+});
+
+/* ── Field wiring ─────────────────────────────────────────────── */
+function reformat(el, fn){
+  const before = el.value.slice(0, el.selectionStart).replace(/[^\d]/g,'').length;
+  const out = fn(el.value);
+  let seen = 0, pos = before === 0 ? 0 : out.length;
+  if(before > 0) for(let i=0;i<out.length;i++){
+    if(/\d/.test(out[i])) seen++;
+    if(seen >= before){ pos = i+1; break; }
+  }
+  requestAnimationFrame(()=>{ try{ el.setSelectionRange(pos,pos); }catch(_){} });
+  return out;
+}
+
+function onInput(el, target, path){
+  if(el.dataset.group !== undefined) el.value = reformat(el, groupOrDash);
+  if(el.dataset.digits !== undefined) el.value = el.value.replace(/[^\d]/g,'');
+  setPath(target, path, el.value);
+}
+
+/* certificate fields */
+const AUTO_OF = {no:'noAuto', from:'fromAuto', to:'toAuto', rangeText:'rangeAuto',
+                 issue:'issueAuto', par:'parAuto', paid:'paidAuto', hCap:'hCapAuto'};
+document.querySelectorAll('[data-f]').forEach(el=>{
+  const path = el.dataset.f;
+  el.addEventListener('input', ()=>{
+    onInput(el, cur(), path);
+    if(AUTO_OF[path]) cur()[AUTO_OF[path]] = false;
+    save(); render();
+  });
+});
+/* company / document fields */
+document.querySelectorAll('[data-c]').forEach(el=>{
+  const path = el.dataset.c;
+  const ev = el.tagName === 'SELECT' ? 'change' : 'input';
+  el.addEventListener(ev, ()=>{
+    onInput(el, state, path);
+    if(path === 'co.cap') state.co.capAuto = false;
+    if(path === 'co.short') state.co.shortAuto = false;
+    if(path === 'co.asOf') state.co.asOfAuto = false;
+    if(path === 'co.pad') state.co.padAuto = false;
+    if(path === 'fileName') state.fileAuto = false;
+    save(); render();
+  });
+});
+
+/* ── (*) — the to-be-determined blank ──────────────────────────
+   The firm leaves a figure it does not yet have as "(*)" and highlights it
+   yellow, then fills it in once the number is known. Every field that prints on
+   the certificate gets a button for it. The four that only steer the tool —
+   short name, "as of" date, padding width, first certificate number — do not,
+   because none of them ever reaches the page. */
+const NO_PH = new Set(['co.short','co.asOf','co.pad','co.firstNo','fileName']);
+/* A date input rejects "(*)", so a marked date has to be shown as plain text;
+   this remembers which fields are dates so render() can switch them back. */
+document.querySelectorAll('input[data-f],input[data-c]').forEach(el=>{ el.dataset.type0 = el.type; });
+
+function togglePh(el){
+  const f = el.dataset.f, path = f || el.dataset.c, target = f ? cur() : state;
+  const off = isPlaceholder(getPath(target, path));
+  setPath(target, path, off ? '' : PLACEHOLDER);
+  /* a computed field has to stop computing, or the marker would never show */
+  if(f && AUTO_OF[f]) cur()[AUTO_OF[f]] = off;
+  if(path === 'co.cap') state.co.capAuto = off;
+  save(); render();
+}
+
+document.querySelectorAll('input[data-f],input[data-c]').forEach(el=>{
+  if(NO_PH.has(el.dataset.c || '')) return;
+  const b = document.createElement('button');
+  b.className = 'mini'; b.type = 'button'; b.textContent = PLACEHOLDER;
+  b.title = 'ยังไม่ทราบ — เว้นเป็น (*) ไฮไลต์เหลืองในเอกสาร';
+  if(el.dataset.f !== undefined) b.dataset.phF = el.dataset.f; else b.dataset.phC = el.dataset.c;
+  /* a field on its own has no row to sit in, so it gets one */
+  if(!el.parentElement.classList.contains('pair-row')){
+    const row = document.createElement('div');
+    row.className = 'pair-row';
+    el.parentElement.insertBefore(row, el);
+    row.appendChild(el);
+  }
+  el.after(b);
+  b.addEventListener('click', ()=> togglePh(el));
+});
+
+document.querySelectorAll('[data-reset]').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    const f = b.dataset.reset;
+    cur()[AUTO_OF[f]] = true; cur()[f] = '';
+    save(); render();
+  });
+});
+document.getElementById('resetCap').addEventListener('click', ()=>{ state.co.capAuto = true; state.co.cap = ''; save(); render(); });
+document.getElementById('resetAsOf').addEventListener('click', ()=>{ state.co.asOfAuto = true; state.co.asOf = ''; save(); render(); });
+document.getElementById('resetPad').addEventListener('click', ()=>{ state.co.padAuto = true; state.co.pad = ''; save(); render(); });
+
+/* Adds a certificate number to "replaced by" instead of making the user look
+   it up. Suggestions come first: issued the day this one was cancelled, over
+   share numbers it covered. */
+document.getElementById('pickReplaced').addEventListener('change', e=>{
+  const no = e.target.value;
+  e.target.value = '';
+  if(!no) return;
+  const c = cur();
+  const have = String(c.replacedBy || '').split(',').map(s=>s.trim()).filter(Boolean);
+  if(have.includes(no)){ toast('ใบหุ้นเลขที่ ' + no + ' อยู่ในช่องแล้ว'); return; }
+  have.push(no);
+  c.replacedBy = have.join(', ');
+  save(); render();
+});
+document.getElementById('resetShort').addEventListener('click', ()=>{ state.co.shortAuto = true; state.co.short = ''; save(); render(); });
+document.getElementById('resetName').addEventListener('click', ()=>{ state.fileAuto = true; state.fileName = ''; save(); render(); });
+document.getElementById('coUpper').addEventListener('click', ()=>{
+  state.co.en = (state.co.en || '').toUpperCase(); save(); render();
+});
+document.querySelectorAll('[data-upper]').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    const f = b.dataset.upper;
+    cur()[f] = (cur()[f] || '').toUpperCase(); save(); render();
+  });
+});
+
+document.getElementById('certType').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  cur().type = b.dataset.type; save(); render();
+});
+document.getElementById('dirMode').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  state.dirs.mode = b.dataset.mode; save(); render();
+});
+document.getElementById('dirSlot').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  state.dirs.slot = b.dataset.slot; save(); render();
+});
+document.getElementById('sealDay').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  state.co.sealDayEn = b.dataset.seal === '1'; save(); render();
+});
+
+/* Switching the historical block on seeds it from the company block, so only
+   what actually changed has to be retyped. */
+document.getElementById('histToggle').addEventListener('click', ()=>{
+  const c = cur();
+  c.histOn = !c.histOn;
+  if(c.histOn && !c.hOrd){
+    c.hOrd = state.co.ord; c.hPref = state.co.pref;
+    c.hCapAuto = true; c.hCap = '';
+    c.hMode = state.dirs.mode; c.hSlot = state.dirs.slot;
+    c.hL = state.dirs.l; c.hR = state.dirs.r;
+  }
+  save(); render();
+});
+document.getElementById('histMode').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  cur().hMode = b.dataset.hmode; save(); render();
+});
+document.getElementById('histSlot').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  cur().hSlot = b.dataset.hslot; save(); render();
+});
+
+document.getElementById('btnAdd').addEventListener('click', ()=>{
+  state.certs.push(blankCert()); state.active = state.certs.length-1; save(); render();
+});
+document.getElementById('btnDup').addEventListener('click', ()=>{
+  const copy = JSON.parse(JSON.stringify(cur()));
+  copy.noAuto = true; copy.no = ''; copy.fromAuto = true; copy.from = '';
+  copy.toAuto = true; copy.to = ''; copy.rangeAuto = true; copy.rangeText = '';
+  state.certs.splice(state.active+1, 0, copy); state.active++; save(); render();
+});
+document.getElementById('btnExport').addEventListener('click', exportAll);
+document.getElementById('btnExportOne').addEventListener('click', exportOne);
+document.getElementById('btnExportCos').addEventListener('click', exportEveryCompany);
+document.getElementById('btnXlsxTemplate').addEventListener('click', downloadXlsxTemplate);
+document.getElementById('btnXlsxUpload').addEventListener('click', ()=> document.getElementById('xlsxFile').click());
+document.getElementById('xlsxFile').addEventListener('change', e=>{
+  const f = e.target.files[0]; if(f) importXlsx(f); e.target.value='';
+});
+
+document.getElementById('certList').addEventListener('click', e=>{
+  const del = e.target.closest('.cert-del');
+  const row = e.target.closest('.cert');
+  if(!row) return;
+  const i = +row.dataset.i;
+  if(del){
+    if(state.certs.length === 1){ state.certs = [blankCert()]; state.active = 0; }
+    else{ state.certs.splice(i,1); state.active = Math.min(state.active, state.certs.length-1); }
+    save(); render(); return;
+  }
+  state.active = i; save(); render();
+});
+
+document.getElementById('partyList').addEventListener('click', e=>{
+  const btn = e.target.closest('button'); if(!btn) return;
+  const id = e.target.closest('.party')?.dataset.id;
+  const p = state.people.find(x=>x.id===id);
+  if(!p) return;
+  if(btn.dataset.use) return applyParty(p, btn.dataset.use);
+  if(btn.dataset.edit !== undefined) return openPartyForm(p);
+  if(btn.dataset.del !== undefined){
+    state.people = state.people.filter(x=>x.id!==id); save(); render(); toast('Removed from the directory');
+  }
+});
+document.getElementById('pickHolder').addEventListener('change', e=>{
+  const v = e.target.value;
+  if(v === '__save'){ captureHolder(); e.target.value=''; return; }
+  const p = state.people.find(x=>x.id===v);
+  if(p) applyParty(p, 'hold');
+  e.target.value = '';
+});
+[['pickD1','d1'],['pickD2','d2'],['pickH1','h1'],['pickH2','h2']].forEach(([id, role])=>{
+  document.getElementById(id).addEventListener('change', e=>{
+    const p = state.people.find(x=>x.id===e.target.value);
+    if(p) applyParty(p, role);
+    e.target.value = '';
+  });
+});
+
+/* ── Backup / restore ─────────────────────────────────────────── */
+document.getElementById('btnBackup').addEventListener('click', ()=>{
+  /* the undo snapshots are this session's, not the register's — they would
+     multiply the file's size by the depth of the stack for nothing */
+  const out = {...doc, books: doc.books.map(b => ({...b, undo:[]}))};
+  const blob = new Blob([JSON.stringify(out, null, 2)], {type:'application/json'});
+  const n = doc.books.length;
+  download(blob, (n === 1 ? fileName() : 'Share Certificates — ' + n + ' companies') + ' — backup.json');
+  toast(`✓ Backup downloaded (${n} ${n===1?'company':'companies'})`);
+});
+document.getElementById('btnRestore').addEventListener('click', ()=> document.getElementById('jsonFile').click());
+document.getElementById('jsonFile').addEventListener('change', async e=>{
+  const f = e.target.files[0]; e.target.value = '';
+  if(!f) return;
+  try{
+    const s = JSON.parse(await f.text());
+    if(!s || !(Array.isArray(s.books) || Array.isArray(s.certs)))
+      throw new Error('that file is not a backup from this tool');
+    adoptDoc(s); save(); render();
+    toast(`✓ Restored ${doc.books.length} ${doc.books.length===1?'company':'companies'} from backup`);
+  }catch(err){ toast('Restore: ' + err.message); }
+});
+
+/* An in-page dialog rather than window.confirm(): native dialogs are suppressed
+   in some embedded/preview contexts, which makes a destructive button look dead. */
+let askResolve = null;
+function ask(title, body, yesLabel='Confirm'){
+  document.getElementById('dlgTitle').textContent = title;
+  document.getElementById('dlgBody').textContent = body;
+  document.getElementById('dlgYes').textContent = yesLabel;
+  document.getElementById('scrim').hidden = false;
+  document.getElementById('dlgYes').focus();
+  return new Promise(res => { askResolve = res; });
+}
+function closeAsk(v){
+  document.getElementById('scrim').hidden = true;
+  if(askResolve){ askResolve(v); askResolve = null; }
+}
+document.getElementById('dlgYes').addEventListener('click', ()=> closeAsk(true));
+document.getElementById('dlgNo').addEventListener('click', ()=> closeAsk(false));
+document.getElementById('scrim').addEventListener('click', e=>{
+  if(e.target.id === 'scrim') closeAsk(false);
+});
+document.addEventListener('keydown', e=>{
+  if(e.key !== 'Escape') return;
+  if(!document.getElementById('scrim').hidden) closeAsk(false);
+  else if(!document.getElementById('xferScrim').hidden) closeXfer();
+});
+
+document.getElementById('btnClearAll').addEventListener('click', async ()=>{
+  const b = doc.books.length;
+  const n = doc.books.reduce((a,k)=> a + k.certs.length, 0);
+  const p = doc.books.reduce((a,k)=> a + k.people.length, 0);
+  const ok = await ask('Clear everything?',
+    `This deletes ${b} ${b===1?'company':'companies'}, ${n} certificate${n===1?'':'s'} and ${p} saved ${p===1?'person':'people'} from this device. ` +
+    `It cannot be undone — back up to JSON first if you might want any of it again.`,
+    'Yes, clear everything');
+  if(!ok) return;
+  localStorage.removeItem(STORAGE_KEY);
+  doc = blankDoc(); selectBook(0);
+  render(); toast('✓ Everything cleared');
+});
+
+/* ── Render ───────────────────────────────────────────────────── */
+function render(){
+  const c = cur();
+
+  /* A date input drops a value it cannot parse, so a field holding "(*)" has to
+     become a text box before the value is written, and go back to a picker when
+     the marker is cleared. Left alone while focused, or typing would jump. */
+  const setField = (el, v) => {
+    if(document.activeElement === el) return;
+    const val = v == null ? '' : v;
+    if(el.dataset.type0 === 'date') el.type = isPlaceholder(val) ? 'text' : 'date';
+    el.value = val;
+  };
+  document.querySelectorAll('[data-f]').forEach(el=> setField(el, c[el.dataset.f]));
+  document.querySelectorAll('[data-c]').forEach(el=> setField(el, getPath(state, el.dataset.c)));
+
+  /* auto fields show their computed value while untouched */
+  const showAuto = (sel, on, value) => {
+    const el = document.querySelector(sel);
+    if(!el) return;
+    if(on) setField(el, value);
+    el.classList.toggle('is-auto', !!on);
+  };
+  showAuto('[data-f="no"]',        c.noAuto,     autoNo(c));
+  showAuto('[data-f="from"]',      c.fromAuto,   autoFrom(c));
+  showAuto('[data-f="to"]',        c.toAuto,     autoTo(c));
+  showAuto('[data-f="rangeText"]', c.rangeAuto,  autoRange(c));
+  showAuto('[data-f="issue"]',     c.issueAuto,  state.co.issue);
+  showAuto('[data-f="par"]',       c.parAuto,    state.co.par);
+  showAuto('[data-f="paid"]',      c.paidAuto,   certPar(c));
+  showAuto('[data-f="hCap"]',      c.hCapAuto,   autoHCap(c));
+  showAuto('[data-c="co.cap"]',    state.co.capAuto,   autoCap());
+  showAuto('[data-c="co.short"]',  state.co.shortAuto, autoShort());
+  showAuto('[data-c="co.asOf"]',   state.co.asOfAuto,  autoAsOf());
+  showAuto('[data-c="co.pad"]',    state.co.padAuto,   autoPad() || '');
+  showAuto('[data-c="fileName"]',  state.fileAuto,     autoFileName());
+
+  document.querySelectorAll('[data-reset]').forEach(b=>{ b.hidden = c[AUTO_OF[b.dataset.reset]] !== false; });
+  document.getElementById('resetCap').hidden   = state.co.capAuto !== false;
+  document.getElementById('resetAsOf').hidden  = state.co.asOfAuto !== false;
+  document.getElementById('resetPad').hidden   = state.co.padAuto !== false;
+
+  const pw = padWidth();
+  document.getElementById('padNote').textContent = pw
+    ? `${pw} digits — ${padNum(1)}-${padNum((intOf(state.co.ord)||0)+(intOf(state.co.pref)||0) || 1)}`
+    : 'no padding';
+
+  const repl = replacementsFor(c);
+  const others = state.certs.filter(o => o !== c && certNo(o));
+  const opt = o => `<option value="${escHtml(certNo(o))}">no. ${escHtml(certNo(o))} · ${escHtml(certRange(o) || '—')}</option>`;
+  document.getElementById('pickReplaced').innerHTML =
+    '<option value="">＋ ใบที่มาแทน…</option>' +
+    (repl.length ? `<optgroup label="แนะนำ · issued when this was cancelled">${repl.map(opt).join('')}</optgroup>` : '') +
+    (others.length ? `<optgroup label="ทั้งหมด · all certificates">${others.map(opt).join('')}</optgroup>` : '');
+  document.getElementById('replNote').textContent = !c.cancel ? ''
+    : repl.length ? 'แนะนำ: ใบหุ้นเลขที่ ' + repl.map(certNo).join(', ')
+    : 'ไม่พบใบหุ้นที่ออกวันเดียวกับที่ยกเลิกและครอบคลุมหมายเลขเดียวกัน';
+  document.getElementById('resetShort').hidden = state.co.shortAuto !== false;
+  document.getElementById('resetName').hidden  = state.fileAuto !== false;
+
+  document.querySelectorAll('[data-f],[data-c]').forEach(el=>{
+    el.classList.toggle('is-ph', isPlaceholder(el.value));
+  });
+  document.querySelectorAll('[data-ph-f],[data-ph-c]').forEach(b=>{
+    const v = b.dataset.phF !== undefined ? c[b.dataset.phF] : getPath(state, b.dataset.phC);
+    b.classList.toggle('on', isPlaceholder(v));
+  });
+
+  document.querySelectorAll('#certType button').forEach(b=> b.classList.toggle('on', b.dataset.type === (c.type||'ordinary')));
+  document.querySelectorAll('#dirMode button').forEach(b=> b.classList.toggle('on', b.dataset.mode === state.dirs.mode));
+  document.querySelectorAll('#dirSlot button').forEach(b=> b.classList.toggle('on', b.dataset.slot === state.dirs.slot));
+  document.querySelectorAll('#sealDay button').forEach(b=> b.classList.toggle('on', (b.dataset.seal === '1') === !!state.co.sealDayEn));
+
+  const ht = document.getElementById('histToggle');
+  ht.textContent = c.histOn ? 'on' : 'off';
+  ht.style.cssText = c.histOn
+    ? 'color:#a16207;background:#fef9c3;border-color:#fcd34d;font-weight:700'
+    : '';
+  document.getElementById('histBox').hidden = !c.histOn;
+  document.querySelectorAll('#histMode button').forEach(b=> b.classList.toggle('on', b.dataset.hmode === c.hMode));
+  document.querySelectorAll('#histSlot button').forEach(b=> b.classList.toggle('on', b.dataset.hslot === c.hSlot));
+  document.getElementById('histSlotField').hidden = c.hMode !== 'one';
+  document.getElementById('slotField').hidden = state.dirs.mode !== 'one';
+  const one = state.dirs.mode === 'one';
+  document.getElementById('dirLField').style.opacity = one && state.dirs.slot === 'right' ? '.4' : '';
+  document.getElementById('dirRField').style.opacity = one && state.dirs.slot === 'left'  ? '.4' : '';
+
+  renderCompanies();
+  renderList();
+  renderXferLog();
+  renderTally();
+  renderParties();
+  renderPickers();
+  renderSummary(c);
+  schedulePreview();
+}
+
+function initials(p){
+  const s = (p.nameEn || p.nameTh || '?').replace(/^(Mr\.?|Mrs\.?|Miss|Ms\.?|Dr\.?|นาย|นางสาว|นาง)\s*/i,'').trim();
+  return s.slice(0,2).toUpperCase();
+}
+
+function renderParties(){
+  const box = document.getElementById('partyList');
+  if(!state.people.length){
+    box.innerHTML = '<p class="sect-note empty" style="margin:0">No one saved yet — add a shareholder or director once and reuse them.</p>';
+    return;
+  }
+  box.innerHTML = state.people.map(p=>`
+    <div class="party" data-id="${p.id}">
+      <div class="party-av">${escHtml(initials(p))}</div>
+      <div class="party-main">
+        <div class="party-nm">${escHtml(p.nameTh || p.nameEn) || '<span class="empty">unnamed</span>'}</div>
+        <div class="party-sub">${escHtml(p.nameEn || p.addrTh || '')}</div>
+      </div>
+      <div class="party-acts">
+        <button class="use u-hold" data-use="hold" title="Load as this certificate's shareholder">ผู้ถือหุ้น</button>
+        <button class="use u-d1" data-use="d1" title="Load as the left-slot director">กรรมการ ซ้าย</button>
+        <button class="use u-d2" data-use="d2" title="Load as the right-slot director">ขวา</button>
+        <span class="sep"></span>
+        <button class="use" data-edit title="Edit">✎</button>
+        <button class="use" data-del title="Remove">🗑</button>
+      </div>
+    </div>`).join('');
+}
+
+function renderPickers(){
+  const opts = state.people.map(p=>`<option value="${p.id}">${escHtml(p.nameTh || p.nameEn)}</option>`).join('');
+  document.getElementById('pickHolder').innerHTML =
+    `<option value="">ทะเบียนบุคคล — load a shareholder…</option>${opts}<option value="__save">＋ save this one to the directory</option>`;
+  for(const id of ['pickD1','pickD2','pickH1','pickH2'])
+    document.getElementById(id).innerHTML = `<option value="">…</option>${opts}`;
+}
+
+function renderList(){
+  const box = document.getElementById('certList');
+  document.getElementById('certCount').textContent = state.certs.length;
+  box.innerHTML = state.certs.map((c,i)=>{
+    const tags = [];
+    if(c.cancel) tags.push('<span class="tag t-x">ยกเลิก</span>');
+    if(c.type === 'preferred') tags.push('<span class="tag t-p">บุริมสิทธิ</span>');
+    if(c.group && c.group !== '-') tags.push(`<span class="tag t-g">กลุ่ม ${escHtml(c.group)}</span>`);
+    const facts = [];
+    if(c.count) facts.push(escHtml(groupOrDash(c.count)) + ' หุ้น');
+    if(certRange(c)) facts.push(escHtml(certRange(c)));
+    return `<div class="cert${i===state.active?' active':''}${c.cancel?' dead':''}" data-i="${i}">
+      <button class="cert-del" title="Delete">×</button>
+      <div class="cert-no">ใบหุ้นเลขที่ ${escHtml(certNo(c) || '—')}${tags.join('')}</div>
+      <div class="cert-nm">${escHtml(c.holderTh || c.holderEn) || '<span class="empty">no shareholder yet</span>'}</div>
+      <div class="cert-facts">${facts.map(f=>`<span>${f}</span>`).join('')}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderTally(){
+  const r = reconcile();
+  const box = document.getElementById('tally');
+  const match = r.registered > 0 && r.held === r.registered;
+  box.innerHTML =
+    `<div class="row"><span>ใบหุ้นที่ยังใช้อยู่</span><b>${r.live}${r.cancelled?` <span style="color:#94a3b8;font-weight:400">+${r.cancelled} ยกเลิก</span>`:''}</b></div>` +
+    `<div class="row"><span>หุ้นตามใบหุ้น</span><b>${r.held.toLocaleString('en-US')}</b></div>` +
+    `<div class="row"><span>หุ้นจดทะเบียน</span><b>${r.registered.toLocaleString('en-US')}</b></div>` +
+    (r.pending.length
+      ? `<div class="row"><span></span><b style="color:#a16207">รอ (*) ${r.pending.length} รายการ</b></div>`
+      : r.registered > 0
+      ? `<div class="row"><span></span><b class="${match?'ok':'bad'}">${match ? '✓ ตรงกัน' : (r.held - r.registered > 0 ? '+' : '') + (r.held - r.registered).toLocaleString('en-US')}</b></div>`
+      : '');
+}
+
+function renderSummary(c){
+  const v = tokensFor(c);
+  const st = strikeSet(c);
+  const blank = '<span class="blank">—</span>';
+  const cell = x => !String(x||'').trim() ? blank
+    : isPlaceholder(x) ? `<span class="ph">${escHtml(x)}</span>` : escHtml(x);
+  const row = (k, val) => `<tr><td>${k}</td><td>${val}</td></tr>`;
+  const grp = t => `<tr class="grp"><td colspan="2">${t}</td></tr>`;
+  const typeLine = (a,b,ta,tb) =>
+    `<span class="${st.has(ta)?'strike':''}">${a}</span> / <span class="${st.has(tb)?'strike':''}">${b}</span>`;
+  const r = reconcile();
+
+  document.getElementById('preview').innerHTML = `<table>
+    ${grp('บริษัท · Company' + (c.histOn ? ' — ณ วันที่ออกใบหุ้นนี้' : ''))}
+    ${row('ชื่อบริษัท', cell(v.CO_TH))}
+    ${row('Company', cell(v.CO_EN))}
+    ${row('ทุนจดทะเบียน', cell(v.CAP_AMT) + ' บาท — ' + cell(v.CAP_ORD) + ' หุ้นสามัญ, ' + cell(v.CAP_PREF) + ' หุ้นบุริมสิทธิ, หุ้นละ ' + cell(v.CAP_PAR))}
+    ${grp('ใบหุ้น · Certificate')}
+    ${row('ใบหุ้นเลขที่', cell(v.CERT_NO))}
+    ${row('หุ้นกลุ่ม', cell(v.GROUP))}
+    ${row('ชนิดหุ้น', typeLine('หุ้นสามัญ','หุ้นบุริมสิทธิ','TY1_ORD_TH','TY1_PREF_TH'))}
+    ${row('จำนวน', cell(v.SHARES) + ' หุ้น &nbsp; หมายเลข ' + cell(v.RANGE))}
+    ${row('มูลค่า / ชำระแล้ว', cell(v.PAR) + ' / ' + cell(v.PAID) + ' บาท')}
+    ${grp('ผู้ถือหุ้น · Shareholder')}
+    ${row('ชื่อ', cell(v.HOLDER_TH))}
+    ${row('Name', cell(v.HOLDER_EN))}
+    ${row('ที่อยู่', cell(v.ADDR_TH))}
+    ${row('Address', cell(v.ADDR_EN))}
+    ${grp('วันที่ · Dates')}
+    ${row('วันที่ที่ออก', cell(v.ISSUE_TH) + ' &nbsp;·&nbsp; ' + cell(v.ISSUE_EN))}
+    ${row('วันที่ที่ยกเลิก', cell(v.CANCEL_TH) + ' &nbsp;·&nbsp; ' + cell(v.CANCEL_EN))}
+    ${row('ออกให้แทนหมายเลข', cell(v.REPLACED_BY))}
+    ${grp('ลงนาม · Signatures')}
+    ${row('ซ้าย', cell(v.SIGL_NAME) + (v.SIGL_LBL_TH ? '' : ' <span class="blank">(ช่องว่าง — ไม่พิมพ์)</span>'))}
+    ${row('ขวา', cell(v.SIGR_NAME) + (v.SIGR_LBL_TH ? '' : ' <span class="blank">(ช่องว่าง — ไม่พิมพ์)</span>'))}
+  </table>` + (r.problems.length
+    ? `<div class="warn bad" style="margin:12px 0 0"><strong>ตรวจสอบตัวเลข</strong><ul>${
+        r.problems.slice(0,6).map(p=>`<li>${escHtml(p)}</li>`).join('')}</ul></div>`
+    : '');
+}
+
+/* ── Persistence ──────────────────────────────────────────────── */
+function adoptBook(s){
+  const b = blankState();
+  const k = {
+    ...b, ...s,
+    co:{...b.co, ...(s.co||{})},
+    dirs:{...b.dirs, ...(s.dirs||{})},
+    certs:(s.certs || []).map(c => ({...blankCert(), ...c})),
+    people: Array.isArray(s.people) ? s.people : [],
+    /* absent in files written before transfers were kept */
+    xfers: Array.isArray(s.xfers) ? s.xfers : [],
+    undo: Array.isArray(s.undo) ? s.undo : []
+  };
+  if(!k.certs.length) k.certs = [blankCert()];
+  k.active = Math.min(Math.max(0, s.active || 0), k.certs.length - 1);
+  if(!k.id) k.id = b.id;
+  return k;
+}
+/* Reads both shapes: the multi-company file, and a backup written before this
+   tool held more than one company, which becomes that one company. */
+function adoptDoc(s){
+  const books = Array.isArray(s && s.books) ? s.books
+              : (s && Array.isArray(s.certs) ? [s] : []);
+  doc = {books: books.map(adoptBook), activeBook: 0};
+  if(!doc.books.length) doc.books = [blankState()];
+  selectBook(s && s.activeBook || 0);
+}
+function save(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(doc)); }catch(_){} }
+function load(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return;
+    const s = JSON.parse(raw);
+    if(s && (Array.isArray(s.books) ? s.books.length : (Array.isArray(s.certs) && s.certs.length)))
+      adoptDoc(s);
+  }catch(_){}
+}
+
+let toastTimer;
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> el.classList.remove('show'), 3400);
+}
+
+load();
+render();
+const handedOver = importInstrument();
+if(handedOver) toast('✓ รับข้อมูลจากตราสารการโอนหุ้น — ' + handedOver);
+/* size the preview to the panel once fonts and layout have settled */
+window.addEventListener('load', ()=> setTimeout(()=> fitPreview(), 60));
+window.addEventListener('resize', ()=>{ clearTimeout(window.__rz); window.__rz = setTimeout(()=> fitPreview(), 150); });
+</script>
+</body>
+</html>

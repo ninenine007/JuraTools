@@ -1315,6 +1315,21 @@
         return { value, original, duplicate, total: original + duplicate };
     }
 
+    // Which block of share numbers actually moves. 'back' keeps the transferor's
+    // numbering order and is the usual choice; 'front' hands over the head of the
+    // range; 'custom' takes a block from anywhere inside it, which can leave the
+    // transferor holding the shares on both sides of the ones they sold.
+    function transferRange(src, shares, takeFrom, takeStart) {
+        if (!src || !(shares > 0) || shares > src.shares) return null;
+        if (takeFrom === 'front') return { tStart: src.start, tEnd: src.start + shares - 1 };
+        if (takeFrom === 'custom') {
+            const s = parseInt(takeStart);
+            if (!isFinite(s)) return null;
+            return { tStart: s, tEnd: s + shares - 1 };
+        }
+        return { tStart: src.end - shares + 1, tEnd: src.end };
+    }
+
     function applyTransfer(ctx, txn) {
         const { certs, ledgers, balances, fmtRange, company } = ctx;
         const errors = [];
@@ -1334,9 +1349,12 @@
         if (txn.fromShId === txn.toShId) errors.push('Transferor and transferee are the same person.');
 
         let tStart, tEnd;
-        if (src && shares > 0 && shares <= src.shares) {
-            if (txn.takeFrom === 'front') { tStart = src.start; tEnd = src.start + shares - 1; }
-            else { tStart = src.end - shares + 1; tEnd = src.end; }
+        const span = transferRange(src, shares, txn.takeFrom, txn.takeStart);
+        if (span) { tStart = span.tStart; tEnd = span.tEnd; }
+        if (src && shares > 0 && shares <= src.shares && txn.takeFrom === 'custom') {
+            if (!span) errors.push('Enter the share number the transferred block starts at.');
+            else if (tStart < src.start || tEnd > src.end)
+                errors.push(`Share numbers ${fmtRange(tStart, tEnd)} are not inside certificate ${src.certNo} (${fmtRange(src.start, src.end)}).`);
         }
 
         let cons = null;
@@ -1374,8 +1392,12 @@
             newEnd = Math.max(tEnd, cons.end);
         }
         const ov = txn.overrides || {};
-        const isPartial = shares < src.shares;
         const hasOv = v => v !== null && v !== undefined && String(v).trim() !== '';
+        // What the transferor keeps: whatever sits on either side of the block that
+        // moved. A block taken from the middle leaves two, which is the whole point
+        // of the custom option; front and back leave one, or none on a whole transfer.
+        const remSpans = [[src.start, tStart - 1], [tEnd + 1, src.end]].filter(([a, b]) => b >= a);
+        const remOv = [ov.remCertNo, ov.remCertNo2];
         // transferee's paid-up: explicit on the transfer, else carried over from the source cert
         const buyerPaid = (txn.paidUp !== null && txn.paidUp !== undefined && txn.paidUp !== '' && !isNaN(parseFloat(txn.paidUp)))
             ? parseFloat(txn.paidUp) : src.paidUp;
@@ -1391,37 +1413,36 @@
             certs.push(c);
             return c;
         };
-        // ... and the transferor's remainder certificate (the part they keep).
-        const buildRem = () => {
-            const remStart = txn.takeFrom === 'front' ? tEnd + 1 : src.start;
-            const remEnd = txn.takeFrom === 'front' ? src.end : tStart - 1;
+        // ... and the transferor's remainder certificate(s) — the parts they keep,
+        // in ascending share order so the lower block gets the earlier number.
+        const buildRems = () => remSpans.map(([remStart, remEnd], i) => {
             const c = {
-                id: txn.id + '-rem', ownerShId: txn.fromShId, certNo: hasOv(ov.remCertNo) ? ov.remCertNo : ctx.nextCertNo(),
+                id: txn.id + (i ? '-rem' + (i + 1) : '-rem'), ownerShId: txn.fromShId,
+                certNo: hasOv(remOv[i]) ? remOv[i] : ctx.nextCertNo(),
                 start: remStart, end: remEnd, shares: remEnd - remStart + 1, paidUp: src.paidUp, par: src.par,
                 status: 'active', issuedBy: txn.id, issuedDate: txn.date, cancelledBy: null,
-                manualNo: hasOv(ov.remCertNo)
+                manualNo: hasOv(remOv[i])
             };
             certs.push(c);
             return c;
-        };
+        });
 
         // Cert-number assignment order: 'transferor' (default) numbers the remainder
         // first so the kept (lower) range gets the earlier number; 'transferee' flips it.
         const transferorFirst = (txn.issueOrder || 'transferor') !== 'transferee';
-        let newCert, remCert = null;
-        if (isPartial && transferorFirst) {
-            remCert = buildRem();
+        let newCert, remCerts = [];
+        if (remSpans.length && transferorFirst) {
+            remCerts = buildRems();
             newCert = buildNew();
         } else {
             newCert = buildNew();
-            if (isPartial) remCert = buildRem();
+            if (remSpans.length) remCerts = buildRems();
         }
         // Display order stays transferee then transferor regardless of numbering.
-        issued.push(newCert);
-        if (remCert) issued.push(remCert);
+        issued.push(newCert, ...remCerts);
 
         // record which new certs replaced each cancelled one (for register book / export)
-        src.replacedBy = [newCert.certNo].concat(remCert ? [remCert.certNo] : []);
+        src.replacedBy = [newCert.certNo].concat(remCerts.map(c => c.certNo));
         if (cons) cons.replacedBy = [newCert.certNo];
 
         balances[txn.fromShId] -= shares;
@@ -1433,14 +1454,14 @@
             range: fmtRange(tStart, tEnd), shares: shares,
             balanceAfter: balances[txn.fromShId]
         });
-        if (remCert) {
+        remCerts.forEach(remCert => {
             ledgers[txn.fromShId].push({
                 date: txn.date, kind: 'acquisition', detail: 'Reissue (balance after transfer)', counterparty: 'Company',
                 referCertNo: String(src.certNo), issuedCertNo: String(remCert.certNo),
                 range: fmtRange(remCert.start, remCert.end), shares: remCert.shares,
                 balanceAfter: balances[txn.fromShId], paidUp: remCert.paidUp
             });
-        }
+        });
         ledgers[txn.toShId].push({
             date: txn.date, kind: 'acquisition',
             detail: cons ? `Transfer (consolidated with cert ${cons.certNo})` : 'Transfer',
@@ -1451,7 +1472,8 @@
             balanceAfter: balances[txn.toShId], paidUp: newCert.paidUp
         });
 
-        const summary = `${fromName} → ${toName} · ${shares.toLocaleString('en-US')} shares (${fmtRange(tStart, tEnd)}) · cancelled cert ${src.certNo}${cons ? ' + cert ' + cons.certNo : ''} · issued cert ${newCert.certNo} to ${toName}${remCert ? ' + cert ' + remCert.certNo + ' to ' + fromName + ' (balance ' + fmtRange(remCert.start, remCert.end) + ')' : ''}`;
+        const remTxt = remCerts.map(c => ` + cert ${c.certNo} to ${fromName} (balance ${fmtRange(c.start, c.end)})`).join('');
+        const summary = `${fromName} → ${toName} · ${shares.toLocaleString('en-US')} shares (${fmtRange(tStart, tEnd)}) · cancelled cert ${src.certNo}${cons ? ' + cert ' + cons.certNo : ''} · issued cert ${newCert.certNo} to ${toName}${remTxt}`;
         return { errors, issued, cancelled, duty, summary };
     }
 
@@ -2035,7 +2057,7 @@
             type: 'transfer',
             date: today(), fromShId: holders[0].id, certId: '', shares: '', takeFrom: 'back', issueOrder: 'transferor',
             toShId: '', newName: '', mode: 'separate', consolidateCertId: '',
-            pricePerShare: '', withDuplicate: false, notes: '', newCertNo: '', remCertNo: '', paidUp: '',
+            takeStart: '', pricePerShare: '', withDuplicate: false, notes: '', newCertNo: '', remCertNo: '', remCertNo2: '', paidUp: '',
             combinePerHolder: true,
             // capital increase fields
             spec: 'amount', amountInput: '', targetInput: '', dealShId: '', dealPct: '', dealMoney: '',
@@ -2125,8 +2147,19 @@
             </div>
             <div class="form-row" id="takefrom-row" style="display:${partial ? 'flex' : 'none'};">
                 <span style="font-weight:600;">Partial transfer — share numbers taken from:</span>
-                <label class="radio-opt"><input type="radio" name="takefrom" value="back"${txnDraft.takeFrom !== 'front' ? ' checked' : ''} onchange="txnDraft.takeFrom = 'back'; refreshTxnFormDynamic();"> the back of the range (keeps numbering order)</label>
+                <label class="radio-opt"><input type="radio" name="takefrom" value="back"${txnDraft.takeFrom !== 'front' && txnDraft.takeFrom !== 'custom' ? ' checked' : ''} onchange="txnDraft.takeFrom = 'back'; refreshTxnFormDynamic();"> the back of the range (keeps numbering order)</label>
                 <label class="radio-opt"><input type="radio" name="takefrom" value="front"${txnDraft.takeFrom === 'front' ? ' checked' : ''} onchange="txnDraft.takeFrom = 'front'; refreshTxnFormDynamic();"> the front of the range</label>
+                <label class="radio-opt"><input type="radio" name="takefrom" value="custom"${txnDraft.takeFrom === 'custom' ? ' checked' : ''} onchange="txnDraft.takeFrom = 'custom'; refreshTxnFormDynamic();"> a block from inside it ⚙</label>
+            </div>
+            <!-- Advanced: not every transfer takes the head or the tail. A block lifted
+                 out of the middle leaves the transferor holding shares on both sides
+                 of it, so two remainder certificates are issued instead of one. -->
+            <div class="form-row" id="takecustom-row" style="display:${partial && txnDraft.takeFrom === 'custom' ? 'flex' : 'none'};">
+                <span class="form-hint">Transferred block starts at share no.</span>
+                <input type="number" id="takestart-input" style="width:110px;" placeholder="e.g. ${srcCert.start + 1}"
+                    value="${escapeHtml(String(txnDraft.takeStart ?? ''))}"
+                    oninput="txnDraft.takeStart = this.value; refreshTxnFormDynamic();">
+                <span class="form-hint" id="takestart-note"></span>
             </div>
             <div class="form-row" id="issueorder-row" style="display:${partial ? 'flex' : 'none'};">
                 <span style="font-weight:600;">Number the new certificates:</span>
@@ -2158,6 +2191,7 @@
                 <input type="text" style="width:70px;" placeholder="auto" value="${escapeHtml(txnDraft.newCertNo)}" oninput="txnDraft.newCertNo = this.value; renderTxnPreview();">
                 <span class="form-hint" id="rem-override-label" style="display:${partial ? 'inline' : 'none'};">Remainder cert no:</span>
                 <input type="text" id="rem-override-input" style="width:70px; display:${partial ? 'inline-block' : 'none'};" placeholder="auto" value="${escapeHtml(txnDraft.remCertNo)}" oninput="txnDraft.remCertNo = this.value; renderTxnPreview();">
+                <input type="text" id="rem2-override-input" style="width:70px; display:none;" placeholder="2nd" title="Certificate number for the second remainder — the block on the other side of the transferred shares" value="${escapeHtml(txnDraft.remCertNo2 || '')}" oninput="txnDraft.remCertNo2 = this.value; renderTxnPreview();">
             </div>
             <div class="preview-box" id="txn-preview"></div>
             <div class="form-buttons">
@@ -2165,6 +2199,7 @@
                 ${editingTxnId ? '<button class="btn-secondary" onclick="cancelEditTxn()">Cancel Edit</button>' : ''}
             </div>
         `;
+        renderTakeCustom(rep, srcCert, partial);
         renderModeBlock(rep);
         renderTxnPreview();
     }
@@ -2808,8 +2843,31 @@
         show('issueorder-row', 'flex');
         show('rem-override-label', 'inline');
         show('rem-override-input', 'inline-block');
+
+        renderTakeCustom(rep, srcCert, partial);
         renderModeBlock(rep);
         renderTxnPreview();
+    }
+
+    // The advanced "block from inside the range" row. Spells out what the transferor
+    // is left holding, because a middle block leaves them two certificates and that
+    // is easier to read than to work out from the numbers.
+    function renderTakeCustom(rep, srcCert, partial) {
+        const custom = !!(partial && txnDraft.takeFrom === 'custom');
+        const row = document.getElementById('takecustom-row');
+        if (row) row.style.display = custom ? 'flex' : 'none';
+        const span = custom ? transferRange(srcCert, parseInt(txnDraft.shares), 'custom', txnDraft.takeStart) : null;
+        const rems = span ? [[srcCert.start, span.tStart - 1], [span.tEnd + 1, srcCert.end]].filter(([a, b]) => b >= a) : [];
+        const note = document.getElementById('takestart-note');
+        if (note) {
+            note.textContent = !custom ? ''
+                : !span ? `anywhere from ${rep.pad(srcCert.start)} to ${rep.pad(srcCert.end - parseInt(txnDraft.shares) + 1)}`
+                : (span.tStart < srcCert.start || span.tEnd > srcCert.end)
+                    ? `⛔ outside ${rep.fmtRange(srcCert.start, srcCert.end)}`
+                    : `moves ${rep.fmtRange(span.tStart, span.tEnd)} · transferor keeps ${rems.map(([a, b]) => rep.fmtRange(a, b)).join(' and ')}`;
+        }
+        const rem2 = document.getElementById('rem2-override-input');
+        if (rem2) rem2.style.display = rems.length > 1 ? 'inline-block' : 'none';
     }
 
     function renderModeBlock(rep) {
@@ -2818,10 +2876,10 @@
         const srcCert = activeCertsOf(rep, txnDraft.fromShId).find(c => c.id === txnDraft.certId);
         const shares = parseInt(txnDraft.shares);
         let candidates = [];
-        if (srcCert && shares > 0 && shares <= srcCert.shares && txnDraft.toShId && txnDraft.toShId !== '__new__') {
-            const tStart = txnDraft.takeFrom === 'front' ? srcCert.start : srcCert.end - shares + 1;
-            const tEnd = txnDraft.takeFrom === 'front' ? srcCert.start + shares - 1 : srcCert.end;
-            candidates = activeCertsOf(rep, txnDraft.toShId).filter(c => c.end + 1 === tStart || tEnd + 1 === c.start);
+        const span = transferRange(srcCert, shares, txnDraft.takeFrom, txnDraft.takeStart);
+        if (span && txnDraft.toShId && txnDraft.toShId !== '__new__') {
+            candidates = activeCertsOf(rep, txnDraft.toShId)
+                .filter(c => c.end + 1 === span.tStart || span.tEnd + 1 === c.start);
         }
         if (!candidates.length && txnDraft.mode === 'consolidate') txnDraft.mode = 'separate';
         if (txnDraft.mode === 'consolidate' && !candidates.some(c => c.id === txnDraft.consolidateCertId)) {
@@ -2883,14 +2941,18 @@
             id: id, type: 'transfer', date: txnDraft.date,
             fromShId: txnDraft.fromShId, toShId: toShId,
             certId: txnDraft.certId, shares: parseInt(txnDraft.shares),
-            takeFrom: txnDraft.takeFrom, issueOrder: txnDraft.issueOrder || 'transferor', mode: txnDraft.mode,
+            takeFrom: txnDraft.takeFrom,
+            takeStart: txnDraft.takeFrom === 'custom' && String(txnDraft.takeStart ?? '').trim() !== ''
+                ? parseInt(txnDraft.takeStart) : null,
+            issueOrder: txnDraft.issueOrder || 'transferor', mode: txnDraft.mode,
             consolidateCertId: txnDraft.mode === 'consolidate' ? txnDraft.consolidateCertId : null,
             pricePerShare: txnDraft.pricePerShare === '' ? null : parseFloat(txnDraft.pricePerShare),
             paidUp: txnDraft.paidUp === '' ? null : parseFloat(txnDraft.paidUp),
             withDuplicate: !!txnDraft.withDuplicate, notes: txnDraft.notes,
             overrides: {
                 newCertNo: txnDraft.newCertNo.trim() || null,
-                remCertNo: txnDraft.remCertNo.trim() || null
+                remCertNo: txnDraft.remCertNo.trim() || null,
+                remCertNo2: (txnDraft.remCertNo2 || '').trim() || null
             }
         };
     }
@@ -3017,11 +3079,13 @@
             txnDraft = {
                 type: 'transfer',
                 date: t.date || today(), fromShId: t.fromShId, certId: t.certId, shares: String(t.shares),
-                takeFrom: t.takeFrom || 'back', issueOrder: t.issueOrder || 'transferor', toShId: t.toShId, newName: '', mode: t.mode || 'separate',
+                takeFrom: t.takeFrom || 'back', takeStart: t.takeStart == null ? '' : String(t.takeStart),
+                issueOrder: t.issueOrder || 'transferor', toShId: t.toShId, newName: '', mode: t.mode || 'separate',
                 consolidateCertId: t.consolidateCertId || '', pricePerShare: t.pricePerShare ?? '', paidUp: t.paidUp ?? '',
                 withDuplicate: !!t.withDuplicate, notes: t.notes || '',
                 newCertNo: (t.overrides && t.overrides.newCertNo) || '',
-                remCertNo: (t.overrides && t.overrides.remCertNo) || ''
+                remCertNo: (t.overrides && t.overrides.remCertNo) || '',
+                remCertNo2: (t.overrides && t.overrides.remCertNo2) || ''
             };
         }
         renderTxnForm();

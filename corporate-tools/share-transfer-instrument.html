@@ -395,8 +395,8 @@ input.is-ph{background:#fefce8;border-color:#fcd34d;font-weight:600;color:#a1620
       <div class="card-bd">
         <div class="pair" data-pair="tfeName">
           <div class="pair-head"><span class="ttl">Name</span><button class="swap" data-swap="tfeName">⇄ <span class="swaplbl"></span></button></div>
-          <div class="pair-row"><span class="rowtag">ตกลงโอนให้แก่</span><input type="text" data-f="tfe.nameTh" placeholder="นางสาวพุทรี ดุจธรรม"></div>
-          <div class="pair-row"><span class="rowtag">hereby transfer to</span><input type="text" data-f="tfe.nameEn" data-lang="en" placeholder="MISS PUTHSEE DUJTHAM"></div>
+          <div class="pair-row"><span class="rowtag">ตกลงโอนให้แก่</span><input type="text" data-f="tfe.nameTh" placeholder="นางสาวสมหญิง รักไทย"></div>
+          <div class="pair-row"><span class="rowtag">hereby transfer to</span><input type="text" data-f="tfe.nameEn" data-lang="en" placeholder="MISS SOMYING RAKTHAI"></div>
         </div>
         <div class="pair" data-pair="tfeAddr">
           <div class="pair-head"><span class="ttl">Address <span class="opt">— optional</span></span><button class="swap" data-swap="tfeAddr">⇄ <span class="swaplbl"></span></button></div>
@@ -422,6 +422,25 @@ input.is-ph{background:#fefce8;border-color:#fcd34d;font-weight:600;color:#a1620
           <label>Share numbers — override <span class="opt">for non-contiguous ranges</span></label>
           <div class="pair-row"><input type="text" data-f="sh.nosOverride" placeholder="e.g. 1-500, 1201-1400"></div>
         </div>
+        <div class="grid3">
+          <div class="field">
+            <label>เติมศูนย์หน้าเลขหุ้น <span class="opt">— zero-padding</span></label>
+            <div class="pair-row"><select id="padMode" class="picker" style="max-width:none;width:100%">
+              <option value="none">ไม่เติม — พิมพ์อย่างไรก็อย่างนั้น (1-30000)</option>
+              <option value="auto">ตามจำนวนหุ้นทั้งหมดของบริษัท</option>
+              <option value="fixed">กำหนดจำนวนหลักเอง</option>
+            </select></div>
+          </div>
+          <div class="field" id="padTotalField" hidden>
+            <label>จำนวนหุ้นทั้งหมดของบริษัท <span class="opt">— total shares</span></label>
+            <div class="pair-row"><input type="text" data-f="sh.padTotal" data-group placeholder="100,000"></div>
+          </div>
+          <div class="field" id="padFixedField" hidden>
+            <label>จำนวนหลัก <span class="opt">— digits</span></label>
+            <div class="pair-row"><input type="text" data-f="sh.pad" data-digits placeholder="6"></div>
+          </div>
+        </div>
+        <p class="sect-note" id="padNote"></p>
         <div class="grid2">
           <div class="field"><label>Par value per share (Baht)</label><div class="pair-row"><input type="text" data-f="sh.par" data-group placeholder="100"></div></div>
           <div class="field"><label>Paid up (%)</label><div class="pair-row"><input type="text" data-f="sh.paidUp" placeholder="100"></div></div>
@@ -471,6 +490,16 @@ input.is-ph{background:#fefce8;border-color:#fcd34d;font-weight:600;color:#a1620
           <div class="btn-row">
             <button class="btn btn-primary" id="btnExport">↓ Export this transfer</button>
             <button class="btn btn-ghost" id="btnExportAll">↓ Export all as .zip</button>
+          </div>
+        </div>
+
+        <div class="act">
+          <div class="act-hd"><span class="ico">📜</span> ทะเบียนใบหุ้น · Share certificates</div>
+          <p class="sect-note">A transfer is usually backed by fresh certificates. This opens the certificate register with
+             this transfer's company, parties, shares and date already filled — if the transferor's certificate is
+             already in that register, it opens the cancel-and-reissue step instead. Nothing is changed there until you confirm.</p>
+          <div class="btn-row">
+            <button class="btn btn-ghost" id="btnToCerts">↗ ออกใบหุ้นรองรับการโอนนี้</button>
           </div>
         </div>
 
@@ -600,6 +629,7 @@ function groupDigits(v){
   return b === undefined ? a : a + '.' + b;
 }
 const numOf = v => { const n = parseFloat(String(v==null?'':v).replace(/,/g,'')); return isFinite(n) ? n : null; };
+const intOf = v => { const n = parseInt(String(v==null?'':v).replace(/[^\d]/g,''), 10); return isFinite(n) ? n : null; };
 /* Thai drafting convention: a whole-baht amount is written "100.-" */
 function baht(v){
   if(isPlaceholder(v)) return String(v).trim();
@@ -617,7 +647,11 @@ function blankParty(){
 }
 function blankTransfer(){
   return {co:{th:'', en:'', swap:false}, tfr:blankParty(), tfe:blankParty(),
-          sh:{count:'', from:'', to:'', nosOverride:'', par:'', paidUp:'100', price:'', priceAuto:true},
+          sh:{count:'', from:'', to:'', nosOverride:'', par:'', paidUp:'100', price:'', priceAuto:true,
+              /* Share numbers are written unpadded unless told otherwise: padding
+                 needs the company's total shares, which an instrument does not
+                 otherwise carry, and the firm's own precedents write "50001-98000". */
+              padMode:'none', padTotal:'', pad:''},
           fileName:'', fileAuto:true};
 }
 let state = {transfers:[blankTransfer()], active:0, parties:[]};
@@ -631,9 +665,22 @@ function autoPrice(t){
   const par = numOf(t.sh.par), n = numOf(t.sh.count);
   return (par === null || n === null) ? '' : groupDigits(String(par * n));
 }
+/* How wide a share number is written. "auto" takes it from the company's total
+   shares — 100,000 shares means six digits — which is how the share certificates
+   are numbered; "fixed" is for a register that pads to its own width. */
+function padWidth(t){
+  if(t.sh.padMode === 'fixed') return intOf(t.sh.pad) || 0;
+  if(t.sh.padMode === 'auto'){ const n = intOf(t.sh.padTotal); return n ? String(n).length : 0; }
+  return 0;
+}
+function padNo(t, v){
+  const s = String(v == null ? '' : v).trim();
+  const w = padWidth(t), n = intOf(s);
+  return (!s || n === null || !w) ? s : String(n).padStart(w, '0');
+}
 function shareNos(t){
   if(t.sh.nosOverride.trim()) return t.sh.nosOverride.trim();
-  const f = t.sh.from.trim(), to = t.sh.to.trim();
+  const f = padNo(t, t.sh.from), to = padNo(t, t.sh.to);
   return (f && to) ? `${f}-${to}` : (f || to || '');
 }
 /* Line 1 sits beside the Thai label, line 2 beside the English label. The swap
@@ -1050,8 +1097,12 @@ const XLSX_COLS = [
   ['Transferor witness (Thai)', t=>t.tfr.witTh],
   ['Transferor witness (English)', t=>t.tfr.witEn],
   ['Transferee witness (Thai)', t=>t.tfe.witTh],
-  ['Transferee witness (English)', t=>t.tfe.witEn]
+  ['Transferee witness (English)', t=>t.tfe.witEn],
+  /* appended, not slotted in beside the share numbers: the importer addresses
+     columns by their position in this list, so inserting would shift them */
+  ['Share no. padded to (digits)', t=>padWidth(t) || '']
 ];
+const PAD_COL = XLSX_COLS.length - 1;
 
 function colName(n){ let s=''; n++; while(n>0){ const r=(n-1)%26; s=String.fromCharCode(65+r)+s; n=Math.floor((n-1)/26);} return s; }
 
@@ -1167,6 +1218,8 @@ async function importXlsx(file){
       t.sh.count = get(r,13) && !isPlaceholder(get(r,13)) ? groupDigits(get(r,13)) : get(r,13);
       t.sh.from = get(r,14).replace(/[^\d]/g,''); t.sh.to = get(r,15).replace(/[^\d]/g,'');
       t.sh.nosOverride = get(r,16);
+      const pad = intOf(get(r,PAD_COL));
+      if(pad){ t.sh.padMode = 'fixed'; t.sh.pad = String(pad); }
       t.sh.par = get(r,17); t.sh.paidUp = get(r,18) || '100';
       const price = get(r,19);
       if(price){ t.sh.price = price; t.sh.priceAuto = false; }
@@ -1268,6 +1321,11 @@ function reformat(el, fn){
   return out;
 }
 
+document.getElementById('padMode').addEventListener('change', e=>{
+  cur().sh.padMode = e.target.value;
+  save(); render();
+});
+
 document.querySelectorAll('[data-f]').forEach(el=>{
   const path = el.dataset.f;
   el.addEventListener('input', ()=>{
@@ -1312,6 +1370,24 @@ document.getElementById('btnDup').addEventListener('click', ()=>{
 });
 document.getElementById('btnExport').addEventListener('click', exportOne);
 document.getElementById('btnExportAll').addEventListener('click', exportAll);
+
+/* Hand this transfer to the certificate register. The register decides what to
+   do with it — match an existing certificate, or start a new one — and asks
+   before changing anything, so this only ever carries facts across. */
+const CERT_TOOL = 'share-certificate.html';
+document.getElementById('btnToCerts').addEventListener('click', ()=>{
+  const t = cur();
+  if(!t.tfe.nameTh && !t.tfe.nameEn){ toast('ใส่ชื่อผู้รับโอนก่อน'); return; }
+  const payload = {
+    co:{th:t.co.th, en:t.co.en},
+    tfr:{nameTh:t.tfr.nameTh, nameEn:t.tfr.nameEn, addrTh:t.tfr.addrTh, addrEn:t.tfr.addrEn},
+    tfe:{nameTh:t.tfe.nameTh, nameEn:t.tfe.nameEn, addrTh:t.tfe.addrTh, addrEn:t.tfe.addrEn},
+    sh:{count:t.sh.count, from:t.sh.from, to:t.sh.to, par:t.sh.par,
+        price:t.sh.priceAuto ? autoPrice(t) : t.sh.price},
+    date: t.tfr.date || t.tfe.date || ''
+  };
+  window.open(CERT_TOOL + '#cert=' + encodeURIComponent(JSON.stringify(payload)), '_blank', 'noopener');
+});
 document.getElementById('btnXlsxTemplate').addEventListener('click', downloadXlsxTemplate);
 document.getElementById('btnXlsxUpload').addEventListener('click', ()=> document.getElementById('xlsxFile').click());
 document.getElementById('xlsxFile').addEventListener('change', e=>{
@@ -1448,6 +1524,15 @@ function render(){
     const v = getPath(t, el.dataset.f);
     if(document.activeElement !== el) el.value = v == null ? '' : v;
   });
+
+  const pm = document.getElementById('padMode');
+  if(document.activeElement !== pm) pm.value = t.sh.padMode || 'none';
+  document.getElementById('padTotalField').hidden = t.sh.padMode !== 'auto';
+  document.getElementById('padFixedField').hidden = t.sh.padMode !== 'fixed';
+  const pw = padWidth(t);
+  document.getElementById('padNote').textContent = pw
+    ? `${pw} หลัก — เลขหุ้นจะเขียนเป็น ${shareNos(t) || padNo(t,1) + '-' + padNo(t, intOf(t.sh.padTotal) || 1)}`
+    : 'เลขหุ้นเขียนตามที่กรอก ไม่เติมศูนย์ — ตรงกับตราสารที่บริษัทเคยทำมา';
 
   /* auto fields display their computed value while untouched */
   const priceEl = document.querySelector('[data-f="sh.price"]');
@@ -1664,8 +1749,51 @@ function toast(msg){
   toastTimer = setTimeout(()=> el.classList.remove('show'), 3400);
 }
 
+/* Handed over from the Share Certificates tool, which cancels and reissues the
+   certificates for the same transfer: one set of numbers fills both documents.
+   Inert when the page is opened normally. */
+function importHandoff(){
+  const m = /^#xfer=(.*)$/.exec(location.hash || '');
+  if(!m) return '';
+  let name = '';
+  try{
+    const d = JSON.parse(decodeURIComponent(m[1]));
+    const t = blankTransfer();
+    t.co.th = (d.co && d.co.th) || '';
+    t.co.en = (d.co && d.co.en) || '';
+    for(const side of ['tfr','tfe']){
+      const s = d[side] || {};
+      Object.assign(t[side], {nameTh:s.nameTh || '', nameEn:s.nameEn || '',
+        addrTh:s.addrTh || '', addrEn:s.addrEn || '', date:s.date || ''});
+    }
+    const sh = d.sh || {};
+    Object.assign(t.sh, {count:sh.count || '', from:sh.from || '', to:sh.to || '',
+      par:sh.par || '', paidUp:sh.paidUp || '100'});
+    if(sh.price){ t.sh.price = sh.price; t.sh.priceAuto = false; }
+    /* the register pads its share numbers; carry that width over so the two
+       documents describe the same shares the same way */
+    if(sh.padMode === 'auto' || sh.padMode === 'fixed'){
+      t.sh.padMode = sh.padMode;
+      t.sh.padTotal = sh.padTotal ? groupDigits(String(sh.padTotal)) : '';
+      t.sh.pad = sh.pad || '';
+    }
+    /* drop the untouched starter transfer rather than leaving a blank behind */
+    if(state.transfers.length === 1 &&
+       JSON.stringify(state.transfers[0]) === JSON.stringify(blankTransfer()))
+      state.transfers = [t];
+    else state.transfers.push(t);
+    state.active = state.transfers.length - 1;
+    save();
+    name = t.tfe.nameTh || t.tfe.nameEn || 'the transfer';
+  }catch(_){ /* a malformed link should not stop the page loading */ }
+  history.replaceState(null, '', location.pathname + location.search);
+  return name;
+}
+
 load();
+const handedOver = importHandoff();
 render();
+if(handedOver) toast('✓ รับข้อมูลจากทะเบียนใบหุ้นแล้ว — ' + handedOver);
 /* size the preview to the panel once fonts and layout have settled */
 window.addEventListener('load', ()=> setTimeout(()=> fitPreview(), 60));
 window.addEventListener('resize', ()=>{ clearTimeout(window.__rz); window.__rz = setTimeout(()=> fitPreview(), 150); });
