@@ -1430,7 +1430,13 @@ const StampDutyApp = (() => {
     };
 
     loadState();
-    renderRows();
+    if (importFromHash()) settleImport();
+    else renderRows();
+    /* A link pasted into a tab that is already open only changes the hash, so
+       the page never reloads and the import would otherwise never happen. */
+    window.addEventListener("hashchange", () => {
+      if (importFromHash()) settleImport();
+    });
 
     elements.addRow.addEventListener("click", () => {
       state.rows.push(defaultRow());
@@ -1453,6 +1459,40 @@ const StampDutyApp = (() => {
     elements.exportJson.addEventListener("click", exportJson);
     elements.printPage.addEventListener("click", () => window.print());
     elements.clearSaved.addEventListener("click", clearSavedData);
+  }
+
+  /* Another tool can hand this one an instrument it has already worked out the
+     figures for, as #duty=<uri-encoded JSON> holding rows in the shape above —
+     the share transfer instrument does. Only variants this calculator actually
+     knows are accepted, and the hash is cleared so a reload is not a re-import.
+     Inert without the hash, so the page behaves exactly as before. */
+  function importFromHash() {
+    const match = /[#&]duty=([^&]+)/.exec(window.location.hash);
+    if (!match) return false;
+    let payload = null;
+    try {
+      payload = JSON.parse(decodeURIComponent(match[1]));
+    } catch (error) {
+      console.warn("Unable to read the imported instrument", error);
+    }
+    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    const incoming = (payload && Array.isArray(payload.rows) ? payload.rows : [])
+      .filter((row) => row && variantIndex.has(row.variantId))
+      .map((row) => ({ ...defaultRow(), ...row, id: cryptoId() }));
+    if (!incoming.length) return false;
+    /* An untouched calculator is replaced; one already being worked on is added
+       to, because a row entered by hand is not this page's to throw away. */
+    const first = state.rows[0];
+    const untouched = state.rows.length === 1 && first && !parseMoney(first.amount)
+      && !parseMoney(first.secondaryAmount) && !parseMoney(first.stamped);
+    state.rows = untouched ? incoming : state.rows.concat(incoming);
+    return true;
+  }
+
+  function settleImport() {
+    renderRows();
+    saveState();
+    updateSaveStatus("Imported from the share transfer instrument (นำเข้าจากตราสารการโอนหุ้น)");
   }
 
   function loadState() {
