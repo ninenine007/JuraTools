@@ -476,6 +476,31 @@ input.is-ph{background:#fefce8;border-color:#fcd34d;font-weight:600;color:#a1620
       <div class="card-bd">
         <table class="duty" id="dutyTable"></table>
         <p class="sect-note" id="dutyNote"></p>
+
+        <div class="act" style="margin-bottom:14px">
+          <div class="act-hd">
+            <span class="ico">🖊</span> พิมพ์บรรทัดอากรลงในตราสาร
+            <span style="margin-left:auto"><button class="use" id="stampToggle">off</button></span>
+          </div>
+          <p class="sect-note" style="margin-bottom:0">Writes <em>(ปิดอากรแสตมป์ … บาท)</em> under each copy — the duty on the
+             Original, the counterpart duty on the Duplicate. Off leaves the document exactly as it was.</p>
+          <div id="stampBox" hidden style="margin-top:12px">
+            <div class="grid2">
+              <div class="field">
+                <label>ต้นฉบับ · Original
+                  <button class="reset-auto" data-resetstamp="1" hidden style="float:right">↺ back to auto</button></label>
+                <div class="pair-row"><input type="text" data-f="sh.stamp1" data-group placeholder="auto"></div>
+              </div>
+              <div class="field">
+                <label>คู่ฉบับ · Duplicate
+                  <button class="reset-auto" data-resetstamp="2" hidden style="float:right">↺ back to auto</button></label>
+                <div class="pair-row"><input type="text" data-f="sh.stamp2" data-group placeholder="auto"></div>
+              </div>
+            </div>
+            <p class="sect-note" id="stampNote" style="margin-bottom:0"></p>
+          </div>
+        </div>
+
         <div class="act">
           <div class="act-hd"><span class="ico">🧮</span> Stamp Duty Calculator</div>
           <p class="sect-note">Opens the calculator with this transfer already entered — for the surcharge under
@@ -684,7 +709,11 @@ function blankTransfer(){
               /* Share numbers are written unpadded unless told otherwise: padding
                  needs the company's total shares, which an instrument does not
                  otherwise carry, and the firm's own precedents write "50001-98000". */
-              padMode:'none', padTotal:'', pad:''},
+              padMode:'none', padTotal:'', pad:'',
+              /* The firm notes the duty actually affixed under each copy. Off by
+                 default: an instrument that does not carry the line is the
+                 document this tool has always written. */
+              stampOn:false, stamp1:'', stamp1Auto:true, stamp2:'', stamp2Auto:true},
           fileName:'', fileAuto:true};
 }
 let state = {transfers:[blankTransfer()], active:0, parties:[]};
@@ -851,12 +880,54 @@ async function templateXml(){
   return TEMPLATE_XML;
 }
 
+/* ── The stamp line ───────────────────────────────────────────────
+   "(ปิดอากรแสตมป์ N บาท)" — grey, italic, centred — sits under each copy and
+   names the duty actually affixed to it: the duty on the Original, the
+   counterpart duty on the Duplicate. It is not part of the template but spliced
+   in when it is wanted, so an instrument without it is byte for byte the
+   document this tool wrote before the line existed.
+
+   A blank paragraph goes in front of it for the same reason the firm's own file
+   has one: the line would otherwise sit hard against the witness block. */
+const STAMP_PPR =
+  '<w:pPr><w:overflowPunct w:val="0"/><w:autoSpaceDE w:val="0"/><w:autoSpaceDN w:val="0"/>' +
+  '<w:adjustRightInd w:val="0"/><w:spacing w:after="0" w:line="240" w:lineRule="auto"/>' +
+  '<w:jc w:val="center"/>';
+const STAMP_FONT =
+  '<w:rFonts w:ascii="Browallia New" w:eastAsia="Times New Roman" w:hAnsi="Browallia New" w:cs="Browallia New"/>';
+const STAMP_RPR = STAMP_FONT + '<w:i/><w:iCs/>' +
+  '<w:color w:val="BFBFBF" w:themeColor="background1" w:themeShade="BF"/><w:sz w:val="28"/>';
+const STAMP_GAP = `<w:p>${STAMP_PPR}<w:rPr>${STAMP_FONT}<w:sz w:val="28"/></w:rPr></w:pPr></w:p>`;
+
+/* The figure is built as its own runs so that a duty nobody knows yet carries
+   the yellow (*) on the number alone, not across the whole sentence. */
+const stampBlock = value => STAMP_GAP +
+  `<w:p>${STAMP_PPR}<w:rPr>${STAMP_RPR}<w:szCs w:val="24"/><w:cs/></w:rPr></w:pPr>` +
+  buildRuns(STAMP_RPR, '(ปิดอากรแสตมป์ ') +
+  buildRuns(STAMP_RPR, value) +
+  buildRuns(STAMP_RPR, ' บาท)') + '</w:p>';
+
+/* One block after each signature table: the Duplicate's is the last table there
+   is, the Original's is the table the page break to the Duplicate follows. The
+   later one goes in first, so the earlier one's position is still its own. */
+function addStampLines(xml, orig, dup){
+  const insert = (s, end, block) => end < 8 ? s : s.slice(0, end) + block + s.slice(end);
+  let out = insert(xml, xml.lastIndexOf('</w:tbl>') + 8, stampBlock(dup));
+  const brk = out.search(/<w:br w:type="page"\s*\/>/);
+  return brk === -1 ? out
+    : insert(out, out.lastIndexOf('</w:tbl>', brk) + 8, stampBlock(orig));
+}
+
 /* The single source of truth for a filled document — both the preview and the
    exported .docx go through here, so what you see cannot drift from what you get. */
 function fillXml(xml, t){
   const vals = tokensFor(t);
   for(const k of DROP_WHEN_EMPTY){
     if(!String(vals[k] || '').trim()){ xml = dropParagraphs(xml, k); delete vals[k]; }
+  }
+  if(t.sh.stampOn){
+    const s = stampLines(t);
+    xml = addStampLines(xml, s.orig, s.dup);
   }
   for(const [k,v] of Object.entries(vals)) xml = fillToken(xml, k, v);
   return xml;
@@ -916,7 +987,10 @@ function runStyle(rPr){
   if(!rPr) return {css:'', hl:false};
   let css = '';
   if(kid(rPr,'b')) css += 'font-weight:700;';
+  if(kid(rPr,'i')) css += 'font-style:italic;';
   if(kid(rPr,'u')) css += 'text-decoration:underline;';
+  /* nothing in the template is coloured; the stamp line is */
+  const col = wval(rPr,'color');        if(col && col !== 'auto') css += `color:#${col};`;
   const sz = wval(rPr,'sz');            if(sz) css += `font-size:${(+sz)/2}pt;`;
   const sp = wval(rPr,'spacing');       if(sp) css += `letter-spacing:${(+sp)/20}pt;`;
   return {css, hl: !!kid(rPr,'highlight')};
@@ -1327,7 +1401,11 @@ document.querySelectorAll('input[data-f]').forEach(el=>{
     const p = el.dataset.f;
     const now = String(getPath(cur(), p) || '');
     setPath(cur(), p, isPlaceholder(now) ? '' : PLACEHOLDER);
+    /* a computed field has to stop computing, or the next render would write
+       the marker straight back out again */
     if(p === 'sh.price') cur().sh.priceAuto = isPlaceholder(now);
+    if(p === 'sh.stamp1') cur().sh.stamp1Auto = isPlaceholder(now);
+    if(p === 'sh.stamp2') cur().sh.stamp2Auto = isPlaceholder(now);
     save(); render();
   });
   el.after(ph);
@@ -1366,6 +1444,8 @@ document.querySelectorAll('[data-f]').forEach(el=>{
     if(el.dataset.digits !== undefined) el.value = el.value.replace(/[^\d]/g,'');
     setPath(cur(), path, el.value);
     if(path === 'sh.price') cur().sh.priceAuto = false;
+    if(path === 'sh.stamp1') cur().sh.stamp1Auto = false;
+    if(path === 'sh.stamp2') cur().sh.stamp2Auto = false;
     if(path === 'fileName') cur().fileAuto = false;
     if(path === 'tfr.sig1' || path === 'tfr.sig2') cur().tfr.sigAuto = false;
     if(path === 'tfe.sig1' || path === 'tfe.sig2') cur().tfe.sigAuto = false;
@@ -1385,6 +1465,16 @@ document.getElementById('resetPrice').addEventListener('click', ()=>{
 });
 document.getElementById('resetName').addEventListener('click', ()=>{
   cur().fileAuto = true; cur().fileName = ''; save(); render();
+});
+document.getElementById('stampToggle').addEventListener('click', ()=>{
+  cur().sh.stampOn = !cur().sh.stampOn; save(); render();
+});
+document.querySelectorAll('[data-resetstamp]').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    const n = b.dataset.resetstamp;
+    cur().sh['stamp' + n + 'Auto'] = true; cur().sh['stamp' + n] = '';
+    save(); render();
+  });
 });
 document.querySelectorAll('[data-resetsig]').forEach(b=>{
   b.addEventListener('click', ()=>{
@@ -1650,6 +1740,20 @@ function dutyOf(t){
 const bahtOf = n => n === null || n === undefined
   ? '—' : Number(n).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
 
+/* What the two stamp lines say. The duty is a computed figure like any other,
+   so either can be written over — the line has to state what was actually
+   affixed, which is not always what the schedule works out to. A duty that
+   cannot be worked out at all is left as the (*) the firm uses for a figure it
+   does not have yet, rather than guessed at. */
+function stampLines(t){
+  const d = dutyOf(t);
+  const auto = n => d.ok ? groupDigits(String(n)) : PLACEHOLDER;
+  return {
+    orig: t.sh.stamp1Auto ? auto(d.duty) : (String(t.sh.stamp1).trim() || PLACEHOLDER),
+    dup:  t.sh.stamp2Auto ? auto(d.dup)  : (String(t.sh.stamp2).trim() || PLACEHOLDER)
+  };
+}
+
 function renderDuty(t){
   const d = dutyOf(t);
   const money = (label, v, cls) =>
@@ -1678,6 +1782,21 @@ function renderDuty(t){
   const btn = document.getElementById('btnToDuty');
   btn.disabled = !d.ok;
   btn.style.opacity = d.ok ? '' : '.45';
+
+  const tog = document.getElementById('stampToggle');
+  tog.textContent = t.sh.stampOn ? 'on' : 'off';
+  tog.style.cssText = t.sh.stampOn
+    ? 'color:#7e22ce;background:#faf5ff;border-color:#e9d5ff;font-weight:700'
+    : '';
+  document.getElementById('stampBox').hidden = !t.sh.stampOn;
+  const s = stampLines(t);
+  [['1', s.orig], ['2', s.dup]].forEach(([n, v])=>{
+    const el = document.querySelector(`[data-f="sh.stamp${n}"]`);
+    if(document.activeElement !== el && t.sh['stamp' + n + 'Auto']) el.value = v;
+    document.querySelector(`[data-resetstamp="${n}"]`).hidden = t.sh['stamp' + n + 'Auto'];
+  });
+  document.getElementById('stampNote').textContent =
+    `ในเอกสาร: ต้นฉบับ “(ปิดอากรแสตมป์ ${s.orig} บาท)” · คู่ฉบับ “(ปิดอากรแสตมป์ ${s.dup} บาท)”`;
 }
 
 /* The calculator keeps a list of instruments; this hands it one, already
@@ -1827,6 +1946,8 @@ function renderPreview(t){
     ${row('ราคาพาร์', v.PAR_VALUE ? show(v.PAR_VALUE) + ' บาท' : '<span class="blank">—</span>')}
     ${row('ชำระแล้ว', v.PAID_UP ? show(v.PAID_UP) + '%' : '<span class="blank">—</span>')}
     ${row('ราคาโอน', v.PRICE ? show(v.PRICE) + ' บาท' : '<span class="blank">—</span>')}
+    ${t.sh.stampOn ? row('อากรที่ปิด', (st => show(st.orig) + ' / ' + show(st.dup) +
+        ' บาท<span style="color:#cbd5e1"> — ต้นฉบับ / คู่ฉบับ</span>')(stampLines(t))) : ''}
     ${grp('✍️ ลงนาม — ผู้โอน / Transferor')}
     ${row('ลงชื่อเมื่อ', both(v.TFR_DATE_TH, v.TFR_DATE_EN))}
     ${row('ณ', both(v.TFR_LOC_TH, v.TFR_LOC_EN))}
