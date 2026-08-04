@@ -218,6 +218,8 @@
     .chip b { font-weight: 800; color: var(--ink); }
     .chip-zero { opacity: .4; }
     .chip-total { background: rgba(225,29,72,0.1); border-color: rgba(225,29,72,0.22); color: var(--rose-dark); font-weight: 700; }
+    .stamp-sheets { font-size: 12px; color: var(--muted); }
+    .stamp-sheets b { color: var(--ink); font-weight: 800; font-variant-numeric: tabular-nums; }
     .stamp-tally { display: grid; gap: 8px; }
     .stamp-tally .tally-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: .9rem; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
     .stamp-tally .tally-row.total { border-bottom: 0; padding-bottom: 0; font-weight: 700; color: var(--ink); }
@@ -494,6 +496,7 @@
           <span class="label">Stamp combination for THB <span data-output="stampTarget">0</span> — choose ฿20 / ฿5 / ฿1 (ชุดอากรแสตมป์)</span>
           <select data-field="stampCombo"></select>
           <div class="stamp-chips" data-output="stampChips"></div>
+          <div class="stamp-sheets" data-output="stampSheets"></div>
         </div>
       </div>
     </section>
@@ -1253,6 +1256,22 @@ const StampDutyApp = (() => {
     container.appendChild(tot);
   }
 
+  // ── A4 continuation sheets for large stamp counts (8×8 = 64 stamps/sheet) ──
+  const STAMPS_PER_A4_SHEET = 64;
+
+  function a4SheetsNeeded(totalStamps) {
+    const sheets = Math.floor(totalStamps / STAMPS_PER_A4_SHEET);
+    const onInstrument = totalStamps - sheets * STAMPS_PER_A4_SHEET;
+    return { sheets, onInstrument };
+  }
+
+  function renderSheets(el, totalStamps) {
+    const { sheets, onInstrument } = a4SheetsNeeded(totalStamps);
+    if (sheets <= 0) { el.textContent = ""; return; }
+    el.innerHTML = `ต้องใช้กระดาษ A4 (8×8 = 64 ดวง/แผ่น) <b>${formatNum(String(sheets))}</b> แผ่น` +
+      (onInstrument > 0 ? ` + ติดบนตราสารอีก <b>${onInstrument}</b> ดวง` : "");
+  }
+
   function stampTargetFor(result) {
     const basis = result.row.stampBasis === "payable" ? "payable" : "duty";
     return basis === "payable" ? Math.round(result.payable) : result.baseDuty;
@@ -1699,6 +1718,7 @@ const StampDutyApp = (() => {
     const basisSelect = rowEl.querySelector('[data-field="stampBasis"]');
     const stampSelect = rowEl.querySelector('[data-field="stampCombo"]');
     const stampChips = rowEl.querySelector('[data-output="stampChips"]');
+    const stampSheets = rowEl.querySelector('[data-output="stampSheets"]');
     const stampTarget = rowEl.querySelector('[data-output="stampTarget"]');
     const method = row.payMethod || "stamp";
     const targetDuty = result.baseDuty;
@@ -1724,6 +1744,7 @@ const StampDutyApp = (() => {
       stampSelect.value = comboKey(eff);
       stampTarget.textContent = formatNum(String(target));
       renderChips(stampChips, eff);
+      renderSheets(stampSheets, eff.total);
     }
   }
 
