@@ -1478,7 +1478,7 @@ function soeLawVerdict(key, id) {
     return { yes: false, why: `กระทรวงการคลังมีทุนรวมอยู่ด้วย ${fmtPct(cap || 0)} ไม่เกินกว่าร้อยละห้าสิบ${noMof ? ' (ยังไม่มีโหนดที่ติ๊กเป็น "กระทรวงการคลัง")' : ''}` };
   }
   if (key === 'qual2518')
-    return { yes: false, why: `ทุนที่นับได้ ${fmtPct(cap || 0)} ไม่เกินกว่าร้อยละห้าสิบ (ตาม (2)) และไม่ถึงสองในสาม (ตาม (3))` };
+    return { yes: false, why: `ไม่เข้า (2) — ทุนของกระทรวง ทบวง กรม/รสก.(1) ไม่เกินกว่าร้อยละห้าสิบ; ไม่เข้า (3) — ทุนที่นับได้ ${fmtPct(cap || 0)} ไม่ถึงสองในสาม` };
   return { yes: false, why: `ทุนที่นับได้ ${fmtPct(cap || 0)} ไม่${E.thr}` };
 }
 function soeLawVerdictRows(id) {
