@@ -248,6 +248,16 @@
     <button class="lens-chip" data-lens="sec" onclick="setLens('sec')">SEC Act</button>
     <button class="lens-chip" data-lens="soe" onclick="setLens('soe')">รัฐวิสาหกิจ</button>
   </div>
+  <span style="font-size:12px;font-weight:700;color:var(--muted)">นิยาม รสก.:</span>
+  <select id="soe-law-sel" title="เลือกนิยามรัฐวิสาหกิจที่ใช้แสดงสถานะบน diagram และ warnings"
+    style="padding:4px 8px;border:1px solid var(--border);border-radius:8px;max-width:220px"
+    onchange="state.settings.soeLaw=this.value;refresh(false)"></select>
+  <div class="zoom-ctrl" style="display:flex;align-items:center;gap:4px">
+    <button class="btn sm" onclick="setZoom('out')" title="Zoom out">−</button>
+    <button class="btn sm" id="zoom-disp" onclick="setZoom('fit')" title="Fit diagram to window width">Fit</button>
+    <button class="btn sm" onclick="setZoom('in')" title="Zoom in">+</button>
+    <button class="btn sm" onclick="setZoom(1)" title="Actual size">1:1</button>
+  </div>
   <button class="btn sm" onclick="loadExample()">Load example</button>
   <div class="settings-row">
     <span>% decimals</span>
@@ -335,6 +345,18 @@ const COMPANY_TYPES = ['co_ltd', 'pcl'];                       // eligible for �
 const TH_JURISTIC   = ['co_ltd', 'pcl', 'partnership'];        // FBA per-tier test applies
 const JURISTIC      = ['co_ltd', 'pcl', 'partnership', 'foreign_co'];
 
+/* นิยาม "รัฐวิสาหกิจ" ตามกฎหมายแต่ละฉบับ (เลือกมุมมองได้; ชั้นบริษัทในเครือตามหลักเกณฑ์ ครม.
+   ยังคงคำนวณจากนิยามตามกฎหมายวิธีการงบประมาณเสมอ) */
+const SOE_LAWS = {
+  budget2561: { short: 'วิธีการงบประมาณ 2561', name: 'พ.ร.บ.วิธีการงบประมาณ พ.ศ. 2561 ม.4' },
+  budget2502: { short: 'วิธีการงบประมาณ 2502', name: 'พ.ร.บ.วิธีการงบประมาณ พ.ศ. 2502 (ยกเลิกโดยฉบับ พ.ศ. 2561 แต่ยังถูกอ้างอิง เช่น ในหลักเกณฑ์ ครม. เรื่องบริษัทในเครือ)' },
+  sepo2562:   { short: 'พัฒนาการกำกับดูแลฯ 2562', name: 'พ.ร.บ.การพัฒนาการกำกับดูแลและบริหารรัฐวิสาหกิจ พ.ศ. 2562' },
+  qual2518:   { short: 'คุณสมบัติมาตรฐานฯ 2518', name: 'พ.ร.บ.คุณสมบัติมาตรฐานสำหรับกรรมการและพนักงานรัฐวิสาหกิจ พ.ศ. 2518 (และที่แก้ไขเพิ่มเติม) ม.4' },
+  nesdc2561:  { short: 'สภาพัฒน์ 2561', name: 'พ.ร.บ.สภาพัฒนาการเศรษฐกิจและสังคมแห่งชาติ พ.ศ. 2561 (เดิม: พ.ร.บ.พัฒนาการเศรษฐกิจและสังคมแห่งชาติ พ.ศ. 2521 ม.4)' },
+  labour2543: { short: 'แรงงานรัฐวิสาหกิจสัมพันธ์ 2543', name: 'พ.ร.บ.แรงงานรัฐวิสาหกิจสัมพันธ์ พ.ศ. 2543 ม.6' },
+  debt2548:   { short: 'บริหารหนี้สาธารณะ 2548', name: 'พ.ร.บ.การบริหารหนี้สาธารณะ พ.ศ. 2548' },
+};
+
 /* ════════════════════════════ state ════════════════════════════ */
 let root = loadRoot();
 let state = activeScenario();
@@ -346,7 +368,7 @@ function blankScenario(name) {
     id: 's' + Date.now() + Math.floor(Math.random() * 1e4),
     name: name || 'Untitled structure',
     entities: [], edges: [],
-    settings: { pctDec: 2, moneyDec: 0, rounding: 'normal', lens: 'fba' },
+    settings: { pctDec: 2, moneyDec: 0, rounding: 'normal', lens: 'fba', soeLaw: 'budget2561', zoom: 'fit' },
     seq: 1, updated: Date.now()
   };
 }
@@ -354,7 +376,7 @@ function exampleScenario() {
   /* โยธิน ตัวอย่างที่ 4 (DTAC-style 49/51 cascade) + a state-sector strand */
   const s = blankScenario('Example — FBA cascade + SOE');
   const E = (id, name, type, extra) => Object.assign({ id, name, type, capital: null, listed: false,
-    pKind: 'หจก.', managingPartnerId: null, order: 0 }, extra || {});
+    pKind: 'หจก.', managingPartnerId: null, order: 0, isMof: false, isWelfare: false, isFinIns: false }, extra || {});
   s.entities = [
     E('n1', 'ต่างด้าว 1', 'person_fo'),
     E('n2', 'คนไทย', 'person_th'),
@@ -568,6 +590,129 @@ function analyze() {
     if (!added) break;
   }
 
+  /* ---- รัฐวิสาหกิจ under the other statutes (selectable view) ----
+     Base for the Cabinet-criteria affiliate layer stays the Budget Act (soe map above).
+     Thresholds follow each statute's exact words:
+     เกิน/เกินกว่าร้อยละห้าสิบ = >50 strictly; ถึงสองในสาม = ≥ 2/3. */
+  const soeLaws = {};
+  {
+    const isGov = x => typeOf(x) === 'gov';
+    const isMofGov = x => isGov(x) && !!(byId(x) || {}).isMof;
+    const isOrg = x => typeOf(x) === 'soe1';
+    const capFrom = (id, pred) => inEdges(id).reduce((a, e) => a + (pred(e.from) ? (+e.pct || 0) : 0), 0);
+    const TWO_THIRDS = 200 / 3;
+
+    /* พ.ร.บ.วิธีการงบประมาณ 2561 — mirror of the base cascade */
+    {
+      const lvl = {}, cap = {};
+      ids.forEach(id => {
+        lvl[id] = soe[id] ? String(soe[id]) : null;
+        cap[id] = soe[id] === 2 ? stateCapL2[id] : soe[id] === 3 ? stateCapL3[id]
+          : COMPANY_TYPES.includes(typeOf(id)) ? Math.max(stateCapL2[id] || 0, stateCapL3[id] != null ? stateCapL3[id] : 0) : null;
+      });
+      soeLaws.budget2561 = { lvl, cap };
+    }
+    /* พ.ร.บ.วิธีการงบประมาณ 2502 — (ก)-(จ), รวมห้างหุ้นส่วนนิติบุคคล, เกินกว่าร้อยละห้าสิบ */
+    {
+      const lvl = {}, cap = {};
+      ids.forEach(id => { lvl[id] = isOrg(id) ? 'ก' : null; });
+      ids.forEach(id => {
+        if (TH_JURISTIC.includes(typeOf(id)) && !lvl[id]) {
+          const c = capFrom(id, isGov); cap[id] = c;                       // (ข) ส่วนราชการ
+          if (c > 50 + EPS) lvl[id] = 'ข';
+        }
+      });
+      for (const L of ['ค', 'ง', 'จ']) {
+        const prev = new Set(ids.filter(x => lvl[x] != null));             // snapshot: นับเฉพาะ รสก. ระดับก่อนหน้า
+        ids.forEach(id => {
+          if (!TH_JURISTIC.includes(typeOf(id)) || lvl[id]) return;
+          const c = capFrom(id, x => isGov(x) || prev.has(x));             // ส่วนราชการ และ/หรือ รสก. ตามอนุมาตราก่อนหน้า
+          cap[id] = c;
+          if (c > 50 + EPS) lvl[id] = L;
+        });
+      }
+      soeLaws.budget2502 = { lvl, cap };
+    }
+    /* พ.ร.บ.การพัฒนาการกำกับดูแลและบริหารรัฐวิสาหกิจ 2562 — เฉพาะกระทรวงการคลัง, บจก./บมจ., ไม่มีชั้นต่อ */
+    {
+      const lvl = {}, cap = {};
+      ids.forEach(id => { lvl[id] = isOrg(id) ? '1' : null; });
+      ids.forEach(id => {
+        if (COMPANY_TYPES.includes(typeOf(id)) && !lvl[id]) {
+          const c = capFrom(id, isMofGov); cap[id] = c;
+          if (c > 50 + EPS) lvl[id] = '2';
+        }
+      });
+      soeLaws.sepo2562 = { lvl, cap };
+    }
+    /* พ.ร.บ.คุณสมบัติมาตรฐานฯ 2518 — (2) เกินกว่าร้อยละห้าสิบ; (3) ถึงสองในสาม; ไม่รวมองค์การเพื่อการสงเคราะห์/ส่งเสริมที่มิใช่ธุรกิจ */
+    {
+      const lvl = {}, cap = {};
+      ids.forEach(id => { lvl[id] = (isOrg(id) && !(byId(id) || {}).isWelfare) ? '1' : null; });
+      ids.forEach(id => {
+        if (TH_JURISTIC.includes(typeOf(id)) && !lvl[id]) {
+          const c = capFrom(id, x => isGov(x) || lvl[x] === '1'); cap[id] = c;
+          if (c > 50 + EPS) lvl[id] = '2';
+        }
+      });
+      ids.forEach(id => {
+        if (TH_JURISTIC.includes(typeOf(id)) && !lvl[id]) {
+          const c = capFrom(id, x => isGov(x) || lvl[x] === '1' || lvl[x] === '2'); cap[id] = c;
+          if (c >= TWO_THIRDS - EPS) lvl[id] = '3';
+        }
+      });
+      soeLaws.qual2518 = { lvl, cap };
+    }
+    /* พ.ร.บ.สภาพัฒน์ 2561 — กระทรวงการคลังหรือ รสก.(1), ไม่รวมสถาบันการเงิน/ประกันภัย */
+    {
+      const lvl = {}, cap = {};
+      ids.forEach(id => { lvl[id] = (isOrg(id) && !(byId(id) || {}).isFinIns) ? '1' : null; });
+      ids.forEach(id => {
+        if (COMPANY_TYPES.includes(typeOf(id)) && !lvl[id]) {
+          const c = capFrom(id, x => isMofGov(x) || lvl[x] === '1'); cap[id] = c;
+          if (c > 50 + EPS && !(byId(id) || {}).isFinIns) lvl[id] = '2';
+        }
+      });
+      soeLaws.nesdc2561 = { lvl, cap };
+    }
+    /* พ.ร.บ.แรงงานรัฐวิสาหกิจสัมพันธ์ 2543 ม.6 — กระทรวงฯ หรือ รสก.(1), บริษัท/ห้างหุ้นส่วนนิติบุคคล, ชั้นเดียว */
+    {
+      const lvl = {}, cap = {};
+      ids.forEach(id => { lvl[id] = isOrg(id) ? '1' : null; });
+      ids.forEach(id => {
+        if (TH_JURISTIC.includes(typeOf(id)) && !lvl[id]) {
+          const c = capFrom(id, x => isGov(x) || lvl[x] === '1'); cap[id] = c;
+          if (c > 50 + EPS) lvl[id] = '2';
+        }
+      });
+      soeLaws.labour2543 = { lvl, cap };
+    }
+    /* พ.ร.บ.การบริหารหนี้สาธารณะ 2548 — (ค) คำนวณเฉพาะทุนตามสัดส่วนที่เป็นของหน่วยงานของรัฐ */
+    {
+      const lvl = {}, cap = {}, prop = {};
+      ids.forEach(id => { lvl[id] = isOrg(id) ? 'ก' : null; });
+      ids.forEach(id => {
+        if (COMPANY_TYPES.includes(typeOf(id)) && !lvl[id]) {
+          const c = capFrom(id, x => isGov(x) || lvl[x] === 'ก'); prop[id] = c; cap[id] = c;
+          if (c > 50 + EPS) lvl[id] = 'ข';
+        }
+      });
+      ids.forEach(id => {
+        if (!COMPANY_TYPES.includes(typeOf(id)) || lvl[id]) return;
+        let c = 0;
+        for (const e of inEdges(id)) {
+          const h = e.from, p = +e.pct || 0;
+          if (isGov(h) || lvl[h] === 'ก') c += p;
+          else if (lvl[h] === 'ข') c += p * (prop[h] || 0) / 100;   // เฉพาะทุนตามสัดส่วนที่เป็นของหน่วยงานของรัฐ
+        }
+        cap[id] = c;
+        if (c > 50 + EPS) lvl[id] = 'ค';
+      });
+      soeLaws.debt2548 = { lvl, cap };
+    }
+  }
+  const soeActiveKey = SOE_LAWS[state.settings.soeLaw] ? state.settings.soeLaw : 'budget2561';
+
   /* ---- SEC Act: control sets for ALL entities (voting-based + fact flags, chains via fixed point) ---- */
   const ctrlSet = {};   // id -> Set of juristic entities it controls (directly or through the chain)
   const ctrlWhy = {};   // 'S|O' -> reason text pieces
@@ -677,12 +822,14 @@ function analyze() {
       });
     });
   });
-  // SOE notices
+  // SOE notices — under the ACTIVE law's definition
   ids.forEach(id => {
-    if (soe[id] === 2 || soe[id] === 3) warns.push({
+    const AL = soeLaws[soeActiveKey];
+    if (AL.lvl[id] && typeOf(id) !== 'soe1') warns.push({
       sev: 'info', icon: '🏛️',
-      html: `<b>${esc(nameOf(id))}</b> is a <b>รัฐวิสาหกิจตาม (${soe[id]})</b> — state combined capital ${fmtPct(soe[id] === 2 ? stateCapL2[id] : stateCapL3[id])} &gt; 50%. Budget-law regime applies. Its own subsidiaries ${soe[id] === 3 ? 'do <b>not</b> become SOEs (level (3) does not propagate)' : 'may become รัฐวิสาหกิจตาม (3)'}.`,
-      cite: 'พ.ร.บ.วิธีการงบประมาณ 2561 ม.4'
+      html: `<b>${esc(nameOf(id))}</b> is a <b>รัฐวิสาหกิจตาม (${AL.lvl[id]})</b> under ${esc(SOE_LAWS[soeActiveKey].short)} — countable state capital ${fmtPct(AL.cap[id] || 0)}.` +
+        (soeActiveKey === 'budget2561' ? ` Its own subsidiaries ${AL.lvl[id] === '3' ? 'do <b>not</b> become SOEs (level (3) does not propagate)' : 'may become รัฐวิสาหกิจตาม (3)'}.` : ''),
+      cite: SOE_LAWS[soeActiveKey].name
     });
     if (affiliate[id]) warns.push({
       sev: 'info', icon: '🧩',
@@ -703,6 +850,7 @@ function analyze() {
 
   A = { capIn, overAlloc, cyc, foreign, fbaForeignCap, fbaForeignVote, cumFo,
         soe, stateCapL2, stateCapL3, soeParent, affiliate, affilCap, affilBy, affilTier, affilChainBy,
+        soeLaws, soeActiveKey,
         listed, ctrlSet, ctrlWhy, aggVoteTo, relControl, relParent, relAssociate, sec, warns };
 }
 
@@ -771,17 +919,33 @@ function computeLayout() {
     r.forEach((id, i) => { posIdx[id] = i; });
   }
 
-  const maxCols = Object.values(rows).reduce((m, r) => Math.max(m, r.length), 0) || 1;
+  /* wrap wide tiers into balanced sub-rows so 20+ siblings don't force endless horizontal scrolling */
+  const WRAP_COLS = 8, SUB_GAP = 30;
   const spacing = NODE_W + COL_GAP;
-  const width = Math.max(maxCols * spacing - COL_GAP + PAD * 2, 480);
-  const height = (maxL + 1) * (NODE_H + ROW_GAP) - ROW_GAP + PAD * 2 + 20;
-  const pos = {};
+  const tierChunks = {};
+  let maxCols = 1;
   for (let L = 0; L <= maxL; L++) {
     const r = rows[L] || [];
-    const rowW = r.length * spacing - COL_GAP;
-    const startX = (width - rowW) / 2;
-    r.forEach((id, i) => { pos[id] = { x: startX + i * spacing, y: PAD + L * (NODE_H + ROW_GAP), layer: L }; });
+    const nSub = Math.max(1, Math.ceil(r.length / WRAP_COLS));
+    const perRow = Math.ceil(r.length / nSub);
+    const chunks = [];
+    for (let i = 0; i < r.length; i += perRow) chunks.push(r.slice(i, i + perRow));
+    tierChunks[L] = chunks.length ? chunks : [[]];
+    maxCols = Math.max(maxCols, ...tierChunks[L].map(c => c.length));
   }
+  const width = Math.max(maxCols * spacing - COL_GAP + PAD * 2, 480);
+  const pos = {};
+  let yCursor = PAD;
+  for (let L = 0; L <= maxL; L++) {
+    const chunks = tierChunks[L];
+    chunks.forEach((chunk, si) => {
+      const rowW = chunk.length * spacing - COL_GAP;
+      const startX = (width - rowW) / 2;
+      chunk.forEach((id, i) => { pos[id] = { x: startX + i * spacing, y: yCursor + si * (NODE_H + SUB_GAP), layer: L }; });
+    });
+    yCursor += chunks.length * NODE_H + (chunks.length - 1) * SUB_GAP + ROW_GAP;
+  }
+  const height = yCursor - ROW_GAP + PAD + 20;
   return { pos, width, height, rows, layer };
 }
 
@@ -799,7 +963,7 @@ function lensClass(id) {
     return '';
   }
   if (lens === 'soe') {
-    if (A.soe[id]) return 't-soe';
+    if (A.soeLaws[A.soeActiveKey].lvl[id]) return 't-soe';
     if (A.affilTier[id]) return 't-affil';
     if (ent.type === 'gov') return 't-soe';
     return '';
@@ -822,7 +986,8 @@ function nodeBadges(id) {
     if (TYPES[ent.type].person) out.push(A.foreign[id] ? { t: 'ต่างชาติ', c: 'var(--red)' } : { t: 'ไทย', c: 'var(--blue)' });
     if (!A.foreign[id] && A.cumFo[id] != null && A.cumFo[id] > 50 + EPS) out.push({ t: 'cum ' + fmtPct(A.cumFo[id]), c: 'var(--amber)' });
   } else if (lens === 'soe') {
-    if (A.soe[id]) out.push({ t: 'รสก.(' + A.soe[id] + ')', c: 'var(--green)' });
+    const alvl = A.soeLaws[A.soeActiveKey].lvl[id];
+    if (alvl) out.push({ t: 'รสก.(' + alvl + ')', c: 'var(--green)' });
     if (A.soeParent[id]) out.push({ t: 'รสก.แม่', c: 'var(--green)' });
     if (A.affiliate[id]) out.push({ t: 'บ.ในเครือ ' + fmtPct(A.affilCap[id]), c: 'var(--green)' });
     else if (A.affilTier[id] > 1) out.push({ t: 'บ.ในเครือ ชั้น ' + A.affilTier[id], c: 'var(--amber)' });
@@ -850,7 +1015,12 @@ function renderDiagram() {
   }
   empty.style.display = 'none';
   const { pos, width, height } = computeLayout();
-  svg.setAttribute('width', width); svg.setAttribute('height', height);
+  const wrap = document.getElementById('diagram-wrap');
+  const z = state.settings.zoom;
+  curScale = (z === 'fit' || z == null)
+    ? Math.min(1, Math.max(0.25, ((wrap && wrap.clientWidth ? wrap.clientWidth : width) - 4) / width))
+    : z;
+  svg.setAttribute('width', Math.round(width * curScale)); svg.setAttribute('height', Math.round(height * curScale));
   svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
 
   /* spread edge anchors across node top/bottom so labels & lines don't pile up */
@@ -930,7 +1100,7 @@ function renderDiagram() {
 function clip(s, n) { s = String(s); return s.length > n ? s.slice(0, n - 1) + '…' : s; }
 
 /* drag to reorder within a tier */
-let dragCtx = null, dragMoved = false;
+let dragCtx = null, dragMoved = false, curScale = 1;
 function beginDrag(ev, id) {
   ev.preventDefault();
   dragMoved = false;
@@ -949,7 +1119,7 @@ function beginDrag(ev, id) {
     if (dragMoved && dragCtx) {
       const row = dragCtx.rows[dragCtx.layer] || [];
       const dx = e.clientX - dragCtx.startX;
-      const shift = Math.round(dx / (NODE_W + COL_GAP));
+      const shift = Math.round(dx / ((NODE_W + COL_GAP) * curScale));
       if (shift !== 0) {
         const cur = row.indexOf(id);
         const tgt = Math.max(0, Math.min(row.length - 1, cur + shift));
@@ -987,7 +1157,7 @@ function addEntity() {
   const name = document.getElementById('new-name').value.trim();
   const type = document.getElementById('new-type').value;
   if (!name) { toast('Give the entity a name first'); return; }
-  const ent = { id: 'n' + (state.seq++), name, type, capital: null, listed: false, pKind: 'หจก.', managingPartnerId: null, order: 0 };
+  const ent = { id: 'n' + (state.seq++), name, type, capital: null, listed: false, pKind: 'หจก.', managingPartnerId: null, order: 0, isMof: false, isWelfare: false, isFinIns: false };
   state.entities.push(ent);
   document.getElementById('new-name').value = '';
   selId = ent.id;
@@ -1036,6 +1206,20 @@ function renderInspector() {
   if (ent.type === 'pcl') {
     html += `<div class="fld"><label class="chk"><input type="checkbox" ${ent.listed ? 'checked' : ''}
       onchange="byId('${ent.id}').listed=this.checked;refresh()"> Listed on SET (หลักทรัพย์จดทะเบียน) — activates รายใหญ่/ม.247 analysis</label></div>`;
+  }
+  if (ent.type === 'gov') {
+    html += `<div class="fld"><label class="chk"><input type="checkbox" ${ent.isMof ? 'checked' : ''}
+      onchange="byId('${ent.id}').isMof=this.checked;refresh()"> กระทรวงการคลัง — ทุนของโหนดนี้นับตามนิยาม พ.ร.บ.พัฒนาการกำกับดูแลฯ 2562 / สภาพัฒน์ 2561</label></div>`;
+  }
+  if (ent.type === 'soe1') {
+    html += `<div class="fld"><label class="chk"><input type="checkbox" ${ent.isWelfare ? 'checked' : ''}
+      onchange="byId('${ent.id}').isWelfare=this.checked;refresh()"> มีวัตถุประสงค์เฉพาะเพื่อการสงเคราะห์/ส่งเสริมที่มิใช่ธุรกิจ — ไม่เป็น รสก.(1) ตาม พ.ร.บ.คุณสมบัติมาตรฐานฯ 2518</label></div>`;
+    html += `<div class="fld"><label class="chk"><input type="checkbox" ${ent.isFinIns ? 'checked' : ''}
+      onchange="byId('${ent.id}').isFinIns=this.checked;refresh()"> ประกอบธุรกิจสถาบันการเงิน/ประกันภัย — ไม่เป็น รสก. ตาม พ.ร.บ.สภาพัฒน์ 2561</label></div>`;
+  }
+  if (COMPANY_TYPES.includes(ent.type)) {
+    html += `<div class="fld"><label class="chk"><input type="checkbox" ${ent.isFinIns ? 'checked' : ''}
+      onchange="byId('${ent.id}').isFinIns=this.checked;refresh()"> ประกอบธุรกิจสถาบันการเงิน/ประกันภัย — ไม่เป็น รสก. ตาม พ.ร.บ.สภาพัฒน์ 2561</label></div>`;
   }
   if (ent.type === 'partnership') {
     const holders = inEdges(ent.id).map(e => e.from);
@@ -1146,24 +1330,30 @@ function soeCardHTML(ent) {
   const id = ent.id, t = ent.type;
   let pill = '<span class="status-pill pill-gray">—</span>', body = '', rels = '';
 
-  /* ── status + headline derivation ── */
-  if (t === 'gov') { pill = '<span class="status-pill pill-green">ส่วนราชการ</span>'; body = 'Government agency — its capital counts toward the &gt;50% state-capital tests, and toward รัฐวิสาหกิจแม่ (&gt;50% gov capital).'; }
-  else if (t === 'soe1') { pill = '<span class="status-pill pill-green">รัฐวิสาหกิจ (1)</span>'; body = 'Statutory SOE — รัฐวิสาหกิจตาม ม.4(1); a รัฐวิสาหกิจแม่ under the Cabinet criteria.'; }
-  else if (COMPANY_TYPES.includes(t)) {
-    body = soeCompanyDerivation(id);
+  /* ── status + headline derivation (active law) ── */
+  const alvl = A.soeLaws[A.soeActiveKey].lvl[id];
+  if (t === 'gov') {
+    pill = `<span class="status-pill pill-green">${ent.isMof ? 'กระทรวงการคลัง' : 'ส่วนราชการ'}</span>`;
+    body = 'ส่วนราชการ/หน่วยงานของรัฐ — ทุนของโหนดนี้นับเข้าเกณฑ์ทุนรัฐของทุกนิยาม และเข้าเกณฑ์ รัฐวิสาหกิจแม่ (ทุนส่วนราชการ &gt; 50%).' +
+      (ent.isMof ? '' : ' <span class="cite">หากโหนดนี้คือกระทรวงการคลัง ให้ติ๊ก "กระทรวงการคลัง" ใน properties เพื่อให้นับตามนิยาม พ.ร.บ.พัฒนาการกำกับดูแลฯ 2562 / สภาพัฒน์ 2561</span>');
+  } else if (t === 'soe1') {
+    pill = alvl ? `<span class="status-pill pill-green">รัฐวิสาหกิจ (${alvl})</span>` : '<span class="status-pill pill-gray">ไม่เข้านิยามที่เลือก</span>';
+    body = 'องค์การของรัฐบาล/กิจการของรัฐซึ่งมีกฎหมายจัดตั้งขึ้น/หน่วยงานธุรกิจที่รัฐบาลเป็นเจ้าของ — และเป็น รัฐวิสาหกิจแม่ ตามหลักเกณฑ์ ครม.' +
+      `<div class="cite" style="margin-top:4px">แนว กก.กฤษฎีกา: "องค์การของรัฐบาล" หมายถึงเฉพาะองค์การที่มีพระราชกฤษฎีกาจัดตั้งตาม ม.3 แห่ง พ.ร.บ.ว่าด้วยการจัดตั้งองค์การของรัฐบาล พ.ศ. 2496; "กิจการของรัฐซึ่งมีกฎหมายจัดตั้งขึ้น" ต้องเป็นกิจการที่ตั้งขึ้นโดยกฎหมายพิเศษ หรือทุนของกิจการประกอบด้วยเงินงบประมาณและทรัพย์สินของแผ่นดิน; "หน่วยงานธุรกิจที่รัฐบาลเป็นเจ้าของ" คือหน่วยงานรูปแบบอื่นใดที่ประกอบธุรกิจโดยรัฐบาลเป็นเจ้าของ</div>`;
+  } else if (TH_JURISTIC.includes(t)) {
+    body = soeActiveDerivation(id);
     const pills = [];
-    if (A.soe[id]) pills.push(`<span class="status-pill pill-green">รัฐวิสาหกิจ (${A.soe[id]})</span>`);
+    if (alvl) pills.push(`<span class="status-pill pill-green">รัฐวิสาหกิจ (${alvl})</span>`);
     if (A.affiliate[id]) pills.push('<span class="status-pill pill-green">บ.ในเครือ</span>');
     else if (A.affilTier[id] > 1) pills.push(`<span class="status-pill pill-amber">บ.ในเครือ ชั้น ${A.affilTier[id]}</span>`);
     if (pills.length) pill = pills.join(' ');
     if (A.soeParent[id]) body += `<div class="cite">Also a รัฐวิสาหกิจแม่ (ส่วนราชการ capital &gt; 50%).</div>`;
-  } else if (t === 'partnership') {
-    body = 'Partnerships cannot be รัฐวิสาหกิจ under ม.4(2)/(3) (บจก./บมจ. only), but CAN be a บริษัทในเครือของรัฐวิสาหกิจ under the Cabinet criteria.';
-    if (A.affiliate[id]) pill = '<span class="status-pill pill-green">บ.ในเครือ</span>';
-    else if (A.affilTier[id] > 1) pill = `<span class="status-pill pill-amber">บ.ในเครือ ชั้น ${A.affilTier[id]}</span>`;
   } else {
     body = 'Not within the state-enterprise definitions (persons and foreign entities cannot be รัฐวิสาหกิจ or บริษัทในเครือ).';
   }
+
+  /* ── per-law verdict table (explicit ✓/✗ under every statute) ── */
+  if (TH_JURISTIC.includes(t) || t === 'soe1') rels += soeLawVerdictRows(id);
 
   /* ── Section A: state-sector relations — for EVERY Thai juristic, incl. companies that are SOEs themselves ── */
   if (TH_JURISTIC.includes(t)) {
@@ -1217,7 +1407,7 @@ function soeCardHTML(ent) {
                               : 'ไม่มีบริษัทในเครือชั้นใดถือทุนรวมเกิน 25%');
       }
     }
-    rels += `<div class="cite" style="margin-top:4px">นิยามหลัก = ทุนทางตรงของรัฐวิสาหกิจ > 25% ตามหลักเกณฑ์ที่อ้าง; ชั้นถัดไป (ถือผ่านบริษัทในเครือ) แสดงเป็น extended view ประกอบเท่านั้น</div></div>`;
+    rels += `<div class="cite" style="margin-top:4px">นิยามหลัก = ทุนทางตรงของรัฐวิสาหกิจ > 25% ตามหลักเกณฑ์ที่อ้าง; ชั้นถัดไป (ถือผ่านบริษัทในเครือ) แสดงเป็น extended view ประกอบเท่านั้น · ความสัมพันธ์ state sector และชั้นบริษัทในเครือคำนวณจากสถานะ รสก. ตามกฎหมายวิธีการงบประมาณ (ฐานที่หลักเกณฑ์ ครม. อ้างถึง) เสมอ ไม่เปลี่ยนตามนิยามที่เลือกดู</div></div>`;
   }
 
   /* ── Section B: companies this entity holds — for gov, soe(1), SOE-classified companies, and affiliates (chain view) ── */
@@ -1252,20 +1442,65 @@ function soeCardHTML(ent) {
     }
   }
 
-  return `<div class="law-card"><div class="law-head">รัฐวิสาหกิจ — พ.ร.บ.วิธีการงบประมาณ 2561 <span class="pills">${pill}</span></div>
-    <div class="law-body">${body}${rels}<div class="cite" style="margin-top:4px">ม.4 "รัฐวิสาหกิจ" (1)–(3); มติ ครม. หลักเกณฑ์บริษัทในเครือ (&gt;25%)</div></div></div>`;
+  return `<div class="law-card"><div class="law-head">รัฐวิสาหกิจ — ${esc(SOE_LAWS[A.soeActiveKey].short)} <span class="pills">${pill}</span></div>
+    <div class="law-body">${body}${rels}<div class="cite" style="margin-top:4px">${esc(SOE_LAWS[A.soeActiveKey].name)} · มติ ครม. หลักเกณฑ์บริษัทในเครือ (&gt;25% ทุน รสก. ทางตรง)</div></div></div>`;
 }
-function soeCompanyDerivation(id) {
-  const lvl = A.soe[id];
-  if (lvl) {
-    const cap = lvl === 2 ? A.stateCapL2[id] : A.stateCapL3[id];
-    const srcs = inEdges(id).filter(e => typeOf(e.from) === 'gov' || A.soe[e.from] === 1 || (lvl === 3 && A.soe[e.from] === 2))
-      .map(e => `<li>${esc(nameOf(e.from))} — ${fmtPct(e.pct)}</li>`).join('');
-    return `State capital ${fmtPct(cap)} &gt; 50% ⇒ รัฐวิสาหกิจตาม ม.4(${lvl}).<ul>${srcs}</ul>` +
-      (lvl === 3 ? '<div class="cite">Level (3) does not propagate — its own majority-held companies are NOT รัฐวิสาหกิจ.</div>' : '');
+/* ── per-law verdicts, statute-exact wording ── */
+const SOE_ELIG = {   // which juristic forms each law's shareholding limbs cover
+  budget2561: { types: COMPANY_TYPES, word: 'บริษัทจำกัดหรือบริษัทมหาชนจำกัด', thr: 'เกินร้อยละห้าสิบ' },
+  budget2502: { types: TH_JURISTIC,   word: 'บริษัทหรือห้างหุ้นส่วนนิติบุคคล', thr: 'เกินกว่าร้อยละห้าสิบ' },
+  sepo2562:   { types: COMPANY_TYPES, word: 'บริษัทจำกัดหรือบริษัทมหาชนจำกัด', thr: 'เกินกว่าร้อยละห้าสิบ' },
+  qual2518:   { types: TH_JURISTIC,   word: 'บริษัทจำกัดหรือห้างหุ้นส่วนนิติบุคคล', thr: 'เกินกว่าร้อยละห้าสิบ' },
+  nesdc2561:  { types: COMPANY_TYPES, word: 'บริษัทจำกัดหรือบริษัทมหาชนจำกัด', thr: 'เกินร้อยละห้าสิบ' },
+  labour2543: { types: TH_JURISTIC,   word: 'บริษัทหรือห้างหุ้นส่วนนิติบุคคล', thr: 'เกินร้อยละห้าสิบ' },
+  debt2548:   { types: COMPANY_TYPES, word: 'บริษัทจำกัดหรือบริษัทมหาชนจำกัด', thr: 'เกินร้อยละห้าสิบ' },
+};
+function soeLawVerdict(key, id) {
+  const R = A.soeLaws[key], lvl = R.lvl[id], cap = R.cap[id], ent = byId(id), t = ent.type, E = SOE_ELIG[key];
+  if (t === 'soe1') {
+    if (lvl) return { yes: true, why: `องค์การของรัฐบาล/กิจการของรัฐซึ่งมีกฎหมายจัดตั้งขึ้น/หน่วยงานธุรกิจที่รัฐบาลเป็นเจ้าของ — (${lvl})` };
+    if (key === 'qual2518' && ent.isWelfare) return { yes: false, why: 'ไม่รวมถึงองค์การหรือกิจการที่มีวัตถุประสงค์เฉพาะเพื่อการสงเคราะห์หรือส่งเสริมการใดๆ ที่มิใช่ธุรกิจ' };
+    if (key === 'nesdc2561' && ent.isFinIns) return { yes: false, why: 'ไม่รวมถึงหน่วยงานที่ประกอบธุรกิจสถาบันการเงินหรือธุรกิจประกันภัย' };
+    return { yes: false, why: '—' };
   }
-  const c2 = A.stateCapL2[id] || 0, c3 = A.stateCapL3[id];
-  return `State capital: ${fmtPct(c2)} from ส่วนราชการ/รสก.(1)` + (c3 != null ? `; ${fmtPct(c3)} including รสก.(2)` : '') + ` — not over 50%, so not a รัฐวิสาหกิจ.`;
+  if (!TH_JURISTIC.includes(t)) return { yes: false, why: 'ไม่อยู่ในนิยาม' };
+  if (!E.types.includes(t)) return { yes: false, why: `นิยามครอบคลุมเฉพาะ${E.word}` };
+  if (lvl) {
+    let why = `ตาม (${lvl}) — ทุนที่นับได้ ${fmtPct(cap || 0)} ${key === 'qual2518' && lvl === '3' ? 'ถึงสองในสาม (≥ 66.67%)' : E.thr}`;
+    if (key === 'debt2548' && lvl === 'ค') why += ' โดยคำนวณเฉพาะทุนตามสัดส่วนที่เป็นของหน่วยงานของรัฐ';
+    if (key === 'sepo2562') why = `ตาม (2) — กระทรวงการคลังมีทุนรวมอยู่ด้วย ${fmtPct(cap || 0)} เกินกว่าร้อยละห้าสิบ`;
+    return { yes: true, why };
+  }
+  if (key === 'nesdc2561' && ent.isFinIns && (cap || 0) > 50 + EPS)
+    return { yes: false, why: `ทุนที่นับได้ ${fmtPct(cap)} แต่ไม่รวมถึงหน่วยงานที่ประกอบธุรกิจสถาบันการเงินหรือธุรกิจประกันภัย` };
+  if (key === 'sepo2562') {
+    const noMof = !state.entities.some(x => x.type === 'gov' && x.isMof);
+    return { yes: false, why: `กระทรวงการคลังมีทุนรวมอยู่ด้วย ${fmtPct(cap || 0)} ไม่เกินกว่าร้อยละห้าสิบ${noMof ? ' (ยังไม่มีโหนดที่ติ๊กเป็น "กระทรวงการคลัง")' : ''}` };
+  }
+  if (key === 'qual2518')
+    return { yes: false, why: `ทุนที่นับได้ ${fmtPct(cap || 0)} ไม่เกินกว่าร้อยละห้าสิบ (ตาม (2)) และไม่ถึงสองในสาม (ตาม (3))` };
+  return { yes: false, why: `ทุนที่นับได้ ${fmtPct(cap || 0)} ไม่${E.thr}` };
+}
+function soeLawVerdictRows(id) {
+  let out = `<div class="rel-group"><div class="sect-title" style="margin-top:8px">สถานะตามนิยาม "รัฐวิสาหกิจ" แต่ละฉบับ</div>`;
+  for (const key of Object.keys(SOE_LAWS)) {
+    const v = soeLawVerdict(key, id);
+    out += relRow(v.yes, `${esc(SOE_LAWS[key].short)}${key === A.soeActiveKey ? ' ★' : ''} — เป็นรัฐวิสาหกิจ?`, v.why);
+  }
+  out += `<div class="cite" style="margin-top:4px">★ = นิยามที่เลือกแสดงบน diagram/warnings · หน่วยงานเดียวกันอาจเป็นรัฐวิสาหกิจตามกฎหมายฉบับหนึ่งแต่ไม่เป็นตามอีกฉบับ เช่น ปตท.สผ. (รัฐถือ &gt;50% แต่ไม่ถึงสองในสาม) เป็น รสก. ตามกฎหมายวิธีการงบประมาณ แต่ไม่เป็น รสก. ตาม พ.ร.บ.คุณสมบัติมาตรฐานฯ 2518 · หมายเหตุ: ตาม 2518 ถ้อยคำคือ "บริษัทจำกัดหรือห้างหุ้นส่วนนิติบุคคล" — เครื่องมือนี้นับ บมจ. ด้วยตามแนวปฏิบัติ (กรณี ปตท.สผ.)</div></div>`;
+  return out;
+}
+function soeActiveDerivation(id) {
+  const key = A.soeActiveKey, R = A.soeLaws[key], lvl = R.lvl[id];
+  const holderTag = h => {
+    if (typeOf(h) === 'gov') return byId(h).isMof ? 'กระทรวงการคลัง' : 'ส่วนราชการ/หน่วยงานของรัฐ';
+    return R.lvl[h] ? `รสก.(${R.lvl[h]})` : '—';
+  };
+  const srcs = inEdges(id).map(e => `<li>${esc(nameOf(e.from))} — ${fmtPct(e.pct)} <span class="cite">${holderTag(e.from)}</span></li>`).join('');
+  const v = soeLawVerdict(key, id);
+  return `<b>${esc(SOE_LAWS[key].short)}:</b> ${v.why}${srcs ? `<ul>${srcs}</ul>` : ''}` +
+    (key === 'budget2561' && lvl === '3' ? '<div class="cite">ระดับ (3) ไม่ทอดต่อ — บริษัทที่ รสก.(3) ถือ &gt;50% ไม่เป็นรัฐวิสาหกิจ</div>' : '') +
+    (key === 'budget2502' && lvl === 'จ' ? '<div class="cite">ระดับ (จ) เป็นชั้นสุดท้ายตามนิยาม</div>' : '');
 }
 
 function secCardHTML(ent) {
@@ -1444,6 +1679,20 @@ function renderScenarioBar() {
   document.getElementById('set-pctdec').value = String(state.settings.pctDec);
   document.getElementById('set-moneydec').value = String(state.settings.moneyDec);
   document.getElementById('set-round').value = state.settings.rounding;
+  const ls = document.getElementById('soe-law-sel');
+  if (ls) {
+    if (!ls.options.length) ls.innerHTML = Object.entries(SOE_LAWS).map(([k, m]) => `<option value="${k}">${esc(m.short)}</option>`).join('');
+    ls.value = SOE_LAWS[state.settings.soeLaw] ? state.settings.soeLaw : 'budget2561';
+  }
+  const zd = document.getElementById('zoom-disp');
+  if (zd) zd.textContent = state.settings.zoom === 'fit' || state.settings.zoom == null ? 'Fit' : Math.round(state.settings.zoom * 100) + '%';
+}
+function setZoom(z) {
+  const cur = state.settings.zoom === 'fit' || state.settings.zoom == null ? curScale : state.settings.zoom;
+  if (z === 'in') state.settings.zoom = Math.min(2, Math.round((cur + 0.15) * 100) / 100);
+  else if (z === 'out') state.settings.zoom = Math.max(0.25, Math.round((cur - 0.15) * 100) / 100);
+  else state.settings.zoom = z; // 'fit' or a number
+  refresh(false);
 }
 function switchScenario(id) {
   root.activeId = id; state = activeScenario(); selId = null; lastSig = null; refresh();
@@ -1493,7 +1742,7 @@ function importJSON(input) {
       if (!Array.isArray(s.entities) || !Array.isArray(s.edges)) throw new Error('bad shape');
       s.id = 's' + Date.now() + Math.floor(Math.random() * 1e4);
       s.name = (s.name || file.name.replace(/\.structviz\.json$|\.json$/i, '')) + ' (imported)';
-      s.settings = Object.assign({ pctDec: 2, moneyDec: 0, rounding: 'normal', lens: 'fba' }, s.settings || {});
+      s.settings = Object.assign({ pctDec: 2, moneyDec: 0, rounding: 'normal', lens: 'fba', soeLaw: 'budget2561', zoom: 'fit' }, s.settings || {});
       s.seq = s.seq || (s.entities.length + s.edges.length + 1);
       root.scenarios.push(s); root.activeId = s.id; state = activeScenario(); selId = null; lastSig = null; refresh();
       toast('Imported “' + state.name + '”');
