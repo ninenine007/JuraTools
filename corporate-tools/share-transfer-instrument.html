@@ -127,6 +127,7 @@ input.is-ph{background:#fefce8;border-color:#fcd34d;font-weight:600;color:#a1620
   border:1px solid var(--border);background:#fff;color:#94a3b8;line-height:1;transition:.12s;}
 .mini:hover{background:var(--hover-gray);color:var(--text);border-color:#cbd5e1;}
 .mini.on{background:#fef9c3;border-color:#fcd34d;color:#a16207;}
+.casebar{flex:0 0 auto;display:inline-flex;gap:3px;}
 .mini.up:hover{color:var(--primary);border-color:#bfdbfe;background:#eff6ff;}
 
 /* auto / override */
@@ -342,7 +343,7 @@ input.is-ph{background:#fefce8;border-color:#fcd34d;font-weight:600;color:#a1620
           <div class="grid2">
             <div class="field"><label>Name (Thai)</label><input type="text" id="pfNameTh" placeholder="นายกรรวี จันทร์โฉม"></div>
             <div class="field"><label>Name (English)</label>
-              <div class="pair-row"><input type="text" id="pfNameEn" placeholder="MR. KORNRAWEE CHANCHOM"><button class="mini up" id="pfUpper" title="Make UPPERCASE">AA</button></div>
+              <div class="pair-row"><input type="text" id="pfNameEn" placeholder="MR. KORNRAWEE CHANCHOM"><span class="casebar" id="pfCase"></span></div>
             </div>
           </div>
           <div class="field"><label>Address (Thai) <span class="pair-head opt" style="display:inline">— optional</span></label><input type="text" id="pfAddrTh" placeholder="เลขที่ 9 ซอยพระราม 6 ซอย 30 ..."></div>
@@ -558,7 +559,22 @@ input.is-ph{background:#fefce8;border-color:#fcd34d;font-weight:600;color:#a1620
              already in that register, it opens the cancel-and-reissue step instead. Nothing is changed there until you confirm.</p>
           <div class="btn-row">
             <button class="btn btn-ghost" id="btnToCerts">↗ ออกใบหุ้นรองรับการโอนนี้</button>
+            <button class="btn btn-ghost" id="btnToRegister">↗ ลงสมุดทะเบียนผู้ถือหุ้น</button>
           </div>
+        </div>
+
+        <div class="act">
+          <div class="act-hd"><span class="ico">🔗</span> ส่งต่อข้อมูล · Company &amp; people</div>
+          <p class="sect-note">The company on screen and the whole person directory, passed to the other corporate tools through
+             one shared slot in this browser — and taken back the same way. People already known by the same name are not
+             duplicated. Nothing leaves this device.</p>
+          <div class="btn-row">
+            <button class="btn btn-ghost btn-sm" id="btnShareOut">↑ ส่งออก</button>
+            <button class="btn btn-ghost btn-sm" id="btnShareIn">↓ รับเข้า</button>
+            <button class="btn btn-ghost btn-sm" id="btnGoReg">↗ สมุดทะเบียน</button>
+            <button class="btn btn-ghost btn-sm" id="btnGoCert2">↗ ใบหุ้น</button>
+          </div>
+          <p class="sect-note" id="shareState" style="margin-top:8px"></p>
         </div>
 
         <div class="act">
@@ -630,6 +646,34 @@ input.is-ph{background:#fefce8;border-color:#fcd34d;font-weight:600;color:#a1620
 <div id="toast"></div>
 
 <script>
+/* ── Casing an English line ───────────────────────────────────────
+   Three ways, not one. Title case lowercases first so a line typed in
+   capitals can come back from it, and counts only a letter after a
+   non-letter as a word start — CO., LTD. becomes Co., Ltd. and Int'l keeps
+   its small l. The buttons write into the field and fire the input event, so
+   whatever binds that field stores the result as if it had been typed. */
+const CASE_FN = {
+  upper: s => s.toUpperCase(),
+  lower: s => s.toLowerCase(),
+  title: s => s.toLowerCase().replace(/(^|[^A-Za-z'\u2019])([a-z])/g, (m, a, b) => a + b.toUpperCase())
+};
+const CASE_BTN = [['upper','AA','ตัวพิมพ์ใหญ่ทั้งบรรทัด · UPPERCASE'],
+                  ['lower','aa','ตัวพิมพ์เล็กทั้งบรรทัด · lowercase'],
+                  ['title','Aa','ขึ้นต้นทุกคำด้วยตัวพิมพ์ใหญ่ · Title Case']];
+const caseBtns = () => CASE_BTN.map(([k, t, ti]) =>
+  `<button type="button" class="mini up" data-case="${k}" title="${ti}">${t}</button>`).join('');
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-case]');
+  if(!b) return;
+  let el = b.parentElement && b.parentElement.classList.contains('casebar')
+    ? b.parentElement.previousElementSibling : b.previousElementSibling;
+  while(el && el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA') el = el.previousElementSibling;
+  if(!el) return;
+  el.value = CASE_FN[b.dataset.case](el.value);
+  el.dispatchEvent(new Event('input', {bubbles:true}));
+  el.dispatchEvent(new Event('change', {bubbles:true}));
+});
+
 /* ===================================================================
    Share Transfer Instrument — fills the firm's Word template and
    exports a .docx with the Original and Duplicate copies both filled.
@@ -1388,12 +1432,10 @@ document.querySelectorAll('input[data-f]').forEach(el=>{
     return b;
   };
   if(el.dataset.lang === 'en'){
-    const up = mk('up','AA','Make this line UPPERCASE');
-    up.addEventListener('click', ()=>{
-      setPath(cur(), el.dataset.f, String(getPath(cur(), el.dataset.f) || '').toUpperCase());
-      save(); render();
-    });
-    el.after(up);
+    const box = document.createElement('span');
+    box.className = 'casebar';
+    box.innerHTML = caseBtns();
+    el.after(box);
   }
   const ph = mk('ph','(*)','Mark as a to-be-determined blank — prints (*) highlighted yellow');
   ph.dataset.ph = el.dataset.f;
@@ -1498,6 +1540,91 @@ document.getElementById('btnExportAll').addEventListener('click', exportAll);
    do with it — match an existing certificate, or start a new one — and asks
    before changing anything, so this only ever carries facts across. */
 const CERT_TOOL = 'share-certificate.html';
+/* ── Passing work between the corporate tools ─────────────────────
+   A single transfer already travels in the URL, in a format this tool and the
+   certificate register both read. The standing data — the company and the
+   people — is far too big for a link, so it goes through one shared slot in
+   this browser instead. ─────────────────────────────────────────── */
+const SHARE_KEY = 'jt-corp-share';
+const REG_TOOL  = 'share-register-book.html';
+const pKey = v => String(v || '').trim().toLowerCase();
+
+function shareRead(){
+  try{ const raw = localStorage.getItem(SHARE_KEY); return raw ? JSON.parse(raw) : null; }
+  catch(_){ return null; }
+}
+function shareWrite(){
+  const t = cur();
+  const pack = {v:1, at:new Date().toISOString(), from:'ตราสารการโอนหุ้น',
+    co:{th:t.co.th, en:t.co.en, nameTh:t.co.th, nameEn:t.co.en, par:t.sh.par},
+    people: state.parties.map(p => ({nameTh:p.nameTh || '', nameEn:p.nameEn || '',
+                                     addrTh:p.addrTh || '', addrEn:p.addrEn || ''}))};
+  try{ localStorage.setItem(SHARE_KEY, JSON.stringify(pack)); return pack; }
+  catch(_){ return null; }
+}
+function shareTake(pack){
+  if(!pack) return 0;
+  let added = 0;
+  (pack.people || []).forEach(p => {
+    const th = pKey(p.nameTh), en = pKey(p.nameEn);
+    if(!th && !en) return;
+    if(state.parties.some(x => (th && pKey(x.nameTh) === th) || (en && pKey(x.nameEn) === en))) return;
+    state.parties.push({id:'p'+Date.now()+Math.random().toString(36).slice(2,6),
+      nameTh:p.nameTh || '', nameEn:p.nameEn || '', addrTh:p.addrTh || '', addrEn:p.addrEn || ''});
+    added++;
+  });
+  const c = pack.co || {}, t = cur();
+  if(!t.co.th && (c.nameTh || c.th)) t.co.th = c.nameTh || c.th;
+  if(!t.co.en && (c.nameEn || c.en)) t.co.en = c.nameEn || c.en;
+  if(!t.sh.par && (c.par || c.paidUp)) t.sh.par = c.par || c.paidUp;
+  return added;
+}
+function renderShareState(){
+  const el = document.getElementById('shareState');
+  if(!el) return;
+  const pack = shareRead();
+  el.textContent = pack
+    ? `รออยู่: จาก ${pack.from || 'เครื่องมืออื่น'} — ${(pack.co && (pack.co.nameTh || pack.co.th)) || '(ไม่ระบุบริษัท)'} · ${(pack.people||[]).length} คน`
+    : 'ยังไม่มีข้อมูลที่ส่งไว้';
+}
+document.getElementById('btnShareOut').addEventListener('click', ()=>{
+  const pack = shareWrite(); renderShareState();
+  toast(pack ? `✓ ส่งแล้ว — ${pack.people.length} คน` : '✗ ส่งไม่สำเร็จ');
+});
+document.getElementById('btnShareIn').addEventListener('click', ()=>{
+  const pack = shareRead();
+  if(!pack){ toast('ยังไม่มีข้อมูลที่ส่งมา'); return; }
+  const n = shareTake(pack); save(); render();
+  toast(`✓ รับจาก ${pack.from || 'เครื่องมืออื่น'} — เพิ่ม ${n} คน`);
+});
+document.getElementById('btnGoReg').addEventListener('click', ()=>{
+  shareWrite(); window.open(REG_TOOL + '#inbox=1', '_blank', 'noopener');
+});
+document.getElementById('btnGoCert2').addEventListener('click', ()=>{
+  shareWrite(); window.open(CERT_TOOL + '#inbox=1', '_blank', 'noopener');
+});
+
+/* the same facts this tool hands the certificate register, sent to the
+   shareholder register instead — it lands in the transfer form there, not in
+   the book, because a register entry is not something to make by surprise */
+function xferHandoff(){
+  const t = cur();
+  return {
+    co:{th:t.co.th, en:t.co.en},
+    tfr:{nameTh:t.tfr.nameTh, nameEn:t.tfr.nameEn, addrTh:t.tfr.addrTh, addrEn:t.tfr.addrEn},
+    tfe:{nameTh:t.tfe.nameTh, nameEn:t.tfe.nameEn, addrTh:t.tfe.addrTh, addrEn:t.tfe.addrEn},
+    sh:{count:t.sh.count, from:t.sh.from, to:t.sh.to, par:t.sh.par,
+        price:t.sh.priceAuto ? autoPrice(t) : t.sh.price},
+    date: t.tfr.date || t.tfe.date || ''
+  };
+}
+document.getElementById('btnToRegister').addEventListener('click', ()=>{
+  const t = cur();
+  if(!t.tfr.nameTh && !t.tfr.nameEn){ toast('ใส่ชื่อผู้โอนก่อน'); return; }
+  shareWrite();
+  window.open(REG_TOOL + '#reg=' + encodeURIComponent(JSON.stringify(xferHandoff())), '_blank', 'noopener');
+});
+
 document.getElementById('btnToCerts').addEventListener('click', ()=>{
   const t = cur();
   if(!t.tfe.nameTh && !t.tfe.nameEn){ toast('ใส่ชื่อผู้รับโอนก่อน'); return; }
@@ -1528,7 +1655,7 @@ function openPartyForm(p){
 }
 document.getElementById('btnPartyNew').addEventListener('click', ()=> openPartyForm(null));
 document.getElementById('pfCancel').addEventListener('click', ()=>{ partyForm.hidden = true; editingParty = null; });
-document.getElementById('pfUpper').addEventListener('click', ()=>{ pfNameEn.value = pfNameEn.value.toUpperCase(); });
+document.getElementById('pfCase').innerHTML = caseBtns();
 document.getElementById('pfSave').addEventListener('click', ()=>{
   const rec = {nameTh:pfNameTh.value.trim(), nameEn:pfNameEn.value.trim(),
                addrTh:pfAddrTh.value.trim(), addrEn:pfAddrEn.value.trim()};
@@ -1998,6 +2125,14 @@ function toast(msg){
    certificates for the same transfer: one set of numbers fills both documents.
    Inert when the page is opened normally. */
 function importHandoff(){
+  /* `#inbox=1` says the shared slot holds a directory meant for this tool */
+  if(/^#inbox=1/.test(location.hash || '')){
+    const pack = shareRead();
+    const n = pack ? shareTake(pack) : 0;
+    history.replaceState(null, '', location.pathname + location.search);
+    if(pack){ save(); return `จาก ${pack.from || 'เครื่องมืออื่น'} — เพิ่ม ${n} คน`; }
+    return '';
+  }
   const m = /^#xfer=(.*)$/.exec(location.hash || '');
   if(!m) return '';
   let name = '';
@@ -2038,7 +2173,8 @@ function importHandoff(){
 load();
 const handedOver = importHandoff();
 render();
-if(handedOver) toast('✓ รับข้อมูลจากทะเบียนใบหุ้นแล้ว — ' + handedOver);
+renderShareState();
+if(handedOver) toast('✓ รับข้อมูลแล้ว — ' + handedOver);
 /* size the preview to the panel once fonts and layout have settled */
 window.addEventListener('load', ()=> setTimeout(()=> fitPreview(), 60));
 window.addEventListener('resize', ()=>{ clearTimeout(window.__rz); window.__rz = setTimeout(()=> fitPreview(), 150); });
