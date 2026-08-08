@@ -2441,6 +2441,59 @@ function matchingCert(tfr, from, to){
   return hits.length === 1 ? hits[0] : null;
 }
 
+/* A company's first issue, handed over whole by the register: one certificate
+   per subscriber, numbered and share-numbered exactly as the register will
+   write them, so the two documents cannot drift apart. Nothing else in the
+   register needs to travel — an incorporation has no history to reconcile. */
+function importIssue(){
+  const m = /^#issue=(.*)$/.exec(location.hash || '');
+  if(!m) return '';
+  let said = '';
+  try{
+    const d = JSON.parse(decodeURIComponent(m[1]));
+    const co = d.co || {}, list = Array.isArray(d.certs) ? d.certs : [];
+    if(!list.length) return '';
+
+    const found = findBookFor(co);
+    if(found >= 0) selectBook(found);
+    else if(!bookIsUntouched(state)){ doc.books.push(blankState()); selectBook(doc.books.length - 1); }
+    if(co.th && !state.co.th) state.co.th = co.th;
+    if(co.en && !state.co.en) state.co.en = co.en;
+    if(co.par && !state.co.par) state.co.par = String(co.par);
+    if(co.regShares && !state.co.ord) state.co.ord = groupDigits(String(co.regShares));
+    /* the register padded its share numbers; the certificates must match */
+    if(d.pad){ state.co.padAuto = false; state.co.pad = String(d.pad); }
+
+    const made = list.map(c => {
+      const n = blankCert();
+      n.noAuto = false;   n.no = String(c.no || '');
+      n.holderTh = c.nameTh || ''; n.holderEn = c.nameEn || '';
+      n.addrTh = c.addrTh || '';   n.addrEn = c.addrEn || '';
+      n.count = groupDigits(String(c.count || ''));
+      n.fromAuto = false; n.from = String(c.from || '');
+      n.toAuto   = false; n.to   = String(c.to || '');
+      n.issueAuto = false; n.issue = d.date || '';
+      if(c.nameTh || c.nameEn){
+        const known = state.people.some(x => nameKey(x.nameTh) === nameKey(c.nameTh) &&
+                                             nameKey(x.nameEn) === nameKey(c.nameEn));
+        if(!known) state.people.push({id:'p'+Date.now()+Math.random().toString(36).slice(2,6),
+          nameTh:c.nameTh || '', nameEn:c.nameEn || '', addrTh:c.addrTh || '', addrEn:c.addrEn || ''});
+      }
+      return n;
+    });
+    /* a register that has only ever held its one starter certificate is
+       replaced rather than appended to */
+    const starter = state.certs.length === 1 &&
+      JSON.stringify(state.certs[0]) === JSON.stringify(blankCert());
+    if(starter) state.certs = made; else state.certs.push(...made);
+    state.active = state.certs.indexOf(made[0]);
+    save(); render();
+    said = `${made.length} ใบ — เลขที่ ${made[0].no}–${made[made.length-1].no}`;
+  }catch(_){ /* a malformed link should not stop the page loading */ }
+  history.replaceState(null, '', location.pathname + location.search);
+  return said;
+}
+
 function importInstrument(){
   /* `#inbox=1` says the shared slot holds a directory meant for this tool */
   if(/^#inbox=1/.test(location.hash || '')){
@@ -3130,7 +3183,7 @@ function toast(msg){
 
 load();
 render();
-const handedOver = importInstrument();
+const handedOver = importIssue() || importInstrument();
 renderShareState();
 if(handedOver) toast('✓ รับข้อมูลแล้ว — ' + handedOver);
 /* size the preview to the panel once fonts and layout have settled */

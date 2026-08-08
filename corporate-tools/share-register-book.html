@@ -220,6 +220,9 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em;bac
 .plan-sum .warn{color:#b45309;font-weight:600;}
 .perpick{width:auto;font-size:.75em;padding:4px 7px;font-weight:500;}
 #dlgInput{margin:0 0 14px;}
+/* the confirmation lists the rows it is about to write, one per line */
+#dlgBody{white-space:pre-line;}
+.dlg{max-width:520px;}
 
 /* ── Sheets ──────────────────────────────────── */
 /* The directory, the placeholders and the standard moves are all things you
@@ -697,7 +700,12 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em;bac
             <div class="field"><label>ชื่อผู้รับโอน (อังกฤษ)</label>
               <div class="pair-row"><input type="text" data-px="tfeNameEn" data-lang="en" placeholder="MISS MALEE RAKTHAI"></div></div>
           </div>
-          <div class="field"><label class="switch"><input type="checkbox" data-px="ceased"> ลงหมายเหตุ “ขาดจากการเป็นผู้ถือหุ้น” ให้ผู้โอนเมื่อเหลือ 0 หุ้น</label></div>
+          <div class="field" style="display:flex;flex-direction:column;gap:9px">
+            <label class="switch"><input type="checkbox" data-px="sameRow"> ลงการโอนในบรรทัดเดียวกับใบหุ้นที่ถูกโอน</label>
+            <label class="switch"><input type="checkbox" data-px="ceased"> ลงหมายเหตุ “ขาดจากการเป็นผู้ถือหุ้น” ให้ผู้โอนเมื่อเหลือ 0 หุ้น</label>
+          </div>
+          <p class="hintline" style="margin-top:-8px">สมุดตัวอย่างเคาะลงบรรทัดใหม่แล้วเขียนเฉพาะฝั่งขวา
+            แต่ถ้าลงในบรรทัดเดียวกัน จะเห็นได้ทันทีว่าใบไหนถูกโอนไปไหน — ปิดปุ่มนี้เพื่อกลับไปแบบในตัวอย่าง</p>
           <p class="sect-note plan-sum" id="planSum"></p>
           <div class="btn-row">
             <button class="btn btn-primary" id="btnXferGo">ลงรายการทั้งสองฝั่ง</button>
@@ -727,7 +735,11 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em;bac
             </div>
           </div>
           <p class="sect-note plan-sum" id="planSum2"></p>
-          <div class="btn-row"><button class="btn btn-primary" id="btnIncorpGo">ออกใบหุ้นให้ทุกคน</button></div>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="btnIncorpGo">ลงในสมุดทะเบียน</button>
+            <button class="btn btn-ghost btn-sm" id="btnIncorpCert" hidden>↗ ออกใบหุ้นทั้งชุด</button>
+          </div>
+          <p class="hintline">“ออกใบหุ้นทั้งชุด” เปิดเครื่องมือใบหุ้นพร้อมใบของทุกคน เลขใบและช่วงหมายเลขหุ้นชุดเดียวกับที่จะลงในสมุดนี้</p>
         </div>
       </div>
     </section>
@@ -1480,29 +1492,34 @@ function gridHead(geo, layout){
   return tr(606, r1, true) + tr(563, r2, true);
 }
 
-/* `rprs` lets one cell print at a different width from the rest of the row —
-   only the wording cells ever use it. Each line of a cell may carry its own,
-   because the Thai and English lines are squeezed separately. */
-function dataRow(geo, vals, rprs){
+/* A cell holds a list of lines. A line is either a string, printed at the
+   row's usual width, or a [text, rPr] pair — which is how the wording cells
+   print narrower than the rest of the row when they are squeezed. */
+const cellBody = list => (list || [])
+  .map(v => Array.isArray(v) ? v : [v, RPR_DATA])
+  .filter(([t]) => t !== '' && t != null)
+  .map(([t, R]) => para(P_CENTER, R, t)).join('');
+
+function dataRow(geo, vals){
   const dc = geo.data;
-  return tr(651, dc.map(([span, w], i) => {
-    const rpr = (rprs && rprs[i]) || [];
-    const body = (vals[i] || []).map((t, k) => [t, rpr[k] || RPR_DATA])
-      .filter(([t]) => t !== '' && t != null)
-      .map(([t, R]) => para(P_CENTER, R, t)).join('');
-    return tc(w, span, {bd: i === DIV ? bd({l:B.thick}) : ''}, body || para(P_CENTER, RPR_DATA, ''));
-  }).join(''));
+  return tr(651, dc.map(([span, w], i) =>
+    tc(w, span, {bd: i === DIV ? bd({l:B.thick}) : ''},
+       cellBody(vals[i]) || para(P_CENTER, RPR_DATA, ''))
+  ).join(''));
 }
-function noteRow(geo, th, en, rprs){
+function noteRow(geo, lines0){
   const total = geo.grid.reduce((a,b)=>a+b,0);
-  const body = [th, en].map((t, k) => [t, (rprs && rprs[k]) || RPR_DATA]).filter(([t]) => t)
-    .map(([t, R]) => para(P_CENTER, R, t)).join('');
-  return tr(651, tc(total, geo.grid.length, {}, body || para(P_CENTER, RPR_DATA, '')));
+  return tr(651, tc(total, geo.grid.length, {},
+    cellBody(lines0) || para(P_CENTER, RPR_DATA, '')));
 }
 /* how much this row squeezes its wording, Thai line then English */
 const descRpr = e => e.condOn
   ? [withCondense(RPR_DATA, condTwips(e.condTh)), withCondense(RPR_DATA, condTwips(e.condEn))]
-  : null;
+  : [RPR_DATA, RPR_DATA];
+/* the Thai wording then the English, each broken wherever it was typed with a
+   newline — one line in the field is one line in the cell */
+const sayLines = (th, en, rpr) =>
+  lines(th).map(t => [t, rpr[0]]).concat(lines(en).map(t => [t, rpr[1]]));
 
 /* One entry, one row. A row can carry the acquisition half, the transfer
    half, or both — the books do all three (shares subscribed and passed on the
@@ -1511,7 +1528,7 @@ function entryRow(geo, h, i){
   const e = h.entries[i];
   const [dTh, dEn] = descOf(e, h);
   const cond = descRpr(e);
-  if(e.kind === 'note') return noteRow(geo, dTh, dEn, cond);
+  if(e.kind === 'note') return noteRow(geo, sayLines(dTh, dEn, cond));
   const paid = baht(paidUpOf(e));
   const both   = e.kind === 'both';
   const gotIn  = e.kind === 'in'  || both;
@@ -1520,17 +1537,17 @@ function entryRow(geo, h, i){
   const [oTh, oEn] = both ? descOf(outHalf(e), h) : [dTh, dEn];
   return dataRow(geo, [
     gotIn  ? [beDate(e.date)] : [],
-    gotIn  ? [dTh, dEn] : [],
+    gotIn  ? sayLines(dTh, dEn, cond) : [],
     gotIn  ? [e.refCert] : [],
     gotIn  ? [e.certNo] : [],
     gotIn  ? [e.shares && groupDigits(e.shares)] : [],
     gotIn  ? [shareNosOf(e)] : [],
     [paid],
     gotOut ? [beDate(both ? (e.out.date || e.date) : e.date)] : [],
-    gotOut ? [oTh, oEn] : [],
+    gotOut ? sayLines(oTh, oEn, cond) : [],
     gotOut ? [both ? e.out.cert : e.outCert] : [],
     [balanceOf(h, i)]
-  ], cond ? {1: cond, 8: cond} : null);
+  ]);
 }
 
 /* A register page holds a fixed number of rows, so a shareholder with a long
@@ -1906,7 +1923,13 @@ let plan = {
      a transfer the same way */
   x:{tfrId:'', certNo:'', count:'', take:'back', takeStart:'', order:'transferor',
      tfeId:'', tfeNameTh:'', tfeNameEn:'', tfeAddrTh:'', tfeAddrEn:'',
-     date:'', keepTpl:'cancelIssue', ceased:true, price:''}
+     /* the books put the transfer on a line of its own; on the page it reads
+        better on the same line as the shares that are leaving, so it is a
+        choice — `sameRow` reuses the acquisition row as a both-halves row */
+     date:'', keepTpl:'cancelIssue', ceased:true, price:'', sameRow:true},
+  /* what was last written, kept so the ↗ buttons still work after the rows
+     have gone in — otherwise sending it on would mean typing it all again */
+  lastX:null
 };
 
 function xferPlanOf(){
@@ -1942,7 +1965,12 @@ function xferPlanOf(){
                    addrTh: tfe ? tfe.addrTh : plan.x.tfeAddrTh, addrEn: tfe ? tfe.addrEn : plan.x.tfeAddrEn};
   if(!tfeName.nameTh && !tfeName.nameEn) return {err:'ใส่ชื่อผู้รับโอน', live, cert, total};
 
-  return {b, tfr, tfe, tfeName, cert, f, t, total, moving, from, to, keeps, keepNos, tfeNo,
+  /* the row that issued the certificate now leaving — where the transfer goes
+     if it is to share a line with it */
+  const srcRow = tfr.entries.find(e => e.kind === 'in' &&
+    String(e.certNo || '').split(/[^0-9]+/).filter(Boolean).some(n => String(+n) === String(+cert.no))) || null;
+
+  return {b, tfr, tfe, tfeName, cert, f, t, total, moving, from, to, keeps, keepNos, tfeNo, srcRow,
           date: plan.x.date, price: plan.x.price,
           ceases: total != null && holderBalance(tfr) - moving <= 0};
 }
@@ -1955,10 +1983,20 @@ function applyXferPlan(){
 
   clearStarter(tfr);
   /* the transferor's line: the certificate written here is the one issued to
-     the transferee — the one given up is already on this row */
-  pushEntry(tfr, {...blankEntry('out'), date, tpl:'transfer',
-    counterTh: tfeName.nameTh, counterEn: tfeName.nameEn,
-    outCert: String(tfeNo), outShares: groupDigits(String(moving))});
+     the transferee — the one given up is already on this row. It either shares
+     the line with the acquisition it undoes, or stands on its own the way the
+     books write it. */
+  const onSame = plan.x.sameRow && p.srcRow && p.srcRow.kind === 'in';
+  if(onSame){
+    p.srcRow.kind = 'both';
+    p.srcRow.outShares = groupDigits(String(moving));
+    p.srcRow.out = {date, tpl:'transfer', counterTh: tfeName.nameTh, counterEn: tfeName.nameEn,
+                    descTh:'', descEn:'', cert: String(tfeNo)};
+  } else {
+    pushEntry(tfr, {...blankEntry('out'), date, tpl:'transfer',
+      counterTh: tfeName.nameTh, counterEn: tfeName.nameEn,
+      outCert: String(tfeNo), outShares: groupDigits(String(moving))});
+  }
 
   /* and the balance of that certificate comes back to them as a new one */
   keeps.forEach(([a, z], i) => pushEntry(tfr, {...blankEntry('in'), date, tpl: plan.x.keepTpl,
@@ -1992,6 +2030,8 @@ function applyXferPlan(){
     state.people.push({...blankPerson(), nameTh:tfeName.nameTh, nameEn:tfeName.nameEn,
                        addrTh:tfeName.addrTh || '', addrEn:tfeName.addrEn || ''});
 
+  plan.lastX = xferPayload({date, tfr: {...tfr}, tfe: tfeName,
+                            moving: p.moving, from: p.from, to: p.to, price: plan.x.price});
   pruneBlankHolders(b);
   b.activeId = tfe.id;
   plan.x.count = ''; plan.x.certNo = '';
@@ -2322,9 +2362,9 @@ function textPair(id, kTh, kEn, th, en, locked, labelTh, labelEn, rawTh, rawEn){
      </div>`;
   return `<div class="sub grid2">
     <div><label>${labelTh}</label>
-      <input type="text" data-e="${id}" data-k="${kTh}" class="${cls}" value="${escHtml(vTh)}"></div>
+      <textarea rows="2" data-e="${id}" data-k="${kTh}" class="${cls}">${escHtml(vTh)}</textarea></div>
     <div><label>${labelEn}</label>
-      <input type="text" data-e="${id}" data-k="${kEn}" data-lang="en" class="${cls}" value="${escHtml(vEn)}"></div>
+      <textarea rows="2" data-e="${id}" data-k="${kEn}" data-lang="en" class="${cls}">${escHtml(vEn)}</textarea></div>
   </div>${chips}${out}`;
 }
 
@@ -2541,13 +2581,7 @@ function renderPlan(){
     document.querySelectorAll('#planIncorp [data-pi]').forEach(el => {
       if(el !== document.activeElement) el.value = plan.i[el.dataset.pi] == null ? '' : plan.i[el.dataset.pi];
     });
-    const n = plan.i.subs.reduce((a,s) => a + (numOf(s.shares) || 0), 0);
-    const reg = numOf(co().regShares);
-    document.getElementById('planSum2').innerHTML = n
-      ? `รวม <b>${groupDigits(String(n))}</b> หุ้น · ใบหุ้นเลขที่ ${escHtml(plan.i.firstCert || '1')} เป็นต้นไป · ` +
-        `หมายเลขหุ้น ${escHtml(padNum(intOf(plan.i.firstShare) || 1))}–${escHtml(padNum((intOf(plan.i.firstShare)||1) + n - 1))}` +
-        (reg && reg !== n ? `<br><span class="warn">หุ้นจดทะเบียนที่กรอกไว้คือ ${groupDigits(String(reg))} — ไม่ตรงกับผลรวมนี้</span>` : '')
-      : 'กรอกผู้จองซื้อหุ้นและจำนวนหุ้น';
+    planSummary();
     return;
   }
 
@@ -2589,10 +2623,30 @@ function renderPlan(){
     if(el.type === 'checkbox') el.checked = !!plan.x[el.dataset.px];
   });
 
+  planSummary();
+}
+
+/* Only the wording that reacts to a keystroke. The lists and the pickers are
+   left alone, because rebuilding them under the caret is what made a field
+   drop focus after one digit. */
+function planSummary(){
+  if(!document.getElementById('planBody')) return;
+  if(plan.mode === 'incorp'){
+    const n = plan.i.subs.reduce((a,s) => a + (numOf(s.shares) || 0), 0);
+    const reg = numOf(co().regShares);
+    document.getElementById('btnIncorpCert').hidden = !n;
+    document.getElementById('planSum2').innerHTML = n
+      ? `รวม <b>${groupDigits(String(n))}</b> หุ้น · ใบหุ้นเลขที่ ${escHtml(plan.i.firstCert || '1')} เป็นต้นไป · ` +
+        `หมายเลขหุ้น ${escHtml(padNum(intOf(plan.i.firstShare) || 1))}–${escHtml(padNum((intOf(plan.i.firstShare)||1) + n - 1))}` +
+        (reg && reg !== n ? `<br><span class="warn">หุ้นจดทะเบียนที่กรอกไว้คือ ${groupDigits(String(reg))} — ไม่ตรงกับผลรวมนี้</span>` : '')
+      : 'กรอกผู้จองซื้อหุ้นและจำนวนหุ้น';
+    return;
+  }
   const p = xferPlanOf();
   const partial = !p.err && p.keeps.length > 0;
   document.getElementById('xPartial').hidden = !partial;
   document.getElementById('xTakeStartRow').hidden = plan.x.take !== 'custom';
+  document.getElementById('xTfeNew').hidden = !!plan.x.tfeId;
   document.getElementById('planSum').innerHTML = p.err
     ? escHtml(p.err)
     : `ผู้โอนลง <b>โอนหุ้นให้</b> ${escHtml(p.tfeName.nameTh || p.tfeName.nameEn)} · ใบหุ้นที่ออกให้ผู้รับโอน <b>เลขที่ ${p.tfeNo}</b>` +
@@ -2663,8 +2717,21 @@ function entSet(o, k, v){
   const parts = k.split('.'), last = parts.pop();
   parts.reduce((x, p) => x[p], o)[last] = v;
 }
-/* share counts read as figures, so they carry separators while being typed */
+/* share counts read as figures, so they carry separators while being typed.
+   Rewriting the value moves the caret to the end, so it is put back where the
+   digits say it belongs rather than where the commas pushed it. */
 const GROUPED = new Set(['shares','outShares','balance']);
+function groupInto(el){
+  const caret = el.selectionStart;
+  const before = String(el.value).slice(0, caret).replace(/,/g,'').length;
+  const v = groupDigits(el.value);
+  el.value = v;
+  let seen = 0, pos = v.length;
+  for(let i = 0; i < v.length; i++){ if(v[i] !== ',') seen++; if(seen === before){ pos = i+1; break; } }
+  const at = before === 0 ? 0 : pos;
+  try{ el.setSelectionRange(at, at); }catch(_){}
+  return {v, at};
+}
 
 document.addEventListener('input', e => {
   const el = e.target;
@@ -2703,17 +2770,7 @@ document.addEventListener('input', e => {
     }
     let v = el.value;
     let caret = el.selectionStart;
-    if(GROUPED.has(k)){
-      const before = v.slice(0, caret).replace(/,/g,'').length;
-      v = groupDigits(v);
-      /* put the caret back where the digits say it belongs, not where the
-         commas moved it to */
-      let seen = 0, pos = v.length;
-      for(let i = 0; i < v.length; i++){ if(v[i] !== ',') seen++; if(seen === before){ pos = i+1; break; } }
-      caret = before === 0 ? 0 : pos;
-      el.value = v;
-      el.setSelectionRange(caret, caret);
-    }
+    if(GROUPED.has(k)){ const g = groupInto(el); v = g.v; caret = g.at; }
     entSet(ent, k, v);
     /* a computed field has to stop computing once it is written over, or the
        next render puts the automatic value straight back */
@@ -2929,20 +2986,19 @@ document.addEventListener('input', e => {
     return;
   }
   if(el.dataset.sb !== undefined){
-    const s = plan.i.subs[+el.dataset.sb];
-    if(s){
-      s[el.dataset.sf] = el.dataset.sf === 'shares' ? groupDigits(el.value) : el.value;
-      if(el.dataset.sf === 'shares') el.value = s.shares;
-      renderPlan();
+    const row = plan.i.subs[+el.dataset.sb];
+    if(row){
+      row[el.dataset.sf] = el.dataset.sf === 'shares' ? groupInto(el).v : el.value;
+      planSummary();
     }
     return;
   }
-  if(el.dataset.pi !== undefined){ plan.i[el.dataset.pi] = el.value; renderPlan(); return; }
+  if(el.dataset.pi !== undefined){ plan.i[el.dataset.pi] = el.value; planSummary(); return; }
   if(el.dataset.px !== undefined){
     plan.x[el.dataset.px] = el.type === 'checkbox' ? el.checked
-                          : el.dataset.px === 'count' ? groupDigits(el.value) : el.value;
-    if(el.dataset.px === 'count') el.value = plan.x.count;
-    renderPlan();
+                          : el.dataset.px === 'count' ? groupInto(el).v : el.value;
+    /* a switch changes what the panel offers, so that one redraws in full */
+    if(el.type === 'checkbox') renderPlan(); else planSummary();
     return;
   }
 }, true);
@@ -3131,16 +3187,59 @@ document.addEventListener('click', e => {
   if(sdel){ plan.i.subs.splice(+sdel.dataset.subdel, 1); if(!plan.i.subs.length) plan.i.subs.push(blankSub()); renderPlan(); return; }
   if(t.closest('#btnSubAdd')){ plan.i.subs.push(blankSub()); renderPlan(); return; }
   if(t.closest('#btnIncorpGo')){ applyIncorpPlan(); return; }
+  if(t.closest('#btnIncorpCert')){
+    const subs = plan.i.subs.filter(x => (x.nameTh || x.nameEn) && numOf(x.shares));
+    if(!subs.length) return toast('✗ ใส่ผู้จองซื้อหุ้นก่อน');
+    const c = co();
+    let no = intOf(plan.i.firstCert) || 1, from = intOf(plan.i.firstShare) || 1;
+    const certs = subs.map(x => {
+      const n = numOf(x.shares);
+      const who = findPerson(x.nameTh) || findPerson(x.nameEn) || {};
+      const rec = {no:String(no++), nameTh:x.nameTh, nameEn:x.nameEn,
+                   addrTh:who.addrTh || '', addrEn:who.addrEn || '',
+                   count:String(n), from:String(from), to:String(from + n - 1)};
+      from += n;
+      return rec;
+    });
+    shareWrite();
+    openTool(CERT_TOOL, '#issue=' + encodeURIComponent(JSON.stringify({
+      co:{th:c.nameTh, en:c.nameEn, par:c.paidUp, regShares:c.regShares},
+      date: plan.i.date, pad: c.pad ? String(padWidth() || '') : '', certs})));
+    return;
+  }
   const take = t.closest('#xTake button');
   if(take){ plan.x.take = take.dataset.take; renderPlan(); return; }
   const ord = t.closest('#xOrder button');
   if(ord){ plan.x.order = ord.dataset.order; renderPlan(); return; }
-  if(t.closest('#btnXferGo')){ applyXferPlan(); return; }
-  if(t.closest('#btnXferInstr') || t.closest('#btnXferCert')){
+  if(t.closest('#btnXferGo')){
     const p = xferPlanOf();
     if(p.err) return toast('✗ ' + p.err);
-    const payload = xferPayload({date:plan.x.date, tfr:p.tfr, tfe:p.tfeName,
-                                 moving:p.moving, from:p.from, to:p.to, price:plan.x.price});
+    const rows = [
+      `${p.tfr.nameTh || p.tfr.nameEn}: โอนหุ้นให้${p.tfeName.nameTh || p.tfeName.nameEn} ` +
+        `${groupDigits(String(p.moving))} หุ้น ใบที่ออกให้ผู้รับโอน เลขที่ ${p.tfeNo}` +
+        (plan.x.sameRow && p.srcRow ? ' (ลงในบรรทัดเดียวกับใบหุ้นเลขที่ ' + p.cert.no + ')' : ' (บรรทัดใหม่)'),
+      ...p.keeps.map((k, i) => `${p.tfr.nameTh || p.tfr.nameEn}: ยกเลิกใบเลขที่ ${p.cert.no} ออกใบใหม่เลขที่ ${p.keepNos[i]} ` +
+        `${groupDigits(String(k[1]-k[0]+1))} หุ้น`),
+      `${p.tfeName.nameTh || p.tfeName.nameEn}: รับโอนหุ้น ใบเลขที่ ${p.tfeNo} ${groupDigits(String(p.moving))} หุ้น`,
+      ...(plan.x.ceased && p.ceases ? [`${p.tfr.nameTh || p.tfr.nameEn}: ขาดจากการเป็นผู้ถือหุ้น`] : [])
+    ];
+    confirmDlg('ลงรายการทั้งสองฝั่ง',
+      'จะเขียนลงสมุดดังนี้:\n\n• ' + rows.join('\n• ') +
+      '\n\nลงแล้วกลับมาแก้ในการ์ดนี้ไม่ได้ ต้องไปแก้หรือลบทีละแถวในการ์ด “รายการหุ้น” ' +
+      'ส่วนการส่งต่อไปตราสารการโอนหุ้นหรือใบหุ้น ยังกดได้อยู่หลังลงรายการ เพราะระบบจำรายการล่าสุดไว้ให้',
+      applyXferPlan);
+    return;
+  }
+  if(t.closest('#btnXferInstr') || t.closest('#btnXferCert')){
+    const p = xferPlanOf();
+    /* still fillable before the rows go in, and still sendable after — the
+       last one written is kept for exactly this */
+    const payload = p.err
+      ? plan.lastX
+      : xferPayload({date:plan.x.date, tfr:p.tfr, tfe:p.tfeName,
+                     moving:p.moving, from:p.from, to:p.to, price:plan.x.price});
+    if(!payload) return toast('✗ ' + p.err);
+    shareWrite();
     const hash = encodeURIComponent(JSON.stringify(payload));
     if(t.closest('#btnXferInstr')) openTool(XFER_TOOL, '#xfer=' + hash);
     else openTool(CERT_TOOL, '#cert=' + hash);
