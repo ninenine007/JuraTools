@@ -14,6 +14,7 @@ Tools are grouped into collections, each with its own hub page:
 | `corporate-tools/` | Corporate Tools for Legal — shareholder voting, share certificates, share register book, share transfer instrument, incorporation wizard, dividends & legal reserve, CorpDesk share register workbench, instrument checklists |
 | `tax-tools/` | Thai Tax Tools — personal income tax, land sale tax comparison, stamp duty, withholding tax |
 | `labour-tools/` | Thai Labour Law Tools — termination payment suite on shared `labour-core.js`/`.css` |
+| `finance-tools/` | Finance Tools — time value of money (PV, FV, NPV, PMT) on an interactive cash-flow timeline |
 | `utilities/` | Utilities — Thai line formatting, baht text, text sanitizer, subtitle converter, pro-rata allocation, rounding lab, percentages |
 | `tools/` | Local scripts (e.g. `srv-to-paragraphs`) |
 

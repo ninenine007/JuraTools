@@ -146,6 +146,7 @@
     .card[data-cat="script"]    { --glow: 0 6px 24px rgba(22,163,74,0.14);  }
     .card[data-cat="tax"]       { --glow: 0 6px 24px rgba(225,29,72,0.14);  }
     .card[data-cat="labour"]    { --glow: 0 6px 24px rgba(8,145,178,0.14);  }
+    .card[data-cat="finance"]   { --glow: 0 6px 24px rgba(79,70,229,0.14);  }
 
     .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
     .card-icon {
@@ -160,6 +161,7 @@
     .card[data-cat="script"]    .card-icon { background: linear-gradient(145deg, #dcfce7, #bbf7d0); }
     .card[data-cat="tax"]       .card-icon { background: linear-gradient(145deg, #ffe4e6, #fecdd3); }
     .card[data-cat="labour"]    .card-icon { background: linear-gradient(145deg, #cffafe, #a5f3fc); }
+    .card[data-cat="finance"]   .card-icon { background: linear-gradient(145deg, #e0e7ff, #c7d2fe); }
 
     .card-badge {
       display: inline-flex; align-items: center;
@@ -292,7 +294,7 @@
       <span style="color:#d1d1d6">·</span>
       <span>🔒 No data sent anywhere</span>
       <span style="color:#d1d1d6">·</span>
-      <span>📦 31 tools · 5 collections</span>
+      <span>📦 32 tools · 6 collections</span>
     </div>
   </div>
 
@@ -364,6 +366,21 @@
             <a class="btn btn-open" href="labour-tools/">Open →</a>
             <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/tree/main/labour-tools" target="_blank" rel="noopener">Source</a>
             <button class="btn btn-copy" data-copy="labour-tools/">Copy link</button>
+          </div>
+        </article>
+
+        <article class="card" data-cat="finance" data-tags="finance collection hub time value of money tvm present value future value net present value npv payment pmt annuity annuity due ordinary annuity compound interest compounding frequency discount rate internal rate of return irr amortisation amortization schedule loan instalment installment balloon savings goal cash flow timeline diagram newton raphson bisection secant brent numerical solver convergence มูลค่าเงินตามเวลา มูลค่าปัจจุบัน มูลค่าอนาคต มูลค่าปัจจุบันสุทธิ เงินงวด ดอกเบี้ยทบต้น อัตราคิดลด ผ่อนชำระ ตารางผ่อน เงินกู้ ออมเงิน กระแสเงินสด อัตราผลตอบแทน ทบต้น ต้นงวด สิ้นงวด">
+          <div class="card-head">
+            <div class="card-icon">📈</div>
+            <span class="card-badge badge-new">New</span>
+          </div>
+          <div class="card-sub">Collection</div>
+          <h3 class="card-title">Finance Tools</h3>
+          <p class="card-desc">Financial arithmetic for legal work — the <strong>Time Value of Money</strong> calculator (มูลค่าเงินตามเวลา): present value, future value, NPV and level payments on one interactive cash-flow timeline, with compounding at any frequency, annuity-due timing, irregular cash flows, amortisation schedules, and a rate solver that compares Newton–Raphson, Brent, secant and bisection side by side.</p>
+          <div class="card-actions">
+            <a class="btn btn-open" href="finance-tools/">Open →</a>
+            <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/tree/main/finance-tools" target="_blank" rel="noopener">Source</a>
+            <button class="btn btn-copy" data-copy="finance-tools/">Copy link</button>
           </div>
         </article>
 
@@ -478,6 +495,10 @@
       <div class="section-head-line"></div>
     </div>
     <div class="changelog">
+      <div class="cl-item">
+        <span class="cl-date">Aug 2026</span>
+        <span class="cl-text">Added <strong>Finance Tools</strong> — a new collection, launching with the <strong>Time Value of Money</strong> calculator (มูลค่าเงินตามเวลา): present value, future value, NPV and level payments on one cash-flow timeline, with compounding at any frequency, payments at the start or end of each period, irregular cash flows overridable period by period, amortisation schedules, and a rate/IRR solver that runs Newton–Raphson, Brent, secant and bisection side by side with a convergence graph. Every result is drawn as an interactive diagram — clicking an arrow, a term in the formula or a row in the table highlights all three together.</span>
+      </div>
       <div class="cl-item">
         <span class="cl-date">Aug 2026</span>
         <span class="cl-text">Added the <strong>Thai Corporate Minutes Generator</strong> (เครื่องมือจัดทำรายงานการประชุม) to <strong>Corporate Tools</strong> — one set of facts drives a whole meeting bundle as Word .docx: board and shareholder notices, minutes, attendance lists, share offer letters, subscription forms and payment receipts. Agenda library for the capital-increase playbook with auto-worded proposals and resolutions, every sentence overridable, Buddhist Era dates, Thai number reading, pro-rata allotment with manual override, and quorum, special-resolution and notice-period checks against CCC §§1160, 1175, 1178 and 1194.</span>

@@ -1,0 +1,2530 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Time Value of Money — Finance Tools | JuraTools</title>
+  <meta name="description" content="Present value, future value, NPV and payment calculator with an interactive cash-flow timeline diagram — compounding frequency, annuity due, and a rate solver comparing four numerical methods. By Kornrawee Chanchom." />
+  <style>
+    :root {
+      --ink: #1c1c1e; --ink-2: #3c3c43; --muted: #6e6e73; --faint: #aeaeb2;
+      --line: rgba(0,0,0,0.08); --line-soft: rgba(0,0,0,0.05);
+      --accent: #4f46e5; --accent-dark: #4338ca; --accent-light: #eef2ff; --accent-border: #c7d2fe;
+      --cyan: #06b6d4;
+      --green: #15803d; --green-mid: #059669; --green-light: #f0fdf4; --green-border: #bbf7d0;
+      --rose: #e11d48; --rose-dark: #be123c; --rose-light: #fff1f2; --rose-border: #fecdd3;
+      --amber: #b45309; --amber-light: #fffbeb; --amber-border: #fde68a;
+      --info: #0369a1; --info-light: #f0f9ff; --info-border: #bae6fd;
+      --purple: #7c3aed;
+      --card-bg: rgba(255,255,255,0.82);
+      --radius: 16px; --radius-sm: 10px;
+      --shadow: 0 1px 1px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06);
+      --maxw: 940px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0; color: var(--ink); line-height: 1.45;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", "Noto Sans Thai", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      background: #f2f2f7;
+      background-image:
+        radial-gradient(ellipse 1100px 700px at 10% 0%,   rgba(199,210,254,0.45) 0%, transparent 60%),
+        radial-gradient(ellipse  700px 700px at 95% 8%,   rgba(165,243,252,0.38) 0%, transparent 55%),
+        radial-gradient(ellipse  800px 600px at 0%  92%,  rgba(221,214,254,0.32) 0%, transparent 55%),
+        radial-gradient(ellipse  900px 500px at 100% 96%, rgba(191,219,254,0.3)  0%, transparent 55%);
+    }
+    button, input, select, textarea { font: inherit; }
+    a { color: var(--accent); }
+    h1, h2, h3, p { margin-top: 0; }
+    .muted { color: var(--muted); }
+    .nowrap { white-space: nowrap; }
+
+    /* ── Sticky breadcrumb nav ────────────────────── */
+    .nav {
+      position: sticky; top: 0; z-index: 200; height: 52px;
+      display: flex; align-items: center; gap: 11px; padding: 0 22px;
+      background: rgba(242,242,247,0.82);
+      backdrop-filter: blur(24px) saturate(200%);
+      -webkit-backdrop-filter: blur(24px) saturate(200%);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav a { text-decoration: none; color: inherit; }
+    .nav-brand { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+    .nav-icon {
+      width: 30px; height: 30px; border-radius: 7px;
+      background: linear-gradient(145deg, #2979ff, #1565c0);
+      display: grid; place-items: center; font-size: 15px;
+      box-shadow: 0 2px 6px rgba(41,121,255,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    .nav-wordmark { font-size: 15px; font-weight: 700; letter-spacing: -0.4px; color: var(--ink); }
+    .nav-sep { color: #c7c7cc; font-size: 14px; }
+    .nav-crumb { font-size: 14px; font-weight: 500; color: var(--muted); }
+    .nav-crumb.current { color: var(--ink); font-weight: 600; }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .nav-back {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 13px; font-weight: 500; color: var(--ink-2);
+      background: rgba(0,0,0,0.055); border: 1px solid rgba(0,0,0,0.1);
+      padding: 6px 12px; border-radius: 9px; transition: background .14s;
+    }
+    .nav-back:hover { background: rgba(0,0,0,0.09); }
+    .lang-toggle { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #fff; }
+    .lang-btn {
+      padding: 5px 10px; font-size: 12px; font-weight: 600; border: none;
+      background: transparent; color: var(--muted); cursor: pointer; transition: background .14s, color .14s;
+    }
+    .lang-btn.active { background: var(--accent); color: #fff; }
+    @media (max-width: 700px) { .nav-crumb:not(.current), .nav-sep.hide-sm { display: none; } }
+    @media (max-width: 430px) { .nav-wordmark { display: none; } .nav-back { display: none; } }
+
+    /* ── Hero ─────────────────────────────────────── */
+    .hero { width: min(var(--maxw), calc(100% - 32px)); margin: 0 auto; padding: 30px 0 8px; }
+    .hero h1 {
+      font-size: clamp(26px, 3.6vw, 34px); font-weight: 800; letter-spacing: -1px; line-height: 1.12;
+      background: linear-gradient(135deg, #1c1c1e 0%, #4f46e5 60%, #06b6d4 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      margin-bottom: 4px;
+    }
+    .hero .th { font-size: 15px; color: var(--ink-2); font-weight: 500; margin-bottom: 6px; }
+    .hero .sub { font-size: 14px; color: var(--muted); line-height: 1.5; max-width: 680px; }
+
+    /* ── Cards & fields ───────────────────────────── */
+    .wrap { width: min(var(--maxw), calc(100% - 32px)); margin: 16px auto 40px; }
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.9);
+      border-radius: var(--radius); padding: 22px;
+      box-shadow: var(--shadow); margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 13px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.05em; color: var(--muted); margin-bottom: 14px;
+      display: flex; align-items: center; gap: 9px;
+    }
+    .step-n {
+      display: inline-grid; place-items: center; flex-shrink: 0;
+      width: 20px; height: 20px; border-radius: 6px;
+      background: var(--accent); color: #fff; font-size: 11px; font-weight: 700;
+      letter-spacing: 0;
+    }
+    label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 5px; }
+    .hint { font-size: 12px; color: var(--muted); font-weight: 400; }
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .field-row.three { grid-template-columns: 1fr 1fr 1fr; }
+    @media (max-width: 560px) { .field-row, .field-row.three { grid-template-columns: 1fr; } }
+    input[type="number"], input[type="text"], select {
+      width: 100%; padding: 9px 11px;
+      border: 1px solid var(--line); border-radius: 8px;
+      font-size: 15px; background: #fff; color: var(--ink);
+      outline: none; transition: border-color .15s, box-shadow .15s;
+      font-variant-numeric: tabular-nums;
+    }
+    input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,70,229,0.12); }
+    input:disabled, input[readonly].solved {
+      background: var(--accent-light); border-color: var(--accent-border);
+      color: var(--accent-dark); font-weight: 700;
+    }
+    .field-note { font-size: 12px; color: var(--muted); line-height: 1.5; margin-top: 5px; }
+    .with-suffix { position: relative; }
+    .with-suffix .suffix {
+      position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
+      font-size: 12px; color: var(--faint); pointer-events: none;
+    }
+    .with-suffix input { padding-right: 46px; }
+
+    /* ── Tabs ─────────────────────────────────────── */
+    .tabs {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
+      border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+      background: #fff; margin-bottom: 16px; box-shadow: var(--shadow);
+    }
+    .tab-btn {
+      padding: 13px 8px; text-align: center; font-size: 14px; font-weight: 700;
+      cursor: pointer; background: transparent; border: none; color: var(--muted);
+      transition: background 0.15s, color 0.15s; line-height: 1.3;
+      border-right: 1px solid var(--line);
+    }
+    .tab-btn:last-child { border-right: none; }
+    .tab-btn .tsub { display: block; font-size: 10.5px; font-weight: 500; opacity: .8; letter-spacing: 0; }
+    .tab-btn.active { background: var(--accent); color: #fff; }
+    @media (max-width: 560px) { .tab-btn { font-size: 13px; padding: 11px 4px; } .tab-btn .tsub { display: none; } }
+
+    /* ── Mode toggle & chips ──────────────────────── */
+    .mode-toggle { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: #fff; }
+    .mode-btn {
+      flex: 1; padding: 10px 8px; text-align: center; font-size: 13px; font-weight: 600;
+      cursor: pointer; background: transparent; border: none; color: var(--muted);
+      transition: background 0.15s, color 0.15s; line-height: 1.35;
+    }
+    .mode-btn .th { display: block; font-size: 10.5px; font-weight: 500; opacity: .78; }
+    .mode-btn.active { background: var(--accent); color: #fff; }
+    .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .chip {
+      border: 1px solid var(--line); border-radius: 999px; background: #fff;
+      padding: 5px 12px; font-size: 12px; cursor: pointer; color: var(--muted);
+      transition: all 0.14s;
+    }
+    .chip:hover { border-color: var(--accent); color: var(--accent); }
+    .chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    /* ── Callouts ─────────────────────────────────── */
+    .callout {
+      border-radius: 8px; padding: 11px 14px; font-size: 12.5px; line-height: 1.55;
+      background: var(--info-light); border: 1px solid var(--info-border); color: var(--info);
+      margin-top: 14px;
+    }
+    .callout.amber { background: var(--amber-light); border-color: var(--amber-border); color: var(--amber); }
+    .callout.green { background: var(--green-light); border-color: var(--green-border); color: var(--green); }
+    .callout.red   { background: var(--rose-light); border-color: var(--rose-border); color: var(--rose-dark); }
+    .callout strong { font-weight: 700; }
+    .callout + .callout { margin-top: 8px; }
+
+    /* ── Effective-rate readout (auto with override) ─ */
+    .derived {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm);
+      padding: 10px 12px; margin-top: 12px;
+    }
+    .derived-label { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+    .derived-val { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink); }
+    .derived input { width: 120px; padding: 6px 9px; font-size: 14px; }
+    .derived .sep { color: var(--faint); }
+    .reset-auto {
+      border: none; background: transparent; color: var(--faint);
+      font-size: 14px; cursor: default; padding: 3px 6px; border-radius: 6px;
+      opacity: .3; transition: opacity .14s, background .14s, color .14s;
+    }
+    .changed .reset-auto { opacity: 1; cursor: pointer; color: var(--accent); }
+    .changed .reset-auto:hover { background: var(--accent-light); }
+    .changed .derived-val, .changed input.ovr { color: var(--accent-dark); }
+
+    /* ── Tables ───────────────────────────────────── */
+    .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 4px; }
+    table.data { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table.data th {
+      text-align: left; padding: 8px 10px; font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .04em; color: var(--muted);
+      border-bottom: 1px solid var(--line); white-space: nowrap;
+    }
+    table.data th.num, table.data td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    table.data td { padding: 8px 10px; border-bottom: 1px solid var(--line-soft); }
+    table.data tr.total td { font-weight: 700; border-top: 2px solid var(--ink); border-bottom: none; }
+    table.data tr.muted td { color: var(--muted); }
+    table.data tr.hl td { color: var(--accent-dark); font-weight: 600; }
+    table.data tr.term { cursor: pointer; transition: background .12s; }
+    table.data tr.term:hover { background: rgba(79,70,229,0.05); }
+    table.data tr.term.sel { background: rgba(79,70,229,0.13); }
+    table.data tr.term.sel td { color: var(--accent-dark); font-weight: 600; }
+    table.data td.pos { color: var(--green-mid); }
+    table.data td.neg { color: var(--rose); }
+    table.data input.cf {
+      width: 118px; padding: 5px 8px; font-size: 13px; text-align: right;
+    }
+    tr.changed input.cf { border-color: var(--accent-border); background: var(--accent-light); color: var(--accent-dark); font-weight: 600; }
+
+    /* ── Result boxes ─────────────────────────────── */
+    .result-boxes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    @media (max-width: 560px) { .result-boxes { grid-template-columns: 1fr; } }
+    .amount-box { border: 1px solid var(--accent-border); border-radius: var(--radius-sm); padding: 15px 16px; background: var(--accent-light); }
+    .amount-box.green { border-color: var(--green-border); background: var(--green-light); }
+    .amount-box.rose  { border-color: var(--rose-border);  background: var(--rose-light); }
+    .amount-box.plain { border-color: var(--line); background: #fff; }
+    .amount-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+    .amount-value { font-size: 26px; font-weight: 800; color: var(--accent-dark); margin-top: 2px; font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
+    .amount-box.green .amount-value { color: var(--green); }
+    .amount-box.rose .amount-value { color: var(--rose-dark); }
+    .amount-box.plain .amount-value { color: var(--ink); }
+    .amount-sub { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.45; }
+
+    /* ── Diagram ──────────────────────────────────── */
+    .diagram-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; flex-wrap: wrap; margin-bottom: 8px;
+    }
+    .diagram-hint { font-size: 12px; color: var(--muted); }
+    .diagram-wrap {
+      background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm);
+      padding: 6px 4px; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    }
+    .diagram-svg { display: block; width: 100%; min-width: 620px; height: auto; }
+    @media (max-width: 620px) { .diagram-svg { min-width: 0; } }
+
+    /* SVG interaction states — a term is an arrow+label+formula+row sharing data-term */
+    .diagram-svg .term { cursor: pointer; }
+    .diagram-svg .term .flow-line { transition: stroke-width .12s, opacity .12s; }
+    .diagram-svg .term:hover .flow-line { stroke-width: 2.6; }
+    .diagram-svg .term:hover .term-label { font-weight: 700; }
+    .diagram-svg .term.sel .flow-line { stroke-width: 3; }
+    .diagram-svg .term.sel .term-label { font-weight: 700; }
+    .diagram-svg .term.sel .halo { opacity: 1; }
+    .diagram-svg .halo { opacity: 0; transition: opacity .12s; }
+    .diagram-svg.dim .term:not(.sel) { opacity: .3; }
+    .mterm { cursor: pointer; }
+    .mterm.sel .mglyph { font-weight: 700; }
+
+    .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; color: var(--muted); }
+    .legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .swatch { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+    .swatch.in { background: var(--green-mid); }
+    .swatch.out { background: var(--rose); }
+    .swatch.res { background: var(--accent); }
+
+    /* ── Collapsible sections ─────────────────────── */
+    details { margin-top: 14px; }
+    details > summary {
+      cursor: pointer; list-style: none; font-size: 13px; font-weight: 600;
+      color: var(--accent-dark); display: flex; align-items: center; gap: 7px;
+      padding: 9px 12px; background: #fff; border: 1px solid var(--line);
+      border-radius: var(--radius-sm); transition: border-color .14s;
+    }
+    details > summary::-webkit-details-marker { display: none; }
+    details > summary:hover { border-color: var(--accent-border); }
+    details > summary::before {
+      content: '▸'; display: inline-block; transition: transform .16s; color: var(--faint);
+    }
+    details[open] > summary::before { transform: rotate(90deg); }
+    details > summary .sum-note { margin-left: auto; font-size: 11.5px; font-weight: 500; color: var(--muted); }
+    .details-body { padding: 14px 2px 2px; font-size: 13px; line-height: 1.6; color: var(--ink-2); }
+    .details-body p { margin-bottom: 10px; }
+    .details-body ul { margin: 0 0 10px; padding-left: 18px; }
+    .details-body li { margin-bottom: 5px; }
+    .details-body code {
+      background: rgba(0,0,0,0.05); padding: 1px 5px; border-radius: 4px;
+      font-size: 12px; font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    }
+
+    /* ── Solver diagnostics ───────────────────────── */
+    .method-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+    @media (max-width: 620px) { .method-grid { grid-template-columns: 1fr; } }
+    .method-card {
+      border: 1px solid var(--line); border-radius: var(--radius-sm);
+      padding: 12px 13px; background: #fff;
+    }
+    .method-card.best { border-color: var(--accent-border); background: var(--accent-light); }
+    .method-card.failed { opacity: .72; border-style: dashed; }
+    .method-head { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+    .method-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+    .method-name { font-size: 13px; font-weight: 700; }
+    .method-badge {
+      margin-left: auto; font-size: 10px; font-weight: 700; padding: 2px 7px;
+      border-radius: 999px; text-transform: uppercase; letter-spacing: .04em;
+    }
+    .method-badge.ok { background: rgba(5,150,105,0.14); color: var(--green); }
+    .method-badge.no { background: rgba(225,29,72,0.12); color: var(--rose-dark); }
+    .method-badge.win { background: var(--accent); color: #fff; }
+    .method-stat { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .method-stat b { color: var(--ink); font-weight: 700; }
+    .method-note { font-size: 11.5px; color: var(--muted); margin-top: 5px; line-height: 1.45; }
+
+    .conv-wrap { background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 8px 6px; overflow-x: auto; }
+    .conv-svg { display: block; width: 100%; min-width: 480px; height: auto; }
+
+    /* ── Actions ──────────────────────────────────── */
+    .actions-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #fff; border: 1px solid var(--line); border-radius: 8px;
+      padding: 8px 15px; font-size: 13px; font-weight: 500;
+      cursor: pointer; color: var(--ink-2); transition: background 0.14s, border-color 0.14s, color .14s;
+    }
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn.copied { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-dark); border-color: var(--accent-dark); color: #fff; }
+    .btn-small { padding: 5px 10px; font-size: 12px; }
+    .btn-danger:hover { border-color: var(--rose); color: var(--rose); }
+
+    /* ── Modal (history & saved scenarios) ────────── */
+    .modal-back {
+      position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.34);
+      backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+      display: none; align-items: flex-start; justify-content: center; padding: 40px 16px;
+      overflow-y: auto;
+    }
+    .modal-back.open { display: flex; }
+    .modal {
+      background: #f7f7fa; border-radius: var(--radius); width: min(660px, 100%);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.28); overflow: hidden;
+    }
+    .modal-head {
+      display: flex; align-items: center; gap: 10px; padding: 16px 20px;
+      border-bottom: 1px solid var(--line); background: #fff;
+    }
+    .modal-title { font-size: 15px; font-weight: 700; }
+    .modal-close {
+      margin-left: auto; border: none; background: rgba(0,0,0,0.055); color: var(--ink-2);
+      width: 28px; height: 28px; border-radius: 8px; cursor: pointer; font-size: 15px; line-height: 1;
+    }
+    .modal-close:hover { background: rgba(0,0,0,0.1); }
+    .modal-body { padding: 16px 20px 20px; max-height: 68vh; overflow-y: auto; }
+    .modal-section + .modal-section { margin-top: 22px; }
+    .modal-section-head {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 9px;
+    }
+    .modal-section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+    .modal-section-head .btn { margin-left: auto; }
+    .rec {
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+      background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm);
+      margin-bottom: 7px;
+    }
+    .rec-main { min-width: 0; flex: 1; }
+    .rec-name { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rec-meta { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+    .rec-tag {
+      font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px;
+      background: var(--accent-light); color: var(--accent-dark); text-transform: uppercase; letter-spacing: .04em;
+      flex-shrink: 0;
+    }
+    .rec-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .rec-empty { font-size: 12.5px; color: var(--faint); padding: 12px; text-align: center; background: #fff; border: 1px dashed var(--line); border-radius: var(--radius-sm); }
+
+    footer {
+      width: min(var(--maxw), calc(100% - 32px)); margin: 24px auto 32px;
+      font-size: 12px; color: var(--faint); text-align: center; line-height: 1.6;
+    }
+    footer .cites { color: var(--muted); }
+
+    .print-only { display: none; }
+    #printHead { font-size: 12.5px; color: #3c3c43; margin-top: 8px; line-height: 1.6; }
+    #printHead b { font-weight: 700; }
+
+    /* ── Print ────────────────────────────────────── */
+    @media print {
+      body { background: #fff !important; background-image: none !important; }
+      .nav, .actions-row, .tabs, .modal-back, .btn, .chips, .mode-toggle,
+      .lang-toggle, .diagram-hint, .reset-auto, #solverCard, .no-print { display: none !important; }
+      .print-only { display: block; }
+      .card {
+        background: #fff !important; box-shadow: none !important;
+        border: 1px solid #d8d8dd !important; break-inside: avoid; page-break-inside: avoid;
+        margin-bottom: 12px; padding: 14px;
+      }
+      .hero { padding-top: 0; }
+      .hero h1 { -webkit-text-fill-color: #1c1c1e; color: #1c1c1e; font-size: 22px; }
+      .diagram-wrap { border-color: #d8d8dd; overflow: visible; }
+      .diagram-svg { min-width: 0; }
+      details { break-inside: avoid; }
+      details > summary { display: none; }
+      .details-body { padding-top: 0; }
+      .wrap { width: 100%; margin: 0; }
+      footer { width: 100%; margin: 10px 0 0; }
+      @page { margin: 14mm; }
+    }
+  </style>
+</head>
+<body>
+<nav class="nav">
+  <a class="nav-brand" href="../index.html">
+    <div class="nav-icon">⚖️</div>
+    <span class="nav-wordmark">JuraTools</span>
+  </a>
+  <span class="nav-sep">/</span>
+  <a class="nav-crumb" href="index.html">Finance Tools</a>
+  <span class="nav-sep hide-sm">/</span>
+  <span class="nav-crumb current" data-i18n="crumb">Time Value of Money</span>
+  <div class="nav-right">
+    <div class="lang-toggle" id="langToggle">
+      <button class="lang-btn active" data-lang="en">EN</button>
+      <button class="lang-btn" data-lang="th">ไทย</button>
+    </div>
+    <a class="nav-back" href="index.html" data-i18n="backAll">← All finance tools</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <h1 data-i18n="h1">Time Value of Money</h1>
+  <div class="th" data-i18n="h1th">มูลค่าเงินตามเวลา — มูลค่าปัจจุบัน · มูลค่าอนาคต · NPV · เงินงวด</div>
+  <p class="sub" data-i18n="heroSub">Present value, future value, net present value and level payments — on one cash-flow timeline. Compounding at any frequency, payments at the start or end of each period, and a rate solver that runs four numerical methods side by side.</p>
+  <div class="print-only" id="printHead"></div>
+</div>
+
+<div class="wrap">
+
+  <!-- ── Tabs ── -->
+  <div class="tabs" id="tabs">
+    <button class="tab-btn active" data-tab="fv">FV<span class="tsub" data-i18n="tabFvSub">Future value</span></button>
+    <button class="tab-btn" data-tab="pv">PV<span class="tsub" data-i18n="tabPvSub">Present value</span></button>
+    <button class="tab-btn" data-tab="npv">NPV<span class="tsub" data-i18n="tabNpvSub">Net present value</span></button>
+    <button class="tab-btn" data-tab="pmt">PMT<span class="tsub" data-i18n="tabPmtSub">Payment</span></button>
+  </div>
+
+  <!-- ── Step 1 — the money ── -->
+  <div class="card" id="moneyCard">
+    <div class="card-title"><span class="step-n">1</span><span data-i18n="s1title">The money</span></div>
+
+    <!-- scenario picker (FV / PV tabs) -->
+    <div class="field" id="scenarioField">
+      <label data-i18n="scenarioLabel">What is being valued?</label>
+      <div class="mode-toggle" id="scenarioToggle">
+        <button class="mode-btn" data-scenario="single" data-i18n="scSingle">A single amount<span class="th">เงินก้อนเดียว</span></button>
+        <button class="mode-btn active" data-scenario="annuity" data-i18n="scAnnuity">Level payments<span class="th">เงินงวดเท่ากัน</span></button>
+        <button class="mode-btn" data-scenario="both" data-i18n="scBoth">Both<span class="th">ทั้งสองอย่าง</span></button>
+        <button class="mode-btn" data-scenario="custom" data-i18n="scCustom">Custom series<span class="th">กระแสเงินสดไม่เท่ากัน</span></button>
+      </div>
+    </div>
+
+    <!-- preset picker (PMT tab) -->
+    <div class="field" id="presetField" style="display:none">
+      <label data-i18n="presetLabel">Common scenario <span class="hint" data-i18n="presetHint">— a starting point; every field stays editable</span></label>
+      <div class="mode-toggle" id="presetToggle">
+        <button class="mode-btn active" data-preset="loan" data-i18n="prLoan">Pay off a loan<span class="th">ผ่อนชำระเงินกู้</span></button>
+        <button class="mode-btn" data-preset="save" data-i18n="prSave">Save toward a goal<span class="th">ออมให้ถึงเป้าหมาย</span></button>
+        <button class="mode-btn" data-preset="both" data-i18n="prBoth">Loan with balloon<span class="th">ผ่อน + ชำระก้อนท้าย</span></button>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field" id="pvField">
+        <label for="fPV" id="lblPV">Present value — amount today (PV)</label>
+        <input type="text" inputmode="decimal" class="amt" id="fPV" placeholder="e.g. 10,000" />
+        <div class="field-note" id="notePV"></div>
+      </div>
+      <div class="field" id="pmtField">
+        <label for="fPMT" id="lblPMT">Payment each period (PMT)</label>
+        <input type="text" inputmode="decimal" class="amt" id="fPMT" placeholder="e.g. 1,000" />
+        <div class="field-note" id="notePMT"></div>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field" id="fvField">
+        <label for="fFV" id="lblFV">Future value at the end (FV)</label>
+        <input type="text" inputmode="decimal" class="amt" id="fFV" placeholder="e.g. 500,000" />
+        <div class="field-note" id="noteFV"></div>
+      </div>
+      <div class="field" id="investField" style="display:none">
+        <label for="fInvest" id="lblInvest">Initial investment — cash out at period 0</label>
+        <input type="text" inputmode="decimal" class="amt" id="fInvest" placeholder="e.g. 1,000,000" />
+        <div class="field-note" data-i18n="noteInvest">Enter as a positive number. It is treated as money going out at period 0.</div>
+      </div>
+    </div>
+
+    <!-- NPV inflow pattern -->
+    <div id="npvPattern" style="display:none">
+      <div class="field-row three">
+        <div class="field">
+          <label for="fCfAmt" data-i18n="lblCfAmt">Cash flow each period</label>
+          <input type="text" inputmode="decimal" class="amt" id="fCfAmt" placeholder="e.g. 250,000" />
+        </div>
+        <div class="field">
+          <label for="fCfFrom" data-i18n="lblCfFrom">From period</label>
+          <input type="number" id="fCfFrom" min="0" step="1" value="1" />
+        </div>
+        <div class="field">
+          <label for="fCfTo" data-i18n="lblCfTo">To period</label>
+          <input type="number" id="fCfTo" min="0" step="1" value="5" />
+        </div>
+      </div>
+      <div class="field-note" data-i18n="noteCfPattern">Positive = money in, negative = money out. Adjust any individual period below.</div>
+    </div>
+
+    <div class="field" id="timingField">
+      <label data-i18n="timingLabel">When does each payment fall?</label>
+      <div class="mode-toggle" id="timingToggle">
+        <button class="mode-btn active" data-timing="end" data-i18n="tmEnd">End of each period<span class="th">สิ้นงวด — ordinary annuity</span></button>
+        <button class="mode-btn" data-timing="due" data-i18n="tmDue">Start of each period<span class="th">ต้นงวด — annuity due</span></button>
+      </div>
+      <div class="field-note" id="timingNote"></div>
+    </div>
+
+    <!-- Per-period overrides -->
+    <details id="periodsDetails">
+      <summary>
+        <span data-i18n="periodsSummary">Customise individual periods</span>
+        <span class="sum-note" id="periodsNote"></span>
+      </summary>
+      <div class="details-body">
+        <p class="muted" style="font-size:12.5px" data-i18n="periodsHelp">Each period is filled automatically from the pattern above. Type over any period to override it; the ↻ button restores that period to automatic. Overridden periods are kept when you change the pattern.</p>
+        <div class="tbl-wrap">
+          <table class="data" id="periodsTable"></table>
+        </div>
+        <div class="actions-row" style="justify-content:flex-start;margin-top:10px">
+          <button class="btn btn-small btn-danger" id="clearOvrBtn" data-i18n="clearOvr">↻ Reset every period to automatic</button>
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <!-- ── Step 2 — time & rate ── -->
+  <div class="card" id="timeCard">
+    <div class="card-title"><span class="step-n">2</span><span data-i18n="s2title">The time and the rate</span></div>
+
+    <div class="field-row three">
+      <div class="field">
+        <label for="fN" id="lblN">Time (n)</label>
+        <div class="with-suffix">
+          <input type="number" id="fN" min="0" step="any" value="5" />
+          <span class="suffix" id="nSuffix" data-i18n="years">years</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="fM" data-i18n="lblM">Compounding (m)</label>
+        <select id="fM">
+          <option value="1" data-i18n="mAnnual">Annual — 1×/year</option>
+          <option value="2" data-i18n="mSemi">Semi-annual — 2×/year</option>
+          <option value="4" data-i18n="mQuarter">Quarterly — 4×/year</option>
+          <option value="12" data-i18n="mMonthly">Monthly — 12×/year</option>
+          <option value="365" data-i18n="mDaily">Daily — 365×/year</option>
+          <option value="custom" data-i18n="mCustom">Custom…</option>
+        </select>
+      </div>
+      <div class="field" id="mCustomField" style="display:none">
+        <label for="fMCustom" data-i18n="lblMCustom">Times per year</label>
+        <input type="number" id="fMCustom" min="1" step="1" value="1" />
+      </div>
+      <div class="field">
+        <label for="fRate" id="lblRate">Nominal annual rate (i)</label>
+        <div class="with-suffix">
+          <input type="number" id="fRate" step="any" value="6" />
+          <span class="suffix">% / yr</span>
+        </div>
+        <div class="chips" id="rateChips">
+          <button class="chip" data-rate="2">2</button>
+          <button class="chip" data-rate="3">3</button>
+          <button class="chip" data-rate="5">5</button>
+          <button class="chip" data-rate="6">6</button>
+          <button class="chip" data-rate="7.5">7.5</button>
+          <button class="chip" data-rate="10">10</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- derived: periodic rate (auto with override) + N + EAR -->
+    <div class="derived" id="rateDerived">
+      <span class="derived-label" data-i18n="perRate">Rate per period</span>
+      <span class="derived-val" id="perRateAuto">—</span>
+      <span class="sep">·</span>
+      <label for="fPerRate" style="margin:0;font-size:12px;color:var(--muted)" data-i18n="override">override</label>
+      <div class="with-suffix" style="width:auto">
+        <input type="number" step="any" class="ovr" id="fPerRate" placeholder="auto" />
+      </div>
+      <span class="suffix" style="position:static;transform:none;font-size:12px;color:var(--faint)">%</span>
+      <button class="reset-auto" id="resetPerRate" title="Reset to automatic">↻</button>
+    </div>
+    <div class="derived" id="periodsDerived" style="margin-top:8px">
+      <span class="derived-label" data-i18n="totPeriods">Total periods</span>
+      <span class="derived-val" id="totPeriodsVal">—</span>
+      <span class="sep">·</span>
+      <span class="derived-label" data-i18n="ear">Effective annual rate</span>
+      <span class="derived-val" id="earVal">—</span>
+    </div>
+
+    <div id="rateWarn"></div>
+
+    <div class="field-row" style="margin-top:14px">
+      <div class="field">
+        <label for="decimals" data-i18n="lblDecimals">Decimal places</label>
+        <select id="decimals">
+          <option value="0">0</option>
+          <option value="1">1</option>
+          <option value="2" selected>2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="rounding" data-i18n="lblRounding">Rounding method</label>
+        <select id="rounding">
+          <option value="normal" data-i18n="rNormal">Normal (round half up)</option>
+          <option value="floor" data-i18n="rFloor">Floor (always round down)</option>
+          <option value="ceil" data-i18n="rCeil">Ceiling (always round up)</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-note" data-i18n="noteRounding">Rounding applies to displayed money only. Every calculation runs at full precision, so a long compounding chain does not drift.</div>
+  </div>
+
+  <!-- ── Step 3 — solve for ── -->
+  <div class="card" id="solveCard">
+    <div class="card-title"><span class="step-n">3</span><span data-i18n="s3title">What are we solving for?</span></div>
+    <div class="field-row">
+      <div class="field">
+        <label for="fSolve" data-i18n="lblSolve">Solve for</label>
+        <select id="fSolve"></select>
+        <div class="field-note" id="solveNote"></div>
+      </div>
+      <div class="field" id="solveTolField" style="display:none">
+        <label for="fTol" data-i18n="lblTol">Convergence tolerance</label>
+        <select id="fTol">
+          <option value="1e-6">1e−6 — standard</option>
+          <option value="1e-9" selected>1e−9 — tight</option>
+          <option value="1e-12">1e−12 — maximum</option>
+        </select>
+        <div class="field-note" data-i18n="noteTol">Stops when |f(r)| falls below this, or at 100 iterations.</div>
+      </div>
+    </div>
+    <div id="validation"></div>
+  </div>
+
+  <!-- ── Result ── -->
+  <div class="card" id="resultCard">
+    <div class="card-title"><span data-i18n="resultTitle">Result</span></div>
+    <div class="result-boxes" id="resultBoxes"></div>
+
+    <div class="diagram-head">
+      <div class="card-title" style="margin:0"><span data-i18n="diagramTitle">Cash-flow timeline</span></div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-left:auto">
+        <button class="btn btn-small" id="expandBtn" style="display:none"></button>
+        <div class="diagram-hint" data-i18n="diagramHint">Click any arrow, formula term or table row — the matching parts light up together.</div>
+      </div>
+    </div>
+    <div class="diagram-wrap">
+      <div id="diagram"></div>
+    </div>
+    <div class="legend">
+      <span><i class="swatch in"></i> <span data-i18n="legIn">Money in</span></span>
+      <span><i class="swatch out"></i> <span data-i18n="legOut">Money out</span></span>
+      <span><i class="swatch res"></i> <span data-i18n="legRes">Result</span></span>
+    </div>
+
+    <details id="termsDetails" open>
+      <summary>
+        <span data-i18n="termsSummary">Period-by-period working</span>
+        <span class="sum-note" id="termsNote"></span>
+      </summary>
+      <div class="details-body">
+        <div class="tbl-wrap">
+          <table class="data" id="termsTable"></table>
+        </div>
+      </div>
+    </details>
+
+    <details id="amortDetails" style="display:none">
+      <summary>
+        <span data-i18n="amortSummary">Amortisation schedule</span>
+        <span class="sum-note" id="amortNote"></span>
+      </summary>
+      <div class="details-body">
+        <div class="tbl-wrap">
+          <table class="data" id="amortTable"></table>
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <!-- ── Solver diagnostics ── -->
+  <div class="card" id="solverCard" style="display:none">
+    <div class="card-title"><span data-i18n="solverTitle">Rate solver — four methods side by side</span></div>
+    <p class="muted" style="font-size:12.5px;margin-bottom:12px" data-i18n="solverIntro">There is no closed-form solution for the rate, so it is found by iteration. All four methods search for the same root; they differ in how fast and how safely they get there.</p>
+    <div class="method-grid" id="methodGrid"></div>
+    <div class="card-title" style="margin-top:6px"><span data-i18n="convTitle">Convergence</span></div>
+    <div class="conv-wrap"><div id="convGraph"></div></div>
+    <div class="field-note" data-i18n="convNote">Vertical axis is |f(r)| on a log scale — how far the current guess is from balancing the cash flows. Lower is closer; each step down is a factor of ten.</div>
+    <details id="iterDetails">
+      <summary><span data-i18n="iterSummary">Iteration tables</span></summary>
+      <div class="details-body" id="iterTables"></div>
+    </details>
+  </div>
+
+  <!-- ── Assumptions ── -->
+  <details id="assumeDetails">
+    <summary><span data-i18n="assumeSummary">Formulas, conventions and what is not modelled</span></summary>
+    <div class="details-body" id="assumeBody"></div>
+  </details>
+
+  <div class="actions-row" style="margin-top:16px">
+    <button class="btn btn-primary" id="saveBtn" data-i18n="btnSave">☆ Save scenario</button>
+    <button class="btn" id="historyBtn" data-i18n="btnHistory">History &amp; saved</button>
+    <button class="btn" id="copyBtn" data-i18n="btnCopy">Copy summary</button>
+    <button class="btn" id="printBtn" data-i18n="btnPrint">Print</button>
+    <button class="btn" id="exampleBtn" data-i18n="btnExample">Load example</button>
+    <button class="btn btn-danger" id="clearBtn" data-i18n="btnClear">Clear all</button>
+  </div>
+
+</div>
+
+<!-- ── History / saved scenarios modal ── -->
+<div class="modal-back" id="modalBack">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title" data-i18n="modalTitle">History &amp; saved scenarios</span>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-section">
+        <div class="modal-section-head">
+          <span class="modal-section-title" data-i18n="savedTitle">Saved scenarios</span>
+          <button class="btn btn-small btn-danger" id="clearSavedBtn" data-i18n="clearSaved">Clear all saved</button>
+        </div>
+        <div id="savedList"></div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-section-head">
+          <span class="modal-section-title" data-i18n="recentTitle">Recent calculations</span>
+          <button class="btn btn-small btn-danger" id="clearHistBtn" data-i18n="clearHist">Clear history</button>
+        </div>
+        <div id="histList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <span class="cites" data-i18n="footCites">Compound interest · ordinary annuity and annuity due · net present value · amortising payment · IRR by Newton–Raphson, bisection, secant and Brent</span><br>
+  <span data-i18n="footDisc">Reference tool only — not financial or investment advice. Runs entirely in your browser; nothing is sent anywhere.</span>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  // ── i18n ────────────────────────────────────────────────────────────────
+  // English is written into the HTML; Thai is swapped in over data-i18n nodes.
+  var TH = {
+    crumb: 'มูลค่าเงินตามเวลา', backAll: '← เครื่องมือการเงินทั้งหมด',
+    h1: 'มูลค่าเงินตามเวลา', h1th: 'Time Value of Money — PV · FV · NPV · PMT',
+    heroSub: 'มูลค่าปัจจุบัน มูลค่าอนาคต มูลค่าปัจจุบันสุทธิ และเงินงวด บนเส้นเวลากระแสเงินสดเดียวกัน คิดดอกเบี้ยทบต้นกี่ครั้งต่อปีก็ได้ ชำระต้นงวดหรือสิ้นงวดก็ได้ และมีตัวหาอัตราดอกเบี้ยที่รันวิธีเชิงตัวเลข 4 วิธีเทียบกัน',
+    tabFvSub: 'มูลค่าอนาคต', tabPvSub: 'มูลค่าปัจจุบัน', tabNpvSub: 'มูลค่าปัจจุบันสุทธิ', tabPmtSub: 'เงินงวด',
+    s1title: 'ตัวเงิน', s2title: 'เวลาและอัตราดอกเบี้ย', s3title: 'ต้องการหาค่าใด',
+    scenarioLabel: 'สิ่งที่ต้องการคำนวณคืออะไร',
+    scSingle: 'เงินก้อนเดียว', scAnnuity: 'เงินงวดเท่ากัน', scBoth: 'ทั้งสองอย่าง', scCustom: 'กระแสเงินสดไม่เท่ากัน',
+    presetLabel: 'สถานการณ์ที่พบบ่อย', presetHint: '— เป็นเพียงจุดตั้งต้น ทุกช่องยังแก้ไขได้',
+    prLoan: 'ผ่อนชำระเงินกู้', prSave: 'ออมให้ถึงเป้าหมาย', prBoth: 'ผ่อน + ชำระก้อนท้าย',
+    noteInvest: 'กรอกเป็นจำนวนบวก ระบบถือว่าเป็นเงินจ่ายออก ณ งวดที่ 0',
+    lblCfAmt: 'กระแสเงินสดต่องวด', lblCfFrom: 'ตั้งแต่งวดที่', lblCfTo: 'ถึงงวดที่',
+    noteCfPattern: 'ค่าบวก = เงินเข้า ค่าลบ = เงินออก ปรับรายงวดได้ด้านล่าง',
+    timingLabel: 'เงินงวดตกเมื่อใด',
+    tmEnd: 'สิ้นงวด', tmDue: 'ต้นงวด',
+    periodsSummary: 'กำหนดรายงวดเอง', periodsHelp: 'แต่ละงวดถูกเติมอัตโนมัติจากรูปแบบด้านบน พิมพ์ทับเพื่อกำหนดเอง ปุ่ม ↻ คืนค่างวดนั้นกลับเป็นอัตโนมัติ ค่าที่กำหนดเองจะถูกเก็บไว้แม้เปลี่ยนรูปแบบ',
+    clearOvr: '↻ คืนทุกงวดกลับเป็นอัตโนมัติ',
+    years: 'ปี', lblM: 'ทบต้น (m)', lblMCustom: 'ครั้งต่อปี',
+    mAnnual: 'ปีละครั้ง — 1 ครั้ง/ปี', mSemi: 'ทุก 6 เดือน — 2 ครั้ง/ปี', mQuarter: 'รายไตรมาส — 4 ครั้ง/ปี',
+    mMonthly: 'รายเดือน — 12 ครั้ง/ปี', mDaily: 'รายวัน — 365 ครั้ง/ปี', mCustom: 'กำหนดเอง…',
+    perRate: 'อัตราต่องวด', override: 'กำหนดเอง', totPeriods: 'จำนวนงวดทั้งหมด', ear: 'อัตราผลตอบแทนที่แท้จริงต่อปี',
+    lblDecimals: 'ทศนิยม', lblRounding: 'วิธีปัดเศษ',
+    rNormal: 'ปกติ (ปัดครึ่งขึ้น)', rFloor: 'ปัดลงเสมอ', rCeil: 'ปัดขึ้นเสมอ',
+    noteRounding: 'การปัดเศษมีผลกับตัวเลขที่แสดงเท่านั้น การคำนวณทั้งหมดใช้ความละเอียดเต็ม ผลจึงไม่คลาดเคลื่อนสะสม',
+    lblSolve: 'ต้องการหา', lblTol: 'เกณฑ์การลู่เข้า',
+    noteTol: 'หยุดเมื่อ |f(r)| ต่ำกว่าค่านี้ หรือครบ 100 รอบ',
+    resultTitle: 'ผลลัพธ์', diagramTitle: 'เส้นเวลากระแสเงินสด',
+    diagramHint: 'คลิกลูกศร พจน์ในสูตร หรือแถวในตาราง — ส่วนที่ตรงกันจะสว่างพร้อมกัน',
+    legIn: 'เงินเข้า', legOut: 'เงินออก', legRes: 'ผลลัพธ์',
+    termsSummary: 'การคำนวณทีละงวด', amortSummary: 'ตารางผ่อนชำระ',
+    solverTitle: 'ตัวหาอัตราดอกเบี้ย — เทียบ 4 วิธี',
+    solverIntro: 'อัตราดอกเบี้ยไม่มีสูตรสำเร็จรูป จึงต้องหาด้วยการวนซ้ำ ทั้ง 4 วิธีหาคำตอบเดียวกัน ต่างกันที่ความเร็วและความปลอดภัย',
+    convTitle: 'การลู่เข้า',
+    convNote: 'แกนตั้งคือ |f(r)| แบบล็อก — ระยะห่างจากจุดที่กระแสเงินสดสมดุล ยิ่งต่ำยิ่งใกล้ ลงหนึ่งขั้นคือดีขึ้นสิบเท่า',
+    iterSummary: 'ตารางการวนซ้ำ',
+    assumeSummary: 'สูตร ข้อตกลง และสิ่งที่ยังไม่ได้คำนวณ',
+    btnSave: '☆ บันทึกสถานการณ์', btnHistory: 'ประวัติและที่บันทึกไว้', btnCopy: 'คัดลอกสรุป',
+    btnPrint: 'พิมพ์', btnExample: 'โหลดตัวอย่าง', btnClear: 'ล้างทั้งหมด',
+    modalTitle: 'ประวัติและสถานการณ์ที่บันทึกไว้', savedTitle: 'สถานการณ์ที่บันทึกไว้',
+    clearSaved: 'ลบที่บันทึกทั้งหมด', recentTitle: 'การคำนวณล่าสุด', clearHist: 'ล้างประวัติ',
+    footCites: 'ดอกเบี้ยทบต้น · เงินงวดสิ้นงวดและต้นงวด · มูลค่าปัจจุบันสุทธิ · เงินงวดผ่อนชำระ · IRR ด้วยวิธี Newton–Raphson, แบ่งครึ่ง, secant และ Brent',
+    footDisc: 'เป็นเครื่องมืออ้างอิงเท่านั้น ไม่ใช่คำแนะนำทางการเงินหรือการลงทุน ทำงานในเบราว์เซอร์ของคุณทั้งหมด ไม่มีการส่งข้อมูลไปที่ใด'
+  };
+  var EN = {};   // captured from the DOM on first paint
+
+  function t(k) { return S.lang === 'th' ? (TH[k] != null ? TH[k] : EN[k]) : EN[k]; }
+
+  // ── State ───────────────────────────────────────────────────────────────
+  var KEY = 'tvmCalc_v1';
+  var TABS = ['fv', 'pv', 'npv', 'pmt'];
+
+  function blankTab(tab) {
+    return {
+      scenario: tab === 'npv' ? 'pattern' : 'annuity',
+      preset: 'loan',
+      pv: '', pmt: '', fv: '', invest: '',
+      cfAmt: '', cfFrom: '1', cfTo: '5',
+      n: '5', m: '1', mCustom: '1', rate: '6',
+      perRate: '',          // '' = auto (i / m)
+      timing: 'end',
+      solveFor: tab === 'npv' ? 'npv' : tab,
+      tol: '1e-9', expand: false,
+      flows: {}             // { '<t>': '<signed amount string>' } — manual overrides
+    };
+  }
+
+  var S = {
+    v: 1, tab: 'fv', lang: 'en', dp: '2', rounding: 'normal',
+    tabs: { fv: blankTab('fv'), pv: blankTab('pv'), npv: blankTab('npv'), pmt: blankTab('pmt') },
+    history: [], saved: []
+  };
+  function TS() { return S.tabs[S.tab]; }
+
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+  }
+  function load() {
+    var st = null;
+    try { st = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+    if (!st) return false;
+    if (st.lang === 'th' || st.lang === 'en') S.lang = st.lang;
+    if (TABS.indexOf(st.tab) >= 0) S.tab = st.tab;
+    if (st.dp != null) S.dp = String(st.dp);
+    if (st.rounding) S.rounding = st.rounding;
+    TABS.forEach(function (k) {
+      if (!st.tabs || !st.tabs[k]) return;
+      var src = st.tabs[k], dst = S.tabs[k];
+      Object.keys(dst).forEach(function (f) {
+        if (src[f] === undefined) return;
+        if (f === 'flows') { dst.flows = (src.flows && typeof src.flows === 'object') ? src.flows : {}; }
+        else dst[f] = src[f];
+      });
+    });
+    if (Array.isArray(st.history)) S.history = st.history.slice(0, 25);
+    if (Array.isArray(st.saved)) S.saved = st.saved.slice(0, 60);
+    return true;
+  }
+
+  // ── Number helpers ──────────────────────────────────────────────────────
+  function dp() { return parseInt(S.dp, 10) || 0; }
+
+  // Rounds per the chosen precision + method. Display only — never fed back
+  // into a calculation, so a long compounding chain cannot drift.
+  function roundAmt(n) {
+    if (!isFinite(n)) return n;
+    var f = Math.pow(10, dp()), x = n * f;
+    var nearest = Math.round(x);
+    if (Math.abs(x - nearest) < 1e-6) x = nearest;      // absorb float noise at exact halves
+    else x = S.rounding === 'floor' ? Math.floor(x)
+           : S.rounding === 'ceil'  ? Math.ceil(x)
+           : Math.round(x);
+    return x / f;
+  }
+  function fmt(n) {
+    if (n == null || !isFinite(n)) return '—';
+    var d = dp();
+    return roundAmt(n).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+  }
+  // Rates carry their own precision: 4 dp by default, more if the user asked.
+  function fmtRate(r) {
+    if (r == null || !isFinite(r)) return '—';
+    var d = Math.max(4, dp());
+    return (r * 100).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }) + '%';
+  }
+  function fmtShort(n) {
+    if (n == null || !isFinite(n)) return '—';
+    return n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  }
+  function parseAmt(v) {
+    if (v == null) return NaN;
+    var s = String(v).replace(/[,\s]/g, '');
+    if (s === '' || s === '-') return NaN;
+    return parseFloat(s);
+  }
+  function num(v, d) { var x = parseAmt(v); return isFinite(x) ? x : (d == null ? 0 : d); }
+
+  // Live thousands separators with caret preservation (house convention).
+  function liveFormat(el) {
+    var raw = el.value;
+    var caret = el.selectionStart == null ? raw.length : el.selectionStart;
+    var anchorsBefore = raw.slice(0, caret).replace(/[^0-9.]/g, '').length;
+    var neg = /^\s*-/.test(raw);
+    var clean = raw.replace(/[^0-9.]/g, '');
+    var firstDot = clean.indexOf('.');
+    var intp = firstDot >= 0 ? clean.slice(0, firstDot) : clean;
+    var frac = firstDot >= 0 ? clean.slice(firstDot + 1).replace(/\./g, '') : null;
+    var out = (neg ? '-' : '') + intp.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (frac !== null ? '.' + frac : '');
+    if (out === raw) return;
+    el.value = out;
+    if (document.activeElement === el && el.setSelectionRange) {
+      var pos = 0, seen = 0;
+      while (pos < out.length && seen < anchorsBefore) { if (/[0-9.]/.test(out[pos])) seen++; pos++; }
+      if (neg && pos === 0) pos = 1;
+      el.setSelectionRange(pos, pos);
+    }
+  }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function id() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+  // ══ Financial core ═══════════════════════════════════════════════════════
+  // Pure: numbers in, objects out. Never touches the DOM, never reads storage.
+  //
+  // Sign convention. The FV and PV tabs work in *accumulation* form — every
+  // amount is entered as a positive magnitude and the answer comes out
+  // positive, exactly as a textbook worked example does. Signs only appear
+  // where the domain genuinely has two directions: the NPV tab (investment out,
+  // returns in) and any custom series. The PMT tab works in signed balance
+  // form internally, because a loan and a savings plan differ precisely in who
+  // pays whom; the preset assigns the signs and the answer is reported as a
+  // magnitude.
+
+  function annFV(r, N) { return Math.abs(r) < 1e-12 ? N : (Math.pow(1 + r, N) - 1) / r; }
+  function annPV(r, N) { return Math.abs(r) < 1e-12 ? N : (1 - Math.pow(1 + r, -N)) / r; }
+  function due(r, isDue) { return isDue ? (1 + r) : 1; }
+
+  // Reads every input into plain numbers. `N` is total periods = years × m.
+  function readInputs() {
+    var T = TS();
+    var m = T.m === 'custom' ? Math.max(1, Math.round(num(T.mCustom, 1))) : Math.max(1, Math.round(num(T.m, 1)));
+    var years = num(T.n, 0);
+    var N = Math.round(years * m);
+    var iNom = num(T.rate, 0) / 100;
+    var rAuto = iNom / m;
+    var rOvr = T.perRate === '' || T.perRate == null ? null : num(T.perRate, NaN) / 100;
+    var r = (rOvr != null && isFinite(rOvr)) ? rOvr : rAuto;
+    return {
+      tab: S.tab, scenario: T.scenario, preset: T.preset,
+      m: m, years: years, N: N, iNom: iNom,
+      rAuto: rAuto, r: r, rOverridden: rOvr != null && isFinite(rOvr),
+      isDue: T.timing === 'due',
+      pv: parseAmt(T.pv), pmt: parseAmt(T.pmt), fv: parseAmt(T.fv), invest: parseAmt(T.invest),
+      cfAmt: parseAmt(T.cfAmt), cfFrom: Math.round(num(T.cfFrom, 1)), cfTo: Math.round(num(T.cfTo, 0)),
+      solveFor: T.solveFor, tol: parseFloat(T.tol) || 1e-9, flows: T.flows
+    };
+  }
+
+  // Signs the PMT tab applies to each magnitude, by preset.
+  function pmtSigns(preset) {
+    if (preset === 'save') return { pv: -1, pmt: -1, fv: +1 };  // deposits out, goal in
+    return { pv: +1, pmt: -1, fv: -1 };                          // loan in, instalments + balloon out
+  }
+
+  // Builds the full period-by-period series, 0..N. `auto` is the value the
+  // pattern produces; a manual override in `flows` replaces it but is kept
+  // separately so ↻ can restore it.
+  function buildSeries(inp) {
+    var N = inp.N, out = [], t;
+    var payFrom = inp.isDue ? 0 : 1;
+    var payTo = inp.isDue ? N - 1 : N;
+
+    for (t = 0; t <= N; t++) out.push({ t: t, auto: 0, role: null });
+
+    function add(t, v, role) {
+      if (t < 0 || t > N || !isFinite(v) || v === 0) return;
+      out[t].auto += v;
+      out[t].role = out[t].role && out[t].role !== role ? 'mixed' : role;
+    }
+
+    if (inp.tab === 'npv') {
+      if (isFinite(inp.invest)) add(0, -Math.abs(inp.invest), 'invest');
+      if (isFinite(inp.cfAmt)) {
+        var a = Math.min(inp.cfFrom, inp.cfTo), b = Math.max(inp.cfFrom, inp.cfTo);
+        for (t = Math.max(0, a); t <= Math.min(N, b); t++) add(t, inp.cfAmt, 'cf');
+      }
+    } else if (inp.tab === 'pmt') {
+      var sg = pmtSigns(inp.preset);
+      if (isFinite(inp.pv)) add(0, sg.pv * Math.abs(inp.pv), 'pv');
+      if (isFinite(inp.pmt)) for (t = payFrom; t <= payTo; t++) add(t, sg.pmt * Math.abs(inp.pmt), 'pmt');
+      if (isFinite(inp.fv)) add(N, sg.fv * Math.abs(inp.fv), 'fv');
+    } else {
+      // FV / PV tabs — accumulation form, magnitudes as entered.
+      var sc = inp.scenario;
+      if (sc === 'custom') {
+        if (isFinite(inp.cfAmt)) {
+          var a2 = Math.min(inp.cfFrom, inp.cfTo), b2 = Math.max(inp.cfFrom, inp.cfTo);
+          for (t = Math.max(0, a2); t <= Math.min(N, b2); t++) add(t, inp.cfAmt, 'cf');
+        }
+      } else {
+        if ((sc === 'single' || sc === 'both')) {
+          if (inp.tab === 'fv' && isFinite(inp.pv)) add(0, inp.pv, 'pv');
+          if (inp.tab === 'pv' && isFinite(inp.fv)) add(N, inp.fv, 'fv');
+        }
+        if ((sc === 'annuity' || sc === 'both') && isFinite(inp.pmt)) {
+          for (t = payFrom; t <= payTo; t++) add(t, inp.pmt, 'pmt');
+        }
+      }
+    }
+
+    // Apply manual overrides.
+    for (t = 0; t <= N; t++) {
+      var ov = inp.flows ? inp.flows[String(t)] : undefined;
+      var has = ov !== undefined && ov !== null && String(ov).trim() !== '';
+      out[t].manual = has;
+      out[t].amt = has ? num(ov, 0) : out[t].auto;
+      if (has && out[t].role == null) out[t].role = 'cf';
+    }
+
+    return out;
+  }
+
+  function seriesPV(series, r) {
+    var s = 0;
+    for (var k = 0; k < series.length; k++) {
+      if (!series[k].amt) continue;
+      s += series[k].amt * Math.pow(1 + r, -series[k].t);
+    }
+    return s;
+  }
+  function seriesFV(series, r, N) {
+    var s = 0;
+    for (var k = 0; k < series.length; k++) {
+      if (!series[k].amt) continue;
+      s += series[k].amt * Math.pow(1 + r, N - series[k].t);
+    }
+    return s;
+  }
+  function seriesDeriv(series, r) {            // d/dr of seriesPV — for Newton
+    var s = 0;
+    for (var k = 0; k < series.length; k++) {
+      var t = series[k].t;
+      if (!series[k].amt || t === 0) continue;
+      s += -t * series[k].amt * Math.pow(1 + r, -t - 1);
+    }
+    return s;
+  }
+
+  // ── Solving for one unknown ─────────────────────────────────────────────
+  // Returns { ok, value, label, closed, detail } or { ok:false, why }.
+  function solveClosed(inp) {
+    var r = inp.r, N = inp.N, D = due(r, inp.isDue);
+    var gf = Math.pow(1 + r, N);
+    var Af = annFV(r, N) * D, Ap = annPV(r, N) * D;
+    var sc = inp.scenario, want = inp.solveFor;
+    var pv = isFinite(inp.pv) ? inp.pv : 0,
+        pmt = isFinite(inp.pmt) ? inp.pmt : 0,
+        fv = isFinite(inp.fv) ? inp.fv : 0;
+
+    if (inp.tab === 'fv') {
+      if (want === 'fv') return { ok: true, value: seriesFV(buildSeries(inp), r, N), closed: sc !== 'custom' };
+      if (want === 'pmt') {
+        if (Af === 0) return { ok: false, why: 'noAnnuity' };
+        return { ok: true, value: (fv - (sc === 'annuity' ? 0 : pv) * gf) / Af, closed: true };
+      }
+      if (want === 'pv') {
+        if (gf === 0) return { ok: false, why: 'badRate' };
+        return { ok: true, value: (fv - (sc === 'single' ? 0 : pmt) * Af) / gf, closed: true };
+      }
+    }
+    if (inp.tab === 'pv') {
+      if (want === 'pv') return { ok: true, value: seriesPV(buildSeries(inp), r), closed: sc !== 'custom' };
+      if (want === 'pmt') {
+        if (Ap === 0) return { ok: false, why: 'noAnnuity' };
+        return { ok: true, value: (pv - (sc === 'annuity' ? 0 : fv) / gf) / Ap, closed: true };
+      }
+      if (want === 'fv') return { ok: true, value: (pv - (sc === 'single' ? 0 : pmt) * Ap) * gf, closed: true };
+    }
+    if (inp.tab === 'npv') {
+      if (want === 'npv') return { ok: true, value: seriesPV(buildSeries(inp), r), closed: false };
+    }
+    if (inp.tab === 'pmt') {
+      var sg = pmtSigns(inp.preset);
+      var P = isFinite(inp.pv) ? sg.pv * Math.abs(inp.pv) : 0;
+      var F = isFinite(inp.fv) ? sg.fv * Math.abs(inp.fv) : 0;
+      var M = isFinite(inp.pmt) ? sg.pmt * Math.abs(inp.pmt) : 0;
+      // Balance: P·(1+r)^N + PMT·A·D + F = 0
+      if (want === 'pmt') {
+        if (Af === 0) return { ok: false, why: 'noAnnuity' };
+        return { ok: true, value: Math.abs(-(P * gf + F) / Af), closed: true, signed: -(P * gf + F) / Af };
+      }
+      if (want === 'pv') {
+        if (gf === 0) return { ok: false, why: 'badRate' };
+        return { ok: true, value: Math.abs(-(M * Af + F) / gf), closed: true };
+      }
+      if (want === 'fv') return { ok: true, value: Math.abs(-(P * gf + M * Af)), closed: true };
+    }
+    return { ok: false, why: 'unsupported' };
+  }
+
+  // The equation whose root is the answer, as a function of the rate.
+  // Everything the user contributes on one side, the target on the other.
+  function objectiveSeries(inp) {
+    var base = buildSeries(inp);
+    var N = inp.N;
+    if (inp.tab === 'fv') {
+      if (!isFinite(inp.fv)) return null;
+      base = base.slice(); base[N] = Object.assign({}, base[N]);
+      base[N].amt -= inp.fv; base[N].target = true;
+    } else if (inp.tab === 'pv') {
+      if (!isFinite(inp.pv)) return null;
+      base = base.slice(); base[0] = Object.assign({}, base[0]);
+      base[0].amt -= inp.pv; base[0].target = true;
+    }
+    // npv → IRR and pmt → balance are already complete series.
+    return base;
+  }
+
+  // How far out of balance the deal is at a given term. Continuous in N —
+  // the discrete series cannot be used here, because the search runs through
+  // fractional periods on its way to the answer.
+  function balanceAtN(inp, N) {
+    var r = inp.r, D = due(r, inp.isDue), gf = Math.pow(1 + r, N);
+    var pv = isFinite(inp.pv) ? inp.pv : 0,
+        pmt = isFinite(inp.pmt) ? inp.pmt : 0,
+        fv = isFinite(inp.fv) ? inp.fv : 0;
+    if (inp.tab === 'fv') {
+      return (inp.scenario === 'annuity' ? 0 : pv) * gf
+           + (inp.scenario === 'single' ? 0 : pmt) * annFV(r, N) * D - fv;
+    }
+    if (inp.tab === 'pv') {
+      return (inp.scenario === 'annuity' ? 0 : fv) / gf
+           + (inp.scenario === 'single' ? 0 : pmt) * annPV(r, N) * D - pv;
+    }
+    if (inp.tab === 'pmt') {
+      var sg = pmtSigns(inp.preset);
+      var P = isFinite(inp.pv) ? sg.pv * Math.abs(inp.pv) : 0;
+      var F = isFinite(inp.fv) ? sg.fv * Math.abs(inp.fv) : 0;
+      var M = isFinite(inp.pmt) ? sg.pmt * Math.abs(inp.pmt) : 0;
+      return P * gf + M * annFV(r, N) * D + F;
+    }
+    return NaN;
+  }
+
+  // Solving for the number of periods, by monotone search on the balance.
+  function solveN(inp) {
+    var probe = function (N) { return balanceAtN(inp, Math.max(0, N)); };
+    var lo = 1e-6, hi = 1200, flo = probe(lo), fhi = probe(hi);
+    if (!isFinite(flo) || !isFinite(fhi)) return { ok: false, why: 'needTarget' };
+    if (flo * fhi > 0) return { ok: false, why: 'noN' };
+    for (var k = 0; k < 200; k++) {
+      var mid = (lo + hi) / 2, fm = probe(mid);
+      if (flo * fm <= 0) { hi = mid; fhi = fm; } else { lo = mid; flo = fm; }
+    }
+    var Nsol = (lo + hi) / 2;
+    return { ok: true, value: Nsol, periods: Nsol, years: Nsol / inp.m, closed: false };
+  }
+
+  // ══ Numerical solvers ════════════════════════════════════════════════════
+  // Four independent methods, all hunting the same root of f(r) = PV of the
+  // balanced series. Each records its own trace so the diagnostics panel can
+  // show how it got there, and each reports the diagnostic that actually
+  // explains its behaviour.
+  var MAXIT = 100;
+
+  function findBracket(f) {
+    // Rates below −100% are meaningless; scan outward from zero.
+    var pts = [], x;
+    for (x = -0.9999; x < 0; x += 0.05) pts.push(x);
+    pts.push(0);
+    for (x = 0.01; x <= 3.0001; x += 0.01) pts.push(x);
+    for (x = 3.5; x <= 60; x += 0.5) pts.push(x);
+    var prev = null, fprev = null;
+    for (var k = 0; k < pts.length; k++) {
+      var fx = f(pts[k]);
+      if (!isFinite(fx)) { prev = null; continue; }
+      if (Math.abs(fx) < 1e-14) return { a: pts[k], b: pts[k], fa: fx, fb: fx, exact: true };
+      if (prev !== null && fprev * fx < 0) return { a: prev, b: pts[k], fa: fprev, fb: fx };
+      prev = pts[k]; fprev = fx;
+    }
+    return null;
+  }
+
+  function mBisection(f, br, tol) {
+    var a = br.a, b = br.b, fa = br.fa, fb = br.fb, it = [];
+    for (var k = 0; k < MAXIT; k++) {
+      var c = (a + b) / 2, fc = f(c);
+      it.push({ k: k + 1, x: c, fx: fc, extra: Math.abs(b - a) });
+      if (Math.abs(fc) < tol || Math.abs(b - a) < 1e-15) return { ok: true, root: c, it: it, conv: true };
+      if (fa * fc < 0) { b = c; fb = fc; } else { a = c; fa = fc; }
+    }
+    return { ok: true, root: (a + b) / 2, it: it, conv: false, why: 'maxIter' };
+  }
+
+  function mNewton(f, df, x0, tol) {
+    var x = x0, it = [];
+    for (var k = 0; k < MAXIT; k++) {
+      var fx = f(x), d = df(x);
+      it.push({ k: k + 1, x: x, fx: fx, extra: d });
+      if (!isFinite(fx) || !isFinite(d)) return { ok: false, it: it, why: 'diverged' };
+      if (Math.abs(fx) < tol) return { ok: true, root: x, it: it, conv: true };
+      if (Math.abs(d) < 1e-14) return { ok: false, it: it, why: 'flatDeriv' };
+      var nx = x - fx / d;
+      if (nx <= -1) nx = (x - 1) / 2;                 // keep 1+r positive
+      if (!isFinite(nx)) return { ok: false, it: it, why: 'diverged' };
+      x = nx;
+    }
+    return { ok: true, root: x, it: it, conv: false, why: 'maxIter' };
+  }
+
+  function mSecant(f, x0, x1, tol) {
+    var a = x0, b = x1, fa = f(a), fb = f(b), it = [];
+    for (var k = 0; k < MAXIT; k++) {
+      it.push({ k: k + 1, x: b, fx: fb, extra: Math.abs(b - a) });
+      if (!isFinite(fb)) return { ok: false, it: it, why: 'diverged' };
+      if (Math.abs(fb) < tol) return { ok: true, root: b, it: it, conv: true };
+      if (Math.abs(fb - fa) < 1e-16) return { ok: false, it: it, why: 'flatSecant' };
+      var c = b - fb * (b - a) / (fb - fa);
+      if (c <= -1) c = (b - 1) / 2;
+      if (!isFinite(c)) return { ok: false, it: it, why: 'diverged' };
+      a = b; fa = fb; b = c; fb = f(c);
+    }
+    return { ok: true, root: b, it: it, conv: false, why: 'maxIter' };
+  }
+
+  // Brent — inverse quadratic interpolation, secant, bisection fallback.
+  function mBrent(f, br, tol) {
+    var a = br.a, b = br.b, fa = br.fa, fb = br.fb, it = [];
+    if (Math.abs(fa) < Math.abs(fb)) { var _t = a; a = b; b = _t; _t = fa; fa = fb; fb = _t; }
+    var c = a, fc = fa, d = b - a, e = d, mflag = true, s = b, fs = fb, step = 'init';
+    for (var k = 0; k < MAXIT; k++) {
+      it.push({ k: k + 1, x: b, fx: fb, extra: step });
+      if (Math.abs(fb) < tol || Math.abs(b - a) < 1e-15) return { ok: true, root: b, it: it, conv: true };
+      if (fa !== fc && fb !== fc) {
+        s = a * fb * fc / ((fa - fb) * (fa - fc))
+          + b * fa * fc / ((fb - fa) * (fb - fc))
+          + c * fa * fb / ((fc - fa) * (fc - fb));
+        step = 'inverse quadratic';
+      } else {
+        s = b - fb * (b - a) / (fb - fa);
+        step = 'secant';
+      }
+      var lo = (3 * a + b) / 4, hi = b;
+      var between = (lo < hi) ? (s > lo && s < hi) : (s > hi && s < lo);
+      if (!between
+        || (mflag && Math.abs(s - b) >= Math.abs(b - c) / 2)
+        || (!mflag && Math.abs(s - b) >= Math.abs(c - d) / 2)
+        || (mflag && Math.abs(b - c) < 1e-15)
+        || (!mflag && Math.abs(c - d) < 1e-15)) {
+        s = (a + b) / 2; step = 'bisection'; mflag = true;
+      } else mflag = false;
+      fs = f(s);
+      if (!isFinite(fs)) return { ok: false, it: it, why: 'diverged' };
+      d = c; c = b; fc = fb;
+      if (fa * fs < 0) { b = s; fb = fs; } else { a = s; fa = fs; }
+      if (Math.abs(fa) < Math.abs(fb)) { var _u = a; a = b; b = _u; _u = fa; fa = fb; fb = _u; }
+    }
+    return { ok: true, root: b, it: it, conv: false, why: 'maxIter' };
+  }
+
+  var METHODS = [
+    { key: 'newton',  name: 'Newton–Raphson', nameTh: 'นิวตัน–ราฟสัน', color: '#2563eb', diag: 'f ′(r)',        diagTh: 'f ′(r)' },
+    { key: 'brent',   name: "Brent",          nameTh: 'เบรนต์',        color: '#7c3aed', diag: 'step taken',    diagTh: 'ขั้นที่ใช้' },
+    { key: 'secant',  name: 'Secant',         nameTh: 'ซีแคนต์',       color: '#059669', diag: 'step size',     diagTh: 'ขนาดก้าว' },
+    { key: 'bisect',  name: 'Bisection',      nameTh: 'แบ่งครึ่ง',      color: '#d97706', diag: 'bracket width', diagTh: 'ความกว้างช่วง' }
+  ];
+
+  function solveRate(inp) {
+    var ser = objectiveSeries(inp);
+    if (!ser) return { ok: false, why: 'needTarget' };
+    var any = ser.some(function (x) { return x.amt; });
+    if (!any) return { ok: false, why: 'empty' };
+    var f = function (r) { return seriesPV(ser, r); };
+    var df = function (r) { return seriesDeriv(ser, r); };
+    var tol = inp.tol;
+
+    var br = findBracket(f);
+    var res = {}, t0, seed = 0.08;
+
+    t0 = performance.now();
+    res.newton = mNewton(f, df, seed, tol); res.newton.ms = performance.now() - t0;
+    t0 = performance.now();
+    res.secant = mSecant(f, seed, seed + 0.05, tol); res.secant.ms = performance.now() - t0;
+    if (br) {
+      t0 = performance.now();
+      res.bisect = mBisection(f, br, tol); res.bisect.ms = performance.now() - t0;
+      t0 = performance.now();
+      res.brent = mBrent(f, br, tol); res.brent.ms = performance.now() - t0;
+    } else {
+      res.bisect = { ok: false, it: [], why: 'noBracket' };
+      res.brent  = { ok: false, it: [], why: 'noBracket' };
+    }
+
+    // The answer is the converged root the most methods agree on; prefer
+    // Brent, then Newton, then secant, then bisection.
+    var order = ['brent', 'newton', 'secant', 'bisect'], root = null, from = null;
+    for (var k = 0; k < order.length; k++) {
+      var m = res[order[k]];
+      if (m && m.ok && m.conv) { root = m.root; from = order[k]; break; }
+    }
+    if (root == null) for (var j = 0; j < order.length; j++) {
+      if (res[order[j]] && res[order[j]].ok) { root = res[order[j]].root; from = order[j]; break; }
+    }
+    // Fastest = fewest iterations among those that converged.
+    var best = null;
+    order.forEach(function (k2) {
+      var m2 = res[k2];
+      if (m2 && m2.ok && m2.conv && (!best || m2.it.length < res[best].it.length)) best = k2;
+    });
+    return { ok: root != null, rate: root, from: from, best: best, methods: res, bracket: br, series: ser, tol: tol };
+  }
+
+  // ══ Mathematical typesetting in SVG ══════════════════════════════════════
+  // A tiny layout engine so formulas are set properly — real superscripts,
+  // real fraction bars — without pulling in a typesetting library. Each node
+  // measures itself, then draws at a given baseline. Nodes can carry a term id,
+  // which is what lets a formula term light up with its arrow and table row.
+  var GW = { '.': 0.28, ',': 0.28, '(': 0.33, ')': 0.33, '−': 0.60, '-': 0.36, '+': 0.60,
+             '×': 0.62, '÷': 0.62, '=': 0.60, '/': 0.32, ' ': 0.27, '%': 0.86, '·': 0.28 };
+  function glyphW(c, fs) {
+    var f = GW[c];
+    if (f == null) f = /[iltj1]/.test(c) ? 0.32 : /[A-Za-z]/.test(c) ? 0.58 : 0.55;
+    return f * fs;
+  }
+  function textW(s, fs) { var w = 0; for (var i = 0; i < s.length; i++) w += glyphW(s[i], fs); return w; }
+
+  function mT(str, o) {
+    o = o || {};
+    var fs = o.fs || 13;
+    return {
+      w: textW(str, fs), up: fs * 0.72, dn: fs * 0.22,
+      draw: function (x, y) {
+        return '<text x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" font-size="' + fs
+          + '" fill="' + (o.fill || '#1c1c1e') + '"'
+          + (o.weight ? ' font-weight="' + o.weight + '"' : '')
+          + (o.italic ? ' font-style="italic"' : '')
+          + ' class="mglyph"' + (o.mono ? ' font-family="ui-monospace,Menlo,monospace"' : '')
+          + ' style="font-variant-numeric:tabular-nums">' + esc(str) + '</text>';
+      }
+    };
+  }
+  function mRow(nodes, gap) {
+    gap = gap == null ? 3 : gap;
+    nodes = nodes.filter(Boolean);
+    var w = 0, up = 0, dn = 0;
+    nodes.forEach(function (n, i) { w += n.w + (i ? gap : 0); up = Math.max(up, n.up); dn = Math.max(dn, n.dn); });
+    return {
+      w: w, up: up, dn: dn,
+      draw: function (x, y) {
+        var s = '', cx = x;
+        nodes.forEach(function (n, i) { if (i) cx += gap; s += n.draw(cx, y); cx += n.w; });
+        return s;
+      }
+    };
+  }
+  function mSup(base, sup) {
+    var rise = base.up * 0.62;
+    return {
+      w: base.w + sup.w + 1, up: base.up + rise * 0.55, dn: base.dn,
+      draw: function (x, y) { return base.draw(x, y) + sup.draw(x + base.w + 1, y - rise); }
+    };
+  }
+  function mSub(base, sub) {
+    var drop = base.up * 0.30;
+    return {
+      w: base.w + sub.w + 1, up: base.up, dn: base.dn + drop,
+      draw: function (x, y) { return base.draw(x, y) + sub.draw(x + base.w + 1, y + drop); }
+    };
+  }
+  function mParen(inner, fs) {
+    fs = fs || 13;
+    var pw = glyphW('(', fs) * 1.05;
+    return {
+      w: inner.w + pw * 2 + 2, up: Math.max(inner.up, fs * 0.76), dn: Math.max(inner.dn, fs * 0.24),
+      draw: function (x, y) {
+        return mT('(', { fs: fs }).draw(x, y) + inner.draw(x + pw + 1, y) + mT(')', { fs: fs }).draw(x + pw + 1 + inner.w + 1, y);
+      }
+    };
+  }
+  function mFrac(top, bot, fs) {
+    fs = fs || 13;
+    var w = Math.max(top.w, bot.w) + 6;
+    var lift = fs * 0.52, drop = fs * 0.62;
+    return {
+      w: w, up: lift + top.up * 0.9, dn: drop + bot.dn + bot.up * 0.55,
+      draw: function (x, y) {
+        var s = top.draw(x + (w - top.w) / 2, y - lift - top.dn * 0.4);
+        s += '<line x1="' + (x + 1).toFixed(1) + '" y1="' + (y - fs * 0.28).toFixed(1)
+           + '" x2="' + (x + w - 1).toFixed(1) + '" y2="' + (y - fs * 0.28).toFixed(1)
+           + '" stroke="currentColor" stroke-width="1.1"/>';
+        s += bot.draw(x + (w - bot.w) / 2, y + drop);
+        return s;
+      }
+    };
+  }
+  function mTerm(node, termId) {
+    return {
+      w: node.w, up: node.up, dn: node.dn,
+      draw: function (x, y) {
+        return '<g class="mterm" data-term="' + esc(termId) + '">'
+          + '<rect x="' + (x - 3).toFixed(1) + '" y="' + (y - node.up - 2).toFixed(1)
+          + '" width="' + (node.w + 6).toFixed(1) + '" height="' + (node.up + node.dn + 5).toFixed(1)
+          + '" rx="3" class="halo" fill="rgba(79,70,229,0.14)"/>'
+          + node.draw(x, y) + '</g>';
+      }
+    };
+  }
+  // (1 + r)^k  — the growth factor, set the way a textbook sets it.
+  function mGrowth(rTxt, k, fs) {
+    fs = fs || 13;
+    var inner = mRow([mT('1', { fs: fs }), mT('+', { fs: fs }), mT(rTxt, { fs: fs })], 3);
+    return mSup(mParen(inner, fs), mT(String(k), { fs: fs * 0.72 }));
+  }
+
+  // ══ Timeline diagram ═════════════════════════════════════════════════════
+  var GROUP_MIN = 8, INDIV_MAX = 22;
+
+  // Collapses runs of identical consecutive cash flows so a 360-payment
+  // mortgage does not try to draw 360 arrows. Never silently — the segment
+  // says how many periods it stands for, and Expand shows them all.
+  function segment(series, expand) {
+    var live = series.filter(function (x) { return x.amt; });
+    if (expand || live.length <= INDIV_MAX) {
+      return live.map(function (x) { return { from: x.t, to: x.t, amt: x.amt, count: 1, id: 'p' + x.t, role: x.role }; });
+    }
+    var segs = [], i = 0;
+    while (i < live.length) {
+      var j = i;
+      while (j + 1 < live.length && live[j + 1].amt === live[i].amt && live[j + 1].t === live[j].t + 1) j++;
+      var count = j - i + 1;
+      if (count >= GROUP_MIN) {
+        segs.push({ from: live[i].t, to: live[j].t, amt: live[i].amt, count: count,
+                    id: 'g' + live[i].t + '-' + live[j].t, role: live[i].role, grouped: true });
+        i = j + 1;
+      } else {
+        for (var k = i; k <= j; k++) segs.push({ from: live[k].t, to: live[k].t, amt: live[k].amt, count: 1, id: 'p' + live[k].t, role: live[k].role });
+        i = j + 1;
+      }
+    }
+    return segs;
+  }
+
+  function arrowHead(x, y, dir, color) {   // dir: 1 right, -1 left, 'up', 'down'
+    var s = 5.2;
+    if (dir === 'up')   return '<path d="M ' + x + ' ' + (y - s) + ' L ' + (x - s * 0.72) + ' ' + y + ' L ' + (x + s * 0.72) + ' ' + y + ' Z" fill="' + color + '"/>';
+    if (dir === 'down') return '<path d="M ' + x + ' ' + (y + s) + ' L ' + (x - s * 0.72) + ' ' + y + ' L ' + (x + s * 0.72) + ' ' + y + ' Z" fill="' + color + '"/>';
+    var d = dir > 0 ? 1 : -1;
+    return '<path d="M ' + (x + d * s) + ' ' + y + ' L ' + x + ' ' + (y - s * 0.72) + ' L ' + x + ' ' + (y + s * 0.72) + ' Z" fill="' + color + '"/>';
+  }
+
+  function CUR() { return S.lang === 'th' ? 'บาท' : 'THB'; }
+  function flowColor(amt) { return amt >= 0 ? '#059669' : '#e11d48'; }
+
+  // Horizontal layout — the textbook picture: timeline along the bottom,
+  // one lane per cash flow fanning out above it, formula and value on the right.
+  function diagramH(D) {
+    var segs = D.segs, N = D.N, focal = D.focal, r = D.r, rTxt = D.rTxt;
+    var W = 940, labelW = 268;
+    var padL = 54, plotR = W - labelW - 10;
+    var laneH = 27, topPad = 16;
+    var lanes = segs.length;
+    var axisY = topPad + lanes * laneH + 46;
+    var H = axisY + 54;
+    var x0 = padL, x1 = plotR - 26;
+    var span = Math.max(1, N);
+    function X(t) { return x0 + (x1 - x0) * (t / span); }
+    var xF = X(focal);
+    var s = '<svg class="diagram-svg" viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Cash flow timeline">';
+
+    // lanes
+    segs.forEach(function (sg, idx) {
+      var y = topPad + idx * laneH + 12;
+      var col = flowColor(sg.amt);
+      var xs = X(sg.grouped ? (sg.from + sg.to) / 2 : sg.from);
+      var toFocal = focal >= sg.to ? 1 : -1;
+      s += '<g class="term" data-term="' + esc(sg.id) + '">';
+      s += '<rect x="' + (Math.min(xs, xF) - 8) + '" y="' + (y - 13) + '" width="' + (Math.abs(xF - xs) + 16) + '" height="26" rx="6" class="halo" fill="rgba(79,70,229,0.10)"/>';
+      // riser + run + head
+      s += '<path class="flow-line" d="M ' + xs.toFixed(1) + ' ' + (axisY - 4).toFixed(1)
+         + ' L ' + xs.toFixed(1) + ' ' + (y + 5).toFixed(1)
+         + ' Q ' + xs.toFixed(1) + ' ' + y.toFixed(1) + ' ' + (xs + toFocal * 5).toFixed(1) + ' ' + y.toFixed(1)
+         + ' L ' + (xF - toFocal * 6).toFixed(1) + ' ' + y.toFixed(1)
+         + '" fill="none" stroke="' + col + '" stroke-width="1.7" stroke-linecap="round"/>';
+      s += arrowHead(xF - toFocal * 6, y, toFocal, col);
+      // formula, right-aligned into the focal point
+      var amtTxt = fmtShort(Math.abs(sg.amt));
+      var f;
+      if (sg.grouped) {
+        f = mRow([mT(amtTxt, { fs: 12.5, weight: 600 }), mT('×', { fs: 12.5 }),
+                  mT(String(sg.count) + (S.lang === 'th' ? ' งวด' : ' periods'), { fs: 12.5, fill: '#6e6e73' })], 4);
+      } else if (D.mode === 'fv') {
+        f = mRow([mT(amtTxt, { fs: 12.5, weight: 600 }), mT('×', { fs: 12.5 }), mGrowth(rTxt, focal - sg.from, 12.5)], 4);
+      } else {
+        f = mRow([mT(amtTxt, { fs: 12.5, weight: 600 }), mT('÷', { fs: 12.5 }), mGrowth(rTxt, sg.from - focal, 12.5)], 4);
+      }
+      var fw = f.w;
+      var fx = (toFocal > 0) ? Math.max(xs + 10, xF - 14 - fw) : xF + 14;
+      s += mTerm(f, sg.id).draw(fx, y - 6);
+      // value, in the label column
+      var val = sg.value;
+      s += mT('= ' + fmt(Math.abs(val)) + ' ' + CUR(), { fs: 12.5, weight: 600, fill: col }).draw(plotR + 6, y + 4);
+      s += '</g>';
+    });
+
+    // axis
+    s += '<line x1="' + x0 + '" y1="' + axisY + '" x2="' + (x1 + 14) + '" y2="' + axisY + '" stroke="#1c1c1e" stroke-width="1.5"/>';
+    var stride = N <= 30 ? 1 : Math.ceil(N / 24);
+    for (var t = 0; t <= N; t++) {
+      if (t % stride !== 0 && t !== N && t !== 0) continue;
+      var xt = X(t);
+      s += '<line x1="' + xt.toFixed(1) + '" y1="' + (axisY - 5) + '" x2="' + xt.toFixed(1) + '" y2="' + (axisY + 5) + '" stroke="#1c1c1e" stroke-width="1.2"/>';
+      s += '<text x="' + xt.toFixed(1) + '" y="' + (axisY + 21) + '" font-size="11.5" text-anchor="middle" fill="#6e6e73" style="font-variant-numeric:tabular-nums">' + t + '</text>';
+    }
+    s += '<text x="' + (x1 + 20) + '" y="' + (axisY + 21) + '" font-size="11" fill="#aeaeb2">'
+       + esc(S.lang === 'th' ? 'งวด' : 'period') + '</text>';
+
+    // cash flow amounts above the axis
+    segs.forEach(function (sg) {
+      var col = flowColor(sg.amt);
+      var xs = X(sg.grouped ? (sg.from + sg.to) / 2 : sg.from);
+      s += '<g class="term" data-term="' + esc(sg.id) + '">';
+      if (sg.grouped) {
+        var xa = X(sg.from), xb = X(sg.to);
+        s += '<path d="M ' + xa.toFixed(1) + ' ' + (axisY + 30) + ' L ' + xa.toFixed(1) + ' ' + (axisY + 35)
+           + ' L ' + xb.toFixed(1) + ' ' + (axisY + 35) + ' L ' + xb.toFixed(1) + ' ' + (axisY + 30)
+           + '" fill="none" stroke="' + col + '" stroke-width="1.2" opacity=".55"/>';
+        s += '<text x="' + xs.toFixed(1) + '" y="' + (axisY + 47) + '" font-size="10.5" text-anchor="middle" fill="' + col + '">×' + sg.count + '</text>';
+      }
+      s += '<text x="' + xs.toFixed(1) + '" y="' + (axisY - 12) + '" font-size="12" font-weight="600" text-anchor="middle" fill="' + col
+         + '" style="font-variant-numeric:tabular-nums">' + esc(fmtShort(Math.abs(sg.amt))) + '</text>';
+      s += arrowHead(xs, axisY - 26, sg.amt >= 0 ? 'up' : 'down', col);
+      s += '</g>';
+    });
+
+    // the answer, at the focal point
+    var resY = topPad + lanes * laneH + 18;
+    s += '<line x1="' + (xF - 3) + '" y1="' + (topPad - 4) + '" x2="' + (xF - 3) + '" y2="' + (axisY - 2)
+       + '" stroke="#4f46e5" stroke-width="1" stroke-dasharray="3 3" opacity=".45"/>';
+    s += '<text x="' + (plotR + 6) + '" y="' + (resY + 4) + '" font-size="12" font-weight="700" fill="#4f46e5">'
+       + esc(D.totalLabel) + '</text>';
+    s += '<text x="' + (plotR + 6) + '" y="' + (resY + 22) + '" font-size="15" font-weight="800" fill="#4338ca" style="font-variant-numeric:tabular-nums">'
+       + esc(fmt(Math.abs(D.total)) + ' ' + CUR()) + '</text>';
+    s += '<line x1="' + (plotR + 6) + '" y1="' + (resY + 27) + '" x2="' + (plotR + 6 + Math.min(230, textW(fmt(Math.abs(D.total)) + ' ' + CUR(), 15))) + '" y2="' + (resY + 27) + '" stroke="#4338ca" stroke-width="1"/>';
+    s += '<line x1="' + (plotR + 6) + '" y1="' + (resY + 30) + '" x2="' + (plotR + 6 + Math.min(230, textW(fmt(Math.abs(D.total)) + ' ' + CUR(), 15))) + '" y2="' + (resY + 30) + '" stroke="#4338ca" stroke-width="1"/>';
+
+    s += '</svg>';
+    return s;
+  }
+
+  // Vertical layout — on a narrow screen time runs down the page instead of
+  // across it, so nothing has to be pinched or scrolled sideways.
+  function diagramV(D) {
+    var segs = D.segs, rTxt = D.rTxt, focal = D.focal;
+    var W = 380, rowH = 44, topPad = 26;
+    var H = topPad + segs.length * rowH + 92;
+    var spineX = 40;
+    var s = '<svg class="diagram-svg" viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Cash flow timeline">';
+    s += '<line x1="' + spineX + '" y1="' + (topPad - 12) + '" x2="' + spineX + '" y2="' + (topPad + segs.length * rowH + 8) + '" stroke="#1c1c1e" stroke-width="1.5"/>';
+
+    segs.forEach(function (sg, idx) {
+      var y = topPad + idx * rowH;
+      var col = flowColor(sg.amt);
+      s += '<g class="term" data-term="' + esc(sg.id) + '">';
+      s += '<rect x="6" y="' + (y - 15) + '" width="' + (W - 12) + '" height="' + (rowH - 4) + '" rx="6" class="halo" fill="rgba(79,70,229,0.10)"/>';
+      s += '<line x1="' + (spineX - 5) + '" y1="' + y + '" x2="' + (spineX + 5) + '" y2="' + y + '" stroke="#1c1c1e" stroke-width="1.2"/>';
+      s += '<text x="' + (spineX - 11) + '" y="' + (y + 4) + '" font-size="11" text-anchor="end" fill="#6e6e73" style="font-variant-numeric:tabular-nums">'
+         + (sg.grouped ? sg.from + '–' + sg.to : sg.from) + '</text>';
+      s += '<path class="flow-line" d="M ' + (spineX + 6) + ' ' + y + ' L ' + (spineX + 22) + ' ' + y + '" stroke="' + col + '" stroke-width="1.7" fill="none"/>';
+      s += arrowHead(spineX + 24, y, 1, col);
+      var amtTxt = fmtShort(Math.abs(sg.amt));
+      var f;
+      if (sg.grouped) f = mRow([mT(amtTxt, { fs: 12, weight: 600, fill: col }), mT('×', { fs: 12 }), mT(String(sg.count), { fs: 12, fill: '#6e6e73' })], 3);
+      else if (D.mode === 'fv') f = mRow([mT(amtTxt, { fs: 12, weight: 600, fill: col }), mT('×', { fs: 12 }), mGrowth(rTxt, focal - sg.from, 12)], 3);
+      else f = mRow([mT(amtTxt, { fs: 12, weight: 600, fill: col }), mT('÷', { fs: 12 }), mGrowth(rTxt, sg.from - focal, 12)], 3);
+      s += mTerm(f, sg.id).draw(spineX + 34, y + 3);
+      s += '<text x="' + (W - 8) + '" y="' + (y + 19) + '" font-size="12" font-weight="700" text-anchor="end" fill="' + col
+         + '" style="font-variant-numeric:tabular-nums">= ' + esc(fmt(Math.abs(sg.value))) + '</text>';
+      s += '</g>';
+    });
+
+    var fy = topPad + segs.length * rowH + 22;
+    s += '<line x1="' + (spineX - 6) + '" y1="' + fy + '" x2="' + (W - 8) + '" y2="' + fy + '" stroke="#4338ca" stroke-width="1.4"/>';
+    s += '<text x="' + (spineX - 11) + '" y="' + (fy + 20) + '" font-size="11" text-anchor="end" fill="#4f46e5" style="font-variant-numeric:tabular-nums">' + focal + '</text>';
+    s += '<text x="' + (spineX + 4) + '" y="' + (fy + 20) + '" font-size="12" font-weight="700" fill="#4f46e5">' + esc(D.totalLabel) + '</text>';
+    s += '<text x="' + (W - 8) + '" y="' + (fy + 40) + '" font-size="15" font-weight="800" text-anchor="end" fill="#4338ca" style="font-variant-numeric:tabular-nums">'
+       + esc(fmt(Math.abs(D.total)) + ' ' + CUR()) + '</text>';
+    s += '</svg>';
+    return s;
+  }
+
+  // ══ Convergence graph ════════════════════════════════════════════════════
+  function convergenceSVG(sol) {
+    var W = 720, H = 250, padL = 52, padR = 14, padT = 14, padB = 34;
+    var maxIt = 1, lo = 0, hi = -99;
+    METHODS.forEach(function (M) {
+      var m = sol.methods[M.key];
+      if (!m || !m.it || !m.it.length) return;
+      maxIt = Math.max(maxIt, m.it.length);
+      m.it.forEach(function (p) {
+        var v = Math.log10(Math.max(Math.abs(p.fx), 1e-18));
+        if (v > hi) hi = v;
+      });
+    });
+    var floorL = Math.log10(Math.max(sol.tol, 1e-18)) - 1.2;
+    lo = floorL; if (hi <= lo) hi = lo + 3;
+    hi = Math.ceil(hi); lo = Math.floor(lo);
+    function X(k) { return padL + (W - padL - padR) * ((k - 1) / Math.max(1, maxIt - 1)); }
+    function Y(v) { return padT + (H - padT - padB) * (1 - (v - lo) / (hi - lo)); }
+
+    var s = '<svg class="conv-svg" viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Convergence of each method">';
+    for (var g = lo; g <= hi; g++) {
+      s += '<line x1="' + padL + '" y1="' + Y(g).toFixed(1) + '" x2="' + (W - padR) + '" y2="' + Y(g).toFixed(1) + '" stroke="rgba(0,0,0,0.06)"/>';
+      s += '<text x="' + (padL - 7) + '" y="' + (Y(g) + 4).toFixed(1) + '" font-size="10" text-anchor="end" fill="#aeaeb2">1e' + (g >= 0 ? '+' : '−') + Math.abs(g) + '</text>';
+    }
+    var stride = Math.ceil(maxIt / 14);
+    for (var k = 1; k <= maxIt; k += stride) {
+      s += '<text x="' + X(k).toFixed(1) + '" y="' + (H - padB + 17) + '" font-size="10" text-anchor="middle" fill="#aeaeb2">' + k + '</text>';
+    }
+    s += '<line x1="' + padL + '" y1="' + (H - padB) + '" x2="' + (W - padR) + '" y2="' + (H - padB) + '" stroke="#1c1c1e" stroke-width="1.2"/>';
+    s += '<line x1="' + padL + '" y1="' + padT + '" x2="' + padL + '" y2="' + (H - padB) + '" stroke="#1c1c1e" stroke-width="1.2"/>';
+    // tolerance line
+    var ty = Y(Math.log10(sol.tol));
+    if (ty > padT && ty < H - padB) {
+      s += '<line x1="' + padL + '" y1="' + ty.toFixed(1) + '" x2="' + (W - padR) + '" y2="' + ty.toFixed(1) + '" stroke="#4f46e5" stroke-width="1.1" stroke-dasharray="5 4" opacity=".7"/>';
+      s += '<text x="' + (W - padR - 4) + '" y="' + (ty - 5).toFixed(1) + '" font-size="10" text-anchor="end" fill="#4f46e5">'
+         + esc(S.lang === 'th' ? 'เกณฑ์ลู่เข้า' : 'tolerance') + '</text>';
+    }
+    METHODS.forEach(function (M) {
+      var m = sol.methods[M.key];
+      if (!m || !m.it || !m.it.length) return;
+      var d = '', pts = '';
+      m.it.forEach(function (p, i) {
+        var v = Math.log10(Math.max(Math.abs(p.fx), 1e-18));
+        var xx = X(p.k), yy = Y(Math.max(lo, Math.min(hi, v)));
+        d += (i ? ' L ' : 'M ') + xx.toFixed(1) + ' ' + yy.toFixed(1);
+        if (m.it.length <= 30) pts += '<circle cx="' + xx.toFixed(1) + '" cy="' + yy.toFixed(1) + '" r="2.6" fill="' + M.color + '"/>';
+      });
+      s += '<path d="' + d + '" fill="none" stroke="' + M.color + '" stroke-width="1.9" stroke-linejoin="round" opacity="' + (m.ok ? 1 : .45) + '"/>' + pts;
+    });
+    var lx = padL + 8;
+    METHODS.forEach(function (M) {
+      var m = sol.methods[M.key];
+      if (!m || !m.it || !m.it.length) return;
+      s += '<rect x="' + lx + '" y="' + (padT + 2) + '" width="9" height="9" rx="2" fill="' + M.color + '"/>';
+      var nm = S.lang === 'th' ? M.nameTh : M.name;
+      s += '<text x="' + (lx + 13) + '" y="' + (padT + 10) + '" font-size="10.5" fill="#6e6e73">' + esc(nm) + '</text>';
+      lx += 15 + textW(nm, 10.5) + 14;
+    });
+    s += '</svg>';
+    return s;
+  }
+
+  // ══ Compute ══════════════════════════════════════════════════════════════
+  function solveOptions(tab, scenario) {
+    if (tab === 'npv') return ['npv', 'rate'];
+    if (tab === 'pmt') return ['pmt', 'pv', 'fv', 'n', 'rate'];
+    if (scenario === 'custom') return [tab, 'rate'];
+    if (tab === 'fv') return scenario === 'annuity' ? ['fv', 'pmt', 'n', 'rate']
+                      : scenario === 'single' ? ['fv', 'pv', 'n', 'rate']
+                      : ['fv', 'pv', 'pmt', 'n', 'rate'];
+    return scenario === 'annuity' ? ['pv', 'pmt', 'n', 'rate']
+         : scenario === 'single' ? ['pv', 'fv', 'n', 'rate']
+         : ['pv', 'fv', 'pmt', 'n', 'rate'];
+  }
+
+  function compute() {
+    var inp = readInputs();
+    var R = { inp: inp, errors: [], warnings: [], notes: [], solver: null };
+    var want = inp.solveFor;
+
+    // ── validation ────────────────────────────────────────────────────────
+    if (!(inp.N > 0)) R.errors.push(S.lang === 'th' ? 'ใส่ระยะเวลาให้มากกว่าศูนย์' : 'Enter a time greater than zero.');
+    if (inp.N > 4000) R.errors.push(S.lang === 'th' ? 'จำนวนงวดมากเกินไป (เกิน 4,000 งวด) ลดจำนวนปีหรือความถี่ทบต้นลง' : 'That is more than 4,000 periods — reduce the years or the compounding frequency.');
+    if (inp.r <= -1) R.errors.push(S.lang === 'th' ? 'อัตราต่องวดต้องมากกว่า −100%' : 'The rate per period must be greater than −100%.');
+    if (want !== 'rate' && Math.abs(inp.r) < 1e-12) R.notes.push(S.lang === 'th' ? 'อัตราดอกเบี้ยเป็นศูนย์ — เงินไม่งอกเงย ผลลัพธ์คือผลรวมธรรมดา' : 'The rate is zero, so nothing compounds — the result is a plain sum.');
+    if (R.errors.length) return R;
+
+    // ── solve ─────────────────────────────────────────────────────────────
+    var inpEff = Object.assign({}, inp), solved = null;
+
+    if (want === 'rate') {
+      var sol = solveRate(inp);
+      R.solver = sol;
+      if (!sol.ok) {
+        R.errors.push(sol.why === 'needTarget'
+          ? (S.lang === 'th' ? 'ต้องระบุค่าเป้าหมายก่อน จึงจะหาอัตราดอกเบี้ยได้' : 'Give the target value first — there is nothing for the rate to solve against.')
+          : (S.lang === 'th' ? 'หาอัตราดอกเบี้ยไม่พบ กระแสเงินสดชุดนี้อาจไม่มีคำตอบ หรือมีหลายคำตอบ' : 'No rate solves these cash flows. The series may have no sign change, or more than one root.'));
+        return R;
+      }
+      inpEff.r = sol.rate;
+      solved = { field: 'rate', value: sol.rate };
+      if (!sol.methods[sol.best || sol.from] || !sol.methods[sol.best || sol.from].conv) {
+        R.warnings.push(S.lang === 'th' ? 'ยังไม่ลู่เข้าเต็มเกณฑ์ภายใน 100 รอบ ผลลัพธ์เป็นค่าประมาณ' : 'Did not fully converge within 100 iterations — treat the result as approximate.');
+      }
+    } else if (want === 'n') {
+      var sn = solveN(inp);
+      if (!sn.ok) {
+        R.errors.push(S.lang === 'th' ? 'หาจำนวนงวดไม่ได้ด้วยค่าที่ให้มา ลองตรวจว่าเป้าหมายเป็นไปได้หรือไม่' : 'No term reaches that target with these values — check that the target is reachable.');
+        return R;
+      }
+      solved = { field: 'n', value: sn.value, years: sn.years };
+      inpEff.N = Math.max(1, Math.ceil(sn.value));
+      if (Math.abs(sn.value - Math.round(sn.value)) > 1e-6) {
+        R.notes.push(S.lang === 'th'
+          ? 'จำนวนงวดที่ได้ไม่เป็นจำนวนเต็ม แผนภาพวาดด้วย ' + inpEff.N + ' งวด (ปัดขึ้น)'
+          : 'The exact answer is not a whole number of periods; the diagram is drawn at ' + inpEff.N + ' periods (rounded up).');
+      }
+    } else {
+      var sc = solveClosed(inp);
+      if (!sc.ok) {
+        R.errors.push(sc.why === 'noAnnuity'
+          ? (S.lang === 'th' ? 'ไม่มีเงินงวดให้คำนวณ — ตรวจจำนวนงวดและอัตราดอกเบี้ย' : 'There is no annuity to solve — check the number of periods and the rate.')
+          : (S.lang === 'th' ? 'คำนวณค่านี้ไม่ได้ด้วยข้อมูลที่มี' : 'That value cannot be solved from the inputs given.'));
+        return R;
+      }
+      solved = { field: want, value: sc.value };
+      if (want !== 'npv') inpEff[want] = Math.abs(sc.value);
+      if (sc.value < 0 && want !== 'npv') {
+        R.warnings.push(S.lang === 'th'
+          ? 'ค่าที่ได้ติดลบ แปลว่ากระแสเงินสดต้องไหลกลับทาง — ลองเพิ่มระยะเวลา หรือลดเป้าหมายลง'
+          : 'The answer came out negative, which means the cash flow has to run the other way. Try a longer term, or a smaller target.');
+      }
+    }
+    R.solved = solved;
+
+    // ── series at the settled rate ────────────────────────────────────────
+    var r = inpEff.r, N = inpEff.N;
+    var series = buildSeries(inpEff);
+    var mode = inp.tab === 'fv' ? 'fv' : 'pv';
+    var focal = inp.tab === 'fv' ? N : 0;
+    var segs = segment(series, !!TS().expand);
+    R.grouped = segs.some(function (s2) { return s2.grouped; });
+    R.liveCount = series.filter(function (x) { return x.amt; }).length;
+
+    function valueOf(sg) {
+      var v = 0;
+      for (var t = sg.from; t <= sg.to; t++) {
+        var a = series[t] ? series[t].amt : 0;
+        if (!a) continue;
+        v += mode === 'fv' ? a * Math.pow(1 + r, focal - t) : a * Math.pow(1 + r, -(t - focal));
+      }
+      return v;
+    }
+    segs.forEach(function (sg) { sg.value = valueOf(sg); });
+    var total = segs.reduce(function (a, b) { return a + b.value; }, 0);
+
+    R.series = series; R.segs = segs; R.mode = mode; R.focal = focal;
+    R.r = r; R.N = N; R.total = total; R.inpEff = inpEff;
+    R.rTxt = (Math.round(r * 1e10) / 1e10).toString();
+    R.totalLabel = inp.tab === 'fv' ? (S.lang === 'th' ? 'รวม ณ งวดที่ ' + focal : 'Total at period ' + focal)
+                 : inp.tab === 'npv' ? (S.lang === 'th' ? 'NPV' : 'NPV')
+                 : (S.lang === 'th' ? 'รวม ณ วันนี้' : 'Total today');
+    if (!segs.length) R.warnings.push(S.lang === 'th' ? 'ยังไม่มีกระแสเงินสด — กรอกจำนวนเงินก่อน' : 'No cash flows yet — enter an amount above.');
+    return R;
+  }
+
+  // ══ Tables ═══════════════════════════════════════════════════════════════
+  function termsTableHTML(R) {
+    var th = S.lang === 'th';
+    var h = '<thead><tr><th>' + (th ? 'งวด' : 'Period') + '</th><th class="num">' + (th ? 'กระแสเงินสด' : 'Cash flow')
+      + '</th><th class="num">' + (th ? 'ตัวคูณ' : 'Factor') + '</th><th class="num">'
+      + (th ? (R.mode === 'fv' ? 'มูลค่า ณ งวดที่ ' + R.focal : 'มูลค่าปัจจุบัน') : (R.mode === 'fv' ? 'Value at ' + R.focal : 'Value today'))
+      + '</th></tr></thead><tbody>';
+    R.segs.forEach(function (sg) {
+      var k = R.mode === 'fv' ? (R.focal - sg.from) : (sg.from - R.focal);
+      var factor = Math.pow(1 + R.r, R.mode === 'fv' ? k : -k);
+      h += '<tr class="term" data-term="' + esc(sg.id) + '">'
+        + '<td>' + (sg.grouped ? sg.from + '–' + sg.to + ' <span class="muted">(×' + sg.count + ')</span>' : sg.from) + '</td>'
+        + '<td class="num ' + (sg.amt >= 0 ? 'pos' : 'neg') + '">' + esc(fmt(sg.amt)) + '</td>'
+        + '<td class="num muted">' + (sg.grouped ? '—' : esc(factor.toFixed(6))) + '</td>'
+        + '<td class="num">' + esc(fmt(sg.value)) + '</td></tr>';
+    });
+    h += '<tr class="total"><td>' + esc(R.totalLabel) + '</td><td class="num"></td><td class="num"></td><td class="num">'
+      + esc(fmt(R.total)) + '</td></tr></tbody>';
+    return h;
+  }
+
+  function periodsTableHTML(R) {
+    var th = S.lang === 'th', T = TS(), inp = R.inp;
+    var N = Math.min(R.N != null ? R.N : inp.N, 400);
+    var auto = buildSeries(Object.assign({}, inp, { flows: {} }));
+    var h = '<thead><tr><th>' + (th ? 'งวด' : 'Period') + '</th><th class="num">' + (th ? 'อัตโนมัติ' : 'Automatic')
+      + '</th><th class="num">' + (th ? 'จำนวนเงิน' : 'Amount') + '</th><th></th></tr></thead><tbody>';
+    for (var t = 0; t <= N; t++) {
+      var a = auto[t] ? auto[t].auto : 0;
+      var ov = T.flows[String(t)];
+      var has = ov !== undefined && ov !== null && String(ov).trim() !== '';
+      h += '<tr class="' + (has ? 'changed' : '') + '" data-prow="' + t + '">'
+        + '<td>' + t + '</td>'
+        + '<td class="num muted">' + esc(fmt(a)) + '</td>'
+        + '<td class="num"><input class="cf amt" type="text" inputmode="decimal" data-cf="' + t + '" value="'
+        + esc(has ? ov : '') + '" placeholder="' + esc(fmtShort(a)) + '" /></td>'
+        + '<td><button class="reset-auto" data-resetcf="' + t + '" title="' + (th ? 'คืนค่าอัตโนมัติ' : 'Reset to automatic') + '">↻</button></td>'
+        + '</tr>';
+    }
+    h += '</tbody>';
+    return h;
+  }
+
+  // Amortisation — only meaningful for a loan being paid down.
+  function amortTableHTML(R) {
+    var th = S.lang === 'th', inp = R.inpEff;
+    var r = R.r, N = R.N;
+    var P = Math.abs(isFinite(inp.pv) ? inp.pv : 0);
+    var pay = Math.abs(isFinite(inp.pmt) ? inp.pmt : 0);
+    if (!P || !pay) return null;
+    var bal = P, h = '<thead><tr><th>' + (th ? 'งวด' : 'Period') + '</th><th class="num">' + (th ? 'ชำระ' : 'Payment')
+      + '</th><th class="num">' + (th ? 'ดอกเบี้ย' : 'Interest') + '</th><th class="num">' + (th ? 'เงินต้น' : 'Principal')
+      + '</th><th class="num">' + (th ? 'คงเหลือ' : 'Balance') + '</th></tr></thead><tbody>';
+    var totI = 0, totP = 0, rows = 0, cap = Math.min(N, 600);
+    for (var t = 1; t <= cap; t++) {
+      var thisPay = pay, interest, princ;
+      if (inp.isDue) {
+        // Paid at the start of the period, so it reduces the balance before
+        // interest accrues — the first instalment is pure principal.
+        if (thisPay > bal) thisPay = bal;
+        bal -= thisPay;
+        interest = bal * r;
+        princ = thisPay;
+        bal += interest;
+      } else {
+        interest = bal * r;
+        if (thisPay > bal + interest) thisPay = bal + interest;   // final short payment
+        princ = thisPay - interest;
+        bal = bal + interest - thisPay;
+      }
+      if (Math.abs(bal) < 1e-9) bal = 0;
+      totI += interest; totP += princ; rows++;
+      h += '<tr><td>' + t + '</td><td class="num">' + esc(fmt(thisPay)) + '</td><td class="num">' + esc(fmt(interest))
+        + '</td><td class="num">' + esc(fmt(princ)) + '</td><td class="num">' + esc(fmt(Math.max(0, bal))) + '</td></tr>';
+      if (bal <= 0) break;
+    }
+    h += '<tr class="total"><td>' + (th ? 'รวม' : 'Total') + '</td><td class="num">' + esc(fmt(totI + totP))
+      + '</td><td class="num">' + esc(fmt(totI)) + '</td><td class="num">' + esc(fmt(totP)) + '</td><td class="num">—</td></tr></tbody>';
+    return { html: h, rows: rows, interest: totI, capped: N > cap };
+  }
+
+  // ══ Rendering ════════════════════════════════════════════════════════════
+  function $(x) { return document.getElementById(x); }
+  function show(el, on) { if (el) el.style.display = on ? '' : 'none'; }
+
+  var lastR = null, lastSummary = '', selTerm = null;
+  var SOLVE_FIELD = { pv: 'fPV', pmt: 'fPMT', fv: 'fFV', n: 'fN', rate: 'fRate' };
+  var BASE_PH = {};   // the authored placeholders, restored when a field stops being the answer
+  Object.keys(SOLVE_FIELD).forEach(function (f) { BASE_PH[f] = $(SOLVE_FIELD[f]).getAttribute('placeholder') || ''; });
+
+  function applyLang() {
+    document.documentElement.lang = S.lang === 'th' ? 'th' : 'en';
+    document.querySelectorAll('[data-i18n]').forEach(function (el) {
+      var k = el.getAttribute('data-i18n');
+      if (el._en == null) el._en = el.innerHTML;
+      if (S.lang === 'th' && TH[k] != null) el.textContent = TH[k];
+      else el.innerHTML = el._en;
+    });
+    document.querySelectorAll('#langToggle .lang-btn').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.lang === S.lang);
+    });
+  }
+
+  var LBL = {
+    en: {
+      fv: { pv: 'Amount today (PV)', pmt: 'Payment each period (PMT)', fv: 'Future value at the end (FV)' },
+      pv: { pv: 'Present value today (PV)', pmt: 'Payment each period (PMT)', fv: 'Amount at the end (FV)' },
+      pmt: { pv: 'Loan amount / amount today (PV)', pmt: 'Payment each period (PMT)', fv: 'Balloon / target at the end (FV)' },
+      npv: { pv: '', pmt: '', fv: '' },
+      solve: { fv: 'Future value (FV)', pv: 'Present value (PV)', pmt: 'Payment (PMT)', n: 'Number of periods (n)', rate: 'Interest rate (i)', npv: 'Net present value' }
+    },
+    th: {
+      fv: { pv: 'เงินต้นวันนี้ (PV)', pmt: 'เงินงวดต่องวด (PMT)', fv: 'มูลค่าอนาคตปลายทาง (FV)' },
+      pv: { pv: 'มูลค่าปัจจุบัน (PV)', pmt: 'เงินงวดต่องวด (PMT)', fv: 'จำนวนเงินปลายทาง (FV)' },
+      pmt: { pv: 'ยอดเงินกู้ / เงินต้นวันนี้ (PV)', pmt: 'เงินงวดต่องวด (PMT)', fv: 'เงินก้อนท้าย / เป้าหมาย (FV)' },
+      npv: { pv: '', pmt: '', fv: '' },
+      solve: { fv: 'มูลค่าอนาคต (FV)', pv: 'มูลค่าปัจจุบัน (PV)', pmt: 'เงินงวด (PMT)', n: 'จำนวนงวด (n)', rate: 'อัตราดอกเบี้ย (i)', npv: 'มูลค่าปัจจุบันสุทธิ' }
+    }
+  };
+
+  function paint() {
+    var T = TS(), tab = S.tab, th = S.lang === 'th', L = LBL[th ? 'th' : 'en'];
+
+    document.querySelectorAll('#tabs .tab-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === tab); });
+
+    // Which blocks belong to this tab
+    var isNpv = tab === 'npv', isPmt = tab === 'pmt', isCustom = T.scenario === 'custom';
+    show($('scenarioField'), !isNpv && !isPmt);
+    show($('presetField'), isPmt);
+    show($('investField'), isNpv);
+    show($('npvPattern'), isNpv || (!isPmt && isCustom));
+
+    // Which of the three money fields this tab and scenario actually uses.
+    // The tab's own quantity is always shown, because it is either the answer
+    // or the target the answer is measured against.
+    var vis = { pv: false, pmt: false, fv: false };
+    if (isPmt) vis = { pv: true, pmt: true, fv: true };
+    else if (!isNpv && !isCustom) {
+      vis.pmt = (T.scenario === 'annuity' || T.scenario === 'both');
+      var hasSingle = (T.scenario === 'single' || T.scenario === 'both');
+      if (tab === 'fv') { vis.pv = hasSingle; vis.fv = true; }
+      else              { vis.fv = hasSingle; vis.pv = true; }
+    }
+    show($('pvField'), vis.pv);
+    show($('pmtField'), vis.pmt);
+    show($('fvField'), vis.fv);
+    show($('timingField'), !isNpv && (isPmt || T.scenario === 'annuity' || T.scenario === 'both'));
+    show($('mCustomField'), T.m === 'custom');
+    show($('solveTolField'), T.solveFor === 'rate');
+
+    $('lblPV').textContent = L[tab].pv;
+    $('lblPMT').textContent = L[tab].pmt;
+    $('lblFV').textContent = L[tab].fv;
+    $('lblInvest').textContent = th ? 'เงินลงทุนเริ่มต้น — จ่ายออก ณ งวดที่ 0' : 'Initial investment — cash out at period 0';
+    $('lblN').textContent = th ? 'ระยะเวลา (n)' : 'Time (n)';
+    $('lblRate').textContent = th ? 'อัตราดอกเบี้ยต่อปี (i)' : 'Nominal annual rate (i)';
+    $('nSuffix').textContent = th ? 'ปี' : 'years';
+    $('timingNote').textContent = T.timing === 'due'
+      ? (th ? 'ต้นงวด — งวดแรกตกที่งวดที่ 0 และได้ดอกเบี้ยครบทุกงวด (annuity due)' : 'Payments fall at the start of each period, so the first one lands at period 0 and earns interest for the full term.')
+      : (th ? 'สิ้นงวด — งวดแรกตกที่งวดที่ 1 (ordinary annuity)' : 'Payments fall at the end of each period, so the first one lands at period 1.');
+
+    document.querySelectorAll('#scenarioToggle .mode-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.scenario === T.scenario); });
+    document.querySelectorAll('#presetToggle .mode-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.preset === T.preset); });
+    document.querySelectorAll('#timingToggle .mode-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.timing === T.timing); });
+
+    // Field values
+    if (document.activeElement !== $('fPV')) $('fPV').value = T.pv;
+    if (document.activeElement !== $('fPMT')) $('fPMT').value = T.pmt;
+    if (document.activeElement !== $('fFV')) $('fFV').value = T.fv;
+    if (document.activeElement !== $('fInvest')) $('fInvest').value = T.invest;
+    if (document.activeElement !== $('fCfAmt')) $('fCfAmt').value = T.cfAmt;
+    if (document.activeElement !== $('fCfFrom')) $('fCfFrom').value = T.cfFrom;
+    if (document.activeElement !== $('fCfTo')) $('fCfTo').value = T.cfTo;
+    if (document.activeElement !== $('fN')) $('fN').value = T.n;
+    if (document.activeElement !== $('fMCustom')) $('fMCustom').value = T.mCustom;
+    if (document.activeElement !== $('fRate')) $('fRate').value = T.rate;
+    if (document.activeElement !== $('fPerRate')) $('fPerRate').value = T.perRate;
+    $('fM').value = T.m;
+    $('fTol').value = T.tol;
+    $('decimals').value = S.dp;
+    $('rounding').value = S.rounding;
+    document.querySelectorAll('#rateChips .chip').forEach(function (c) {
+      c.classList.toggle('active', parseFloat(c.dataset.rate) === parseFloat(T.rate));
+    });
+
+    // Solve-for options
+    var opts = solveOptions(tab, T.scenario);
+    if (opts.indexOf(T.solveFor) < 0) T.solveFor = opts[0];
+    var sel = $('fSolve');
+    sel.innerHTML = opts.map(function (o) {
+      var label = o === 'rate' && tab === 'npv' ? (th ? 'อัตราผลตอบแทน (IRR)' : 'Internal rate of return (IRR)') : L.solve[o];
+      return '<option value="' + o + '"' + (o === T.solveFor ? ' selected' : '') + '>' + esc(label) + '</option>';
+    }).join('');
+    $('solveNote').textContent = T.solveFor === 'rate'
+      ? (th ? 'ไม่มีสูตรสำเร็จ ต้องหาด้วยการวนซ้ำ — ดูแผงเปรียบเทียบวิธีด้านล่าง' : 'No closed form exists — this is found by iteration. The comparison panel below shows how.')
+      : T.solveFor === 'n' ? (th ? 'หาโดยการค้นหาแบบแบ่งครึ่ง' : 'Found by a monotone search over the term.')
+      : (th ? 'คำนวณจากสูตรโดยตรง' : 'Computed directly from the formula.');
+
+    // The field being solved for is filled in, not typed in
+    Object.keys(SOLVE_FIELD).forEach(function (f) {
+      var el = $(SOLVE_FIELD[f]), on = (T.solveFor === f);
+      el.readOnly = on;
+      el.classList.toggle('solved', on);
+    });
+
+    // Derived rate readout (auto with override)
+    var inp = readInputs();
+    $('perRateAuto').textContent = isFinite(inp.rAuto) ? fmtRate(inp.rAuto) : '—';
+    $('rateDerived').classList.toggle('changed', inp.rOverridden);
+    $('totPeriodsVal').textContent = isFinite(inp.N) ? inp.N.toLocaleString('en-US') + (th ? ' งวด' : '') : '—';
+    var ear = Math.pow(1 + inp.r, inp.m) - 1;
+    $('earVal').textContent = isFinite(ear) ? fmtRate(ear) : '—';
+    $('rateWarn').innerHTML = inp.rOverridden
+      ? '<div class="callout amber">' + (th
+          ? 'ใช้อัตราต่องวดที่กำหนดเอง <strong>' + esc(fmtRate(inp.r)) + '</strong> แทนค่าอัตโนมัติ i ÷ m'
+          : 'Using the manual rate per period <strong>' + esc(fmtRate(inp.r)) + '</strong> instead of the automatic i ÷ m.') + '</div>'
+      : '';
+
+    var R = compute();
+    lastR = R;
+    renderResult(R);
+    renderPeriods(R);
+    renderSolver(R);
+    renderAssumptions(R);
+    save();
+  }
+
+  function renderResult(R) {
+    var th = S.lang === 'th', boxes = $('resultBoxes'), inp = R.inp;
+    $('validation').innerHTML =
+      R.errors.map(function (e) { return '<div class="callout red">' + esc(e) + '</div>'; }).join('') +
+      R.warnings.map(function (w) { return '<div class="callout amber">' + esc(w) + '</div>'; }).join('') +
+      R.notes.map(function (n) { return '<div class="callout">' + esc(n) + '</div>'; }).join('');
+
+    if (R.errors.length || !R.segs) {
+      boxes.innerHTML = '<div class="amount-box plain"><div class="amount-label">' + (th ? 'ผลลัพธ์' : 'Result')
+        + '</div><div class="amount-value">—</div><div class="amount-sub">'
+        + (th ? 'กรอกข้อมูลให้ครบก่อน' : 'Fill in the values above.') + '</div></div>';
+      $('diagram').innerHTML = '';
+      $('termsTable').innerHTML = '';
+      lastSummary = '';
+      return;
+    }
+
+    // ── the answer ────────────────────────────────────────────────────────
+    var sv = R.solved, main, sub, tone = '';
+    var L = LBL[th ? 'th' : 'en'].solve;
+    if (sv.field === 'rate') {
+      main = fmtRate(sv.value);
+      var earS = Math.pow(1 + sv.value, inp.m) - 1;
+      sub = (th ? 'ต่องวด · ต่อปีแบบระบุ ' : 'per period · nominal ') + fmtRate(sv.value * inp.m)
+          + (th ? ' · ที่แท้จริงต่อปี ' : ' per year · effective annual ') + fmtRate(earS);
+    } else if (sv.field === 'n') {
+      main = fmtShort(sv.value) + (th ? ' งวด' : ' periods');
+      sub = fmtShort(sv.years) + (th ? ' ปี ที่ทบต้น ' + inp.m + ' ครั้ง/ปี' : ' years at ' + inp.m + '×/year compounding');
+    } else {
+      main = fmt(Math.abs(sv.value)) + ' ' + CUR();
+      sub = th ? 'ณ อัตราต่องวด ' + fmtRate(R.r) + ' · ' + R.N + ' งวด'
+               : 'at ' + fmtRate(R.r) + ' per period over ' + R.N + ' periods';
+      if (sv.field === 'npv') tone = sv.value >= 0 ? 'green' : 'rose';
+    }
+    var mainLabel = sv.field === 'npv' ? (th ? 'มูลค่าปัจจุบันสุทธิ' : 'Net present value') : L[sv.field];
+
+    // ── context ───────────────────────────────────────────────────────────
+    var contributed = 0, back = 0;
+    R.series.forEach(function (x) { if (x.amt > 0) back += x.amt; else contributed += -x.amt; });
+    var box2;
+    if (inp.tab === 'npv') {
+      box2 = { label: th ? 'คำแนะนำเบื้องต้น' : 'Reading',
+               value: sv.field === 'npv' ? (sv.value >= 0 ? (th ? 'คุ้มค่า' : 'Accept') : (th ? 'ไม่คุ้มค่า' : 'Reject')) : fmt(seriesPV(R.series, R.r)),
+               sub: sv.field === 'npv'
+                 ? (th ? 'NPV ' + (sv.value >= 0 ? 'ไม่ติดลบ' : 'ติดลบ') + ' ที่อัตราคิดลด ' + fmtRate(R.r) + ' — เป็นการอ่านค่าทางเลขคณิต ไม่ใช่คำแนะนำการลงทุน'
+                        : 'NPV is ' + (sv.value >= 0 ? 'not negative' : 'negative') + ' at a ' + fmtRate(R.r) + ' discount rate. This is arithmetic, not investment advice.')
+                 : (th ? 'NPV ณ อัตราที่หาได้' : 'NPV at the rate found'),
+               tone: sv.field === 'npv' ? (sv.value >= 0 ? 'green' : 'rose') : 'plain' };
+    } else if (inp.tab === 'fv') {
+      box2 = { label: th ? 'ดอกเบี้ยที่ได้รวม' : 'Interest earned',
+               value: fmt(Math.abs(R.total) - (contributed + back)) + ' ' + CUR(),
+               sub: (th ? 'เงินที่ใส่เข้าไปรวม ' : 'Total paid in ') + fmt(contributed + back) + ' ' + CUR(),
+               tone: 'green' };
+    } else if (inp.tab === 'pmt') {
+      var totalPaid = Math.abs(isFinite(R.inpEff.pmt) ? R.inpEff.pmt : 0) * R.N;
+      var principal = Math.abs(isFinite(R.inpEff.pv) ? R.inpEff.pv : 0);
+      box2 = { label: th ? 'ชำระรวมทั้งสิ้น' : 'Total paid',
+               value: fmt(totalPaid) + ' ' + CUR(),
+               sub: principal ? (th ? 'เป็นดอกเบี้ย ' : 'of which interest ') + fmt(Math.max(0, totalPaid - principal)) + ' ' + CUR() : '',
+               tone: 'plain' };
+    } else {
+      box2 = { label: th ? 'ผลรวมกระแสเงินสดแบบไม่คิดลด' : 'Undiscounted total',
+               value: fmt(contributed + back) + ' ' + CUR(),
+               sub: th ? 'ส่วนต่างคือมูลค่าของเวลา' : 'The gap between the two is what time is worth here.',
+               tone: 'plain' };
+    }
+
+    boxes.innerHTML =
+      '<div class="amount-box ' + tone + '"><div class="amount-label">' + esc(mainLabel) + '</div>'
+      + '<div class="amount-value">' + esc(main) + '</div><div class="amount-sub">' + esc(sub) + '</div></div>'
+      + '<div class="amount-box ' + (box2.tone || 'plain') + '"><div class="amount-label">' + esc(box2.label) + '</div>'
+      + '<div class="amount-value">' + esc(box2.value) + '</div><div class="amount-sub">' + esc(box2.sub) + '</div></div>';
+
+    // ── diagram ───────────────────────────────────────────────────────────
+    var narrow = window.matchMedia('(max-width: 620px)').matches;
+    var D = { segs: R.segs, N: R.N, focal: R.focal, r: R.r, rTxt: R.rTxt, mode: R.mode,
+              total: R.total, totalLabel: R.totalLabel };
+    $('diagram').innerHTML = R.segs.length ? (narrow ? diagramV(D) : diagramH(D)) : '';
+    $('termsTable').innerHTML = termsTableHTML(R);
+    $('termsNote').textContent = R.segs.length
+      + (th ? ' รายการ' : R.segs.length === 1 ? ' line' : ' lines')
+      + (R.grouped ? (th ? ' · บางช่วงถูกยุบรวม' : ' · equal runs grouped') : '');
+
+    // The grouping is never silent: say it is on, and offer the way out.
+    var canGroup = R.liveCount > INDIV_MAX;
+    show($('expandBtn'), canGroup);
+    if (canGroup) {
+      $('expandBtn').textContent = TS().expand
+        ? (th ? '⇱ ยุบช่วงที่เท่ากัน' : '⇱ Group equal runs')
+        : (th ? '⇲ กางทุกงวด (' + R.liveCount + ')' : '⇲ Expand all ' + R.liveCount + ' periods');
+    }
+    if (selTerm) applySel(selTerm);
+
+    // ── amortisation ──────────────────────────────────────────────────────
+    var am = (inp.tab === 'pmt' && inp.preset !== 'save') ? amortTableHTML(R) : null;
+    show($('amortDetails'), !!am);
+    if (am) {
+      $('amortTable').innerHTML = am.html;
+      $('amortNote').textContent = (th ? 'ดอกเบี้ยรวม ' : 'total interest ') + fmt(am.interest) + ' ' + CUR()
+        + (am.capped ? (th ? ' · แสดง 600 งวดแรก' : ' · first 600 periods shown') : '');
+    }
+
+    buildSummary(R, mainLabel, main, sub);
+
+    // Printed sheets have no tabs and no toggles, so they have to say for
+    // themselves which calculation this was, on what terms, and when.
+    var tabName = { fv: th ? 'มูลค่าอนาคต (FV)' : 'Future value (FV)',
+                    pv: th ? 'มูลค่าปัจจุบัน (PV)' : 'Present value (PV)',
+                    npv: th ? 'มูลค่าปัจจุบันสุทธิ (NPV)' : 'Net present value (NPV)',
+                    pmt: th ? 'เงินงวด (PMT)' : 'Payment (PMT)' }[inp.tab];
+    var when = new Date().toLocaleString(th ? 'th-TH' : 'en-GB',
+      { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    $('printHead').innerHTML =
+      '<b>' + esc(tabName) + '</b> · ' + esc(inp.years + (th ? ' ปี × ' : ' years × ') + inp.m
+        + (th ? ' งวด/ปี = ' : ' periods/year = ') + R.N + (th ? ' งวด' : ' periods'))
+      + ' · ' + esc(fmtRate(inp.iNom) + (th ? '/ปี → ' : '/yr → ') + fmtRate(R.r) + (th ? '/งวด' : '/period'))
+      + (inp.tab !== 'npv' && $('timingField').style.display !== 'none'
+          ? ' · ' + esc(inp.isDue ? (th ? 'ต้นงวด' : 'start of period') : (th ? 'สิ้นงวด' : 'end of period')) : '')
+      + '<br>' + esc(when);
+  }
+
+  function renderPeriods(R) {
+    var th = S.lang === 'th', T = TS();
+    var n = Object.keys(T.flows).filter(function (k) { return String(T.flows[k]).trim() !== ''; }).length;
+    $('periodsNote').textContent = n ? (th ? n + ' งวดกำหนดเอง' : n + ' overridden') : (th ? 'อัตโนมัติทั้งหมด' : 'all automatic');
+    if ($('periodsDetails').open) $('periodsTable').innerHTML = periodsTableHTML(R);
+  }
+
+  function renderSolver(R) {
+    var sol = R.solver, th = S.lang === 'th';
+    show($('solverCard'), !!(sol && sol.ok));
+    if (!sol || !sol.ok) return;
+    var grid = $('methodGrid'), html = '';
+    METHODS.forEach(function (M) {
+      var m = sol.methods[M.key];
+      if (!m) return;
+      var okc = m.ok && m.conv;
+      var isBest = sol.best === M.key;
+      var last = m.it && m.it.length ? m.it[m.it.length - 1] : null;
+      var why = { maxIter: th ? 'ครบ 100 รอบก่อนถึงเกณฑ์' : 'hit the 100-iteration limit',
+                  diverged: th ? 'ลู่ออก' : 'diverged',
+                  flatDeriv: th ? 'อนุพันธ์แบนเกินไป' : 'derivative went flat',
+                  flatSecant: th ? 'สองจุดใกล้กันเกินไป' : 'the two points collapsed',
+                  noBracket: th ? 'หาช่วงคร่อมรากไม่ได้' : 'no sign change to bracket' }[m.why] || '';
+      html += '<div class="method-card' + (isBest ? ' best' : '') + (m.ok ? '' : ' failed') + '">'
+        + '<div class="method-head"><span class="method-dot" style="background:' + M.color + '"></span>'
+        + '<span class="method-name">' + esc(th ? M.nameTh : M.name) + '</span>'
+        + '<span class="method-badge ' + (isBest ? 'win' : okc ? 'ok' : 'no') + '">'
+        + esc(isBest ? (th ? 'เร็วที่สุด' : 'fastest') : okc ? (th ? 'ลู่เข้า' : 'converged') : (th ? 'ไม่สำเร็จ' : 'failed')) + '</span></div>'
+        + '<div class="method-stat">' + (m.ok
+            ? '<b>' + (m.it ? m.it.length : 0) + '</b> ' + (th ? 'รอบ' : m.it.length === 1 ? 'iteration' : 'iterations')
+              + ' · ' + (th ? 'ราก ' : 'root ') + '<b>' + esc(fmtRate(m.root)) + '</b>'
+            : (th ? 'ไม่ได้คำตอบ' : 'no answer')) + '</div>'
+        + '<div class="method-note">'
+        + (last && m.ok ? (th ? 'เหลือ |f(r)| = ' : 'final |f(r)| = ') + Math.abs(last.fx).toExponential(2) + ' · ' : '')
+        + esc(why || (th ? 'ตัววัด: ' : 'tracks: ') + (th ? M.diagTh : M.diag)) + '</div>'
+        + '</div>';
+    });
+    grid.innerHTML = html;
+    $('convGraph').innerHTML = convergenceSVG(sol);
+
+    if ($('iterDetails').open) {
+      var out = '';
+      METHODS.forEach(function (M) {
+        var m = sol.methods[M.key];
+        if (!m || !m.it || !m.it.length) return;
+        out += '<div class="card-title" style="margin-top:10px"><span class="method-dot" style="background:' + M.color + '"></span>'
+             + esc(th ? M.nameTh : M.name) + '</div><div class="tbl-wrap"><table class="data"><thead><tr>'
+             + '<th>#</th><th class="num">r</th><th class="num">f(r)</th><th class="num">' + esc(th ? M.diagTh : M.diag) + '</th></tr></thead><tbody>';
+        m.it.forEach(function (p) {
+          out += '<tr><td>' + p.k + '</td><td class="num">' + esc(fmtRate(p.x)) + '</td>'
+               + '<td class="num">' + esc(Number(p.fx).toExponential(3)) + '</td>'
+               + '<td class="num muted">' + esc(typeof p.extra === 'number' ? Number(p.extra).toExponential(3) : String(p.extra)) + '</td></tr>';
+        });
+        out += '</tbody></table></div>';
+      });
+      $('iterTables').innerHTML = out;
+    }
+  }
+
+  function renderAssumptions(R) {
+    var th = S.lang === 'th', inp = R.inp;
+    var due2 = inp.isDue;
+    var body = th ? [
+      '<p><strong>อัตราต่องวด</strong> r = i ÷ m และ <strong>จำนวนงวด</strong> N = n × m ทุกสูตรทำงานบนงวด ไม่ใช่ปี</p>',
+      '<ul>',
+      '<li>เงินก้อน: <code>FV = PV(1+r)^N</code> และ <code>PV = FV ÷ (1+r)^N</code></li>',
+      '<li>เงินงวดสิ้นงวด: <code>FV = PMT · [((1+r)^N − 1) ÷ r]</code>, <code>PV = PMT · [(1 − (1+r)^−N) ÷ r]</code></li>',
+      '<li>เงินงวดต้นงวด: คูณด้วย (1+r) อีกหนึ่งครั้ง' + (due2 ? ' — ที่ใช้อยู่ตอนนี้' : '') + '</li>',
+      '<li>NPV: <code>Σ CF_t ÷ (1+r)^t</code> โดยเงินลงทุนเริ่มต้นเป็นค่าลบที่งวด 0</li>',
+      '<li>อัตราผลตอบแทน: รากของ <code>Σ CF_t ÷ (1+r)^t = 0</code></li>',
+      '</ul>',
+      '<p><strong>ข้อตกลงเรื่องเครื่องหมาย</strong> แท็บ FV และ PV กรอกเป็นจำนวนบวกทั้งหมดและได้คำตอบเป็นบวก แบบเดียวกับตำรา เครื่องหมายบวกลบใช้เฉพาะที่มีสองทิศทางจริง ๆ คือแท็บ NPV และกระแสเงินสดที่กำหนดเอง ส่วนแท็บ PMT ใช้สมการสมดุลภายในตามที่ปุ่มสถานการณ์กำหนด แล้วรายงานผลเป็นค่าสัมบูรณ์</p>',
+      '<p><strong>ยังไม่ได้คำนวณ</strong> ภาษี เงินเฟ้อ ค่าธรรมเนียม อัตราดอกเบี้ยลอยตัวหรือเปลี่ยนระหว่างทาง งวดที่ไม่เท่ากัน วันจริงตามปฏิทิน (day-count) การชำระก่อนกำหนด และกรณีที่ IRR มีหลายคำตอบ เครื่องมือนี้รายงานรากแรกที่พบเท่านั้น</p>'
+    ] : [
+      '<p><strong>Rate per period</strong> is r = i ÷ m and the <strong>number of periods</strong> is N = n × m. Every formula below works in periods, not years.</p>',
+      '<ul>',
+      '<li>Single amount: <code>FV = PV(1+r)^N</code> and <code>PV = FV ÷ (1+r)^N</code></li>',
+      '<li>Ordinary annuity: <code>FV = PMT · [((1+r)^N − 1) ÷ r]</code>, <code>PV = PMT · [(1 − (1+r)^−N) ÷ r]</code></li>',
+      '<li>Annuity due: the same, multiplied once more by (1+r)' + (due2 ? ' — which is what is in use now' : '') + '</li>',
+      '<li>NPV: <code>Σ CF_t ÷ (1+r)^t</code>, with the initial investment as a negative flow at period 0</li>',
+      '<li>Rate / IRR: the root of <code>Σ CF_t ÷ (1+r)^t = 0</code></li>',
+      '</ul>',
+      '<p><strong>Sign convention.</strong> The FV and PV tabs take every amount as a positive magnitude and return a positive answer, the way a worked example in a textbook does. Signs appear only where the domain really has two directions — the NPV tab and custom series. The PMT tab uses the signed balance equation internally, with the signs set by the scenario button, and reports the answer as a magnitude.</p>',
+      '<p><strong>Not modelled.</strong> Tax, inflation, fees, floating or stepped rates, unequal period lengths, real calendar day-count conventions, early repayment, and multiple IRRs — where a series has more than one root this tool reports the first one it brackets.</p>'
+    ];
+    $('assumeBody').innerHTML = body.join('');
+  }
+
+  function buildSummary(R, mainLabel, main, sub) {
+    var th = S.lang === 'th', inp = R.inp, out = [];
+    var tabName = { fv: 'Future value', pv: 'Present value', npv: 'Net present value', pmt: 'Payment' }[inp.tab];
+    out.push((th ? 'มูลค่าเงินตามเวลา — ' : 'Time value of money — ') + tabName);
+    out.push('');
+    out.push(mainLabel + ': ' + main);
+    if (sub) out.push('  (' + sub + ')');
+    out.push('');
+    out.push((th ? 'ข้อมูลนำเข้า' : 'Inputs'));
+    out.push('  ' + (th ? 'ระยะเวลา' : 'Time') + ': ' + inp.years + (th ? ' ปี × ' : ' years × ') + inp.m + (th ? ' งวด/ปี = ' : ' periods/year = ') + R.N + (th ? ' งวด' : ' periods'));
+    out.push('  ' + (th ? 'อัตรา' : 'Rate') + ': ' + fmtRate(inp.iNom) + (th ? '/ปี → ' : '/yr → ') + fmtRate(R.r) + (th ? '/งวด' : '/period'));
+    if (isFinite(inp.pv)) out.push('  PV: ' + fmt(inp.pv));
+    if (isFinite(inp.pmt)) out.push('  PMT: ' + fmt(inp.pmt) + ' (' + (inp.isDue ? (th ? 'ต้นงวด' : 'start of period') : (th ? 'สิ้นงวด' : 'end of period')) + ')');
+    if (isFinite(inp.fv)) out.push('  FV: ' + fmt(inp.fv));
+    if (isFinite(inp.invest)) out.push('  ' + (th ? 'เงินลงทุนเริ่มต้น' : 'Initial investment') + ': ' + fmt(inp.invest));
+    out.push('');
+    out.push(th ? 'การคำนวณทีละงวด' : 'Period by period');
+    R.segs.forEach(function (sg) {
+      var k = R.mode === 'fv' ? (R.focal - sg.from) : (sg.from - R.focal);
+      out.push('  ' + (sg.grouped ? sg.from + '–' + sg.to + ' (×' + sg.count + ')' : 't=' + sg.from)
+        + ': ' + fmt(sg.amt) + (sg.grouped ? '' : (R.mode === 'fv' ? ' × ' : ' ÷ ') + '(1+' + R.rTxt + ')^' + k)
+        + ' = ' + fmt(sg.value));
+    });
+    out.push('  ' + R.totalLabel + ': ' + fmt(R.total));
+    if (R.solver && R.solver.ok) {
+      out.push('');
+      out.push(th ? 'ตัวหาอัตราดอกเบี้ย' : 'Rate solver');
+      METHODS.forEach(function (M) {
+        var m = R.solver.methods[M.key];
+        if (!m) return;
+        out.push('  ' + M.name + ': ' + (m.ok ? m.it.length + (th ? ' รอบ' : ' iterations') + ' → ' + fmtRate(m.root) + (m.conv ? '' : ' (not converged)') : 'failed'));
+      });
+    }
+    out.push('');
+    out.push(th ? 'เครื่องมืออ้างอิงเท่านั้น ไม่ใช่คำแนะนำทางการเงิน' : 'Reference tool only — not financial advice.');
+    lastSummary = out.join('\n');
+  }
+
+  // ══ Bidirectional highlighting ═══════════════════════════════════════════
+  // One term id is shared by the arrow, the formula term, and the table row,
+  // so lighting up any one of them lights up the others. That is the whole
+  // mechanism — clicking the maths and clicking the picture are the same act.
+  function applySel(tid) {
+    var svg = $('diagram').querySelector('svg');
+    document.querySelectorAll('#diagram [data-term], #termsTable [data-term]').forEach(function (el) {
+      el.classList.toggle('sel', tid != null && el.getAttribute('data-term') === tid);
+    });
+    if (svg) svg.classList.toggle('dim', tid != null);
+  }
+  function selectTerm(tid) {
+    selTerm = (selTerm === tid) ? null : tid;
+    applySel(selTerm);
+  }
+
+  // ══ Input plumbing ═══════════════════════════════════════════════════════
+  function pull() {
+    var T = TS(), sf = T.solveFor;
+    if (sf !== 'pv') T.pv = $('fPV').value;
+    if (sf !== 'pmt') T.pmt = $('fPMT').value;
+    if (sf !== 'fv') T.fv = $('fFV').value;
+    if (sf !== 'n') T.n = $('fN').value;
+    if (sf !== 'rate') T.rate = $('fRate').value;
+    T.invest = $('fInvest').value;
+    T.cfAmt = $('fCfAmt').value;
+    T.cfFrom = $('fCfFrom').value;
+    T.cfTo = $('fCfTo').value;
+    T.m = $('fM').value;
+    T.mCustom = $('fMCustom').value;
+    T.perRate = $('fPerRate').value;
+    T.tol = $('fTol').value;
+    S.dp = $('decimals').value;
+    S.rounding = $('rounding').value;
+  }
+  // The solved field shows the answer as its placeholder rather than its
+  // value, so the user's own last entry survives switching what we solve for.
+  function reflectSolved(R) {
+    var T = TS();
+    Object.keys(SOLVE_FIELD).forEach(function (f) {
+      var el = $(SOLVE_FIELD[f]);
+      if (T.solveFor !== f) { el.placeholder = BASE_PH[f]; return; }
+      el.value = '';
+      var v = '—';
+      if (R && !R.errors.length && R.solved) {
+        v = f === 'rate' ? (R.solved.value * 100).toFixed(Math.max(4, dp()))
+          : f === 'n' ? fmtShort(R.solved.value)
+          : fmt(Math.abs(R.solved.value));
+      }
+      el.placeholder = v;
+    });
+  }
+  function refresh() { pull(); paint(); reflectSolved(lastR); queueHistory(); }
+
+  // ══ History & saved scenarios ════════════════════════════════════════════
+  function snapshot() {
+    return { tab: S.tab, dp: S.dp, rounding: S.rounding, t: JSON.parse(JSON.stringify(TS())) };
+  }
+  function describe(snap) {
+    var T = snap.t, th = S.lang === 'th';
+    var name = { fv: 'FV', pv: 'PV', npv: 'NPV', pmt: 'PMT' }[snap.tab];
+    var bits = [];
+    if (T.pv) bits.push('PV ' + T.pv);
+    if (T.pmt) bits.push('PMT ' + T.pmt);
+    if (T.fv) bits.push('FV ' + T.fv);
+    if (T.invest) bits.push((th ? 'ลงทุน ' : 'invest ') + T.invest);
+    bits.push(T.n + (th ? 'ปี' : 'y'));
+    bits.push(T.rate + '%');
+    return name + ' · ' + bits.join(' · ');
+  }
+  var histTimer = null;
+  function queueHistory() {
+    clearTimeout(histTimer);
+    histTimer = setTimeout(function () {
+      if (!lastR || lastR.errors.length || !lastR.segs || !lastR.segs.length) return;
+      var snap = snapshot(), key = JSON.stringify(snap);
+      if (S.history.length && JSON.stringify(S.history[0].snap) === key) return;
+      S.history.unshift({ id: id(), ts: Date.now(), snap: snap, label: describe(snap),
+                          result: lastR.solved ? String(lastR.solved.field) + ' = ' + fmt(Math.abs(lastR.solved.value)) : '' });
+      S.history = S.history.slice(0, 20);
+      save();
+    }, 2500);
+  }
+  function renderModal() {
+    var th = S.lang === 'th';
+    function rowHTML(rec, kind) {
+      var when = new Date(rec.ts).toLocaleString(S.lang === 'th' ? 'th-TH' : 'en-GB',
+        { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      return '<div class="rec"><span class="rec-tag">' + esc(rec.snap.tab) + '</span>'
+        + '<div class="rec-main"><div class="rec-name">' + esc(rec.name || rec.label) + '</div>'
+        + '<div class="rec-meta">' + esc((rec.name ? rec.label + ' · ' : '') + when) + '</div></div>'
+        + '<div class="rec-actions">'
+        + '<button class="btn btn-small" data-load="' + kind + ':' + rec.id + '">' + (th ? 'เปิด' : 'Load') + '</button>'
+        + '<button class="btn btn-small btn-danger" data-del="' + kind + ':' + rec.id + '">✕</button>'
+        + '</div></div>';
+    }
+    $('savedList').innerHTML = S.saved.length
+      ? S.saved.map(function (r) { return rowHTML(r, 'saved'); }).join('')
+      : '<div class="rec-empty">' + (th ? 'ยังไม่มีสถานการณ์ที่บันทึกไว้ — กด ☆ บันทึกสถานการณ์' : 'Nothing saved yet — use ☆ Save scenario.') + '</div>';
+    $('histList').innerHTML = S.history.length
+      ? S.history.map(function (r) { return rowHTML(r, 'hist'); }).join('')
+      : '<div class="rec-empty">' + (th ? 'ยังไม่มีประวัติ' : 'No recent calculations yet.') + '</div>';
+  }
+  function restore(snap) {
+    S.tab = snap.tab; S.dp = snap.dp; S.rounding = snap.rounding;
+    S.tabs[snap.tab] = Object.assign(blankTab(snap.tab), snap.t);
+    selTerm = null;
+    paint(); reflectSolved(lastR); save();
+  }
+
+  // ══ Example & reset ══════════════════════════════════════════════════════
+  // The worked example from a Thai finance textbook: 1,000 baht paid in at the
+  // start of each year for five years at 6% — FVAD₅ = 5,975.
+  function loadExample() {
+    S.tab = 'fv';
+    var T = blankTab('fv');
+    T.scenario = 'annuity'; T.pmt = '1,000'; T.n = '5'; T.m = '1'; T.rate = '6';
+    T.timing = 'due'; T.solveFor = 'fv';
+    S.tabs.fv = T; selTerm = null;
+    paint(); reflectSolved(lastR); save();
+  }
+  function clearAll() {
+    S.tabs[S.tab] = blankTab(S.tab);
+    selTerm = null;
+    paint(); reflectSolved(lastR); save();
+  }
+
+  // ══ Wiring ═══════════════════════════════════════════════════════════════
+  $('tabs').addEventListener('click', function (e) {
+    var b = e.target.closest('.tab-btn'); if (!b) return;
+    pull(); S.tab = b.dataset.tab; selTerm = null;
+    paint(); reflectSolved(lastR); save();
+  });
+  $('langToggle').addEventListener('click', function (e) {
+    var b = e.target.closest('.lang-btn'); if (!b) return;
+    S.lang = b.dataset.lang; applyLang(); paint(); reflectSolved(lastR); save();
+  });
+  $('scenarioToggle').addEventListener('click', function (e) {
+    var b = e.target.closest('.mode-btn'); if (!b) return;
+    pull(); TS().scenario = b.dataset.scenario; selTerm = null; refresh();
+  });
+  $('presetToggle').addEventListener('click', function (e) {
+    var b = e.target.closest('.mode-btn'); if (!b) return;
+    pull(); var T = TS(); T.preset = b.dataset.preset;
+    T.solveFor = 'pmt';
+    if (T.preset === 'save') { T.pv = ''; } else if (T.preset === 'loan') { T.fv = ''; }
+    selTerm = null; refresh();
+  });
+  $('timingToggle').addEventListener('click', function (e) {
+    var b = e.target.closest('.mode-btn'); if (!b) return;
+    pull(); TS().timing = b.dataset.timing; selTerm = null; refresh();
+  });
+  $('rateChips').addEventListener('click', function (e) {
+    var c = e.target.closest('.chip'); if (!c) return;
+    pull(); TS().rate = c.dataset.rate; $('fRate').value = c.dataset.rate; refresh();
+  });
+  $('fSolve').addEventListener('change', function () {
+    pull(); TS().solveFor = this.value; selTerm = null; refresh();
+  });
+  ['fPV', 'fPMT', 'fFV', 'fInvest', 'fCfAmt'].forEach(function (k) {
+    $(k).addEventListener('input', function () { liveFormat(this); });
+  });
+  ['fPV', 'fPMT', 'fFV', 'fInvest', 'fCfAmt', 'fCfFrom', 'fCfTo', 'fN', 'fM', 'fMCustom',
+   'fRate', 'fPerRate', 'fTol', 'decimals', 'rounding'].forEach(function (k) {
+    $(k).addEventListener('input', refresh);
+    $(k).addEventListener('change', refresh);
+  });
+  $('resetPerRate').addEventListener('click', function () {
+    if (!$('rateDerived').classList.contains('changed')) return;
+    TS().perRate = ''; $('fPerRate').value = ''; refresh();
+  });
+
+  // per-period overrides — delegated, matched by data attribute not by index
+  $('periodsTable').addEventListener('input', function (e) {
+    var el = e.target.closest('[data-cf]'); if (!el) return;
+    liveFormat(el);
+    var t = el.getAttribute('data-cf'), T = TS();
+    if (String(el.value).trim() === '') delete T.flows[t]; else T.flows[t] = el.value;
+    el.closest('tr').classList.toggle('changed', String(el.value).trim() !== '');
+    paint(); reflectSolved(lastR); queueHistory();
+  });
+  $('periodsTable').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-resetcf]'); if (!b) return;
+    var row = b.closest('tr');
+    if (!row.classList.contains('changed')) return;
+    delete TS().flows[b.getAttribute('data-resetcf')];
+    $('periodsTable').innerHTML = periodsTableHTML(lastR || compute());
+    paint(); reflectSolved(lastR);
+  });
+  $('clearOvrBtn').addEventListener('click', function () {
+    TS().flows = {};
+    $('periodsTable').innerHTML = periodsTableHTML(lastR || compute());
+    paint(); reflectSolved(lastR);
+  });
+  $('periodsDetails').addEventListener('toggle', function () { if (this.open) renderPeriods(lastR || compute()); });
+  $('iterDetails').addEventListener('toggle', function () { if (this.open) renderSolver(lastR || compute()); });
+
+  // term highlighting, from either side
+  $('diagram').addEventListener('click', function (e) {
+    var g = e.target.closest('[data-term]'); if (!g) return;
+    selectTerm(g.getAttribute('data-term'));
+  });
+  $('termsTable').addEventListener('click', function (e) {
+    var tr = e.target.closest('[data-term]'); if (!tr) return;
+    selectTerm(tr.getAttribute('data-term'));
+  });
+
+  // the diagram changes shape with the viewport, so redraw on the breakpoint
+  var mq = window.matchMedia('(max-width: 620px)');
+  (mq.addEventListener ? mq.addEventListener.bind(mq, 'change') : mq.addListener.bind(mq))(function () {
+    if (lastR) { renderResult(lastR); }
+  });
+
+  // actions
+  $('copyBtn').addEventListener('click', function () {
+    if (!lastSummary) return;
+    var btn = this;
+    navigator.clipboard.writeText(lastSummary).then(function () {
+      btn.classList.add('copied'); var old = btn.textContent; btn.textContent = '✓';
+      setTimeout(function () { btn.classList.remove('copied'); btn.textContent = old; }, 1300);
+    });
+  });
+  $('expandBtn').addEventListener('click', function () {
+    TS().expand = !TS().expand; selTerm = null;
+    paint(); reflectSolved(lastR);
+  });
+  $('printBtn').addEventListener('click', function () { window.print(); });
+  $('exampleBtn').addEventListener('click', loadExample);
+  $('clearBtn').addEventListener('click', clearAll);
+  $('saveBtn').addEventListener('click', function () {
+    var snap = snapshot();
+    var suggested = describe(snap);
+    var name = window.prompt(S.lang === 'th' ? 'ตั้งชื่อสถานการณ์นี้' : 'Name this scenario', suggested);
+    if (name == null) return;
+    name = String(name).trim() || suggested;
+    S.saved.unshift({ id: id(), ts: Date.now(), name: name, label: suggested, snap: snap });
+    S.saved = S.saved.slice(0, 60);
+    save(); renderModal();
+    var b = $('saveBtn'); b.classList.add('copied');
+    setTimeout(function () { b.classList.remove('copied'); }, 1300);
+  });
+  $('historyBtn').addEventListener('click', function () { renderModal(); $('modalBack').classList.add('open'); });
+  $('modalClose').addEventListener('click', function () { $('modalBack').classList.remove('open'); });
+  $('modalBack').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') $('modalBack').classList.remove('open'); });
+  $('clearSavedBtn').addEventListener('click', function () {
+    if (!S.saved.length) return;
+    if (!window.confirm(S.lang === 'th' ? 'ลบสถานการณ์ที่บันทึกไว้ทั้งหมด?' : 'Delete every saved scenario?')) return;
+    S.saved = []; save(); renderModal();
+  });
+  $('clearHistBtn').addEventListener('click', function () {
+    if (!S.history.length) return;
+    if (!window.confirm(S.lang === 'th' ? 'ล้างประวัติการคำนวณทั้งหมด?' : 'Clear the calculation history?')) return;
+    S.history = []; save(); renderModal();
+  });
+  $('modalBack').addEventListener('click', function (e) {
+    var ld = e.target.closest('[data-load]'), dl = e.target.closest('[data-del]');
+    if (ld) {
+      var p = ld.getAttribute('data-load').split(':');
+      var arr = p[0] === 'saved' ? S.saved : S.history;
+      var rec = arr.filter(function (x) { return x.id === p[1]; })[0];
+      if (rec) { restore(rec.snap); this.classList.remove('open'); }
+    } else if (dl) {
+      var q = dl.getAttribute('data-del').split(':');
+      if (q[0] === 'saved') S.saved = S.saved.filter(function (x) { return x.id !== q[1]; });
+      else S.history = S.history.filter(function (x) { return x.id !== q[1]; });
+      save(); renderModal();
+    }
+  });
+
+  // ══ Init ═════════════════════════════════════════════════════════════════
+  var hadState = load();
+  applyLang();
+  if (!hadState) loadExample();      // first visit opens on the worked example
+  else { paint(); reflectSolved(lastR); }
+})();
+
+</script>
+</body>
+</html>
