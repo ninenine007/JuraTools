@@ -96,11 +96,14 @@ input.is-auto{background:#f8fafc;color:#64748b;}
 
 /* ── Subscriber rows ─────────────────────────── */
 #subList{max-height:calc(100vh - 480px);overflow-y:auto;margin-bottom:8px;}
-.sub{border:1px solid var(--border);border-radius:11px;padding:12px 13px;background:#fcfdfe;margin-bottom:10px;
-  border-left:3px solid #ddd6fe;}
+.sub{border:1px solid var(--border);border-radius:11px;padding:12px 13px 12px 42px;background:#fcfdfe;margin-bottom:10px;
+  border-left:3px solid #ddd6fe;position:relative;}
 .subrow{display:grid;grid-template-columns:22px 1fr 1fr 118px 28px;gap:8px;align-items:center;}
 .subrow.typed{grid-template-columns:22px 1fr 1fr 108px 108px 28px;}
 .subno{font-size:.72em;font-weight:700;color:#94a3b8;text-align:right;}
+.sub-drag{position:absolute;top:16px;left:12px;border:none;background:none;color:#cbd5e1;cursor:grab;
+  font-size:.9em;line-height:1;padding:2px 4px;border-radius:6px;}
+.sub-drag:hover{background:#f1f5f9;color:#64748b;}
 .sub-meta{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.74em;color:var(--muted);margin:8px 0 0 30px;
   font-variant-numeric:tabular-nums;}
 .sub-meta b{color:#475569;font-weight:600;}
@@ -469,6 +472,7 @@ function renderSubs(){
   const typed = numOf(state.co.pref) > 0;
   document.getElementById('subList').innerHTML = state.subs.map((s, i) => `
     <div class="sub">
+      <button class="sub-drag" data-submv="${i}" title="เลื่อนลำดับ">⇅</button>
       <div class="subrow${typed ? ' typed' : ''}">
         <span class="subno">${i+1}</span>
         <input type="text" data-sb="${i}" data-sf="nameTh" value="${escHtml(s.nameTh)}" placeholder="นายสมชาย ใจดี">
@@ -762,6 +766,21 @@ document.addEventListener('click', e => {
   const tog = e.target.closest('[data-subtog]');
   if(tog){ const row = state.subs[+tog.dataset.subtog];
     if(row){ row.open = !row.open; save(); renderSubs(); } return; }
+  const mv = e.target.closest('[data-submv]');
+  if(mv){
+    const i = +mv.dataset.submv;
+    const dir = prompt('เลื่อนไปไหน?\nพิมพ์ "up" หรือ "u" เพื่อเลื่อนขึ้น\nพิมพ์ "down" หรือ "d" เพื่อเลื่อนลง', '');
+    if(!dir) return;
+    const isUp = dir.toLowerCase().startsWith('u');
+    const j = isUp ? i - 1 : i + 1;
+    if(j >= 0 && j < state.subs.length){
+      [state.subs[i], state.subs[j]] = [state.subs[j], state.subs[i]];
+      save(); renderSubs();
+    } else {
+      toast(isUp ? '✗ อยู่แถวบนสุดแล้ว' : '✗ อยู่แถวล่างสุดแล้ว');
+    }
+    return;
+  }
   if(e.target.closest('#btnSubAdd')){ state.subs.push(blankSub()); save(); renderSubs(); }
 });
 
