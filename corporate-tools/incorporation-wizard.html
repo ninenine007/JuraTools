@@ -129,9 +129,8 @@ input.is-ph{background:#fefce8;border-color:#fcd34d;font-weight:600;color:#a1620
 .sub-more>button{border:none;background:none;font-family:inherit;font-size:.75em;font-weight:600;
   color:var(--primary);cursor:pointer;padding:0;}
 .sub-detail{margin-top:10px;padding-top:10px;border-top:1px dashed #e2e8f0;}
-.mini{border:none;background:none;font-family:inherit;cursor:pointer;padding:4px 6px;border-radius:7px;
-  font-size:.74em;font-weight:700;color:#cbd5e1;line-height:1;flex-shrink:0;}
-.mini:hover{background:#fef2f2;color:var(--danger);}
+/* the row's own delete button — the only .mini that means harm */
+.mini[data-subdel]:hover{background:#fef2f2;color:var(--danger);}
 .perpick{width:auto;font-size:.75em;padding:4px 7px;font-weight:500;}
 
 /* ── Review ──────────────────────────────────── */
@@ -414,8 +413,10 @@ const CASE_BTN = [['upper','AA','ตัวพิมพ์ใหญ่ทั้�
                   ['title','Aa','ขึ้นต้นทุกคำด้วยตัวพิมพ์ใหญ่']];
 const caseBtns = () => CASE_BTN.map(([k, t, ti]) =>
   `<button type="button" class="mini up" data-case="${k}" title="${ti}">${t}</button>`).join('');
+/* the same two lines the other three share tools use, so a blank written by
+   hand — (*), (*ชื่อผู้ถือหุ้น*) — is recognised here exactly as it is there */
+const isPlaceholder = v => /^\(\*.*\)$/.test(String(v == null ? '' : v).trim());
 const PLACEHOLDER = '(*)';
-const isPlaceholder = v => String(v || '').trim() === PLACEHOLDER;
 
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-case]');

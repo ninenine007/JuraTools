@@ -1,0 +1,2030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thai Corporate Minutes Generator — JuraTools</title>
+<meta name="description" content="Build a Thai corporate meeting bundle (หนังสือเชิญประชุม · รายงานการประชุม · บัญชีรายชื่อผู้เข้าประชุม · หนังสือเสนอขายหุ้นเพิ่มทุน · ใบสำคัญรับชำระเงินค่าหุ้น) from one set of facts, and export it as Word .docx. By Kornrawee Chanchom.">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{
+  --primary:#2563eb; --primary-dark:#1d4ed8;
+  --bg:#f6f8fb; --card:#fff; --text:#334155; --heading:#0f172a;
+  --border:#e4e9f0; --muted:#94a3b8; --hover-gray:#f1f5f9;
+  --success:#0d9488; --danger:#dc2626; --amber:#d97706;
+  --shadow:0 1px 2px rgba(15,23,42,.04), 0 4px 12px -4px rgba(15,23,42,.06);
+  /* one accent per section, so a glance tells you where you are */
+  --c-co:#0891b2; --c-bod:#7c3aed; --c-gm:#d97706; --c-people:#db2777;
+  --c-cap:#059669; --c-agenda:#4f46e5; --c-out:#0d9488;
+}
+*{box-sizing:border-box;}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);margin:0;font-size:14px;}
+
+/* ── Nav ─────────────────────────────────────── */
+.nav{position:sticky;top:0;z-index:200;height:54px;display:flex;align-items:center;gap:12px;padding:0 24px;
+  background:rgba(246,248,251,.88);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);
+  border-bottom:1px solid var(--border);}
+.nav a{color:inherit;text-decoration:none;}
+.nav-brand{display:flex;align-items:center;gap:9px;user-select:none;}
+.nav-icon{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;
+  background:linear-gradient(145deg,#2979ff,#1565c0);font-size:15px;
+  box-shadow:0 2px 6px rgba(41,121,255,.4), inset 0 1px 0 rgba(255,255,255,.2);}
+.nav-wordmark{font-size:15px;font-weight:700;letter-spacing:-.4px;color:var(--heading);}
+.nav-sep{color:#cbd5e1;}
+.nav-current{font-size:15px;font-weight:600;color:#64748b;}
+.nav-back{margin-left:auto;font-size:13px;font-weight:500;color:#3c3c43;background:rgba(0,0,0,.05);
+  border:1px solid rgba(0,0,0,.09);padding:6px 12px;border-radius:9px;transition:background .14s;}
+.nav-back:hover{background:rgba(0,0,0,.09);}
+
+/* ── Toolbar ─────────────────────────────────── */
+.toolbar{position:sticky;top:54px;z-index:190;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:9px 24px;background:rgba(246,248,251,.9);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);}
+.segs{display:flex;background:#eaeef4;border-radius:9px;padding:2px;gap:2px;}
+.seg{border:none;background:none;font-family:inherit;font-size:.79em;font-weight:600;color:#64748b;
+  padding:5px 12px;border-radius:7px;cursor:pointer;white-space:nowrap;}
+.seg.on{background:#fff;color:var(--heading);box-shadow:0 1px 2px rgba(15,23,42,.1);}
+.tb-sp{margin-left:auto;}
+.btn{border:1px solid var(--border);background:#fff;font-family:inherit;font-size:.8em;font-weight:600;color:#475569;
+  padding:7px 13px;border-radius:9px;cursor:pointer;transition:.12s;white-space:nowrap;}
+.btn:hover{background:var(--hover-gray);}
+.btn-primary{background:var(--primary);border-color:var(--primary);color:#fff;}
+.btn-primary:hover{background:var(--primary-dark);}
+.btn-sm{padding:5px 10px;font-size:.75em;}
+.btn-ghost{border-color:transparent;background:transparent;color:var(--muted);}
+.btn-ghost:hover{background:var(--hover-gray);color:#475569;}
+
+/* ── Layout ──────────────────────────────────── */
+.app{display:flex;gap:20px;max-width:1900px;margin:0 auto;padding:20px 24px 72px;align-items:flex-start;}
+.app[data-view="form"] .pv{display:none;}
+.app[data-view="preview"] .main{display:none;}
+.app[data-view="preview"] .pv{flex:1;}
+.sidebar{width:262px;min-width:262px;background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:14px;position:sticky;top:106px;box-shadow:var(--shadow);max-height:calc(100vh - 126px);overflow-y:auto;}
+.main{flex:1 1 420px;min-width:0;display:flex;flex-direction:column;gap:16px;}
+.pv{flex:1 1 520px;min-width:0;position:sticky;top:106px;max-height:calc(100vh - 126px);overflow-y:auto;
+  background:#e8ecf2;border:1px solid var(--border);border-radius:14px;padding:16px;box-shadow:var(--shadow) inset;}
+
+/* ── Sidebar: the document set ───────────────── */
+.side-head{display:flex;align-items:center;gap:8px;margin-bottom:3px;}
+.side-head h2{margin:0;font-size:1em;color:var(--heading);}
+.count-pill{margin-left:auto;font-size:.72em;font-weight:700;color:var(--primary);
+  background:#eff6ff;border:1px solid #bfdbfe;border-radius:999px;padding:2px 9px;}
+.sidebar .hint{font-size:.77em;color:var(--muted);margin:0 0 11px;line-height:1.45;}
+.dgroup{font-size:.68em;font-weight:800;letter-spacing:.06em;color:var(--muted);margin:12px 0 6px;}
+.dgroup:first-of-type{margin-top:4px;}
+.doc{display:flex;align-items:flex-start;gap:8px;padding:8px 9px;border:1px solid var(--border);border-radius:10px;
+  margin-bottom:6px;cursor:pointer;background:#fff;transition:.12s;border-left:3px solid #e2e8f0;}
+.doc:hover{background:var(--hover-gray);}
+.doc.active{border-color:#bfdbfe;border-left-color:var(--primary);background:#f5f9ff;
+  box-shadow:0 0 0 3px rgba(37,99,235,.08);}
+.doc input[type=checkbox]{margin:2px 0 0;flex-shrink:0;accent-color:var(--primary);}
+.doc-txt{min-width:0;flex:1;}
+.doc-th{font-weight:700;font-size:.83em;color:var(--heading);line-height:1.3;
+  font-family:'Sarabun','Inter',sans-serif;}
+.doc-en{font-size:.72em;color:var(--muted);margin-top:2px;}
+.doc-flag{font-size:.67em;font-weight:700;border-radius:5px;padding:1px 5px;margin-top:4px;display:inline-block;}
+.doc-flag.ok{background:#ecfdf5;color:#047857;}
+.doc-flag.warn{background:#fefce8;color:#a16207;}
+.doc-flag.off{background:#f1f5f9;color:#94a3b8;}
+
+/* ── Cards ───────────────────────────────────── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;}
+.card-hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:12px 18px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,#fcfdff,#f8fafc);}
+.card-hd .ico{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:13px;flex-shrink:0;
+  background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-line);}
+.card-hd h3{margin:0;font-size:.93em;color:var(--heading);font-weight:700;}
+.card-hd .th{font-weight:500;color:var(--muted);font-size:.86em;margin-left:-3px;font-family:'Sarabun','Inter',sans-serif;}
+.card-hd .spacer{margin-left:auto;}
+.card-bd{padding:15px 18px 17px;}
+.acc-co{--accent:var(--c-co);--accent-soft:#ecfeff;--accent-line:#a5f3fc;}
+.acc-bod{--accent:var(--c-bod);--accent-soft:#f5f3ff;--accent-line:#ddd6fe;}
+.acc-gm{--accent:var(--c-gm);--accent-soft:#fffbeb;--accent-line:#fde68a;}
+.acc-people{--accent:var(--c-people);--accent-soft:#fdf2f8;--accent-line:#fbcfe8;}
+.acc-cap{--accent:var(--c-cap);--accent-soft:#ecfdf5;--accent-line:#a7f3d0;}
+.acc-agenda{--accent:var(--c-agenda);--accent-soft:#eef2ff;--accent-line:#c7d2fe;}
+.acc-out{--accent:var(--c-out);--accent-soft:#f0fdfa;--accent-line:#99f6e4;}
+
+/* ── Fields ──────────────────────────────────── */
+label{display:block;font-size:.76em;font-weight:600;color:#64748b;margin-bottom:5px;}
+input[type=text],input[type=date],input[type=time],input[type=number],select,textarea{width:100%;padding:8px 10px;
+  border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:.92em;color:var(--text);background:#fff;
+  transition:border-color .12s, box-shadow .12s;}
+textarea{resize:vertical;min-height:56px;line-height:1.5;font-family:'Sarabun','Inter',sans-serif;}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.12);}
+input::placeholder,textarea::placeholder{color:#cbd5e1;}
+input.th,textarea.th{font-family:'Sarabun','Inter',sans-serif;}
+input.num{text-align:right;font-variant-numeric:tabular-nums;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:13px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px;}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;}
+.field{margin-bottom:13px;}
+.field:last-child{margin-bottom:0;}
+.hintline{font-size:.74em;color:var(--muted);margin:5px 0 0;line-height:1.5;}
+.switch{display:flex;align-items:center;gap:7px;font-size:.8em;font-weight:600;color:#475569;cursor:pointer;}
+.switch input{accent-color:var(--primary);margin:0;}
+.words{font-size:.73em;color:var(--muted);margin-top:4px;font-family:'Sarabun','Inter',sans-serif;min-height:1em;}
+
+/* ── People rows ─────────────────────────────── */
+.rows{display:flex;flex-direction:column;gap:7px;}
+.row{display:flex;align-items:center;gap:7px;}
+.row .no{font-size:.72em;font-weight:800;color:var(--muted);width:18px;flex-shrink:0;text-align:right;}
+.row input{min-width:0;}
+.row .grow{flex:1;}
+.row .w-sh{width:120px;flex:none;}
+.row .w-pos{width:130px;flex:none;}
+.row .w-al{width:110px;flex:none;}
+.mini{border:none;background:none;font-family:inherit;cursor:pointer;padding:4px 6px;border-radius:7px;
+  font-size:.74em;font-weight:700;color:#cbd5e1;line-height:1;flex-shrink:0;}
+.mini:hover{background:var(--hover-gray);color:#64748b;}
+.mini.del:hover{color:var(--danger);background:#fef2f2;}
+.mini.rst{color:var(--primary);}
+.mini.rst:hover{background:#eff6ff;}
+.present{accent-color:var(--success);margin:0;flex-shrink:0;}
+.tot{display:flex;gap:16px;flex-wrap:wrap;font-size:.78em;color:#475569;margin-top:11px;
+  padding-top:10px;border-top:1px dashed var(--border);}
+.tot b{color:var(--heading);font-variant-numeric:tabular-nums;}
+.is-auto{background:#f8fafc;color:#64748b;}
+.is-over{background:#fff7ed;border-color:#fdba74;font-weight:600;color:#9a3412;}
+.auto-tag{color:#cbd5e1;font-weight:400;}
+
+/* ── Quorum readout ──────────────────────────── */
+.chk{display:flex;align-items:flex-start;gap:9px;padding:9px 11px;border-radius:10px;margin-bottom:7px;
+  font-size:.79em;line-height:1.45;border:1px solid;}
+.chk:last-child{margin-bottom:0;}
+.chk.pass{background:#f0fdf4;border-color:#bbf7d0;color:#166534;}
+.chk.fail{background:#fef2f2;border-color:#fecaca;color:#991b1b;}
+.chk.info{background:#f8fafc;border-color:var(--border);color:#475569;}
+.chk .mk{font-weight:800;flex-shrink:0;}
+.chk b{font-variant-numeric:tabular-nums;}
+.chk .cite{display:block;font-size:.9em;opacity:.75;margin-top:2px;}
+
+/* ── Agenda ──────────────────────────────────── */
+.ag{border:1px solid var(--border);border-radius:11px;margin-bottom:8px;background:#fff;overflow:hidden;}
+.ag-hd{display:flex;align-items:flex-start;gap:8px;padding:9px 10px;cursor:pointer;}
+.ag-hd:hover{background:var(--hover-gray);}
+.ag-no{font-size:.7em;font-weight:800;color:var(--muted);flex-shrink:0;padding-top:2px;white-space:nowrap;}
+.ag-ti{flex:1;min-width:0;font-size:.82em;font-weight:600;color:var(--heading);line-height:1.4;
+  font-family:'Sarabun','Inter',sans-serif;}
+.ag-tag{font-size:.66em;font-weight:800;border-radius:5px;padding:1px 5px;flex-shrink:0;
+  background:#fef2f2;color:#b91c1c;letter-spacing:.02em;}
+.ag-tag.norm{background:#f1f5f9;color:#64748b;}
+.ag-bd{padding:0 10px 11px 10px;border-top:1px dashed var(--border);}
+.ag-bd .field{margin-top:11px;}
+.ag-add{display:flex;gap:7px;margin-top:9px;}
+.ag-add select{flex:1;}
+.edited{font-size:.68em;font-weight:700;color:var(--amber);background:#fffbeb;border:1px solid #fde68a;
+  border-radius:5px;padding:1px 5px;}
+
+/* ── Preview ─────────────────────────────────── */
+.pv-bar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:12px;}
+.pv-bar h4{margin:0;font-size:.83em;color:#475569;font-weight:700;}
+.page{background:#fff;box-shadow:0 2px 10px rgba(15,23,42,.13);border-radius:3px;
+  padding:56px 62px;margin:0 auto 16px;max-width:820px;
+  font-family:'Sarabun','Inter',sans-serif;font-size:15.5px;line-height:1.62;color:#111;}
+.page .t{text-align:center;font-weight:700;font-size:1.05em;}
+.page .s{text-align:center;}
+.page .h{font-weight:700;margin-top:14px;}
+.page .p{margin-top:9px;text-align:justify;text-justify:inter-word;}
+.page .p.ind{text-indent:2.5em;}
+.page .q{margin:9px 0 0 2.5em;text-align:justify;}
+.page .ag{border:none;margin:16px 0 0;background:none;font-weight:700;display:flex;gap:.5em;}
+.page .ag .n{white-space:nowrap;}
+.page .res{margin-top:9px;text-align:justify;padding-left:2.5em;}
+.page .reshd{font-weight:700;margin-top:11px;padding-left:2.5em;}
+.page .lab{display:flex;gap:.6em;margin-top:2px;}
+.page .lab .k{width:5.4em;flex-shrink:0;font-weight:400;}
+.page .li{margin-top:4px;display:flex;gap:.6em;}
+.page .li .n{white-space:nowrap;min-width:4.6em;}
+.page .sig{margin-top:26px;text-align:center;}
+.page .ln{white-space:pre;}
+.page .gap{height:14px;}
+.page table{border-collapse:collapse;width:100%;margin-top:11px;font-size:.93em;}
+.page th,.page td{border:1px solid #555;padding:4px 7px;vertical-align:top;}
+.page th{background:#f2f2f2;font-weight:700;text-align:center;}
+.page td.n{text-align:right;font-variant-numeric:tabular-nums;}
+.page td.c{text-align:center;}
+.page .ph{background:#fef08a;padding:0 2px;border-radius:2px;}
+.pv-empty{text-align:center;color:#94a3b8;font-size:.85em;padding:60px 20px;}
+.pgsep{text-align:center;font-size:.68em;font-weight:800;letter-spacing:.14em;color:#94a3b8;margin:0 0 16px;}
+
+/* ── Toast ───────────────────────────────────── */
+#toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(14px);z-index:900;
+  background:#0f172a;color:#fff;font-size:.82em;font-weight:600;padding:10px 18px;border-radius:11px;
+  box-shadow:0 8px 24px rgba(15,23,42,.28);opacity:0;pointer-events:none;transition:.18s;}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
+
+@media (max-width:1240px){
+  .app{flex-wrap:wrap;}
+  .pv{flex:1 1 100%;position:static;max-height:none;}
+}
+@media (max-width:820px){
+  .app{padding:14px;gap:14px;}
+  .sidebar{width:100%;min-width:0;position:static;max-height:none;}
+  .grid2,.grid3,.grid4{grid-template-columns:1fr;}
+  .page{padding:30px 24px;}
+}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <a href="../index.html" class="nav-brand">
+    <span class="nav-icon">⚖️</span><span class="nav-wordmark">JuraTools</span>
+  </a>
+  <span class="nav-sep">/</span>
+  <a href="index.html" class="nav-current">Minutes Generator</a>
+  <a href="index.html" class="nav-back">← Corporate tools</a>
+</nav>
+
+<div class="toolbar">
+  <div class="segs" id="viewSegs">
+    <button class="seg on" data-view="split">Form + preview</button>
+    <button class="seg" data-view="form">Form only</button>
+    <button class="seg" data-view="preview">Preview only</button>
+  </div>
+  <span class="tb-sp"></span>
+  <button class="btn btn-sm" id="btnDemo">ตัวอย่าง</button>
+  <button class="btn btn-sm" id="btnImport">↑ JSON</button>
+  <button class="btn btn-sm" id="btnBackup">↓ JSON</button>
+  <button class="btn btn-sm" id="btnClear">ล้าง</button>
+  <button class="btn btn-primary btn-sm" id="btnExport">⬇︎ ดาวน์โหลด .docx</button>
+  <input type="file" id="fileJson" accept=".json,application/json" hidden>
+</div>
+
+<div class="app" id="app" data-view="split">
+
+  <!-- ── Sidebar: the document set ─────────────────────────── -->
+  <aside class="sidebar">
+    <div class="side-head">
+      <h2>ชุดเอกสาร</h2>
+      <span class="count-pill" id="docCount">0</span>
+    </div>
+    <p class="hint">ติ๊กเอกสารที่ต้องการ แล้วคลิกชื่อเพื่อดูตัวอย่าง — ทุกฉบับใช้ข้อมูลชุดเดียวกัน</p>
+    <div id="docList"></div>
+    <div class="field" style="margin-top:12px;">
+      <label class="switch"><input type="checkbox" id="bundleOne"> รวมเป็นไฟล์เดียว</label>
+      <p class="hintline">ปิด = แยกไฟล์แล้วบีบเป็น .zip · เปิด = ทุกฉบับอยู่ในไฟล์เดียว คั่นด้วยหน้าใหม่</p>
+    </div>
+  </aside>
+
+  <!-- ── Main: the facts ───────────────────────────────────── -->
+  <div class="main">
+
+    <section class="card acc-co">
+      <div class="card-hd"><span class="ico">🏢</span><h3>Company</h3><span class="th">บริษัท</span></div>
+      <div class="card-bd">
+        <div class="field"><label>ชื่อบริษัท</label>
+          <input type="text" class="th" id="coName" placeholder="บริษัท ตัวอย่าง จำกัด"></div>
+        <div class="field"><label>ที่ตั้งสำนักงาน</label>
+          <input type="text" class="th" id="coAddr" placeholder="เลขที่ 87 ถนนบางนาตราด 16 แขวงบางนาใต้ เขตบางนา กรุงเทพมหานคร"></div>
+        <div class="grid3">
+          <div class="field"><label>ทุนจดทะเบียนเดิม (บาท)</label>
+            <input type="text" class="num" id="coCapital" data-num placeholder="50,000,000">
+            <p class="words" id="coCapitalW"></p></div>
+          <div class="field"><label>มูลค่าที่ตราไว้หุ้นละ (บาท)</label>
+            <input type="text" class="num" id="coPar" data-num placeholder="10"></div>
+          <div class="field"><label>ชนิดหุ้นเดิม</label>
+            <select id="coShareType"><option value="ordinary">หุ้นสามัญ</option><option value="preferred">หุ้นบุริมสิทธิ</option></select></div>
+        </div>
+        <p class="hintline" id="coDerived"></p>
+      </div>
+    </section>
+
+    <section class="card acc-bod">
+      <div class="card-hd"><span class="ico">👔</span><h3>Board meeting</h3><span class="th">ประชุมคณะกรรมการ</span></div>
+      <div class="card-bd">
+        <div class="grid4">
+          <div class="field"><label>ครั้งที่</label><input type="text" id="bodNo" placeholder="3"></div>
+          <div class="field"><label>ปี (พ.ศ.)</label><input type="text" id="bodYear" placeholder="2569"></div>
+          <div class="field"><label>วันที่ออกหนังสือเชิญ</label><input type="date" id="bodNoticeDate"></div>
+          <div class="field"><label>วันที่ประชุม</label><input type="date" id="bodDate"></div>
+        </div>
+        <div class="grid3">
+          <div class="field"><label>เวลาเริ่ม</label><input type="time" id="bodTime"></div>
+          <div class="field"><label>เวลาปิด</label><input type="time" id="bodClose"></div>
+          <div class="field"><label>ประธานในที่ประชุม</label><select id="bodChair"></select></div>
+        </div>
+        <div class="field"><label>สถานที่ประชุม <span class="auto-tag" id="bodPlaceAuto"></span></label>
+          <input type="text" class="th" id="bodPlace" placeholder="ว่างไว้ = ใช้ที่ตั้งสำนักงานของบริษัท"></div>
+        <div class="field"><label>สิ่งที่ส่งมาด้วย (บรรทัดละรายการ)</label>
+          <textarea class="th" id="bodAttach" placeholder="สำเนารายงานการประชุมคณะกรรมการ ครั้งที่ 2/2569"></textarea></div>
+      </div>
+    </section>
+
+    <section class="card acc-gm">
+      <div class="card-hd"><span class="ico">📣</span><h3>Shareholders' meeting</h3><span class="th">ประชุมผู้ถือหุ้น</span></div>
+      <div class="card-bd">
+        <div class="grid4">
+          <div class="field"><label>ประเภท</label>
+            <select id="gmKind"><option value="egm">วิสามัญ</option><option value="agm">สามัญ</option></select></div>
+          <div class="field"><label>ครั้งที่</label><input type="text" id="gmNo" placeholder="3"></div>
+          <div class="field"><label>ปี (พ.ศ.)</label><input type="text" id="gmYear" placeholder="2569"></div>
+          <div class="field"><label>วันที่ออกหนังสือบอกกล่าว</label><input type="date" id="gmNoticeDate"></div>
+        </div>
+        <div class="grid4">
+          <div class="field"><label>วันที่ประชุม</label><input type="date" id="gmDate"></div>
+          <div class="field"><label>เวลาเริ่ม</label><input type="time" id="gmTime"></div>
+          <div class="field"><label>เวลาปิด</label><input type="time" id="gmClose"></div>
+          <div class="field"><label>ประธานในที่ประชุม</label><select id="gmChair"></select></div>
+        </div>
+        <div class="field"><label>สถานที่ประชุม <span class="auto-tag" id="gmPlaceAuto"></span></label>
+          <input type="text" class="th" id="gmPlace" placeholder="ว่างไว้ = ใช้ที่ตั้งสำนักงานของบริษัท"></div>
+        <div class="grid2">
+          <div class="field"><label>ระยะบอกกล่าวล่วงหน้า (วัน)</label><input type="text" class="num" id="gmNoticeDays" placeholder="14"></div>
+          <div class="field"><label>สิ่งที่ส่งมาด้วย (บรรทัดละรายการ)</label>
+            <textarea class="th" id="gmAttach" style="min-height:38px;" placeholder="สำเนารายงานการประชุมวิสามัญผู้ถือหุ้น ครั้งที่ 2/2569"></textarea></div>
+        </div>
+        <div id="noticeChk"></div>
+      </div>
+    </section>
+
+    <section class="card acc-people">
+      <div class="card-hd"><span class="ico">👥</span><h3>Directors</h3><span class="th">กรรมการ</span>
+        <span class="spacer"></span><button class="btn btn-sm" id="btnAddDir">+ เพิ่ม</button></div>
+      <div class="card-bd">
+        <p class="hintline" style="margin:0 0 10px;">ติ๊ก = เข้าร่วมประชุมคณะกรรมการ</p>
+        <div class="rows" id="dirRows"></div>
+        <div class="tot" id="dirTot"></div>
+        <div id="dirChk" style="margin-top:11px;"></div>
+      </div>
+    </section>
+
+    <section class="card acc-people">
+      <div class="card-hd"><span class="ico">📋</span><h3>Shareholders</h3><span class="th">ผู้ถือหุ้น</span>
+        <span class="spacer"></span><button class="btn btn-sm" id="btnAddSh">+ เพิ่ม</button></div>
+      <div class="card-bd">
+        <p class="hintline" style="margin:0 0 10px;">ติ๊ก = เข้าร่วมประชุมผู้ถือหุ้น · ช่องขวาสุดคือหุ้นที่จัดสรร (คำนวณอัตโนมัติ แก้ทับได้)</p>
+        <div class="rows" id="shRows"></div>
+        <div class="tot" id="shTot"></div>
+        <div id="shChk" style="margin-top:11px;"></div>
+      </div>
+    </section>
+
+    <section class="card acc-cap">
+      <div class="card-hd"><span class="ico">📈</span><h3>Capital increase</h3><span class="th">เพิ่มทุน</span>
+        <span class="spacer"></span><label class="switch"><input type="checkbox" id="capOn" checked> ใช้วาระเพิ่มทุน</label></div>
+      <div class="card-bd" id="capBody">
+        <div class="grid4">
+          <div class="field"><label>ทุนใหม่ (บาท)</label><input type="text" class="num" id="capTo" data-num placeholder="55,000,000">
+            <p class="words" id="capToW"></p></div>
+          <div class="field"><label>จำนวนหุ้นที่ออกใหม่</label><input type="text" class="num" id="capShares" data-num placeholder="500,000">
+            <p class="words" id="capSharesW"></p></div>
+          <div class="field"><label>ชนิดหุ้นที่ออกใหม่</label>
+            <select id="capType"><option value="ordinary">หุ้นสามัญ</option><option value="preferred">หุ้นบุริมสิทธิ</option></select></div>
+          <div class="field"><label>ราคาเสนอขายต่อหุ้น (บาท)</label><input type="text" class="num" id="capPrice" data-num placeholder="10"></div>
+        </div>
+        <div class="grid3">
+          <div class="field"><label>วันที่เสนอขาย</label><input type="date" id="capOfferDate"></div>
+          <div class="field"><label>กำหนดตอบรับภายใน</label><input type="date" id="capReplyDate"></div>
+          <div class="field"><label>เวลาที่ต้องตอบรับ</label><input type="time" id="capReplyTime"></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label>ธนาคาร / ชื่อบัญชี (ใบสำคัญรับชำระเงิน)</label>
+            <input type="text" class="th" id="capBank" placeholder="ธนาคารกรุงเทพ จำกัด (มหาชน) ชื่อบัญชี ..."></div>
+          <div class="field"><label>เลขที่บัญชี</label><input type="text" id="capAcct" placeholder="158-3-09131-7"></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label>วันที่รับชำระเงิน</label><input type="date" id="capPayDate"></div>
+          <div class="field"><label>กรรมการผู้ลงนามรับเงิน (คั่นด้วย , )</label>
+            <input type="text" class="th" id="capSigners" placeholder="นางสาว ก, นางสาว ข"></div>
+        </div>
+        <div id="capChk"></div>
+      </div>
+    </section>
+
+    <section class="card acc-agenda">
+      <div class="card-hd"><span class="ico">🗂️</span><h3>Board agenda</h3><span class="th">วาระประชุมคณะกรรมการ</span></div>
+      <div class="card-bd">
+        <div id="agBod"></div>
+        <div class="ag-add">
+          <select id="agBodPick"></select>
+          <button class="btn btn-sm" data-add="bod">+ เพิ่มวาระ</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card acc-agenda">
+      <div class="card-hd"><span class="ico">🗳️</span><h3>Shareholder agenda</h3><span class="th">วาระประชุมผู้ถือหุ้น</span></div>
+      <div class="card-bd">
+        <div id="agGm"></div>
+        <div class="ag-add">
+          <select id="agGmPick"></select>
+          <button class="btn btn-sm" data-add="gm">+ เพิ่มวาระ</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card acc-out">
+      <div class="card-hd"><span class="ico">⬇︎</span><h3>Export</h3><span class="th">ส่งออก</span></div>
+      <div class="card-bd">
+        <div class="grid2">
+          <div class="field"><label>ชื่อไฟล์ (ไม่ต้องใส่ .docx)</label>
+            <input type="text" id="fileBase" placeholder="ว่างไว้ = ตั้งชื่อให้อัตโนมัติ"></div>
+          <div class="field"><label>&nbsp;</label>
+            <button class="btn btn-primary" id="btnExport2" style="width:100%;">⬇︎ ดาวน์โหลดเอกสารที่เลือก</button></div>
+        </div>
+        <p class="hintline">ช่องที่ยังไม่ได้กรอกจะพิมพ์เป็นจุดไข่ปลาและไฮไลต์สีเหลืองในไฟล์ Word เพื่อให้เห็นว่ายังต้องเติม</p>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ── Preview ───────────────────────────────────────────── -->
+  <div class="pv">
+    <div class="pv-bar">
+      <h4 id="pvTitle">ตัวอย่างเอกสาร</h4>
+      <span class="tb-sp"></span>
+      <button class="btn btn-sm" id="btnPrint">🖨 พิมพ์</button>
+    </div>
+    <div id="pvBody"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+/* ═══════════════════════════════════════════════════════════════
+   Thai Corporate Minutes Generator
+
+   One set of facts — company, two meetings, the people, the capital
+   increase — drives nine documents. The Thai wording is the firm's
+   own, lifted from its executed bundles and left intact; everything
+   around it (field names, the agenda library, the maths) is English,
+   so the boilerplate stays quotable and the logic stays readable.
+
+   Documents are built as blocks, not as strings, and the same block
+   list feeds both the on-screen preview and the .docx. What you see
+   cannot drift from what you get.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Small helpers ────────────────────────────────────────────── */
+const $  = id => document.getElementById(id);
+const escH = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const escX = s => String(s == null ? '' : s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const trim = v => String(v == null ? '' : v).trim();
+
+function toast(msg){
+  const t = $('toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('on'), 2400);
+}
+
+/* Numbers. Everything the user types keeps its commas while typing,
+   so a nine-digit capital stays readable in the box. */
+const num = v => { const n = Number(String(v == null ? '' : v).replace(/,/g,'').trim()); return Number.isFinite(n) ? n : 0; };
+const fmt = n => (Number.isFinite(n) ? n : 0).toLocaleString('en-US');
+function liveComma(el){
+  const before = el.value, pos = el.selectionStart;
+  const digitsBefore = before.slice(0, pos).replace(/[^\d]/g,'').length;
+  const clean = before.replace(/[^\d.]/g,'');
+  if(clean === ''){ el.value = ''; return; }
+  const [i, ...rest] = clean.split('.');
+  const out = Number(i || 0).toLocaleString('en-US') + (rest.length ? '.' + rest.join('').slice(0,4) : '');
+  el.value = out;
+  let seen = 0, at = out.length;
+  for(let k = 0; k < out.length; k++){ if(/\d/.test(out[k])) seen++; if(seen === digitsBefore){ at = k + 1; break; } }
+  if(digitsBefore === 0) at = 0;
+  el.setSelectionRange(at, at);
+}
+
+/* ── Thai number reading ──────────────────────────────────────── */
+/* Royal Institute conventions: เอ็ด for a trailing one, ยี่สิบ, recursive ล้าน.
+   The same reader the firm's Baht-text utility uses. */
+const TH_DIGIT = ['ศูนย์','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า'];
+const TH_POS   = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน'];
+function readGroupTh(g, hasHigher){
+  let out = ''; const n = g.length;
+  for(let i = 0; i < n; i++){
+    const d = g.charCodeAt(i) - 48, pos = n - 1 - i;
+    if(d === 0) continue;
+    if(pos === 0){
+      const restNonZero = /[1-9]/.test(g.slice(0, -1));
+      out += (d === 1 && (restNonZero || hasHigher)) ? 'เอ็ด' : TH_DIGIT[d];
+    } else if(pos === 1){
+      out += (d === 1) ? 'สิบ' : (d === 2) ? 'ยี่สิบ' : TH_DIGIT[d] + 'สิบ';
+    } else {
+      out += TH_DIGIT[d] + TH_POS[pos];
+    }
+  }
+  return out;
+}
+function thaiWords(n){
+  const v = Math.round(Math.abs(num(n)));
+  const s = String(v);
+  if(s === '0') return 'ศูนย์';
+  const groups = [];
+  for(let end = s.length; end > 0; end -= 6) groups.unshift(s.slice(Math.max(0, end - 6), end));
+  let out = '';
+  for(let i = 0; i < groups.length; i++){
+    const g = groups[i].replace(/^0+/, '');
+    if(g !== '') out += readGroupTh(g, i > 0);
+    if(i < groups.length - 1 && out !== '') out += 'ล้าน';
+  }
+  return out;
+}
+/* "50,000,000 (ห้าสิบล้าน)" — the shape every figure takes in the body text */
+const nw = n => fmt(num(n)) + ' (' + thaiWords(n) + ')';
+
+/* ── Dates ────────────────────────────────────────────────────── */
+const TH_MONTH = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
+                  'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+/* ISO in, "11 สิงหาคม 2569" out — Buddhist era, which is what the registrar reads */
+function thaiDate(iso){
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trim(iso));
+  if(!m) return '';
+  return Number(m[3]) + ' ' + TH_MONTH[Number(m[2]) - 1] + ' ' + (Number(m[1]) + 543);
+}
+/* "13.00" — Thai documents write the separator as a full stop and add น. after */
+function thaiTime(hhmm){
+  const m = /^(\d{1,2}):(\d{2})$/.exec(trim(hhmm));
+  if(!m) return '';
+  return String(Number(m[1])).padStart(2,'0') + '.' + m[2];
+}
+const daysBetween = (a, b) => {
+  const A = Date.parse(trim(a) + 'T00:00:00Z'), B = Date.parse(trim(b) + 'T00:00:00Z');
+  return (Number.isFinite(A) && Number.isFinite(B)) ? Math.round((B - A) / 86400000) : null;
+};
+
+/* ── Segments ─────────────────────────────────────────────────── */
+/* A paragraph is a list of literal strings and fields. A field that is
+   empty prints as a dotted blank and is highlighted, so an unfinished
+   document announces itself instead of reading as a finished one. */
+const BLANK = '……………………';
+const fld = v => ({ f: trim(v) });
+/* Flattened, so one phrase can be built from another — the place, say,
+   is itself a list of segments and still drops into a sentence. */
+function parts(x){
+  const out = [];
+  (Array.isArray(x) ? x : [x]).forEach(p => {
+    if(Array.isArray(p)) parts(p).forEach(q => out.push(q));
+    else out.push(p);
+  });
+  return out;
+}
+function plain(x){ return parts(x).map(p => (p && p.f !== undefined) ? (p.f || BLANK) : String(p == null ? '' : p)).join(''); }
+const filled = x => parts(x).every(p => !(p && p.f !== undefined) || p.f !== '');
+
+/* ── State ────────────────────────────────────────────────────── */
+const LS_KEY = 'juratools.minutes.v1';
+const DOC_TYPES = [
+  {key:'board-notice',   group:'คณะกรรมการ', th:'หนังสือเชิญประชุมคณะกรรมการ',       en:'Board Meeting Notice'},
+  {key:'board-minutes',  group:'คณะกรรมการ', th:'รายงานการประชุมคณะกรรมการ',        en:'Board Meeting Minutes'},
+  {key:'director-list',  group:'คณะกรรมการ', th:'รายชื่อกรรมการผู้เข้าร่วมประชุม',      en:'Director Attendance List'},
+  {key:'shm-notice',     group:'ผู้ถือหุ้น',   th:'หนังสือเชิญประชุมผู้ถือหุ้น',          en:'Shareholder Meeting Notice'},
+  {key:'shm-minutes',    group:'ผู้ถือหุ้น',   th:'รายงานการประชุมผู้ถือหุ้น',           en:'Shareholder Meeting Minutes'},
+  {key:'shareholder-list',group:'ผู้ถือหุ้น',  th:'รายชื่อผู้ถือหุ้นผู้เข้าร่วมประชุม',       en:'Shareholder Attendance List'},
+  {key:'share-offer',    group:'เพิ่มทุน',    th:'หนังสือเสนอขายหุ้นเพิ่มทุน',          en:'Share Offer Letter'},
+  {key:'share-subscription',group:'เพิ่มทุน', th:'หนังสือแจ้งการจองซื้อหุ้น',           en:'Share Subscription Notice'},
+  {key:'payment-receipt',group:'เพิ่มทุน',    th:'ใบสำคัญรับชำระเงินค่าหุ้น',           en:'Share Payment Receipt'}
+];
+
+function blankState(){
+  return {
+    co:{ name:'', addr:'', capital:'', par:'', shareType:'ordinary' },
+    bod:{ no:'', year:'', noticeDate:'', date:'', time:'', close:'', place:'', chair:0, attach:'' },
+    gm:{ kind:'egm', no:'', year:'', noticeDate:'', date:'', time:'', close:'', place:'', chair:0,
+         attach:'', noticeDays:'14' },
+    directors:[{name:'', position:'กรรมการ', present:true}],
+    shareholders:[{name:'', shares:'', present:true, alloc:'', allocOver:false}],
+    cap:{ on:true, to:'', shares:'', type:'ordinary', price:'', offerDate:'', replyDate:'', replyTime:'',
+          bank:'', acct:'', payDate:'', signers:'' },
+    agenda:{ bod:[], gm:[] },
+    docs:{ 'board-notice':true, 'board-minutes':true, 'director-list':true,
+           'shm-notice':true, 'shm-minutes':true, 'shareholder-list':true,
+           'share-offer':false, 'share-subscription':false, 'payment-receipt':false },
+    bundleOne:false, fileBase:'', active:'board-minutes'
+  };
+}
+let state = blankState();
+
+function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){} }
+function load(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return false;
+    const s = JSON.parse(raw);
+    if(!s || typeof s !== 'object') return false;
+    state = Object.assign(blankState(), s);
+    ['co','bod','gm','cap','docs','agenda'].forEach(k =>
+      state[k] = Object.assign(blankState()[k], s[k] || {}));
+    if(!Array.isArray(state.directors) || !state.directors.length) state.directors = blankState().directors;
+    if(!Array.isArray(state.shareholders) || !state.shareholders.length) state.shareholders = blankState().shareholders;
+    ['bod','gm'].forEach(k => { if(!Array.isArray(state.agenda[k])) state.agenda[k] = []; });
+    return true;
+  }catch(e){ return false; }
+}
+
+/* ── Derived figures ──────────────────────────────────────────── */
+const SHARE_TH = { ordinary:'สามัญ', preferred:'บุริมสิทธิ' };
+const meetingNo = m => (trim(m.no) && trim(m.year)) ? trim(m.no) + '/' + trim(m.year)
+                     : (trim(m.no) || trim(m.year) ? trim(m.no) + '/' + trim(m.year) : '');
+const gmKindTh = () => state.gm.kind === 'agm' ? 'สามัญ' : 'วิสามัญ';
+/* "ประชุมวิสามัญผู้ถือหุ้น" / "ประชุมสามัญผู้ถือหุ้น" — the phrase recurs everywhere */
+const gmName = () => 'ประชุม' + gmKindTh() + 'ผู้ถือหุ้น';
+
+/* Allocation. Each shareholder's entitlement is their existing holding's
+   share of the new issue, rounded half-up as the firm's wording says.
+   Half-up alone rarely lands on the exact issue, so the drift is settled
+   against the largest remainders — and any row the user has overridden is
+   left alone, with the remainder spread across the rows that are still
+   automatic. */
+function allocation(){
+  const shs = state.shareholders;
+  const total = shs.reduce((a, h) => a + num(h.shares), 0);
+  const issue = num(state.cap.shares);
+  const out = shs.map(h => ({ auto:0, value:0, over:!!h.allocOver }));
+
+  /* An overridden row takes the number the user typed and leaves the pool.
+     What is left of the issue is then shared among the rows that are still
+     automatic, in proportion to their holdings — so pinning one subscriber
+     redistributes the rest rather than leaving them at their old figures. */
+  shs.forEach((h, i) => { if(out[i].over) out[i].value = num(h.alloc); });
+  const fixedSum  = shs.reduce((a, h, i) => a + (out[i].over ? num(h.alloc) : 0), 0);
+  const autoIdx   = shs.map((h, i) => i).filter(i => !out[i].over);
+  const autoBase  = autoIdx.reduce((a, i) => a + num(shs[i].shares), 0);
+  const remaining = Math.max(0, issue - fixedSum);
+
+  if(autoIdx.length && autoBase > 0 && remaining > 0){
+    const exact = {};
+    autoIdx.forEach(i => { exact[i] = num(shs[i].shares) / autoBase * remaining; });
+    /* half-up, as the firm's wording says: below 0.5 is dropped, 0.5 and over rounds to 1 */
+    autoIdx.forEach(i => { out[i].auto = Math.floor(exact[i] + 0.5); out[i].value = out[i].auto; });
+    /* half-up alone rarely lands on the exact issue, so the last few shares
+       are settled against the largest remainders */
+    let drift = remaining - autoIdx.reduce((a, i) => a + out[i].value, 0);
+    if(drift !== 0){
+      const order = autoIdx.slice().sort((a, b) => {
+        const fa = exact[a] - Math.floor(exact[a]), fb = exact[b] - Math.floor(exact[b]);
+        return drift > 0 ? fb - fa : fa - fb;
+      });
+      for(let k = 0; drift !== 0 && k < order.length * 3; k++){
+        const i = order[k % order.length];
+        if(drift > 0){ out[i].value++; drift--; }
+        else if(out[i].value > 0){ out[i].value--; drift++; }
+      }
+    }
+  }
+  return { rows:out, total, issue, allotted:out.reduce((a, r) => a + r.value, 0) };
+}
+
+/* Everything a wording function is allowed to ask for. Built once per
+   render so an agenda never reaches into the DOM. */
+function ctx(){
+  const co = state.co, cap = state.cap;
+  const par = num(co.par);
+  const toCap = num(cap.to), fromCap = num(co.capital);
+  const alloc = allocation();
+  return {
+    co, cap, alloc,
+    coName: fld(co.name),
+    coAddr: fld(co.addr),
+    bodNo: fld(meetingNo(state.bod)),
+    gmNo: fld(meetingNo(state.gm)),
+    gmName: gmName(),
+    /* left blank, the venue is the registered office, and it is named the
+       way the firm names it — "สำนักงานของบริษัท X จำกัด เลขที่ …" */
+    place: m => trim(m.place) ? [fld(trim(m.place))] : ['สำนักงานของ', fld(co.name), ' ', fld(co.addr)],
+    par, fromCap, toCap,
+    /* the issue is worth this much cash to the company */
+    raised: num(cap.shares) * (num(cap.price) || par),
+    /* clause 5 has to state the whole share count after the increase, not the new tranche */
+    totalSharesAfter: par > 0 ? Math.round(toCap / par) : 0,
+    typeTh: SHARE_TH[cap.type] || 'สามัญ',
+    presentDirs: state.directors.filter(d => d.present),
+    presentShs: state.shareholders.filter(h => h.present),
+    presentShares: state.shareholders.filter(h => h.present).reduce((a, h) => a + num(h.shares), 0),
+    totalShares: state.shareholders.reduce((a, h) => a + num(h.shares), 0)
+  };
+}
+
+/* ── Agenda library ───────────────────────────────────────────── */
+/* Each entry knows its own title, the Chairman's proposal, and the
+   resolution — separately for the board and for the shareholders,
+   because the two houses word the same decision differently. `special`
+   marks a มติพิเศษ under ป.พ.พ. ม.1194.
+
+   A wording function returns an array of blocks; `resolution` returns
+   the paragraphs that sit under มติที่ประชุม. */
+const CLOSE_CAP = 'ประธานฯ จึงขอให้ที่ประชุมพิจารณาและอนุมัติวาระตามที่ประธานฯ เสนอ';
+const CLOSE_GM_SPECIAL = 'จากนั้น ประธานฯ ได้เปิดโอกาสให้ที่ประชุมแสดงความคิดเห็นและสอบถามเกี่ยวกับวาระนี้ ' +
+  'ปรากฏว่าไม่มีผู้ใดแสดงความคิดเห็นหรือสอบถาม ประธานฯ จึงขอให้ที่ประชุมพิจารณาและลงมติพิเศษในวาระนี้';
+const DELEGATE = 'นอกจากนี้ ประธานฯ เสนอให้ที่ประชุมพิจารณามอบอำนาจให้กรรมการผู้มีอำนาจลงนามผูกพันบริษัทฯ และ/หรือ ' +
+  'บุคคลที่กรรมการผู้มีอำนาจลงนามผูกพันบริษัทฯ มอบหมาย เป็นผู้มีอำนาจในการดำเนินการจดทะเบียนกับหน่วยงานที่เกี่ยวข้อง ' +
+  'และมีอำนาจดำเนินการแก้ไข และเพิ่มเติมถ้อยคำในคำขอจดทะเบียน และ/หรือ เอกสารอื่นใดที่เกี่ยวข้อง ' +
+  'ในกรณีที่นายทะเบียน และ/หรือ หน่วยงานราชการใดมีคำสั่งให้แก้ไขถ้อยคำบางประการในเอกสารดังกล่าวได้ด้วย';
+
+/* the capital-increase sentence, which both houses recite in full */
+function capSentence(c){
+  return ['การเพิ่มทุนจดทะเบียนของบริษัทฯ จากจำนวน ', fld(c.fromCap ? nw(c.fromCap) : ''), ' บาท เป็น ',
+          fld(c.toCap ? nw(c.toCap) : ''), ' บาท โดยการออกหุ้นใหม่เป็นหุ้น', c.typeTh, 'ชนิดเดียวจำนวน ',
+          fld(num(c.cap.shares) ? nw(c.cap.shares) : ''), ' หุ้น มูลค่าที่ตราไว้หุ้นละ ',
+          fld(c.par ? nw(c.par) : ''), ' บาท'];
+}
+function clause5(c){
+  return ['“ข้อ 5. ทุนของบริษัทกำหนดไว้เป็น ', fld(c.toCap ? thaiWords(c.toCap) + 'บาท (' + fmt(c.toCap) + ')' : ''),
+          ' แบ่งออกเป็น ', fld(c.totalSharesAfter ? thaiWords(c.totalSharesAfter) + 'หุ้น (' + fmt(c.totalSharesAfter) + ')' : ''),
+          ' มูลค่าหุ้นละ ', fld(c.par ? thaiWords(c.par) + 'บาท (' + fmt(c.par) + ')' : ''), '”'];
+}
+
+const AGENDA = [
+  {
+    key:'approve-prev-minutes', scope:'both', special:false,
+    label:'รับรองรายงานการประชุมครั้งก่อน',
+    title:() => 'พิจารณารับรองรายงานการประชุมครั้งก่อนหน้า',
+    body:() => [{t:'p', text:'ประธานฯ เสนอรายงานการประชุมครั้งก่อนและขอให้ที่ประชุมพิจารณารับรองรายงานการประชุมดังกล่าว'}],
+    resolution:() => [{t:'res', text:'ที่ประชุมพิจารณาแล้ว และมีมติอนุมัติให้รับรองรายงานการประชุมครั้งก่อนหน้าตามรายละเอียดที่ประธานฯ เสนอทุกประการ'}]
+  },
+  {
+    key:'capital-increase', scope:'both', special:true,
+    label:'อนุมัติการเพิ่มทุนจดทะเบียน',
+    title:c => ['พิจารณาอนุมัติ'].concat(capSentence(c)).concat([' และการจัดสรรหุ้นเพิ่มทุนของบริษัท']),
+    body:(c, house) => {
+      const b = [{t:'p', text:['ประธานฯ ได้แจ้งต่อที่ประชุมว่า ตามที่บริษัทมีแผนที่จะปรับโครงสร้างทุนจดทะเบียนของบริษัท ' +
+        'จึงมีความจำเป็นที่จะต้องเพิ่มทุนจดทะเบียนจากจำนวน ', fld(c.fromCap ? nw(c.fromCap) : ''), ' บาท เป็น ',
+        fld(c.toCap ? nw(c.toCap) : ''), ' บาท โดยการออกหุ้นใหม่เป็นหุ้น', c.typeTh, 'ชนิดเดียวจำนวน ',
+        fld(num(c.cap.shares) ? nw(c.cap.shares) : ''), ' หุ้น มูลค่าที่ตราไว้หุ้นละ ', fld(c.par ? nw(c.par) : ''),
+        ' บาท โดยเสนอขายให้แก่ผู้ถือหุ้นเดิมที่มีชื่อปรากฏอยู่ในสมุดทะเบียนผู้ถือหุ้น ' +
+        'ณ วันที่ที่ประชุมใหญ่ผู้ถือหุ้นมีมติอนุมัติการเพิ่มทุน ตามสัดส่วนจำนวนหุ้นที่แต่ละคนถืออยู่ ' +
+        'หากมีเศษของหุ้นให้ปัดให้ใกล้เคียงกับ 1 หุ้น กล่าวคือ หากมีเศษเหลือน้อยกว่า 0.5 หุ้น ให้ปัดเศษทิ้ง ' +
+        'แต่หากมีเศษเหลือเท่ากับ 0.5 หุ้น หรือมากกว่า ให้ปัดเป็น 1 หุ้น ในราคาเสนอขายหุ้นละ ',
+        fld(num(c.cap.price) ? nw(c.cap.price) : ''),
+        ' บาท ซึ่งเป็นหุ้นที่ต้องชำระเป็นตัวเงินจนเต็มมูลค่าหุ้น']}];
+      if(c.raised) b.push({t:'p', text:['ภายหลังการเพิ่มทุนดังกล่าว บริษัทฯ จะได้รับเงินเพิ่มเติมรวมเป็นจำนวน ',
+        fld(nw(c.raised)), ' บาท']});
+      b.push({t:'p', text: house === 'gm' ? CLOSE_GM_SPECIAL : CLOSE_CAP});
+      return b;
+    },
+    resolution:(c, house) => [{t:'res', text:['ที่ประชุมมีมติเอกฉันท์อนุมัติ'].concat(capSentence(c))
+      .concat([' โดยมีรายละเอียดตามที่ประธานฯ เสนอทุกประการ' +
+        (house === 'bod' ? ' และให้นำเสนอต่อที่ประชุมผู้ถือหุ้นเพื่อพิจารณาอนุมัติต่อไป' : '')])}]
+  },
+  {
+    key:'moa-clause5', scope:'both', special:true,
+    label:'แก้ไขหนังสือบริคณห์สนธิ ข้อ 5. (ทุน/หุ้น)',
+    title:() => 'พิจารณาอนุมัติแก้ไขหนังสือบริคณห์สนธิข้อ 5. (ทุน/หุ้น) ให้สอดคล้องกับการเพิ่มทุนจดทะเบียนของบริษัท',
+    body:(c, house, prevNo) => {
+      const b = [{t:'p', text:['ประธานฯ ได้แจ้งต่อที่ประชุมว่า เพื่อให้สอดคล้องกับมติตามวาระที่ ',
+        fld(prevNo ? String(prevNo) + '.' : ''), ' ข้างต้น เมื่อมีการเพิ่มทุนจดทะเบียน จะทำให้ทุนจดทะเบียนของบริษัทเปลี่ยนแปลง ' +
+        'ดังนั้น จึงต้องดำเนินการแก้ไขเพิ่มเติมหนังสือบริคณห์สนธิของบริษัทข้อ 5. เรื่องทุน ' +
+        'ต่อกรมพัฒนาธุรกิจการค้า กระทรวงพาณิชย์ ประธานฯ จึงขอให้ที่ประชุมพิจารณาอนุมัติแก้ไขหนังสือบริคณห์สนธิของบริษัทข้อ 5. ดังนี้']},
+        {t:'q', text:clause5(c)},
+        {t:'p', text:DELEGATE},
+        {t:'p', text: house === 'gm' ? CLOSE_GM_SPECIAL : CLOSE_CAP}];
+      return b;
+    },
+    resolution:(c, house) => {
+      const r = [{t:'res', text:'ที่ประชุมมีมติเอกฉันท์อนุมัติแก้ไขหนังสือบริคณห์สนธิของบริษัทข้อ 5. ' +
+        'ให้สอดคล้องกับการเพิ่มทุนจดทะเบียนของบริษัท โดยมีรายละเอียดตามที่ประธานฯ เสนอทุกประการ ซึ่งเป็นดังต่อไปนี้'},
+        {t:'q', text:clause5(c)}];
+      if(house === 'bod'){
+        r.push({t:'res', text:'และให้นำเสนอต่อที่ประชุมผู้ถือหุ้นเพื่อพิจารณาอนุมัติต่อไป'});
+      } else {
+        r.push({t:'res', text:'และมอบหมายให้กรรมการผู้มีอำนาจ และ/หรือ บุคคลที่ได้รับมอบหมายจากกรรมการเป็นผู้มีอำนาจในการยื่นจดทะเบียนเพิ่มทุน' +
+          'และแก้ไขเพิ่มเติมหนังสือบริคณห์สนธิ ข้อ 5. ของบริษัท ต่อนายทะเบียนกรมพัฒนาธุรกิจการค้า กระทรวงพาณิชย์ ' +
+          'ผ่านระบบออนไลน์ (DBD Biz Regist) ตลอดจนมีอำนาจแก้ไขเพิ่มเติมหรือเปลี่ยนแปลงคำขอหรือข้อความใด ' +
+          'เพื่อให้เป็นไปตามกฎหมาย ระเบียบ ข้อบังคับ และการตีความของหน่วยงานราชการที่เกี่ยวข้อง ' +
+          'รวมทั้งตามคำแนะนำหรือคำสั่งของนายทะเบียนหรือเจ้าหน้าที่'});
+        r.push({t:'res', text:'เมื่อได้ยื่นจดทะเบียนเพิ่มทุนและแก้ไขเพิ่มเติมหนังสือบริคณห์สนธิ ข้อ 5. ของบริษัทเสร็จสิ้นแล้ว ' +
+          'ที่ประชุมขอมอบหมายให้กรรมการผู้มีอำนาจ และ/หรือ บุคคลที่ได้รับมอบหมายจากกรรมการเป็นผู้ดำเนินการยื่นเปลี่ยนแปลง' +
+          'บัญชีรายชื่อผู้ถือหุ้น (บอจ.5) ของบริษัท เพื่อสะท้อนจำนวนหุ้นที่เพิ่มขึ้นของผู้ถือหุ้นแต่ละท่าน ' +
+          'ต่อนายทะเบียนกรมพัฒนาธุรกิจการค้า กระทรวงพาณิชย์ ผ่านระบบออนไลน์ (DBD e-Filing) ' +
+          'ตลอดจนแก้ไขเพิ่มเติมสมุดทะเบียนผู้ถือหุ้นและใบหุ้นทั้งหลายของบริษัท'});
+      }
+      return r;
+    }
+  },
+  {
+    key:'allot-shares', scope:'gm', special:false,
+    label:'จัดสรรหุ้นเพิ่มทุนให้ผู้ถือหุ้น',
+    title:() => 'พิจารณาอนุมัติการจัดสรรหุ้นเพิ่มทุนให้แก่ผู้ถือหุ้น',
+    body:(c, house, prevNo) => {
+      const b = [{t:'p', text:['ประธานฯ ได้แจ้งต่อที่ประชุมว่า ตามที่ที่ประชุมได้มีมติอนุมัติ'].concat(capSentence(c))
+        .concat([' ตามรายละเอียดในวาระที่ ', fld(prevNo ? String(prevNo) + '.' : ''),
+          ' ข้างต้น หุ้นดังกล่าวจะต้องจัดสรรให้แก่ผู้ถือหุ้นของบริษัทตามสัดส่วนจำนวนหุ้นที่แต่ละคนถืออยู่ ' +
+          'ประธานฯ จึงได้แจ้งให้ที่ประชุมทราบถึงสิทธิของผู้ถือหุ้นแต่ละรายในการจองซื้อหุ้นเพิ่มทุน โดยมีรายละเอียดดังนี้'])},
+        {t:'alloc'}];
+      b.push({t:'p', text:['ประธานฯ ได้แจ้งต่อที่ประชุมว่า บริษัทฯ ได้จัดส่งหนังสือเสนอขายหุ้นเพิ่มทุนให้แก่ผู้ถือหุ้นทุกรายแล้ว เมื่อวันที่ ',
+        fld(thaiDate(c.cap.offerDate)), ' และผู้ถือหุ้นทุกรายได้แสดงเจตนาและส่งหนังสือแจ้งการจองซื้อหุ้นมายังบริษัทฯ ' +
+        'เพื่อจองซื้อหุ้นเพิ่มทุนตามสัดส่วนการถือหุ้นเดิมของตน']});
+      return b;
+    },
+    resolution:() => [{t:'res', text:'ที่ประชุมมีมติเอกฉันท์อนุมัติการจัดสรรหุ้นเพิ่มทุนให้แก่ผู้ถือหุ้นเดิมของบริษัทตามสัดส่วนการถือหุ้น ' +
+      'โดยมีรายละเอียดตามที่ประธานฯ เสนอทุกประการ'}]
+  },
+  {
+    key:'convene-gm', scope:'bod', special:false,
+    label:'กำหนดให้มีการประชุมผู้ถือหุ้น',
+    title:c => ['พิจารณากำหนดให้มีการจัด', c.gmName, ' ครั้งที่ ', c.gmNo],
+    body:c => [
+      {t:'p', text:['ประธานฯ ได้เสนอให้ที่ประชุมพิจารณาเรียก', c.gmName, ' ครั้งที่ ', c.gmNo,
+        ' เพื่อพิจารณาลงมติในเรื่องต่าง ๆ โดยเห็นว่าควรกำหนดวาระการประชุมดังต่อไปนี้']},
+      {t:'agendaList', house:'gm'},
+      {t:'p', text:['โดยเสนอให้จัดประชุมในวันที่ ', fld(thaiDate(state.gm.date)), ' เวลา ',
+        fld(thaiTime(state.gm.time)), ' น. ณ ', c.place(state.gm)]}
+    ],
+    resolution:c => [
+      {t:'res', text:['ที่ประชุมมีมติเอกฉันท์ให้มีการจัด', c.gmName, ' ครั้งที่ ', c.gmNo, ' ในวันที่ ',
+        fld(thaiDate(state.gm.date)), ' เวลา ', fld(thaiTime(state.gm.time)), ' น. ณ ', c.place(state.gm),
+        ' โดยมีระเบียบวาระการประชุม ดังนี้']},
+      {t:'agendaList', house:'gm', indent:true},
+      {t:'res', text:['จากนั้น ที่ประชุมจึงมีมติให้จัดส่งหนังสือบอกกล่าวโดยมอบให้แก่ตัวผู้ถือหุ้นทุกคนที่มีชื่อในสมุดทะเบียนผู้ถือหุ้นของบริษัท ' +
+        'ก่อนวันนัดประชุมไม่น้อยกว่า ', fld(trim(state.gm.noticeDays)), ' วัน เพื่อลงมติพิเศษในวาระข้างต้น']}
+    ]
+  },
+  {
+    key:'appoint-director', scope:'both', special:false,
+    label:'แต่งตั้งกรรมการ',
+    title:it => ['พิจารณาอนุมัติการแต่งตั้งกรรมการ', it && trim(it.arg) ? ' ' + trim(it.arg) : ''],
+    body:(c, house, prevNo, it) => [{t:'p', text:['ประธานฯ เสนอให้ที่ประชุมพิจารณาแต่งตั้ง ',
+      fld(it ? trim(it.arg) : ''), ' เป็นกรรมการของบริษัท และขอให้ที่ประชุมพิจารณาอนุมัติ']}],
+    resolution:(c, house, prevNo, it) => [{t:'res', text:['ที่ประชุมมีมติเอกฉันท์อนุมัติแต่งตั้ง ',
+      fld(it ? trim(it.arg) : ''), ' เป็นกรรมการของบริษัท ตามรายละเอียดที่ประธานฯ เสนอทุกประการ']}],
+    argLabel:'ชื่อกรรมการที่แต่งตั้ง'
+  },
+  {
+    key:'amend-articles', scope:'both', special:true,
+    label:'แก้ไขเพิ่มเติมข้อบังคับของบริษัท',
+    title:() => 'พิจารณาอนุมัติการแก้ไขเพิ่มเติมข้อบังคับของบริษัท',
+    body:(c, house, prevNo, it) => [
+      {t:'p', text:'ประธานฯ เสนอให้ที่ประชุมพิจารณาอนุมัติการแก้ไขเพิ่มเติมข้อบังคับของบริษัท โดยมีรายละเอียดดังนี้'},
+      {t:'q', text:fld(it ? trim(it.arg) : '')},
+      {t:'p', text: house === 'gm' ? CLOSE_GM_SPECIAL : CLOSE_CAP}
+    ],
+    resolution:() => [{t:'res', text:'ที่ประชุมมีมติเอกฉันท์อนุมัติการแก้ไขเพิ่มเติมข้อบังคับของบริษัท ' +
+      'ตามรายละเอียดที่ประธานฯ เสนอทุกประการ'}],
+    argLabel:'ข้อความข้อบังคับที่แก้ไข'
+  },
+  {
+    key:'other-business', scope:'both', special:false,
+    label:'เรื่องอื่น ๆ (ถ้ามี)',
+    title:() => 'พิจารณาเรื่องอื่น ๆ (ถ้ามี)',
+    body:(c, house) => [{t:'p', center:true,
+      text: house === 'gm' ? '-ไม่มีผู้ถือหุ้นเสนอเรื่องอื่นให้ที่ประชุมพิจารณา-'
+                           : '-ไม่มีกรรมการเสนอเรื่องอื่นให้ที่ประชุมพิจารณา-'}],
+    resolution:() => []
+  },
+  {
+    key:'custom', scope:'both', special:false,
+    label:'วาระอื่น (พิมพ์เอง)',
+    title:(c, house, prevNo, it) => fld(it ? trim(it.arg) : ''),
+    body:() => [],
+    resolution:() => [],
+    argLabel:'ชื่อวาระ'
+  }
+];
+const agendaDef = key => AGENDA.find(a => a.key === key);
+
+/* ── Resolving an agenda ──────────────────────────────────────── */
+/* Turns the stored list into numbered items with their wording filled in.
+   An item the user has edited keeps the edit; everything else is
+   recomputed from the facts, so changing the capital rewrites every
+   sentence that quotes it. */
+function resolveAgenda(house, c){
+  c = c || ctx();
+  const list = state.agenda[house] || [];
+  const capIdx = list.findIndex(i => i.key === 'capital-increase');
+  const capNo = capIdx >= 0 ? capIdx + 1 : 0;
+  return list.map((item, i) => {
+    const def = agendaDef(item.key);
+    if(!def) return null;
+    const no = i + 1;
+    const autoTitle = def.title(c, house, capNo, item);
+    const autoBody  = def.body(c, house, capNo, item) || [];
+    const autoRes   = def.resolution(c, house, capNo, item) || [];
+    const ov = item.over || {};
+    return {
+      no, key:item.key, def, item, special:def.special,
+      title: trim(ov.title) ? trim(ov.title) : autoTitle,
+      titleAuto: plain(autoTitle),
+      body: trim(ov.body) ? trim(ov.body).split(/\n{2,}|\n/).filter(Boolean).map(t => ({t:'p', text:t})) : autoBody,
+      bodyAuto: autoBody.map(b => b.t === 'p' || b.t === 'q' ? plain(b.text) : '[' + b.t + ']').join('\n'),
+      resolution: trim(ov.res) ? trim(ov.res).split(/\n{2,}|\n/).filter(Boolean).map(t => ({t:'res', text:t})) : autoRes,
+      resAuto: autoRes.map(b => b.t === 'res' || b.t === 'q' ? plain(b.text) : '[' + b.t + ']').join('\n')
+    };
+  }).filter(Boolean);
+}
+
+/* ── Block expansion ──────────────────────────────────────────── */
+/* `alloc` and `agendaList` are placeholders an agenda can emit without
+   knowing how a table or a list is drawn. They are expanded here, once,
+   before either renderer sees the list. */
+function expand(blocks, c){
+  const out = [];
+  (blocks || []).forEach(b => {
+    if(!b) return;
+    if(b.t === 'alloc'){ out.push(allocTable(c)); return; }
+    if(b.t === 'agendaList'){
+      resolveAgenda(b.house, c).forEach(a =>
+        out.push({t:'li', n:'วาระที่ ' + a.no + '.', text:a.title, indent:b.indent}));
+      return;
+    }
+    out.push(b);
+  });
+  return out;
+}
+function allocTable(c){
+  const a = c.alloc, shs = state.shareholders;
+  const pct = v => c.totalShares ? (v / c.totalShares * 100) : 0;
+  const rows = shs.map((h, i) => [
+    {v:String(i + 1) + '.', al:'c'},
+    {v:fld(h.name)},
+    {v:fmt(num(h.shares)), al:'n'},
+    {v:c.totalShares ? pct(num(h.shares)).toFixed(2) : '', al:'n'},
+    {v:fmt(a.rows[i] ? a.rows[i].value : 0), al:'n'}
+  ]);
+  rows.push([
+    {v:'', al:'c'}, {v:'รวม', al:'c', b:true},
+    {v:fmt(c.totalShares), al:'n', b:true},
+    {v:c.totalShares ? '100.00' : '', al:'n', b:true},
+    {v:fmt(a.allotted), al:'n', b:true}
+  ]);
+  return {t:'table', widths:[7,38,18,18,19],
+    head:['ที่','รายชื่อผู้ถือหุ้น','จำนวนหุ้นที่ถือ (หุ้น)','คิดเป็นร้อยละ','จำนวนหุ้นที่มีสิทธิจองซื้อ (หุ้น)'],
+    rows};
+}
+
+/* ── Documents ────────────────────────────────────────────────── */
+/* Each builder returns a flat block list. The signature block, the
+   attendance table and the notice head recur, so they are factored out. */
+function sigDirector(name, role){
+  return {t:'sig', lines:[
+    {text:['ลงชื่อ ', {rule:34}, ' ', role || 'กรรมการ']},
+    {text:['( ', fld(name), ' )']}
+  ]};
+}
+function attachList(raw){
+  const lines = String(raw || '').split('\n').map(trim).filter(Boolean);
+  if(!lines.length) return [];
+  const out = [{t:'lab', k:'สิ่งที่ส่งมาด้วย', v:lines[0]}];
+  lines.slice(1).forEach(l => out.push({t:'lab', k:'', v:l}));
+  return out;
+}
+function noticeHead(c, dateIso, subject, to){
+  return [
+    {t:'p', right:true, text:c.coName},
+    {t:'p', right:true, text:c.coAddr},
+    {t:'gap'},
+    {t:'lab', k:'วันที่', v:fld(thaiDate(dateIso))},
+    {t:'lab', k:'เรื่อง', v:subject},
+    {t:'lab', k:'เรียน', v:to}
+  ];
+}
+
+function docBoardNotice(c){
+  const ag = resolveAgenda('bod', c);
+  const b = noticeHead(c, state.bod.noticeDate,
+    ['ขอเชิญประชุมคณะกรรมการ ครั้งที่ ', c.bodNo],
+    ['กรรมการของ', c.coName]);
+  attachList(state.bod.attach).forEach(x => b.push(x));
+  b.push({t:'gap'});
+  b.push({t:'p', ind:true, text:['ด้วยคณะกรรมการของ', c.coName, ' เห็นสมควรให้มีการประชุมคณะกรรมการ ครั้งที่ ',
+    c.bodNo, ' ในวันที่ ', fld(thaiDate(state.bod.date)), ' เวลา ', fld(thaiTime(state.bod.time)),
+    ' น. ณ ', c.place(state.bod), ' เพื่อพิจารณาเรื่องต่าง ๆ ตามระเบียบวาระการประชุมดังต่อไปนี้']});
+  ag.forEach(a => b.push({t:'li', n:'วาระที่ ' + a.no + '.', text:a.title}));
+  b.push({t:'p', ind:true, text:'จึงเรียนมาเพื่อโปรดทราบวาระการประชุมดังกล่าว และขอเรียนเชิญท่านกรรมการไปประชุมตามวัน เวลา ' +
+    'และสถานที่ดังกล่าวข้างต้นโดยพร้อมเพรียงกันด้วย จักขอบคุณอย่างยิ่ง'});
+  b.push({t:'gap'});
+  b.push({t:'sig', lines:[{text:'ขอแสดงความนับถือ'}, {text:c.coName}]});
+  b.push(sigDirector(chairName('bod'), 'กรรมการ'));
+  return b;
+}
+
+function docBoardMinutes(c){
+  const ag = resolveAgenda('bod', c);
+  const chair = chairName('bod');
+  const b = [
+    {t:'title', text:['รายงานการประชุมคณะกรรมการ ครั้งที่ ', c.bodNo]},
+    {t:'sub', text:'ของ'},
+    {t:'sub', bold:true, text:c.coName},
+    {t:'gap'},
+    {t:'h', text:'วัน เวลา สถานที่'},
+    {t:'p', ind:true, text:['การประชุมคณะกรรมการ ครั้งที่ ', c.bodNo, ' เมื่อวันที่ ', fld(thaiDate(state.bod.date)),
+      ' เวลา ', fld(thaiTime(state.bod.time)), ' น. ณ ', c.place(state.bod)]},
+    {t:'h', text:'กรรมการผู้เข้าร่วมประชุม'}
+  ];
+  const present = c.presentDirs;
+  (present.length ? present : [{name:''}]).forEach((d, i) =>
+    b.push({t:'li', n:String(i + 1) + '.', text:fld(d.name)}));
+  b.push({t:'h', text:'เริ่มการประชุม'});
+  b.push({t:'p', ind:true, text:[fld(chair), ' ทำหน้าที่เป็นประธานในที่ประชุม (“ประธานฯ”) ' +
+    'ประธานฯ ได้แถลงต่อที่ประชุมว่ามีกรรมการมาประชุมรวม ', fld(present.length ? String(present.length) : ''),
+    ' คน ครบเป็นองค์ประชุมตามที่กำหนดไว้ในประมวลกฎหมายแพ่งและพาณิชย์และข้อบังคับของบริษัทฯ ' +
+    'ประธานฯ จึงได้กล่าวเปิดการประชุมตามระเบียบวาระการประชุม ดังนี้']});
+  ag.forEach(a => {
+    b.push({t:'ag', n:'วาระที่ ' + a.no + '.', text:a.title});
+    expand(a.body, c).forEach(x => b.push(x));
+    if(a.resolution.length){
+      b.push({t:'reshd', text:'มติที่ประชุม'});
+      expand(a.resolution, c).forEach(x => b.push(x));
+    }
+  });
+  b.push({t:'p', ind:true, text:['เมื่อไม่มีผู้ใดเสนอเรื่องอื่นใดต่อที่ประชุมเพื่อพิจารณา ประธานฯ จึงกล่าวปิดประชุมเมื่อเวลา ',
+    fld(thaiTime(state.bod.close)), ' น.']});
+  b.push({t:'gap'});
+  b.push({t:'sig', lines:[
+    {text:['ลงชื่อ ', {rule:44}, ' ประธานในที่ประชุม']},
+    {text:['( ', fld(chair), ' )']}
+  ]});
+  return b;
+}
+
+function docDirectorList(c){
+  const present = c.presentDirs;
+  const rows = (present.length ? present : [{name:'', position:''}]).map((d, i) => [
+    {v:String(i + 1) + '.', al:'c'}, {v:fld(d.name)}, {v:trim(d.position) || 'กรรมการ', al:'c'}, {v:''}
+  ]);
+  return [
+    {t:'title', text:['รายชื่อผู้เข้าประชุมคณะกรรมการ ครั้งที่ ', c.bodNo]},
+    {t:'sub', text:['ของ', c.coName]},
+    {t:'sub', text:['ประชุมเมื่อวันที่ ', fld(thaiDate(state.bod.date)), ' เวลา ', fld(thaiTime(state.bod.time)), ' น.']},
+    {t:'sub', text:['ณ ', c.place(state.bod)]},
+    {t:'gap'},
+    {t:'table', widths:[8,44,20,28], head:['ที่','รายชื่อกรรมการ','ตำแหน่ง','ลายมือชื่อ'], rows}
+  ];
+}
+
+function docShmNotice(c){
+  const ag = resolveAgenda('gm', c);
+  const b = [{t:'title', text:['หนังสือบอกกล่าวเรียกประชุมใหญ่', gmKindTh(), 'ผู้ถือหุ้น ครั้งที่ ', c.gmNo]}, {t:'gap'}];
+  noticeHead(c, state.gm.noticeDate,
+    ['ขอเชิญ', c.gmName, ' ครั้งที่ ', c.gmNo],
+    ['ท่านผู้ถือหุ้นของ', c.coName]).forEach(x => b.push(x));
+  attachList(state.gm.attach).forEach(x => b.push(x));
+  b.push({t:'gap'});
+  b.push({t:'p', ind:true, text:['ด้วยที่ประชุมคณะกรรมการ', c.coName, ' ครั้งที่ ', c.bodNo, ' เมื่อวันที่ ',
+    fld(thaiDate(state.bod.date)), ' มีมติให้จัด', c.gmName, ' ครั้งที่ ', c.gmNo, ' ในวันที่ ',
+    fld(thaiDate(state.gm.date)), ' เวลา ', fld(thaiTime(state.gm.time)), ' น. ณ ', c.place(state.gm),
+    ' โดยมีระเบียบวาระการประชุมดังต่อไปนี้']});
+  ag.forEach(a => b.push({t:'li', n:'วาระที่ ' + a.no + '.', text:a.title}));
+  b.push({t:'p', ind:true, text:'จึงเรียนมาเพื่อโปรดทราบ และขอเรียนเชิญผู้ถือหุ้นไปร่วมประชุมตามวัน เวลา ' +
+    'และสถานที่ข้างต้นโดยพร้อมเพียงกันด้วย จักขอบพระคุณเป็นอย่างยิ่ง'});
+  b.push({t:'gap'});
+  b.push({t:'sig', lines:[{text:'ขอแสดงความนับถือ'}, {text:c.coName}]});
+  b.push(sigDirector(chairName('gm'), 'กรรมการ'));
+  /* the acknowledgement slips travel with the notice — one per shareholder,
+     each on its own page, because each is handed to a different person */
+  const shs = state.shareholders.length ? state.shareholders : [{name:'', shares:''}];
+  shs.forEach(h => {
+    b.push({t:'pb'});
+    b.push({t:'title', text:'หนังสือรับทราบการเชิญประชุม'});
+    b.push({t:'gap'});
+    b.push({t:'p', right:true, text:['วันที่ ', fld(thaiDate(state.gm.noticeDate))]});
+    b.push({t:'p', ind:true, text:['ข้าพเจ้า ', fld(h.name), ' ผู้ถือหุ้นจำนวน ', fld(num(h.shares) ? fmt(num(h.shares)) : ''),
+      ' หุ้น ใน', c.coName, ' ขอรับรองว่า ได้รับหนังสือบอกกล่าวเรียก', c.gmName, ' ครั้งที่ ', c.gmNo,
+      ' ของบริษัท ซึ่งจะจัดประชุมในวันที่ ', fld(thaiDate(state.gm.date)), ' ไว้แล้ว ณ วันที่ที่ระบุไว้ข้างต้น']});
+    b.push({t:'gap'});
+    b.push({t:'sig', lines:[
+      {text:['ลายมือชื่อ ', {rule:34}, ' ผู้ถือหุ้น']},
+      {text:['( ', fld(h.name), ' )']}
+    ]});
+  });
+  return b;
+}
+
+function docShmMinutes(c){
+  const ag = resolveAgenda('gm', c);
+  const chair = chairName('gm');
+  const present = c.presentShs;
+  const b = [
+    {t:'title', text:['รายงานการ', c.gmName, ' ครั้งที่ ', c.gmNo]},
+    {t:'sub', text:'ของ'},
+    {t:'sub', bold:true, text:c.coName},
+    {t:'gap'},
+    {t:'h', text:'วัน เวลา สถานที่'},
+    {t:'p', ind:true, text:['ประชุมเมื่อวันที่ ', fld(thaiDate(state.gm.date)), ' เวลา ',
+      fld(thaiTime(state.gm.time)), ' น. ณ ', c.place(state.gm)]},
+    {t:'h', text:'ผู้ถือหุ้นผู้เข้าร่วมประชุม'}
+  ];
+  (present.length ? present : [{name:''}]).forEach((h, i) =>
+    b.push({t:'li', n:String(i + 1) + '.', text:fld(h.name)}));
+  b.push({t:'h', text:'เริ่มการประชุม'});
+  b.push({t:'p', ind:true, text:[fld(chair), ' ทำหน้าที่เป็นประธานในที่ประชุม (“ประธานฯ”) ' +
+    'ได้แถลงต่อที่ประชุมว่ามีผู้ถือหุ้นมาประชุมด้วยตนเองจำนวน ', fld(present.length ? String(present.length) : ''),
+    ' ท่าน นับเป็นจำนวนหุ้นได้ ', fld(c.presentShares ? fmt(c.presentShares) : ''),
+    ' หุ้น เป็นอันครบเป็นองค์ประชุมตามที่กำหนดไว้ในข้อบังคับของบริษัท ' +
+    'ประธานฯ จึงได้กล่าวเปิดการประชุมตามระเบียบวาระที่ได้แจ้งไว้แล้วในหนังสือเชิญ', c.gmName, ' ดังต่อไปนี้']});
+  ag.forEach(a => {
+    b.push({t:'ag', n:'วาระที่ ' + a.no + '.', text:a.title});
+    expand(a.body, c).forEach(x => b.push(x));
+    if(a.resolution.length){
+      b.push({t:'reshd', text:'มติที่ประชุม'});
+      expand(a.resolution, c).forEach(x => b.push(x));
+    }
+  });
+  b.push({t:'p', ind:true, text:'ประธานฯ ได้เปิดโอกาสให้ที่ประชุมแสดงความคิดเห็นและซักถามคำถามเพิ่มเติม ' +
+    'ปรากฏว่าไม่มีผู้ถือหุ้นท่านใดแสดงความคิดเห็นและซักถามคำถาม'});
+  b.push({t:'p', ind:true, text:['เมื่อไม่มีผู้ใดแสดงความคิดเห็นหรือซักถามคำถามเพิ่มเติม ' +
+    'ประธานฯ ได้กล่าวขอบคุณผู้เข้าร่วมประชุมและปิดการประชุมเวลา ', fld(thaiTime(state.gm.close)), ' น.']});
+  b.push({t:'gap'});
+  b.push({t:'sig', lines:[
+    {text:['ลงชื่อ ', {rule:44}, ' ประธานในที่ประชุม']},
+    {text:['( ', fld(chair), ' )']}
+  ]});
+  return b;
+}
+
+function docShareholderList(c){
+  const present = c.presentShs;
+  const rows = (present.length ? present : [{name:'', shares:''}]).map((h, i) => [
+    {v:String(i + 1) + '.', al:'c'}, {v:fld(h.name)}, {v:''},
+    {v:num(h.shares) ? fmt(num(h.shares)) : '', al:'n'}, {v:''}
+  ]);
+  rows.push([{v:'', al:'c'}, {v:'รวม', al:'c', b:true}, {v:''},
+    {v:fmt(c.presentShares), al:'n', b:true}, {v:''}]);
+  return [
+    {t:'title', text:['รายชื่อผู้ถือหุ้นที่เข้าร่วม', c.gmName, ' ครั้งที่ ', c.gmNo]},
+    {t:'sub', text:['ของ', c.coName]},
+    {t:'sub', text:['วันที่ ', fld(thaiDate(state.gm.date)), ' เวลา ', fld(thaiTime(state.gm.time)), ' น.']},
+    {t:'sub', text:['ณ ', c.place(state.gm)]},
+    {t:'gap'},
+    {t:'table', widths:[7,32,20,17,24],
+      head:['ที่','ผู้ถือหุ้นที่เข้าร่วมประชุม','ผู้รับมอบฉันทะ','จำนวนหุ้น (หุ้น)','ลายมือชื่อผู้ถือหุ้น/ผู้รับมอบฉันทะ'], rows}
+  ];
+}
+
+/* The subscription reply form, which the offer letter carries on its
+   foot and which also stands alone as its own document. */
+function subscriptionForm(c, h, entitled){
+  return [
+    {t:'title', text:'หนังสือแจ้งการจองซื้อหุ้นเพิ่มทุน'},
+    {t:'gap'},
+    {t:'p', text:['[     ]     ข้าพเจ้าไม่ประสงค์จะจองซื้อหุ้นเพิ่มทุนที่ออกใหม่']},
+    {t:'p', text:['[     ]     ข้าพเจ้าประสงค์จะจองซื้อหุ้นเพิ่มทุนที่ออกใหม่ จำนวน ',
+      fld(entitled ? fmt(entitled) : ''), ' หุ้น']},
+    {t:'p', text:['[     ]     ข้าพเจ้าประสงค์จะจองซื้อหุ้นเพิ่มทุนในส่วนที่ผู้ถือหุ้นอื่นปฏิเสธที่จะจองซื้อหุ้น จำนวน ',
+      {rule:16}, ' หุ้น']},
+    {t:'gap'},
+    {t:'sig', lines:[
+      {text:['โดย: ', {rule:30}]},
+      {text:['( ', fld(h.name), ' )']},
+      {text:['วันที่: ', fld(thaiDate(state.cap.replyDate))]}
+    ]}
+  ];
+}
+
+function offerBody(c, h, entitled){
+  const b = noticeHead(c, state.cap.offerDate, 'เสนอขายหุ้นเพิ่มทุน', fld(h.name));
+  b.push({t:'gap'});
+  b.push({t:'p', ind:true, text:['ตามที่', c.coName, ' ได้จัดให้มีการ', c.gmName, ' ครั้งที่ ', c.gmNo,
+    ' เมื่อวันที่ ', fld(thaiDate(state.gm.date)), ' และได้มีมติให้เพิ่มทุนจดทะเบียนของบริษัทฯ จากเดิม ',
+    fld(c.fromCap ? fmt(c.fromCap) : ''), ' บาท เป็น ', fld(c.toCap ? fmt(c.toCap) : ''),
+    ' บาท โดยการออกหุ้น', c.typeTh, 'เพิ่มทุนจำนวน ', fld(num(c.cap.shares) ? fmt(num(c.cap.shares)) : ''),
+    ' หุ้น มูลค่าหุ้นที่ตราไว้หุ้นละ ', fld(c.par ? fmt(c.par) : ''), ' บาท (“หุ้นเพิ่มทุน”) ' +
+    'รวมเป็นมูลค่าการเพิ่มทุนจดทะเบียนของบริษัทฯ จำนวน ', fld(c.raised ? fmt(c.raised) : ''),
+    ' บาท เพื่อเสนอขายแก่ผู้ถือหุ้นเดิมที่มีชื่อปรากฏอยู่ในสมุดทะเบียนผู้ถือหุ้น ณ วันที่ ',
+    fld(thaiDate(state.gm.date)), ' ตามสัดส่วนจำนวนหุ้นที่แต่ละคนถืออยู่ ในราคาเสนอขายหุ้นละ ',
+    fld(num(c.cap.price) ? nw(c.cap.price) : ''), ' บาทต่อหุ้นตามมูลค่าที่ตราไว้ ' +
+    'ซึ่งเป็นหุ้นที่ต้องชำระเป็นตัวเงินจนเต็มมูลค่าหุ้น']});
+  b.push({t:'p', ind:true, text:['เนื่องจากปัจจุบันท่านเป็นผู้ถือหุ้นของบริษัทฯ อยู่จำนวน ',
+    fld(num(h.shares) ? fmt(num(h.shares)) : ''), ' หุ้น จึงมีสิทธิจองซื้อหุ้นเพิ่มทุนจำนวน ',
+    fld(entitled ? fmt(entitled) : ''), ' หุ้น (และรวมถึงหุ้นเพิ่มทุนที่ผู้ถือหุ้นท่านอื่นปฏิเสธจองซื้อ) ' +
+    'ดังนั้น หากท่านประสงค์ที่จะจองซื้อหุ้นเพิ่มทุนที่ออกใหม่จำนวนดังกล่าว ' +
+    'กรุณากรอกแบบฟอร์มตอบรับข้างท้ายนี้และส่งกลับคืนมายังบริษัทฯ ภายในวันที่ ',
+    fld(thaiDate(state.cap.replyDate)), ' เวลา ', fld(thaiTime(state.cap.replyTime)),
+    ' น. และหากท่านประสงค์ที่จะจองซื้อหุ้นเพิ่มทุนที่ออกใหม่ในส่วนที่ผู้ถือหุ้นท่านอื่นปฏิเสธที่จะจองซื้อหุ้นด้วย ' +
+    'กรุณาระบุจำนวนหุ้นที่ประสงค์จะซื้อหากมีผู้ถือหุ้นท่านอื่นปฏิเสธ พร้อมกันนี้ ' +
+    'โปรดชำระค่าหุ้นเพิ่มทุนเต็มมูลค่าที่ท่านจองซื้อภายในวันที่บริษัทฯ และท่านจะได้ทำการตกลงกัน']});
+  b.push({t:'p', ind:true, text:'หากบริษัทฯ ไม่ได้รับหนังสือตอบรับการจองซื้อหุ้นจากท่าน ' +
+    'หรือไม่ได้รับชำระค่าหุ้นเพิ่มทุนที่ท่านจองซื้อภายในกำหนดระยะเวลาที่บริษัทฯ และท่านได้ทำการตกลงกันไว้ ' +
+    'บริษัทฯ จะถือว่าท่านสละสิทธิในการจองซื้อหุ้นเพิ่มทุน ซึ่งบริษัทฯ อาจจัดสรรหุ้นในส่วนของท่านตามที่เห็นสมควรต่อไป'});
+  b.push({t:'p', ind:true, text:'จึงเรียนมาเพื่อทราบ'});
+  b.push({t:'gap'});
+  b.push({t:'sig', lines:[{text:'ขอแสดงความนับถือ'}, {text:c.coName}]});
+  signerNames().forEach(n => b.push(sigDirector(n, 'กรรมการ')));
+  return b;
+}
+
+function docShareOffer(c){
+  const shs = state.shareholders.length ? state.shareholders : [{name:'', shares:''}];
+  const b = [];
+  shs.forEach((h, i) => {
+    if(i) b.push({t:'pb'});
+    offerBody(c, h, c.alloc.rows[i] ? c.alloc.rows[i].value : 0).forEach(x => b.push(x));
+    b.push({t:'pb'});
+    subscriptionForm(c, h, c.alloc.rows[i] ? c.alloc.rows[i].value : 0).forEach(x => b.push(x));
+  });
+  return b;
+}
+function docShareSubscription(c){
+  const shs = state.shareholders.length ? state.shareholders : [{name:'', shares:''}];
+  const b = [];
+  shs.forEach((h, i) => {
+    if(i) b.push({t:'pb'});
+    subscriptionForm(c, h, c.alloc.rows[i] ? c.alloc.rows[i].value : 0).forEach(x => b.push(x));
+  });
+  return b;
+}
+
+function docPaymentReceipt(c){
+  const shs = state.shareholders.length ? state.shareholders : [{name:'', shares:''}];
+  const price = num(state.cap.price) || c.par;
+  const b = [];
+  shs.forEach((h, i) => {
+    const sh = c.alloc.rows[i] ? c.alloc.rows[i].value : 0;
+    const amt = sh * price;
+    if(i) b.push({t:'pb'});
+    b.push({t:'title', text:'ใบสำคัญรับชำระเงินค่าหุ้น'});
+    b.push({t:'sub', text:'ของ'});
+    b.push({t:'sub', bold:true, text:c.coName});
+    b.push({t:'gap'});
+    b.push({t:'p', right:true, text:['วันที่ ', fld(thaiDate(state.cap.payDate))]});
+    b.push({t:'p', ind:true, text:[c.coName, ' ได้รับชำระเงินค่าหุ้น เป็นเงินจำนวน ',
+      fld(amt ? fmt(amt) : ''), ' บาท (', fld(amt ? thaiWords(amt) + 'บาทถ้วน' : ''), ') จาก ', fld(h.name),
+      ' เพื่อเป็นเงินค่าเพิ่มทุนในบริษัทฯ สำหรับหุ้นจำนวน ', fld(sh ? fmt(sh) : ''), ' หุ้น (',
+      fld(sh ? thaiWords(sh) + 'หุ้น' : ''), ') โดยชำระโดยวิธีการโอนเงินเข้าบัญชีเงินฝาก ',
+      fld(state.cap.bank), ' เลขที่บัญชี ', fld(state.cap.acct), ' จำนวน ', fld(amt ? fmt(amt) : ''),
+      ' บาท เมื่อวันที่ ', fld(thaiDate(state.cap.payDate)), ' ไว้เรียบร้อยแล้ว']});
+    b.push({t:'gap'});
+    b.push({t:'sig', lines:[{text:c.coName}]});
+    b.push({t:'sig', lines:[
+      {text:['ลงชื่อ ', {rule:34}, ' ผู้รับเงิน']},
+      {text:['( ', fld(signerNames().join(' และ')), ' )']},
+      {text:'กรรมการผู้มีอำนาจลงนาม'}
+    ]});
+  });
+  return b;
+}
+
+const BUILDERS = {
+  'board-notice':docBoardNotice, 'board-minutes':docBoardMinutes, 'director-list':docDirectorList,
+  'shm-notice':docShmNotice, 'shm-minutes':docShmMinutes, 'shareholder-list':docShareholderList,
+  'share-offer':docShareOffer, 'share-subscription':docShareSubscription, 'payment-receipt':docPaymentReceipt
+};
+function buildDoc(key, c){
+  c = c || ctx();
+  const fn = BUILDERS[key];
+  return fn ? expand(fn(c), c) : [];
+}
+function chairName(house){
+  const list = house === 'bod' ? state.directors : state.shareholders;
+  const i = num(state[house].chair);
+  return list[i] ? trim(list[i].name) : '';
+}
+function signerNames(){
+  const raw = trim(state.cap.signers);
+  const n = raw ? raw.split(',').map(trim).filter(Boolean) : [];
+  return n.length ? n : [chairName('gm')];
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Renderer 1 — the on-screen preview
+   ═══════════════════════════════════════════════════════════════ */
+function segHtml(x){
+  return parts(x).map(p => {
+    if(p == null) return '';
+    if(p.rule !== undefined) return '<span class="ln">' + '_'.repeat(p.rule) + '</span>';
+    if(p.f !== undefined) return p.f ? escH(p.f) : '<span class="ph">' + BLANK + '</span>';
+    return escH(p);
+  }).join('');
+}
+function blockHtml(b){
+  switch(b.t){
+    case 'title':  return '<div class="t">' + segHtml(b.text) + '</div>';
+    case 'sub':    return '<div class="s"' + (b.bold ? ' style="font-weight:700"' : '') + '>' + segHtml(b.text) + '</div>';
+    case 'h':      return '<div class="h">' + segHtml(b.text) + '</div>';
+    case 'p':      return '<div class="p' + (b.ind ? ' ind' : '') + '"' +
+                     (b.right ? ' style="text-align:right"' : b.center ? ' style="text-align:center"' : '') +
+                     '>' + segHtml(b.text) + '</div>';
+    case 'q':      return '<div class="q">' + segHtml(b.text) + '</div>';
+    case 'lab':    return '<div class="lab"><span class="k">' + segHtml(b.k) + '</span><span>' + segHtml(b.v) + '</span></div>';
+    case 'li':     return '<div class="li"' + (b.indent ? ' style="margin-left:2.5em"' : '') +
+                     '><span class="n">' + segHtml(b.n) + '</span><span>' + segHtml(b.text) + '</span></div>';
+    case 'ag':     return '<div class="ag"><span class="n">' + segHtml(b.n) + '</span><span>' + segHtml(b.text) + '</span></div>';
+    case 'reshd':  return '<div class="reshd">' + segHtml(b.text) + '</div>';
+    case 'res':    return '<div class="res">' + segHtml(b.text) + '</div>';
+    case 'gap':    return '<div class="gap"></div>';
+    case 'sig':    return '<div class="sig">' + (b.lines || []).map(l => '<div>' + segHtml(l.text) + '</div>').join('') + '</div>';
+    case 'table':  return tableHtml(b);
+    default:       return '';
+  }
+}
+function tableHtml(b){
+  const cols = b.widths || [];
+  let h = '<table>';
+  if(b.head){
+    h += '<tr>' + b.head.map((t, i) =>
+      '<th' + (cols[i] ? ' style="width:' + cols[i] + '%"' : '') + '>' + segHtml(t) + '</th>').join('') + '</tr>';
+  }
+  (b.rows || []).forEach(r => {
+    h += '<tr>' + r.map(cell =>
+      '<td class="' + (cell.al === 'n' ? 'n' : cell.al === 'c' ? 'c' : '') + '"' +
+      (cell.b ? ' style="font-weight:700"' : '') + '>' + segHtml(cell.v) + '</td>').join('') + '</tr>';
+  });
+  return h + '</table>';
+}
+function renderPreview(blocks){
+  const pages = [[]];
+  blocks.forEach(b => { if(b.t === 'pb') pages.push([]); else pages[pages.length - 1].push(b); });
+  return pages.map((pg, i) =>
+    (i ? '<p class="pgsep">— หน้า ' + (i + 1) + ' —</p>' : '') +
+    '<div class="page">' + pg.map(blockHtml).join('') + '</div>'
+  ).join('');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Renderer 2 — the .docx
+
+   Everything but word/document.xml comes out of the skeleton, which is
+   the firm's own file with the styles kept and the metadata stripped.
+   The body is written here rather than token-filled: a minute is as long
+   as its agenda, and a fixed template cannot be.
+   ═══════════════════════════════════════════════════════════════ */
+const FONT = '<w:rFonts w:ascii="TH SarabunPSK" w:hAnsi="TH SarabunPSK" w:cs="TH SarabunPSK"/>';
+const LANG = '<w:lang w:bidi="th-TH"/>';
+const SZ   = s => '<w:sz w:val="' + s + '"/><w:szCs w:val="' + s + '"/>';
+const R_BODY  = FONT + SZ(32);
+const R_BOLD  = FONT + '<w:b/><w:bCs/>' + SZ(32);
+const R_TITLE = FONT + '<w:b/><w:bCs/>' + SZ(32);
+const R_TBL   = FONT + SZ(28);
+const R_TBLH  = FONT + '<w:b/><w:bCs/>' + SZ(28);
+
+/* Thai and Latin need different run properties — w:cs marks the complex
+   script so Word measures Sarabun rather than falling back. Splitting on
+   script keeps a mixed line (a Thai name beside a Latin company) correct. */
+function splitScript(s){
+  const out = []; let buf = '', isTh = null;
+  for(const ch of String(s)){
+    const th = ch >= '฀' && ch <= '๿';
+    if(isTh === null || th === isTh){ buf += ch; isTh = th; }
+    else { out.push([buf, isTh]); buf = ch; isTh = th; }
+  }
+  if(buf) out.push([buf, !!isTh]);
+  return out;
+}
+function runs(rpr, x){
+  return parts(x).map(p => {
+    if(p == null) return '';
+    if(p.rule !== undefined) return run(rpr, '_'.repeat(p.rule), false);
+    if(p.f !== undefined) return p.f ? run(rpr, p.f, false) : run(rpr, BLANK, true);
+    return run(rpr, String(p), false);
+  }).join('');
+}
+function run(rpr, text, highlight){
+  return splitScript(text).map(([t, th]) =>
+    '<w:r><w:rPr>' + rpr + (highlight ? '<w:highlight w:val="yellow"/>' : '') +
+    (th ? '<w:cs/>' : '') + LANG + '</w:rPr>' +
+    '<w:t xml:space="preserve">' + escX(t) + '</w:t></w:r>'
+  ).join('');
+}
+const P_SP   = '<w:spacing w:before="0" w:after="0" w:line="360" w:lineRule="auto"/>';
+const P_TIGHT= '<w:spacing w:before="0" w:after="0" w:line="276" w:lineRule="auto"/>';
+function para(ppr, rpr, text){
+  return '<w:p><w:pPr>' + (ppr || '') + '<w:rPr>' + rpr + LANG + '</w:rPr></w:pPr>' +
+         (text !== undefined && text !== null ? runs(rpr, text) : '') + '</w:p>';
+}
+/* a label line — "เรื่อง<tab>…" — held on a tab stop so the values line up */
+const TABS = '<w:tabs><w:tab w:val="left" w:pos="1418"/></w:tabs>';
+
+function blockXml(b){
+  switch(b.t){
+    case 'title':  return para(P_SP + '<w:jc w:val="center"/>', R_TITLE, b.text);
+    case 'sub':    return para(P_SP + '<w:jc w:val="center"/>', b.bold ? R_BOLD : R_BODY, b.text);
+    case 'h':      return para(P_SP + '<w:spacing w:before="160" w:after="0" w:line="360" w:lineRule="auto"/>', R_BOLD, b.text);
+    case 'p':      return para(P_SP + (b.ind ? '<w:ind w:firstLine="1418"/>' : '') +
+                     (b.right ? '<w:jc w:val="right"/>' : b.center ? '<w:jc w:val="center"/>' : '<w:jc w:val="thaiDistribute"/>'),
+                     R_BODY, b.text);
+    case 'q':      return para(P_SP + '<w:ind w:left="1418"/>', R_BODY, b.text);
+    case 'lab':    return para(P_SP + TABS, R_BODY, parts(b.k).concat(['\t']).concat(parts(b.v)));
+    case 'li':     return para(P_SP + '<w:ind w:left="' + (b.indent ? 2836 : 1418) + '" w:hanging="1418"/>' + TABS,
+                     R_BODY, parts(b.n).concat(['\t']).concat(parts(b.text)));
+    case 'ag':     return para('<w:spacing w:before="200" w:after="0" w:line="360" w:lineRule="auto"/>' +
+                     '<w:ind w:left="1418" w:hanging="1418"/>' + TABS + '<w:jc w:val="thaiDistribute"/>',
+                     R_BOLD, parts(b.n).concat(['\t']).concat(parts(b.text)));
+    case 'reshd':  return para(P_SP + '<w:ind w:left="1418"/>', R_BOLD, b.text);
+    case 'res':    return para(P_SP + '<w:ind w:left="1418"/><w:jc w:val="thaiDistribute"/>', R_BODY, b.text);
+    case 'gap':    return para(P_TIGHT, R_BODY);
+    case 'sig':    return (b.lines || []).map(l =>
+                     para(P_TIGHT + '<w:ind w:left="4820"/>', R_BODY, l.text)).join('');
+    case 'table':  return tableXml(b);
+    case 'pb':     return '<w:p><w:pPr>' + P_TIGHT + '<w:rPr>' + R_BODY + LANG + '</w:rPr></w:pPr>' +
+                     '<w:r><w:rPr>' + R_BODY + LANG + '</w:rPr><w:br w:type="page"/></w:r></w:p>';
+    default:       return '';
+  }
+}
+/* A4 portrait with 1" margins leaves 9026 twips of text width */
+const TEXT_W = 9026;
+function tableXml(b){
+  const pcts = b.widths && b.widths.length ? b.widths : [];
+  const n = (b.head ? b.head.length : (b.rows[0] || []).length);
+  const w = i => Math.round(TEXT_W * ((pcts[i] || (100 / n)) / 100));
+  const cell = (content, rpr, al, width) =>
+    '<w:tc><w:tcPr><w:tcW w:w="' + width + '" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>' +
+    para(P_TIGHT + (al === 'n' ? '<w:jc w:val="right"/>' : al === 'c' ? '<w:jc w:val="center"/>' : ''), rpr, content) +
+    '</w:tc>';
+  let x = '<w:tbl><w:tblPr><w:tblStyle w:val="TableGrid"/><w:tblW w:w="' + TEXT_W + '" w:type="dxa"/>' +
+    '<w:tblBorders>' + ['top','left','bottom','right','insideH','insideV']
+      .map(s => '<w:' + s + ' w:val="single" w:sz="6" w:space="0" w:color="auto"/>').join('') +
+    '</w:tblBorders><w:tblLook w:val="04A0" w:firstRow="1" w:lastRow="0" w:firstColumn="1" ' +
+    'w:lastColumn="0" w:noHBand="0" w:noVBand="1"/></w:tblPr><w:tblGrid>';
+  for(let i = 0; i < n; i++) x += '<w:gridCol w:w="' + w(i) + '"/>';
+  x += '</w:tblGrid>';
+  if(b.head){
+    x += '<w:tr><w:trPr><w:tblHeader/></w:trPr>' +
+      b.head.map((t, i) => cell(t, R_TBLH, 'c', w(i))).join('') + '</w:tr>';
+  }
+  (b.rows || []).forEach(r => {
+    x += '<w:tr>' + r.map((c, i) => cell(c.v, c.b ? R_TBLH : R_TBL, c.al, w(i))).join('') + '</w:tr>';
+  });
+  return x + '</w:tbl>' + para(P_TIGHT, R_TBL);
+}
+const SECT = '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/>' +
+  '<w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="708" w:footer="708" w:gutter="0"/>' +
+  '<w:cols w:space="708"/><w:docGrid w:linePitch="360"/></w:sectPr>';
+const DOC_OPEN = '<w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" ' +
+  'xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" ' +
+  'xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" ' +
+  'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ' +
+  'xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" ' +
+  'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" ' +
+  'xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" ' +
+  'xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" ' +
+  'xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" ' +
+  'xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:v="urn:schemas-microsoft-com:vml" ' +
+  'xmlns:w10="urn:schemas-microsoft-com:office:word" ' +
+  'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" ' +
+  'xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" ' +
+  'xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" ' +
+  'xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" ' +
+  'mc:Ignorable="w14 w15 wp14">';
+function documentXml(blocks){
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n' + DOC_OPEN +
+    '<w:body>' + blocks.map(blockXml).join('') + SECT + '</w:body></w:document>';
+}
+async function docxBlob(blocks){
+  const zip = await JSZip.loadAsync(SKELETON_B64, {base64:true});
+  zip.file('word/document.xml', documentXml(blocks));
+  return zip.generateAsync({type:'blob', compression:'DEFLATE',
+    mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Checks
+
+   These read the facts back against the Code and say what they see.
+   They do not stop an export — a minute is often drafted before the
+   attendance is final — but an unmet quorum should never be silent.
+   For the full treatment (proxies, articles that vary the default,
+   agenda-by-agenda voting) the Quorum & Resolution Checker is the tool.
+   ═══════════════════════════════════════════════════════════════ */
+function chk(ok, text, cite){ return {ok, text, cite}; }
+function boardChecks(c){
+  const total = state.directors.length, here = c.presentDirs.length;
+  const need = Math.min(3, total || 3);
+  const out = [];
+  if(!total) return [chk(null, 'ยังไม่ได้กรอกรายชื่อกรรมการ')];
+  out.push(here >= need
+    ? chk(true, 'องค์ประชุมคณะกรรมการครบ — เข้าประชุม ' + here + ' คน จากทั้งหมด ' + total + ' คน',
+        'ป.พ.พ. ม.1160 — ค่าเริ่มต้น 3 คน เว้นแต่ข้อบังคับกำหนดไว้เป็นอย่างอื่น')
+    : chk(false, 'องค์ประชุมคณะกรรมการไม่ครบ — เข้าประชุม ' + here + ' คน ต้องการ ' + need + ' คน',
+        'ป.พ.พ. ม.1160 — ตรวจข้อบังคับของบริษัทประกอบ'));
+  if(!trim(chairName('bod'))) out.push(chk(null, 'ยังไม่ได้เลือกประธานในที่ประชุมคณะกรรมการ'));
+  return out;
+}
+function shareholderChecks(c){
+  const out = [];
+  if(!c.totalShares) return [chk(null, 'ยังไม่ได้กรอกจำนวนหุ้นของผู้ถือหุ้น')];
+  const need = c.totalShares / 4;
+  out.push(c.presentShares >= need
+    ? chk(true, 'องค์ประชุมผู้ถือหุ้นครบ — นับหุ้นได้ ' + fmt(c.presentShares) + ' หุ้น จาก ' + fmt(c.totalShares) +
+        ' หุ้น (ต้องการ ' + fmt(Math.ceil(need)) + ' หุ้น)', 'ป.พ.พ. ม.1178 — ไม่น้อยกว่าหนึ่งในสี่แห่งทุนของบริษัท')
+    : chk(false, 'องค์ประชุมผู้ถือหุ้นไม่ครบ — นับหุ้นได้ ' + fmt(c.presentShares) + ' หุ้น ต้องการ ' +
+        fmt(Math.ceil(need)) + ' หุ้น', 'ป.พ.พ. ม.1178'));
+  const hasSpecial = (state.agenda.gm || []).some(i => { const d = agendaDef(i.key); return d && d.special; });
+  if(hasSpecial){
+    out.push(chk(true, 'มีวาระที่ต้องลงมติพิเศษ — ต้องได้คะแนนไม่น้อยกว่า ' +
+      fmt(Math.ceil(c.presentShares * 3 / 4)) + ' เสียง (สามในสี่ของหุ้นที่มาประชุม)',
+      'ป.พ.พ. ม.1194'));
+  }
+  if(!trim(chairName('gm'))) out.push(chk(null, 'ยังไม่ได้เลือกประธานในที่ประชุมผู้ถือหุ้น'));
+  return out;
+}
+function noticeChecks(){
+  const out = [];
+  const hasSpecial = (state.agenda.gm || []).some(i => { const d = agendaDef(i.key); return d && d.special; });
+  const need = hasSpecial ? 14 : 7;
+  const gap = daysBetween(state.gm.noticeDate, state.gm.date);
+  if(gap === null) return [chk(null, 'กรอกวันที่บอกกล่าวและวันประชุมเพื่อตรวจระยะเวลา')];
+  out.push(gap >= need
+    ? chk(true, 'ระยะบอกกล่าว ' + gap + ' วัน — ครบกำหนด (ต้องไม่น้อยกว่า ' + need + ' วัน)',
+        'ป.พ.พ. ม.1175 — ' + (hasSpecial ? 'มติพิเศษ 14 วัน' : 'มติธรรมดา 7 วัน'))
+    : chk(false, 'ระยะบอกกล่าวเพียง ' + gap + ' วัน — ต้องไม่น้อยกว่า ' + need + ' วัน',
+        'ป.พ.พ. ม.1175 — ' + (hasSpecial ? 'วาระที่ต้องลงมติพิเศษ' : 'มติธรรมดา')));
+  const bodGap = daysBetween(state.bod.date, state.gm.date);
+  if(bodGap !== null && bodGap < 0)
+    out.push(chk(false, 'วันประชุมผู้ถือหุ้นอยู่ก่อนวันประชุมคณะกรรมการ — ตรวจลำดับวันที่'));
+  return out;
+}
+function capChecks(c){
+  const out = [];
+  if(!state.cap.on) return out;
+  if(c.toCap && c.fromCap && c.toCap <= c.fromCap)
+    out.push(chk(false, 'ทุนใหม่ต้องมากกว่าทุนเดิม'));
+  if(c.par && c.toCap && c.toCap % c.par !== 0)
+    out.push(chk(false, 'ทุนใหม่ ' + fmt(c.toCap) + ' บาท หารด้วยมูลค่าที่ตราไว้ ' + fmt(c.par) +
+      ' บาท ไม่ลงตัว — ข้อ 5. จะระบุจำนวนหุ้นไม่ได้'));
+  if(c.par && c.fromCap && c.toCap && num(state.cap.shares)){
+    const implied = Math.round((c.toCap - c.fromCap) / c.par);
+    if(implied !== num(state.cap.shares))
+      out.push(chk(false, 'ส่วนต่างทุน ' + fmt(c.toCap - c.fromCap) + ' บาท ที่มูลค่าหุ้นละ ' + fmt(c.par) +
+        ' บาท เท่ากับ ' + fmt(implied) + ' หุ้น แต่กรอกไว้ ' + fmt(num(state.cap.shares)) + ' หุ้น'));
+  }
+  if(c.alloc.issue && c.alloc.allotted !== c.alloc.issue)
+    out.push(chk(false, 'จัดสรรแล้ว ' + fmt(c.alloc.allotted) + ' หุ้น จากที่ออกใหม่ ' + fmt(c.alloc.issue) +
+      ' หุ้น — ต่างกัน ' + fmt(c.alloc.issue - c.alloc.allotted) + ' หุ้น'));
+  else if(c.alloc.issue)
+    out.push(chk(true, 'จัดสรรครบ ' + fmt(c.alloc.issue) + ' หุ้น ตามสัดส่วนการถือหุ้นเดิม'));
+  return out;
+}
+function chkHtml(list){
+  return (list || []).map(k =>
+    '<div class="chk ' + (k.ok === true ? 'pass' : k.ok === false ? 'fail' : 'info') + '">' +
+    '<span class="mk">' + (k.ok === true ? '✓' : k.ok === false ? '!' : '·') + '</span>' +
+    '<span>' + escH(k.text) + (k.cite ? '<span class="cite">' + escH(k.cite) + '</span>' : '') + '</span></div>'
+  ).join('');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   UI
+   ═══════════════════════════════════════════════════════════════ */
+/* How many fields a document would print as a dotted blank. Counted off
+   the built blocks rather than off the form, so it answers the question
+   that matters: is this one ready to send out? */
+function countBlanks(blocks){
+  let n = 0;
+  const scan = x => parts(x).forEach(p => { if(p && p.f !== undefined && p.f === '') n++; });
+  (blocks || []).forEach(b => {
+    ['text','k','v','n'].forEach(key => { if(b[key] !== undefined) scan(b[key]); });
+    if(b.lines) b.lines.forEach(l => scan(l.text));
+    if(b.head)  b.head.forEach(scan);
+    if(b.rows)  b.rows.forEach(r => r.forEach(cell => scan(cell.v)));
+  });
+  return n;
+}
+function renderDocList(){
+  let h = '', group = '';
+  DOC_TYPES.forEach(d => {
+    if(d.group !== group){ group = d.group; h += '<div class="dgroup">' + escH(group) + '</div>'; }
+    const on = !!state.docs[d.key];
+    let blanks = null;
+    try{ blanks = countBlanks(buildDoc(d.key)); }catch(e){}
+    const flag = !on ? '<span class="doc-flag off">ไม่รวม</span>'
+      : blanks === null ? ''
+      : blanks ? '<span class="doc-flag warn">ยังว่าง ' + blanks + ' ช่อง</span>'
+               : '<span class="doc-flag ok">ครบ</span>';
+    h += '<div class="doc' + (state.active === d.key ? ' active' : '') + '" data-doc="' + d.key + '">' +
+      '<input type="checkbox" data-docck="' + d.key + '"' + (on ? ' checked' : '') + '>' +
+      '<span class="doc-txt"><span class="doc-th">' + escH(d.th) + '</span>' +
+      '<span class="doc-en">' + escH(d.en) + '</span>' + flag + '</span></div>';
+  });
+  $('docList').innerHTML = h;
+  $('docCount').textContent = DOC_TYPES.filter(d => state.docs[d.key]).length;
+}
+
+function personRows(kind){
+  const isDir = kind === 'dir';
+  const list = isDir ? state.directors : state.shareholders;
+  const c = ctx();
+  return list.map((p, i) => {
+    if(isDir){
+      return '<div class="row"><span class="no">' + (i + 1) + '</span>' +
+        '<input type="checkbox" class="present" data-p="dir" data-i="' + i + '" data-k="present"' +
+          (p.present ? ' checked' : '') + ' title="เข้าประชุม">' +
+        '<input type="text" class="th grow" data-p="dir" data-i="' + i + '" data-k="name" value="' +
+          escH(p.name) + '" placeholder="ชื่อกรรมการ">' +
+        '<input type="text" class="th w-pos" data-p="dir" data-i="' + i + '" data-k="position" value="' +
+          escH(p.position) + '" placeholder="ตำแหน่ง">' +
+        '<button class="mini del" data-del="dir" data-i="' + i + '" title="ลบ">✕</button></div>';
+    }
+    const a = c.alloc.rows[i] || {value:0, over:false};
+    return '<div class="row"><span class="no">' + (i + 1) + '</span>' +
+      '<input type="checkbox" class="present" data-p="sh" data-i="' + i + '" data-k="present"' +
+        (p.present ? ' checked' : '') + ' title="เข้าประชุม">' +
+      '<input type="text" class="th grow" data-p="sh" data-i="' + i + '" data-k="name" value="' +
+        escH(p.name) + '" placeholder="ชื่อผู้ถือหุ้น">' +
+      '<input type="text" class="num w-sh" data-p="sh" data-i="' + i + '" data-k="shares" data-num value="' +
+        escH(p.shares) + '" placeholder="หุ้นเดิม">' +
+      '<input type="text" class="num w-al ' + (a.over ? 'is-over' : 'is-auto') + '" data-alloc="' + i +
+        '" value="' + (a.over ? escH(p.alloc) : (a.value ? fmt(a.value) : '')) + '" placeholder="จัดสรร">' +
+      (a.over ? '<button class="mini rst" data-rst="' + i + '" title="กลับไปคำนวณอัตโนมัติ">↺</button>'
+              : '<span style="width:22px;flex-shrink:0"></span>') +
+      '<button class="mini del" data-del="sh" data-i="' + i + '" title="ลบ">✕</button></div>';
+  }).join('');
+}
+
+function renderPeople(){
+  const c = ctx();
+  $('dirRows').innerHTML = personRows('dir');
+  $('shRows').innerHTML  = personRows('sh');
+  $('dirTot').innerHTML = '<span>กรรมการทั้งหมด <b>' + state.directors.length + '</b> คน</span>' +
+    '<span>เข้าประชุม <b>' + c.presentDirs.length + '</b> คน</span>';
+  $('shTot').innerHTML = '<span>ผู้ถือหุ้น <b>' + state.shareholders.length + '</b> ราย</span>' +
+    '<span>หุ้นรวม <b>' + fmt(c.totalShares) + '</b> หุ้น</span>' +
+    '<span>เข้าประชุม <b>' + fmt(c.presentShares) + '</b> หุ้น</span>' +
+    '<span>จัดสรรแล้ว <b>' + fmt(c.alloc.allotted) + '</b> หุ้น</span>';
+  $('dirChk').innerHTML = chkHtml(boardChecks(c));
+  $('shChk').innerHTML  = chkHtml(shareholderChecks(c));
+  ['bod','gm'].forEach(house => {
+    const sel = $(house + 'Chair');
+    const list = house === 'bod' ? state.directors : state.shareholders;
+    sel.innerHTML = list.map((p, i) =>
+      '<option value="' + i + '"' + (num(state[house].chair) === i ? ' selected' : '') + '>' +
+      escH(trim(p.name) || '(ยังไม่ได้ตั้งชื่อ #' + (i + 1) + ')') + '</option>').join('');
+  });
+}
+
+function renderAgenda(house){
+  const c = ctx();
+  const items = resolveAgenda(house, c);
+  const box = $(house === 'bod' ? 'agBod' : 'agGm');
+  if(!items.length){
+    box.innerHTML = '<p class="hintline" style="margin:0">ยังไม่มีวาระ — เลือกจากรายการด้านล่างแล้วกดเพิ่ม</p>';
+  } else {
+    box.innerHTML = items.map((a, i) => {
+      const open = a.item.open;
+      const ov = a.item.over || {};
+      const edited = trim(ov.title) || trim(ov.body) || trim(ov.res);
+      let h = '<div class="ag"><div class="ag-hd" data-agtoggle="' + house + ':' + i + '">' +
+        '<span class="ag-no">วาระที่ ' + a.no + '.</span>' +
+        '<span class="ag-ti">' + escH(plain(a.title)) + '</span>' +
+        (edited ? '<span class="edited">แก้ถ้อยคำ</span>' : '') +
+        '<span class="ag-tag' + (a.special ? '' : ' norm') + '">' + (a.special ? 'มติพิเศษ' : 'มติธรรมดา') + '</span>' +
+        '<button class="mini" data-agup="' + house + ':' + i + '" title="เลื่อนขึ้น">▲</button>' +
+        '<button class="mini" data-agdn="' + house + ':' + i + '" title="เลื่อนลง">▼</button>' +
+        '<button class="mini del" data-agdel="' + house + ':' + i + '" title="ลบวาระ">✕</button></div>';
+      if(open){
+        h += '<div class="ag-bd">';
+        if(a.def.argLabel){
+          h += '<div class="field"><label>' + escH(a.def.argLabel) + '</label>' +
+            '<input type="text" class="th" data-agarg="' + house + ':' + i + '" value="' + escH(a.item.arg || '') + '"></div>';
+        }
+        h += '<div class="field"><label>ชื่อวาระ <button class="mini rst" data-agrst="' + house + ':' + i +
+          ':title">↺ อัตโนมัติ</button></label><textarea class="th" data-agov="' + house + ':' + i +
+          ':title" placeholder="' + escH(a.titleAuto) + '" style="min-height:44px">' + escH(ov.title || '') + '</textarea></div>';
+        h += '<div class="field"><label>ข้อความที่ประธานฯ เสนอ <button class="mini rst" data-agrst="' + house + ':' + i +
+          ':body">↺ อัตโนมัติ</button></label><textarea class="th" data-agov="' + house + ':' + i +
+          ':body" placeholder="' + escH(a.bodyAuto) + '" style="min-height:80px">' + escH(ov.body || '') + '</textarea></div>';
+        h += '<div class="field"><label>มติที่ประชุม <button class="mini rst" data-agrst="' + house + ':' + i +
+          ':res">↺ อัตโนมัติ</button></label><textarea class="th" data-agov="' + house + ':' + i +
+          ':res" placeholder="' + escH(a.resAuto) + '" style="min-height:80px">' + escH(ov.res || '') + '</textarea></div>';
+        h += '</div>';
+      }
+      return h + '</div>';
+    }).join('');
+  }
+  const pick = $(house === 'bod' ? 'agBodPick' : 'agGmPick');
+  const keep = pick.value;
+  pick.innerHTML = AGENDA.filter(a => a.scope === 'both' || a.scope === house)
+    .map(a => '<option value="' + a.key + '">' + escH(a.label) + '</option>').join('');
+  if(keep) pick.value = keep;
+}
+
+function renderPreviewPane(){
+  const key = state.active;
+  const d = DOC_TYPES.find(x => x.key === key);
+  $('pvTitle').textContent = d ? d.th : 'ตัวอย่างเอกสาร';
+  if(!d){ $('pvBody').innerHTML = '<p class="pv-empty">เลือกเอกสารทางซ้ายเพื่อดูตัวอย่าง</p>'; return; }
+  try{
+    $('pvBody').innerHTML = renderPreview(buildDoc(key));
+  }catch(err){
+    $('pvBody').innerHTML = '<p class="pv-empty">สร้างตัวอย่างไม่สำเร็จ: ' + escH(err.message) + '</p>';
+  }
+}
+
+function renderAll(){
+  const c = ctx();
+  renderDocList();
+  renderPeople();
+  renderAgenda('bod');
+  renderAgenda('gm');
+  $('noticeChk').innerHTML = chkHtml(noticeChecks());
+  $('capChk').innerHTML = chkHtml(capChecks(c));
+  $('coCapitalW').textContent = c.fromCap ? '(' + thaiWords(c.fromCap) + 'บาท)' : '';
+  $('capToW').textContent = c.toCap ? '(' + thaiWords(c.toCap) + 'บาท)' : '';
+  $('capSharesW').textContent = num(state.cap.shares) ? '(' + thaiWords(state.cap.shares) + 'หุ้น)' : '';
+  $('coDerived').textContent = (c.par && c.fromCap)
+    ? 'ทุนเดิมแบ่งเป็น ' + fmt(Math.round(c.fromCap / c.par)) + ' หุ้น · หลังเพิ่มทุนเป็น ' +
+      (c.totalSharesAfter ? fmt(c.totalSharesAfter) + ' หุ้น' : '—')
+    : '';
+  $('bodPlaceAuto').textContent = trim(state.bod.place) ? '' : '(ใช้ที่ตั้งบริษัท)';
+  $('gmPlaceAuto').textContent  = trim(state.gm.place) ? '' : '(ใช้ที่ตั้งบริษัท)';
+  $('capBody').style.opacity = state.cap.on ? '' : '.45';
+  $('capBody').style.pointerEvents = state.cap.on ? '' : 'none';
+  renderPreviewPane();
+  save();
+}
+
+/* ── Field binding ────────────────────────────────────────────── */
+/* id → path in state. Numeric boxes keep their commas as you type,
+   which is how every figure in this workspace behaves. */
+const FIELDS = {
+  coName:'co.name', coAddr:'co.addr', coCapital:'co.capital', coPar:'co.par', coShareType:'co.shareType',
+  bodNo:'bod.no', bodYear:'bod.year', bodNoticeDate:'bod.noticeDate', bodDate:'bod.date',
+  bodTime:'bod.time', bodClose:'bod.close', bodPlace:'bod.place', bodChair:'bod.chair', bodAttach:'bod.attach',
+  gmKind:'gm.kind', gmNo:'gm.no', gmYear:'gm.year', gmNoticeDate:'gm.noticeDate', gmDate:'gm.date',
+  gmTime:'gm.time', gmClose:'gm.close', gmPlace:'gm.place', gmChair:'gm.chair', gmAttach:'gm.attach',
+  gmNoticeDays:'gm.noticeDays',
+  capTo:'cap.to', capShares:'cap.shares', capType:'cap.type', capPrice:'cap.price',
+  capOfferDate:'cap.offerDate', capReplyDate:'cap.replyDate', capReplyTime:'cap.replyTime',
+  capBank:'cap.bank', capAcct:'cap.acct', capPayDate:'cap.payDate', capSigners:'cap.signers',
+  fileBase:'fileBase'
+};
+const getPath = p => p.split('.').reduce((o, k) => (o || {})[k], state);
+const setPath = (p, v) => { const ks = p.split('.'); const last = ks.pop();
+  ks.reduce((o, k) => o[k], state)[last] = v; };
+
+function fillFields(){
+  Object.keys(FIELDS).forEach(id => {
+    const el = $(id); if(!el) return;
+    const v = getPath(FIELDS[id]);
+    el.value = (v == null ? '' : v);
+  });
+  $('capOn').checked = !!state.cap.on;
+  $('bundleOne').checked = !!state.bundleOne;
+}
+function bindFields(){
+  Object.keys(FIELDS).forEach(id => {
+    const el = $(id); if(!el) return;
+    const ev = (el.tagName === 'SELECT') ? 'change' : 'input';
+    el.addEventListener(ev, () => {
+      if(el.hasAttribute('data-num')) liveComma(el);
+      setPath(FIELDS[id], el.value);
+      renderAll();
+    });
+  });
+  $('capOn').addEventListener('change', e => { state.cap.on = e.target.checked; renderAll(); });
+  $('bundleOne').addEventListener('change', e => { state.bundleOne = e.target.checked; save(); });
+}
+
+/* ── People + agenda events ───────────────────────────────────── */
+document.addEventListener('input', e => {
+  const t = e.target;
+  if(t.dataset.p !== undefined && t.dataset.i !== undefined){
+    const list = t.dataset.p === 'dir' ? state.directors : state.shareholders;
+    const row = list[Number(t.dataset.i)]; if(!row) return;
+    if(t.hasAttribute('data-num')) liveComma(t);
+    row[t.dataset.k] = t.type === 'checkbox' ? t.checked : t.value;
+    /* a share count moves the allotment column, so the card has to be
+       rebuilt — which throws the caret away unless it is put back */
+    if(t.dataset.k === 'shares'){
+      renderAll();
+      restoreCaret('[data-p="' + t.dataset.p + '"][data-i="' + t.dataset.i + '"][data-k="shares"]');
+    } else { softRender(t); }
+    return;
+  }
+  if(t.dataset.alloc !== undefined){
+    const i = Number(t.dataset.alloc), row = state.shareholders[i];
+    if(!row) return;
+    liveComma(t);
+    row.allocOver = true; row.alloc = t.value;
+    renderAll();
+    restoreCaret('[data-alloc="' + i + '"]');
+    return;
+  }
+  if(t.dataset.agov !== undefined){
+    const [house, idx, which] = t.dataset.agov.split(':');
+    const item = state.agenda[house][Number(idx)]; if(!item) return;
+    item.over = item.over || {};
+    item.over[which] = t.value;
+    softRender(t);
+    return;
+  }
+  if(t.dataset.agarg !== undefined){
+    const [house, idx] = t.dataset.agarg.split(':');
+    const item = state.agenda[house][Number(idx)]; if(!item) return;
+    item.arg = t.value;
+    softRender(t);
+  }
+});
+function restoreCaret(sel){
+  const el = document.querySelector(sel);
+  if(!el) return;
+  el.focus();
+  try{ el.setSelectionRange(el.value.length, el.value.length); }catch(e){}
+}
+/* Re-rendering the whole card on every keystroke would steal the caret,
+   so a field the user is inside only refreshes the preview and the checks. */
+let softTimer = null;
+function softRender(el){
+  clearTimeout(softTimer);
+  softTimer = setTimeout(() => {
+    const c = ctx();
+    renderPreviewPane();
+    $('dirChk').innerHTML = chkHtml(boardChecks(c));
+    $('shChk').innerHTML  = chkHtml(shareholderChecks(c));
+    $('capChk').innerHTML = chkHtml(capChecks(c));
+    save();
+  }, 180);
+}
+document.addEventListener('change', e => {
+  const t = e.target;
+  if(t.dataset.p !== undefined && t.type === 'checkbox'){
+    const list = t.dataset.p === 'dir' ? state.directors : state.shareholders;
+    const row = list[Number(t.dataset.i)];
+    if(row){ row[t.dataset.k] = t.checked; renderAll(); }
+  }
+  if(t.dataset.docck !== undefined){ state.docs[t.dataset.docck] = t.checked; renderAll(); }
+});
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-del],[data-rst],[data-agtoggle],[data-agup],[data-agdn],[data-agdel],[data-agrst],[data-add],[data-doc]');
+  if(!t) return;
+  if(t.dataset.del !== undefined){
+    const list = t.dataset.del === 'dir' ? state.directors : state.shareholders;
+    if(list.length > 1) list.splice(Number(t.dataset.i), 1);
+    else { list[0] = t.dataset.del === 'dir' ? {name:'', position:'กรรมการ', present:true}
+                                             : {name:'', shares:'', present:true, alloc:'', allocOver:false}; }
+    renderAll(); return;
+  }
+  if(t.dataset.rst !== undefined){
+    const row = state.shareholders[Number(t.dataset.rst)];
+    if(row){ row.allocOver = false; row.alloc = ''; }
+    renderAll(); return;
+  }
+  if(t.dataset.agtoggle !== undefined){
+    if(e.target.closest('[data-agup],[data-agdn],[data-agdel]')) return;
+    const [house, idx] = t.dataset.agtoggle.split(':');
+    const item = state.agenda[house][Number(idx)];
+    if(item) item.open = !item.open;
+    renderAgenda(house); save(); return;
+  }
+  if(t.dataset.agup !== undefined || t.dataset.agdn !== undefined){
+    const spec = t.dataset.agup !== undefined ? t.dataset.agup : t.dataset.agdn;
+    const [house, idxS] = spec.split(':');
+    const i = Number(idxS), j = t.dataset.agup !== undefined ? i - 1 : i + 1;
+    const list = state.agenda[house];
+    if(j >= 0 && j < list.length){ const tmp = list[i]; list[i] = list[j]; list[j] = tmp; }
+    renderAll(); return;
+  }
+  if(t.dataset.agdel !== undefined){
+    const [house, idx] = t.dataset.agdel.split(':');
+    state.agenda[house].splice(Number(idx), 1);
+    renderAll(); return;
+  }
+  if(t.dataset.agrst !== undefined){
+    const [house, idx, which] = t.dataset.agrst.split(':');
+    const item = state.agenda[house][Number(idx)];
+    if(item && item.over) delete item.over[which];
+    renderAgenda(house); renderPreviewPane(); save(); return;
+  }
+  if(t.dataset.add !== undefined){
+    const house = t.dataset.add;
+    const key = $(house === 'bod' ? 'agBodPick' : 'agGmPick').value;
+    if(key) state.agenda[house].push({key, arg:'', over:{}, open:false});
+    renderAll(); return;
+  }
+  if(t.dataset.doc !== undefined && !e.target.matches('input')){
+    state.active = t.dataset.doc;
+    renderDocList(); renderPreviewPane(); save();
+  }
+});
+$('btnAddDir').addEventListener('click', () => {
+  state.directors.push({name:'', position:'กรรมการ', present:true}); renderAll();
+});
+$('btnAddSh').addEventListener('click', () => {
+  state.shareholders.push({name:'', shares:'', present:true, alloc:'', allocOver:false}); renderAll();
+});
+
+/* ── Export ───────────────────────────────────────────────────── */
+function shortName(){
+  const n = trim(state.co.name);
+  return n ? n.replace(/^บริษัท\s*/, '').replace(/\s*จำกัด.*$/, '').trim() || n : 'Company';
+}
+function docFileName(key){
+  const d = DOC_TYPES.find(x => x.key === key);
+  return shortName() + ' - ' + (d ? d.th : key) + '.docx';
+}
+function download(blob, name){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+async function exportSelected(){
+  const keys = DOC_TYPES.filter(d => state.docs[d.key]).map(d => d.key);
+  if(!keys.length){ toast('✗ ยังไม่ได้เลือกเอกสาร'); return; }
+  const base = trim(state.fileBase);
+  try{
+    if(state.bundleOne || keys.length === 1){
+      const blocks = [];
+      keys.forEach((k, i) => { if(i) blocks.push({t:'pb'}); buildDoc(k).forEach(b => blocks.push(b)); });
+      const name = (base || (keys.length === 1 ? docFileName(keys[0]).replace(/\.docx$/, '')
+                                               : shortName() + ' - ชุดเอกสารการประชุม')) + '.docx';
+      download(await docxBlob(blocks), name.replace(/\.docx\.docx$/, '.docx'));
+      toast('✓ ดาวน์โหลด ' + name);
+      return;
+    }
+    const zip = new JSZip();
+    for(const k of keys) zip.file(base ? base + ' - ' + docFileName(k) : docFileName(k), await docxBlob(buildDoc(k)));
+    download(await zip.generateAsync({type:'blob'}), (base || shortName() + ' - ชุดเอกสารการประชุม') + '.zip');
+    toast('✓ ดาวน์โหลด ' + keys.length + ' ฉบับ (.zip)');
+  }catch(err){ toast('✗ สร้างไฟล์ไม่สำเร็จ: ' + err.message); }
+}
+$('btnExport').addEventListener('click', exportSelected);
+$('btnExport2').addEventListener('click', exportSelected);
+
+$('btnPrint').addEventListener('click', () => {
+  const w = window.open('', '_blank');
+  if(!w){ toast('✗ เบราว์เซอร์บล็อกหน้าต่างใหม่'); return; }
+  const css = Array.from(document.styleSheets).map(s => {
+    try{ return Array.from(s.cssRules).map(r => r.cssText).join('\n'); }catch(e){ return ''; }
+  }).join('\n');
+  w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>' +
+    escH($('pvTitle').textContent) + '</title>' +
+    '<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">' +
+    '<style>' + css + 'body{background:#fff;margin:0}.page{box-shadow:none;margin:0 auto;page-break-after:always}' +
+    '.pgsep{display:none}</style></head><body>' + $('pvBody').innerHTML + '</body></html>');
+  w.document.close();
+  setTimeout(() => w.print(), 500);
+});
+
+/* ── Backup ───────────────────────────────────────────────────── */
+$('btnBackup').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  download(blob, shortName() + ' - minutes.json');
+  toast('✓ บันทึกสำรองแล้ว');
+});
+$('btnImport').addEventListener('click', () => $('fileJson').click());
+$('fileJson').addEventListener('change', e => {
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      const s = JSON.parse(r.result);
+      if(!s || typeof s !== 'object') throw new Error('รูปแบบไฟล์ไม่ถูกต้อง');
+      state = Object.assign(blankState(), s);
+      ['co','bod','gm','cap','docs','agenda'].forEach(k => state[k] = Object.assign(blankState()[k], s[k] || {}));
+      fillFields(); renderAll(); toast('✓ นำเข้าแล้ว');
+    }catch(err){ toast('✗ นำเข้าไม่สำเร็จ: ' + err.message); }
+  };
+  r.readAsText(f);
+  e.target.value = '';
+});
+$('btnClear').addEventListener('click', () => {
+  if(!confirm('ล้างข้อมูลทั้งหมดและเริ่มใหม่?')) return;
+  state = blankState(); seedAgenda();
+  fillFields(); renderAll(); toast('ล้างแล้ว');
+});
+
+/* ── View switch ──────────────────────────────────────────────── */
+$('viewSegs').addEventListener('click', e => {
+  const b = e.target.closest('.seg'); if(!b) return;
+  document.querySelectorAll('#viewSegs .seg').forEach(s => s.classList.toggle('on', s === b));
+  $('app').dataset.view = b.dataset.view;
+});
+
+/* ── Demo ─────────────────────────────────────────────────────── */
+/* The worked example from the firm's own capital-increase bundle, so the
+   shape of a finished set is one click away. */
+$('btnDemo').addEventListener('click', () => {
+  state = blankState();
+  state.co = {name:'บริษัท ตัวอย่าง โฮลดิ้ง จำกัด',
+    addr:'เลขที่ 87 ถนนบางนาตราด 16 แขวงบางนาใต้ เขตบางนา กรุงเทพมหานคร',
+    capital:'50,000,000', par:'10', shareType:'ordinary'};
+  state.bod = {no:'3', year:'2569', noticeDate:'2026-08-10', date:'2026-08-11', time:'13:00', close:'14:00',
+    place:'', chair:0, attach:'สำเนารายงานการประชุมคณะกรรมการ ครั้งที่ 2/2569'};
+  state.gm = {kind:'egm', no:'3', year:'2569', noticeDate:'2026-08-11', date:'2026-08-26', time:'09:00',
+    close:'11:00', place:'', chair:0, attach:'ร่างข้อบังคับของบริษัท (ฉบับแก้ไขเพิ่มเติม)', noticeDays:'14'};
+  state.directors = [
+    {name:'นายทิวา ตัวอย่าง', position:'กรรมการ', present:true},
+    {name:'นางไพลิน ตัวอย่าง', position:'กรรมการ', present:true},
+    {name:'นางสาวสิรินทร์ ตัวอย่าง', position:'กรรมการ', present:true}
+  ];
+  state.shareholders = [
+    {name:'นายทิวา ตัวอย่าง', shares:'500,000', present:true, alloc:'', allocOver:false},
+    {name:'นางไพลิน ตัวอย่าง', shares:'500,000', present:true, alloc:'', allocOver:false},
+    {name:'นางสาวสิรินทร์ ตัวอย่าง', shares:'1,000,000', present:true, alloc:'', allocOver:false},
+    {name:'นางสาวศุภลักษณ์ ตัวอย่าง', shares:'1,000,000', present:true, alloc:'', allocOver:false},
+    {name:'นางสาวกอบรัตน์ ตัวอย่าง', shares:'1,000,000', present:true, alloc:'', allocOver:false},
+    {name:'นางสาวเมทินี ตัวอย่าง', shares:'1,000,000', present:true, alloc:'', allocOver:false}
+  ];
+  state.cap = {on:true, to:'55,000,000', shares:'500,000', type:'preferred', price:'10',
+    offerDate:'2026-08-26', replyDate:'2026-09-02', replyTime:'12:00',
+    bank:'ธนาคารตัวอย่าง จำกัด (มหาชน) ชื่อบัญชี TUA-YANG HOLDING COMPANY LIMITED',
+    acct:'158-3-09131-7', payDate:'2026-09-03', signers:'นางสาวศุภลักษณ์ ตัวอย่าง, นางสาวเมทินี ตัวอย่าง'};
+  seedAgenda();
+  fillFields(); renderAll(); toast('ใส่ตัวอย่างแล้ว');
+});
+
+/* The capital-increase playbook: the agenda both houses run when a
+   company raises its registered capital. */
+function seedAgenda(){
+  state.agenda.bod = ['approve-prev-minutes','capital-increase','moa-clause5','convene-gm','other-business']
+    .map(key => ({key, arg:'', over:{}, open:false}));
+  state.agenda.gm = ['approve-prev-minutes','capital-increase','moa-clause5','allot-shares','other-business']
+    .map(key => ({key, arg:'', over:{}, open:false}));
+}
+
+/* ── Init ─────────────────────────────────────────────────────── */
+bindFields();
+if(!load()) seedAgenda();
+fillFields();
+renderAll();
+
+/* ── The .docx skeleton ───────────────────────────────────────── */
+/* The firm's own Word package with the body removed: styles, fonts and
+   page setup survive, only word/document.xml is written at export. */
+const SKELETON_B64 = "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";
+</script>
+</body>
+</html>
