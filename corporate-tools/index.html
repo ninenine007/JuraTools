@@ -229,10 +229,24 @@
         <div class="suite-head">
           <h2>📑 Share documents</h2>
           <span class="th">เอกสารเกี่ยวกับหุ้น</span>
-          <p>Three documents for the same event, filled from one set of figures. Each one hands the company, the person
-             directory and a transfer to the other two — record a transfer in any of them and the other two can pick it
-             up rather than being retyped.</p>
+          <p>Three interlinked tools for Thai share administration, plus an Incorporation Wizard that starts them off. Each exports Word .docx with live preview, shares a person directory, and can hand off transfer data to the others — fill once, generate all three documents.</p>
         </div>
+      <!-- Incorporation Wizard -->
+      <article class="card live">
+        <div class="card-head">
+          <div class="card-icon">🧭</div>
+          <span class="card-badge badge-live">Live</span>
+        </div>
+        <div class="card-sub">Workflow</div>
+        <h3 class="card-title">Incorporation Wizard</h3>
+        <p class="card-th">ตัวช่วยตั้งบริษัท</p>
+        <p class="card-desc">Set up a new company's first share issue once — company, capital, and subscribers, with certificate numbers and share ranges assigned automatically — then hand the whole set on: <strong>Share Certificates</strong> creates every certificate instantly, and the <strong>Share Register Book</strong> opens with the ตั้งบริษัทใหม่ standard move pre-filled, person directory included.</p>
+        <div class="card-actions">
+          <a class="btn btn-open" href="incorporation-wizard.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/corporate-tools/incorporation-wizard.html" target="_blank" rel="noopener">Source</a>
+        </div>
+      </article>
+
       <!-- Share Transfer Instrument -->
       <article class="card live">
         <div class="card-head">
@@ -242,8 +256,7 @@
         <div class="card-sub">Documents &amp; signings</div>
         <h3 class="card-title">Share Transfer Instrument</h3>
         <p class="card-th">ตราสารการโอนหุ้น</p>
-        <p class="card-desc">Fill the bilingual transfer instrument beside a <strong>live page preview</strong> and export a Word .docx with the Original and Duplicate copies both populated — or save the preview straight to PDF. Converts the signing date to Buddhist Era, derives the total price from par value × shares, and lets each name sit Thai- or English-first. Keeps a reusable person directory, marks any field as a highlighted <strong>(*)</strong> blank, runs batches from an Excel sheet, and writes the share numbers plain or <strong>zero-padded</strong> to the company's share count. Works out the <strong>stamp duty</strong> as it goes — 1 baht per 1,000 of the paid-up value or the price, whichever is greater, plus the counterpart duty on the Duplicate — and hands the figures to the <strong>Stamp Duty Calculator</strong> for the §§113–114 surcharge. It can also write the duty
-             <strong>onto the instrument itself</strong> — <em>(ปิดอากรแสตมป์ … บาท)</em> under each copy — either amount overridable. Works <strong>both ways with Share Certificates</strong>: it picks up a transfer handed over from the register, and hands this transfer back to have the new certificates issued — so both documents are filled from one set of figures — and it hands the same transfer to the <strong>Share Register Book</strong> as well, along with the company and the person directory.</p>
+        <p class="card-desc">Fill the firm’s bilingual transfer instrument (ตราสารการโอนหุ้น) and export Word .docx with Original + Duplicate copies. Live page preview, stamp duty calculation, Buddhist Era dates, person directory, Excel batch import, and <strong>(*)</strong> placeholders. Hands transfer data to Share Certificates and Share Register Book.</p>
         <div class="card-actions">
           <a class="btn btn-open" href="share-transfer-instrument.html">Open →</a>
           <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/corporate-tools/share-transfer-instrument.html" target="_blank" rel="noopener">Source</a>
@@ -259,7 +272,7 @@
         <div class="card-sub">Documents &amp; signings</div>
         <h3 class="card-title">Share Certificates</h3>
         <p class="card-th">ใบหุ้น</p>
-        <p class="card-desc">Keeps a company's whole certificate register — <strong>several companies side by side</strong>, one Word .docx each — one page per certificate, stub and body both filled, beside a <strong>live page preview</strong>. Chains share ranges from one certificate to the next, pads the numbers to the size of the capital, converts dates to Buddhist Era, strikes สามัญ or บุริมสิทธิ to match the share type, marks any field as a highlighted <strong>(*)</strong> blank for a figure you do not have yet, and clears the unused signature slot outright — line and labels — when a single director signs. <strong>Records a transfer end to end</strong>: cancels the old certificate, issues one to the transferee and one back for the balance, links them, and hands the same figures — padding included — to the <strong>Share Transfer Instrument</strong>, which can hand a transfer back the other way. The transferred block can come off the back, the front or <strong>anywhere inside the range</strong>, the new certificates can be numbered either party first, and the transferee's own certificate can be <strong>merged in</strong> instead of issued alongside. Every transfer is kept: the instrument can still be drawn up after the certificates are issued, any of them <strong>can be corrected</strong> — with the date, names and addresses carried into the certificates it issued — and the last one <strong>can be undone</strong>. A long address that will not fit the one line the certificate gives it can be <strong>condensed</strong> to size, Thai and English separately. Carries the capital and board <strong>as they stood at each issue date</strong>, so a register spanning a capital increase stays accurate, and warns on gaps, overlaps and totals that miss the registered shares. A transfer can also be handed to the <strong>Share Register Book</strong>, and the company and person directory travel between all three.</p>
+        <p class="card-desc">Maintain certificate registers for multiple companies. Export all certificates as one Word .docx (one landscape page per certificate with stub). Records transfers end-to-end — cancels old certificates, issues new ones, tracks history. Handles capital increases, strikes correct share type (สามัญ/บุริมสิทธิ), condenses long text. Interoperates with Transfer Instrument and Register Book.</p>
         <div class="card-actions">
           <a class="btn btn-open" href="share-certificate.html">Open →</a>
           <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/corporate-tools/share-certificate.html" target="_blank" rel="noopener">Source</a>
@@ -275,7 +288,7 @@
         <div class="card-sub">Documents &amp; signings</div>
         <h3 class="card-title">Share Register Book</h3>
         <p class="card-th">สมุดทะเบียนผู้ถือหุ้น</p>
-        <p class="card-desc">Writes the whole statutory register — cover plus <strong>one page per shareholder</strong> — as a single Word .docx on Legal landscape, beside a <strong>live page preview</strong>. Each page carries the shareholder's name, identity number, occupation, nationality and address in Thai and English, then every movement of their shares in order: shares acquired with the certificate issued, its number range and the paid-up amount; shares transferred away with the certificate given up; a row that carries <strong>both halves at once</strong> where shares were subscribed and passed on the same day; and full-width notes such as <em>ขาดจากการเป็นผู้ถือหุ้นของบริษัท</em>. <strong>Pages hold a fixed number of rows</strong> — a long history starts a new page with the shareholder's details copied on top, every page the same shape. The wording of each entry comes from a <strong>list of the phrases the books already use</strong> — ออกใบหุ้น, จองซื้อหุ้นเพิ่มทุน, รับโอนหุ้นจาก, ยกเลิกใบเดิมและออกใบใหม่, จัดเรียงหมายเลขหุ้น — filled in from the certificate number and the counterparty, and still open to being typed over. Share numbers are worked out from the first number and the count and <strong>padded to the registered capital</strong>, the balance runs itself against the rows where shares left (which is where the books write it), the identity number can be spaced 1-4-5-2-1 and shown on the Thai line alone or on both, and dates convert to Buddhist Era. Comes in <strong>two layouts</strong> — the corrected one with the details in their own boxed rows, and the earlier three-column one with Thai, heading and English side by side — and the writing lines in both are true borders rather than underlined tabs, so they no longer change length with the text on them. The grid is set once on the table, which keeps the vertical rules when the file is opened or converted outside Word, and every page is <strong>numbered</strong> in the box the books keep in the top right. Two <strong>standard moves</strong> do the work that never fits on one row: <strong>incorporating a company</strong> issues a certificate to every subscriber and runs the share numbers straight through them, and a <strong>transfer</strong> writes all of it — the transferor’s line carrying the certificate issued to the transferee, a fresh certificate back to the transferor for the balance, the acquisition on the transferee’s own page, and the ceased note when nothing is left — with the block coming off the back, the front or anywhere inside, either party numbered first. Keeps a <strong>person directory</strong> that fills a page in one click, and any wording can carry <strong>placeholders</strong> — the certificate, the shares, the share numbers, the shareholder, the company, a person from the directory, your own named values, or the next free certificate number. A long address or a long line of wording can be <strong>condensed</strong> to fit, Thai and English separately. The balance understands re-issues, so a certificate cancelled and replaced is not counted twice.</p>
+        <p class="card-desc">Generate statutory share register book (CCC §1138) as Word .docx on Legal landscape. Cover plus one page per shareholder with complete share movement history. Standard moves for incorporation and transfers, wording templates with placeholders, person directory, two layout options. Live preview, Buddhist Era dates, auto-calculated balances.</p>
         <div class="card-actions">
           <a class="btn btn-open" href="share-register-book.html">Open →</a>
           <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/corporate-tools/share-register-book.html" target="_blank" rel="noopener">Source</a>

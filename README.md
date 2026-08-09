@@ -11,7 +11,7 @@ Tools are grouped into collections, each with its own hub page:
 | Folder | Collection |
 |---|---|
 | `date-time-tools/` | Date & Time Tools for Legal — GM notices (CCC s.1175), CCC time & deadline counting (§§193/2–193/8, incl. working days), chronology & intervals, recurring deadlines, clear days |
-| `corporate-tools/` | Corporate Tools for Legal — shareholder voting, share certificates, dividends & legal reserve, CorpDesk share register workbench, instrument checklists |
+| `corporate-tools/` | Corporate Tools for Legal — shareholder voting, share certificates, share register book, share transfer instrument, incorporation wizard, dividends & legal reserve, CorpDesk share register workbench, instrument checklists |
 | `tax-tools/` | Thai Tax Tools — land sale tax comparison, stamp duty, withholding tax |
 | `labour-tools/` | Thai Labour Law Tools — termination payment suite on shared `labour-core.js`/`.css` |
 | `utilities/` | Utilities — Thai line formatting, baht text, text sanitizer, subtitle converter, pro-rata allocation, rounding lab, percentages |

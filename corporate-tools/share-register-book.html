@@ -3383,13 +3383,56 @@ function fillLists(){
    `#reg=` carries one transfer in the format the certificate and instrument
    tools already speak, and lands in the transfer form rather than writing
    itself into the book — a register entry is not something to make by
-   surprise. */
+   surprise. `#incorp=` is a whole first issue from the incorporation
+   wizard, and lands the same way: in the standard move, filled out but
+   not written, with the directory coming along through the shared slot. */
+let openPlanOnLoad = false;
 function readHash(){
   const h = location.hash || '';
   let said = '';
   if(/^#inbox=1/.test(h)){
     const pack = shareRead();
     if(pack){ said = `รับจาก ${pack.from || 'เครื่องมืออื่น'} — เพิ่ม ${shareTake(pack)} คน`; save(); }
+  }
+  const mi = /^#incorp=(.*)$/.exec(h);
+  if(mi){
+    try{
+      const d = JSON.parse(decodeURIComponent(mi[1]));
+      const pack = shareRead();
+      if(pack) shareTake(pack);
+      const c = d.co || {};
+      /* the book the issue belongs in: the one already under that name,
+         else this untouched book, else a new one — the certificate tool's
+         own rule for an arriving company */
+      const th = personKey(c.th || c.nameTh), en = personKey(c.en || c.nameEn);
+      let b = state.books.find(x =>
+        (th && personKey(x.co.nameTh) === th) || (en && personKey(x.co.nameEn) === en));
+      if(!b){
+        const curB = book();
+        const untouched = !curB.co.nameTh && !curB.co.nameEn &&
+          curB.holders.every(x => !x.nameTh && !x.nameEn && x.entries.every(rowIsBlank));
+        if(untouched) b = curB; else { b = blankBook(); state.books.push(b); }
+      }
+      state.activeBookId = b.id;
+      const cc = co();
+      if(!cc.nameTh && (c.th || c.nameTh)) cc.nameTh = c.th || c.nameTh;
+      if(!cc.nameEn && (c.en || c.nameEn)) cc.nameEn = c.en || c.nameEn;
+      if(!cc.regNo && c.regNo) cc.regNo = c.regNo;
+      if(!cc.paidUp && c.par) cc.paidUp = String(c.par);
+      if(!cc.regShares && c.regShares) cc.regShares = groupDigits(String(c.regShares));
+      plan.mode = 'incorp';
+      plan.i.date = d.date || '';
+      plan.i.firstCert = String(intOf(d.firstCert) || 1);
+      plan.i.firstShare = String(intOf(d.firstShare) || 1);
+      const subs = (Array.isArray(d.subs) ? d.subs : [])
+        .filter(s => (s.nameTh || s.nameEn) && numOf(s.shares))
+        .map(s => ({...blankSub(), nameTh:s.nameTh || '', nameEn:s.nameEn || '',
+                    shares:groupDigits(String(numOf(s.shares)))}));
+      if(subs.length) plan.i.subs = subs;
+      openPlanOnLoad = true;
+      said = 'รับข้อมูลตั้งบริษัทใหม่แล้ว — ตรวจใน “ท่ามาตรฐาน” แล้วกดลงในสมุดทะเบียน';
+      save();
+    }catch(_){ said = 'ลิงก์ที่ส่งมาอ่านไม่ออก'; }
   }
   const m = /^#reg=(.*)$/.exec(h);
   if(m){
@@ -3430,6 +3473,7 @@ readHash();
 fillLists();
 render();
 fieldButtons();
+if(openPlanOnLoad) setTimeout(() => openSheet('planScrim'), 250);
 requestAnimationFrame(() => fitPreview());
 
 </script>

@@ -322,14 +322,14 @@
           </div>
         </article>
 
-        <article class="card" data-cat="corporate" data-tags="corporate collection hub quorum resolution checker shareholder voting simulator share certificate calculator dividend legal reserve corpdesk share register workbench cap table instrument checklist structure visualizer company meeting resolution share transfer instrument share certificates share register book docx export องค์ประชุม มติ ทะเบียนผู้ถือหุ้น สมุดทะเบียนผู้ถือหุ้น ใบหุ้น ต้นขั้ว เงินปันผล ตราสารการโอนหุ้น โอนหุ้น ออกใบหุ้น ยกเลิกใบหุ้น หลายบริษัท เลขหุ้น เติมศูนย์ รวมใบหุ้น ย้อนการโอน undo แก้ไขการโอน อากรแสตมป์ ปิดอากรแสตมป์ บีบตัวอักษร หุ้นคงเหลือ ขาดจากการเป็นผู้ถือหุ้น">
+        <article class="card" data-cat="corporate" data-tags="corporate collection hub quorum resolution checker shareholder voting simulator share certificate calculator dividend legal reserve corpdesk share register workbench cap table instrument checklist structure visualizer company meeting resolution share transfer instrument share certificates share register book incorporation wizard docx export องค์ประชุม มติ ทะเบียนผู้ถือหุ้น สมุดทะเบียนผู้ถือหุ้น ใบหุ้น ต้นขั้ว เงินปันผล ตราสารการโอนหุ้น โอนหุ้น ออกใบหุ้น ยกเลิกใบหุ้น หลายบริษัท เลขหุ้น เติมศูนย์ รวมใบหุ้น ย้อนการโอน undo แก้ไขการโอน อากรแสตมป์ ปิดอากรแสตมป์ บีบตัวอักษร หุ้นคงเหลือ ขาดจากการเป็นผู้ถือหุ้น ตั้งบริษัท จดทะเบียนบริษัท ผู้จองซื้อหุ้น">
           <div class="card-head">
             <div class="card-icon">🏢</div>
-            <span class="card-badge badge-updated">10 tools</span>
+            <span class="card-badge badge-updated">11 tools</span>
           </div>
           <div class="card-sub">Collection</div>
           <h3 class="card-title">Corporate Tools for Legal</h3>
-          <p class="card-desc">Company-secretarial tools — the <strong>Quorum &amp; Resolution Checker</strong>, <strong>Shareholder Voting Simulator</strong>, <strong>Structure &amp; Capitalization Visualizer</strong>, <strong>Share Certificate Calculator</strong>, <strong>Dividend &amp; Legal Reserve Calculator</strong> (CCC §1200), <strong>CorpDesk — Share Register Workbench</strong>, the <strong>Share Transfer Instrument</strong> filler, the <strong>Share Certificates</strong> register and .docx exporter, the <strong>Share Register Book</strong> writer (สมุดทะเบียนผู้ถือหุ้น), and the <strong>Instrument Checklist</strong> builder.</p>
+          <p class="card-desc">Company-secretarial tools — the <strong>Quorum &amp; Resolution Checker</strong>, <strong>Shareholder Voting Simulator</strong>, <strong>Structure &amp; Capitalization Visualizer</strong>, <strong>Share Certificate Calculator</strong>, <strong>Dividend &amp; Legal Reserve Calculator</strong> (CCC §1200), <strong>CorpDesk — Share Register Workbench</strong>, the <strong>Share Transfer Instrument</strong> filler, the <strong>Share Certificates</strong> register and .docx exporter, the <strong>Share Register Book</strong> writer (สมุดทะเบียนผู้ถือหุ้น), the <strong>Incorporation Wizard</strong> that starts all three share documents off, and the <strong>Instrument Checklist</strong> builder.</p>
           <div class="card-actions">
             <a class="btn btn-open" href="corporate-tools/">Open →</a>
             <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/tree/main/corporate-tools" target="_blank" rel="noopener">Source</a>
@@ -479,8 +479,28 @@
     </div>
     <div class="changelog">
       <div class="cl-item">
+        <span class="cl-date">Aug 2026</span>
+        <span class="cl-text">Added <strong>Incorporation Wizard</strong> — guided setup for a new company's first share issue: company and capital, subscribers with certificate numbers and share ranges assigned automatically, optional per-person details (address, ID, occupation, nationality), then one-click handoff — Share Certificates receives the whole set as issued certificates (<code>#issue=</code>), and the Share Register Book opens with the ตั้งบริษัทใหม่ standard move pre-filled (new <code>#incorp=</code> import), person directory travelling alongside.</span>
+      </div>
+      <div class="cl-item">
+        <span class="cl-date">Aug 2026</span>
+        <span class="cl-text">Added <strong>Share Register Book</strong> — generates the statutory สมุดทะเบียนผู้ถือหุ้น (CCC §1138) as Word .docx on Legal landscape: cover plus one page per shareholder with complete share movement history, standard moves for incorporation and transfers, wording templates with placeholders, person directory, two layouts, live preview, page numbering, and auto-calculated balances.</span>
+      </div>
+      <div class="cl-item">
+        <span class="cl-date">Aug 2026</span>
+        <span class="cl-text">Added <strong>Share Certificates</strong> — maintains certificate registers for multiple companies, exports all certificates as one Word .docx (landscape page per certificate with stub). Records transfers end-to-end with cancellation/reissue, tracks capital increase history per certificate, strikes correct share type (สามัญ/บุริมสิทธิ), supports text condensing, undo/edit transfers, and interoperates with Share Transfer Instrument and Share Register Book via URL handoff.</span>
+      </div>
+      <div class="cl-item">
+        <span class="cl-date">Aug 2026</span>
+        <span class="cl-text">Added <strong>Share Transfer Instrument</strong> — fills the firm's bilingual ตราสารการโอนหุ้น template and exports Word .docx with Original + Duplicate copies. Live page preview, automatic stamp duty calculation (item 2+23 with optional printing on document), Buddhist Era dates, person directory, Excel batch import, <strong>(*)</strong> placeholders, and bidirectional handoff with Share Certificates and Share Register Book.</span>
+      </div>
+      <div class="cl-item">
         <span class="cl-date">Jul 2026</span>
-        <span class="cl-text">Added the <strong>Intestate Succession Calculator (มรดกโดยธรรม)</strong> — divide an estate among the six classes of statutory heirs and the spouse (CCC ss. 1599–1645): marital-property split, per-stirpes representation, succession after renunciation/exclusion, disinheritance, exact fractions with cited step-by-step reasoning, and interpretation toggles for contested points.</span>
+        <span class="cl-text">Added multi-law SOE selector to <strong>Corporate Structure Visualizer</strong> — 7 Thai statutes (วิธีการงบประมาณ, ส่งเสริมการบริหารราชการแผ่นดิน 2502/2562, คุณสมบัติมาตรฐาน 2518, สภาพัฒน์ 2561, แรงงาน รสก. 2543, บริหารหนี้สาธารณะ 2548) with statute-exact thresholds, per-law badges/warnings, and all-7 verdict matrix per entity card.</span>
+      </div>
+      <div class="cl-item">
+        <span class="cl-date">Jul 2026</span>
+        <span class="cl-text">Added the <strong>Intestate Succession Calculator (มรดกโดยธรรม)</strong> — divide an estate among the six classes of statutory heirs and the spouse (CCC ss. 1599–1645): marital-property split, per-stirpes representation, succession after renunciation/exclusion, disinheritment, exact fractions with cited step-by-step reasoning, and interpretation toggles for contested points.</span>
       </div>
       <div class="cl-item">
         <span class="cl-date">Jul 2026</span>

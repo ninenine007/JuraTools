@@ -2460,6 +2460,8 @@ function importIssue(){
     if(co.th && !state.co.th) state.co.th = co.th;
     if(co.en && !state.co.en) state.co.en = co.en;
     if(co.par && !state.co.par) state.co.par = String(co.par);
+    if(co.ord && !state.co.ord) state.co.ord = groupDigits(String(co.ord));
+    if(co.pref && !state.co.pref) state.co.pref = groupDigits(String(co.pref));
     if(co.regShares && !state.co.ord) state.co.ord = groupDigits(String(co.regShares));
     /* the register padded its share numbers; the certificates must match */
     if(d.pad){ state.co.padAuto = false; state.co.pad = String(d.pad); }
@@ -2467,6 +2469,7 @@ function importIssue(){
     const made = list.map(c => {
       const n = blankCert();
       n.noAuto = false;   n.no = String(c.no || '');
+      if(c.type === 'preferred') n.type = 'preferred';
       n.holderTh = c.nameTh || ''; n.holderEn = c.nameEn || '';
       n.addrTh = c.addrTh || '';   n.addrEn = c.addrEn || '';
       n.count = groupDigits(String(c.count || ''));

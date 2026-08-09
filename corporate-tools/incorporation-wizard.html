@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Incorporation Wizard — JuraTools</title>
+<meta name="description" content="Set up a new Thai limited company once — subscribers, capital and certificate numbering — then hand the whole first issue to Share Certificates and the Share Register Book. By Kornrawee Chanchom.">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --primary:#2563eb; --primary-dark:#1d4ed8;
+  --bg:#f6f8fb; --card:#fff; --text:#334155; --heading:#0f172a;
+  --border:#e4e9f0; --muted:#94a3b8; --hover-gray:#f1f5f9;
+  --success:#0d9488; --danger:#dc2626; --amber:#d97706;
+  --shadow:0 1px 2px rgba(15,23,42,.04), 0 4px 12px -4px rgba(15,23,42,.06);
+  /* the same section accents the register book uses, so the cards read as
+     one family: company teal, people violet, hand-off indigo */
+  --c-book:#0891b2; --c-who:#7c3aed; --c-plan:#4f46e5; --c-out:#059669;
+}
+*{box-sizing:border-box;}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);margin:0;font-size:14px;}
+
+/* ── Nav ─────────────────────────────────────── */
+.nav{position:sticky;top:0;z-index:200;height:54px;display:flex;align-items:center;gap:12px;padding:0 24px;
+  background:rgba(246,248,251,.88);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);
+  border-bottom:1px solid var(--border);}
+.nav a{color:inherit;text-decoration:none;}
+.nav-brand{display:flex;align-items:center;gap:9px;user-select:none;}
+.nav-icon{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;
+  background:linear-gradient(145deg,#2979ff,#1565c0);font-size:15px;
+  box-shadow:0 2px 6px rgba(41,121,255,.4), inset 0 1px 0 rgba(255,255,255,.2);}
+.nav-wordmark{font-size:15px;font-weight:700;letter-spacing:-.4px;color:var(--heading);}
+.nav-sep{color:#cbd5e1;}
+.nav-current{font-size:15px;font-weight:600;color:#64748b;}
+.nav-back{margin-left:auto;font-size:13px;font-weight:500;color:#3c3c43;background:rgba(0,0,0,.05);
+  border:1px solid rgba(0,0,0,.09);padding:6px 12px;border-radius:9px;transition:background .14s;}
+.nav-back:hover{background:rgba(0,0,0,.09);}
+
+/* ── Layout ──────────────────────────────────── */
+.app{max-width:880px;margin:0 auto;padding:20px 24px 72px;}
+
+/* ── Steps ───────────────────────────────────── */
+.steps{display:flex;gap:8px;margin-bottom:18px;}
+.step{flex:1;display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:11px;
+  background:#fff;border:1px solid var(--border);transition:.12s;min-width:0;}
+.step.done{background:#f0fdfa;border-color:#99f6e4;cursor:pointer;}
+.step.active{background:#eef2ff;border-color:#c7d2fe;box-shadow:0 0 0 3px rgba(79,70,229,.08);}
+.step-n{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;
+  font-size:.78em;font-weight:700;background:#eef2f7;color:var(--muted);}
+.step.done .step-n{background:var(--success);color:#fff;}
+.step.active .step-n{background:var(--c-plan);color:#fff;}
+.step-t{min-width:0;}
+.step-th{font-size:.85em;font-weight:700;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.step-en{font-size:.68em;color:#cbd5e1;font-weight:500;}
+.step.done .step-th,.step.active .step-th{color:var(--heading);}
+
+/* ── Cards ───────────────────────────────────── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:0;box-shadow:var(--shadow);overflow:hidden;margin-bottom:16px;}
+.card-hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:13px 18px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,#fcfdff,#f8fafc);}
+.card-hd .ico{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:13px;flex-shrink:0;
+  background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-line);}
+.card-hd h3{margin:0;font-size:.94em;color:var(--heading);font-weight:700;}
+.card-hd .th{font-weight:500;color:var(--muted);font-size:.88em;margin-left:-4px;}
+.card-hd .spacer{margin-left:auto;}
+.card-bd{padding:16px 18px 18px;}
+.acc-book{--accent:var(--c-book);--accent-soft:#ecfeff;--accent-line:#a5f3fc;}
+.acc-who{--accent:var(--c-who);--accent-soft:#f5f3ff;--accent-line:#ddd6fe;}
+.acc-plan{--accent:var(--c-plan);--accent-soft:#eef2ff;--accent-line:#c7d2fe;}
+.count-pill{font-size:.72em;font-weight:700;color:var(--primary);
+  background:#eff6ff;border:1px solid #bfdbfe;border-radius:999px;padding:2px 9px;}
+
+/* ── Fields ──────────────────────────────────── */
+label{display:block;font-size:.77em;font-weight:600;color:#64748b;margin-bottom:5px;}
+label .opt{font-weight:400;color:#cbd5e1;}
+input[type=text],input[type=date],select{width:100%;padding:8px 10px;border:1px solid var(--border);
+  border-radius:8px;font-family:inherit;font-size:.92em;color:var(--text);background:#fff;transition:border-color .12s, box-shadow .12s;}
+input:focus,select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.12);}
+input::placeholder{color:#cbd5e1;}
+input.is-auto{background:#f8fafc;color:#64748b;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+.field{margin-bottom:14px;}
+.field:last-child{margin-bottom:0;}
+.hintline{font-size:.75em;color:var(--muted);margin:5px 0 0;line-height:1.5;}
+.sect-note{font-size:.78em;color:var(--muted);margin:0 0 12px;line-height:1.55;}
+.reset-auto{border:none;background:none;font-family:inherit;font-size:.9em;font-weight:600;
+  color:var(--primary);cursor:pointer;padding:0;float:right;}
+.num input{font-variant-numeric:tabular-nums;}
+
+/* the running figure a step works out for you */
+.plan-sum{margin-top:14px;padding:11px 13px;border-radius:9px;background:var(--accent-soft);
+  border:1px solid var(--accent-line);line-height:1.65;font-size:.85em;}
+.plan-sum .warn{color:#b45309;font-weight:600;}
+.plan-sum .bad{color:#b91c1c;font-weight:600;}
+
+/* ── Subscriber rows ─────────────────────────── */
+.sub{border:1px solid var(--border);border-radius:11px;padding:12px 13px;background:#fcfdfe;margin-bottom:10px;
+  border-left:3px solid #ddd6fe;}
+.subrow{display:grid;grid-template-columns:22px 1fr 1fr 118px 28px;gap:8px;align-items:center;}
+.subrow.typed{grid-template-columns:22px 1fr 1fr 108px 108px 28px;}
+.subno{font-size:.72em;font-weight:700;color:#94a3b8;text-align:right;}
+.sub-meta{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.74em;color:var(--muted);margin:8px 0 0 30px;
+  font-variant-numeric:tabular-nums;}
+.sub-meta b{color:#475569;font-weight:600;}
+.sub-more{margin:8px 0 0 30px;}
+.sub-more>button{border:none;background:none;font-family:inherit;font-size:.75em;font-weight:600;
+  color:var(--primary);cursor:pointer;padding:0;}
+.sub-detail{margin-top:10px;padding-top:10px;border-top:1px dashed #e2e8f0;}
+.mini{border:none;background:none;font-family:inherit;cursor:pointer;padding:4px 6px;border-radius:7px;
+  font-size:.74em;font-weight:700;color:#cbd5e1;line-height:1;flex-shrink:0;}
+.mini:hover{background:#fef2f2;color:var(--danger);}
+.perpick{width:auto;font-size:.75em;padding:4px 7px;font-weight:500;}
+
+/* ── Review ──────────────────────────────────── */
+.act{border:1px solid var(--border);border-radius:11px;padding:13px 14px;background:#fcfdfe;}
+.act + .act{margin-top:12px;}
+.act-hd{display:flex;align-items:center;gap:8px;font-size:.83em;font-weight:700;color:var(--heading);margin-bottom:8px;}
+.act.danger{border-color:#fecaca;background:#fffbfb;}
+.rev-row{display:flex;justify-content:space-between;gap:12px;font-size:.85em;padding:5px 0;
+  border-bottom:1px dashed #e9eef4;}
+.rev-row:last-child{border-bottom:none;}
+.rev-row .k{color:var(--muted);}
+.rev-row .v{font-weight:600;color:var(--heading);font-variant-numeric:tabular-nums;text-align:right;}
+
+/* ── Buttons ─────────────────────────────────── */
+.btn{padding:9px 15px;border-radius:9px;border:1px solid transparent;font-family:inherit;font-size:.87em;
+  font-weight:600;cursor:pointer;transition:.12s;display:inline-flex;align-items:center;gap:7px;justify-content:center;}
+.btn-primary{background:var(--primary);color:#fff;box-shadow:0 1px 2px rgba(37,99,235,.3);}
+.btn-primary:hover{background:var(--primary-dark);}
+.btn-primary:disabled{background:#cbd5e1;cursor:not-allowed;box-shadow:none;}
+.btn-ghost{background:#fff;color:var(--text);border-color:var(--border);}
+.btn-ghost:hover{background:var(--hover-gray);border-color:#cbd5e1;}
+.btn-danger{background:#fff;color:var(--danger);border-color:#fecaca;}
+.btn-danger:hover{background:#fef2f2;}
+.btn-sm{padding:6px 11px;font-size:.79em;}
+.btn-row{display:flex;gap:9px;flex-wrap:wrap;}
+.step-nav{display:flex;gap:9px;justify-content:flex-end;margin-top:18px;}
+.step-nav .back{margin-right:auto;}
+
+#toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(16px);background:var(--heading);color:#fff;
+  padding:10px 18px;border-radius:10px;font-size:.85em;font-weight:600;opacity:0;pointer-events:none;
+  transition:.25s;z-index:400;max-width:min(480px,90vw);text-align:center;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+.hidden{display:none !important;}
+@media(max-width:640px){
+  .app{padding:14px 12px 60px;}
+  .nav{padding-left:12px;padding-right:12px;}
+  .grid2,.grid3{grid-template-columns:1fr;}
+  .subrow,.subrow.typed{grid-template-columns:22px 1fr 28px;}
+  .subrow input[data-sf="nameEn"],.subrow select{grid-column:2;}
+  .subrow input[data-sf="shares"]{grid-column:2;}
+  .steps{flex-direction:column;}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="../index.html" class="nav-brand">
+    <span class="nav-icon">⚖️</span><span class="nav-wordmark">JuraTools</span>
+  </a>
+  <span class="nav-sep">/</span>
+  <a href="index.html" class="nav-current">Incorporation Wizard</a>
+  <a href="index.html" class="nav-back">← Corporate tools</a>
+</nav>
+
+<div class="app">
+
+  <div class="steps" id="steps">
+    <div class="step" data-step="1">
+      <span class="step-n">1</span>
+      <span class="step-t"><span class="step-th">บริษัทและทุน</span><br><span class="step-en">Company &amp; capital</span></span>
+    </div>
+    <div class="step" data-step="2">
+      <span class="step-n">2</span>
+      <span class="step-t"><span class="step-th">ผู้จองซื้อหุ้น</span><br><span class="step-en">Subscribers</span></span>
+    </div>
+    <div class="step" data-step="3">
+      <span class="step-n">3</span>
+      <span class="step-t"><span class="step-th">ตรวจและส่งต่อ</span><br><span class="step-en">Review &amp; hand off</span></span>
+    </div>
+  </div>
+
+  <!-- ── Step 1: Company ─────────────────────── -->
+  <section class="card acc-book step-body" data-step="1">
+    <div class="card-hd">
+      <span class="ico">🏢</span>
+      <h3>บริษัทและทุนจดทะเบียน</h3><span class="th">Company &amp; capital</span>
+    </div>
+    <div class="card-bd">
+      <p class="sect-note">กรอกครั้งเดียว แล้วส่งให้เครื่องมือใบหุ้นและสมุดทะเบียนผู้ถือหุ้นทั้งชุด —
+        เลขใบหุ้นและหมายเลขหุ้นชุดเดียวกันทั้งสองเอกสาร ร่างบันทึกอัตโนมัติในเครื่องนี้</p>
+      <div class="grid2">
+        <div class="field"><label>ชื่อบริษัท (ไทย)</label>
+          <input type="text" data-co="nameTh" placeholder="บริษัท ตัวอย่าง จำกัด"></div>
+        <div class="field"><label>ชื่อบริษัท (อังกฤษ) <span class="opt">— เว้นได้</span></label>
+          <input type="text" data-co="nameEn" placeholder="EXAMPLE CO., LTD."></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>เลขทะเบียนนิติบุคคล <span class="opt">— เว้นได้</span></label>
+          <input type="text" data-co="regNo" placeholder="0105566000000"></div>
+        <div class="field"><label>วันที่จดทะเบียนบริษัท</label>
+          <input type="date" data-co="date">
+          <p class="hintline" id="beHint"></p></div>
+      </div>
+      <div class="grid2">
+        <div class="field num"><label>ทุนจดทะเบียน (บาท)</label>
+          <input type="text" data-co="cap" data-group inputmode="decimal" placeholder="1,000,000"></div>
+        <div class="field num"><label>มูลค่าหุ้นละ (บาท)</label>
+          <input type="text" data-co="par" data-group inputmode="decimal" placeholder="100"></div>
+      </div>
+      <div class="grid2">
+        <div class="field num"><label>หุ้นสามัญ
+            <button class="reset-auto" id="resetOrd" hidden>↺ กลับเป็นอัตโนมัติ</button></label>
+          <input type="text" data-co="ord" data-group inputmode="numeric" placeholder="อัตโนมัติ = ทั้งหมด − บุริมสิทธิ"></div>
+        <div class="field num"><label>หุ้นบุริมสิทธิ <span class="opt">— ปกติ 0</span></label>
+          <input type="text" data-co="pref" data-group inputmode="numeric" placeholder="-"></div>
+      </div>
+      <div class="grid2">
+        <div class="field num"><label>ใบหุ้นเริ่มที่เลข</label>
+          <input type="text" data-co="firstCert" inputmode="numeric" placeholder="1"></div>
+        <div class="field num"><label>หมายเลขหุ้นเริ่มที่</label>
+          <input type="text" data-co="firstShare" inputmode="numeric" placeholder="1"></div>
+      </div>
+      <p class="plan-sum" id="coSum">กรอกทุนจดทะเบียนและมูลค่าหุ้น</p>
+      <div class="step-nav">
+        <button class="btn btn-primary" id="btnTo2">ถัดไป: ผู้จองซื้อหุ้น →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Step 2: Subscribers ─────────────────── -->
+  <section class="card acc-who step-body hidden" data-step="2">
+    <div class="card-hd">
+      <span class="ico">👥</span>
+      <h3>ผู้จองซื้อหุ้น</h3><span class="th">Subscribers</span>
+      <span class="count-pill" id="subCount">0</span>
+      <span class="spacer"></span>
+      <select class="perpick" id="subFromShare" hidden></select>
+    </div>
+    <div class="card-bd">
+      <p class="sect-note">เรียงตามลำดับที่จะออกใบหุ้น — เลขใบหุ้นและช่วงหมายเลขหุ้นรันให้อัตโนมัติ
+        ที่อยู่และรายละเอียดใต้แต่ละแถวเป็นทางเลือก แต่กรอกไว้แล้วหน้าสมุดทะเบียนและใบหุ้นจะสมบูรณ์เลย</p>
+      <div id="subList"></div>
+      <div class="btn-row" style="margin-top:8px">
+        <button class="btn btn-ghost btn-sm" id="btnSubAdd">+ เพิ่มแถว</button>
+      </div>
+      <p class="plan-sum" id="subSum"></p>
+      <div class="step-nav">
+        <button class="btn btn-ghost back" id="btnBack1">← กลับ</button>
+        <button class="btn btn-primary" id="btnTo3">ตรวจและส่งต่อ →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Step 3: Review & hand off ───────────── -->
+  <section class="card acc-plan step-body hidden" data-step="3">
+    <div class="card-hd">
+      <span class="ico">🧭</span>
+      <h3>ตรวจและส่งต่อ</h3><span class="th">Review &amp; hand off</span>
+    </div>
+    <div class="card-bd">
+      <div class="act">
+        <div class="act-hd"><span>🏢</span> บริษัท</div>
+        <div id="revCo"></div>
+      </div>
+      <div class="act">
+        <div class="act-hd"><span>📜</span> ใบหุ้นที่จะออก</div>
+        <div id="revCerts"></div>
+      </div>
+      <div class="act">
+        <div class="act-hd"><span>🔗</span> ส่งต่อให้เครื่องมืออื่น</div>
+        <p class="sect-note" style="margin-bottom:10px">ทั้งสองปุ่มส่งบริษัทและทะเบียนบุคคลไปด้วยผ่านช่องกลางในเครื่องนี้
+          — ข้อมูลไม่ออกจากเบราว์เซอร์</p>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btnGoCert">↗ ออกใบหุ้นทั้งชุด</button>
+          <button class="btn btn-primary" id="btnGoReg">↗ ลงสมุดทะเบียนผู้ถือหุ้น</button>
+        </div>
+        <p class="hintline">เครื่องมือใบหุ้นจะสร้างใบหุ้นของทุกคนทันที ·
+          สมุดทะเบียนจะเปิด “ท่ามาตรฐาน — ตั้งบริษัทใหม่” กรอกให้แล้ว ตรวจแล้วกด “ลงในสมุดทะเบียน” ที่นั่น</p>
+      </div>
+      <div class="act">
+        <div class="act-hd"><span>💾</span> สำรองข้อมูล</div>
+        <div class="btn-row">
+          <button class="btn btn-ghost btn-sm" id="btnBackup">⬇︎ บันทึก JSON</button>
+          <button class="btn btn-ghost btn-sm" id="btnRestore">⬆︎ เปิดจากไฟล์</button>
+          <input type="file" id="fileRestore" accept="application/json,.json" hidden>
+        </div>
+      </div>
+      <div class="act danger">
+        <div class="act-hd"><span>🗑</span> เริ่มใหม่</div>
+        <p class="sect-note">ล้างบริษัทและผู้จองซื้อหุ้นทั้งหมดในตัวช่วยนี้ — ไม่กระทบเครื่องมืออื่น</p>
+        <button class="btn btn-danger btn-sm" id="btnClear">ล้างทั้งหมด</button>
+      </div>
+      <div class="step-nav">
+        <button class="btn btn-ghost back" id="btnBack2">← กลับ</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   One company entered once, handed on whole. This tool writes no
+   document of its own — the certificate register and the share
+   register book already do that — it only collects the first issue
+   and passes it to both in the formats they already read:
+   `#issue=` for the certificates, `#incorp=` for the register's
+   standard move, and the `jt-corp-share` slot for the directory.
+   ═══════════════════════════════════════════════════════════════ */
+const LS_KEY    = 'incorporationWizard_v1';
+const SHARE_KEY = 'jt-corp-share';
+const CERT_TOOL = 'share-certificate.html';
+const REG_TOOL  = 'share-register-book.html';
+const THIS_TOOL = 'ตัวช่วยตั้งบริษัท';
+
+const uid = () => Math.random().toString(36).slice(2, 10);
+const escHtml = s => String(s == null ? '' : s)
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const numOf = v => { const n = parseFloat(String(v==null?'':v).replace(/,/g,'')); return isFinite(n) ? n : null; };
+const intOf = v => { const n = parseInt(String(v==null?'':v).replace(/[^\d-]/g,''), 10); return isFinite(n) ? n : null; };
+const groupDigits = v => { const s = String(v==null?'':v).replace(/,/g,''); if(!s) return '';
+  const p = s.split('.'); p[0] = p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ','); return p.join('.'); };
+const plainNum = v => String(v==null?'':v).replace(/[^0-9.]/g,'');
+
+function blankSub(){
+  /* the same shape the register book keeps for a person, so a subscriber
+     entered here fills a register page completely */
+  return {id:uid(), nameTh:'', nameEn:'', shares:'', type:'ordinary',
+          addrTh:'', addrEn:'', idType:'both', idNo:'',
+          occTh:'', occEn:'', natTh:'', natEn:'', open:false};
+}
+function blankCo(){
+  return {nameTh:'', nameEn:'', regNo:'', date:'', cap:'', par:'',
+          ord:'', ordAuto:true, pref:'', firstCert:'1', firstShare:'1'};
+}
+let state = {v:1, step:1, co:blankCo(), subs:[blankSub(), blankSub(), blankSub()]};
+
+/* ── Persistence — a draft from the earlier build is carried over ── */
+function load(){
+  let raw = null;
+  try{ raw = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); }catch(_){}
+  if(!raw) return;
+  if(raw.company || raw.shareholders){
+    /* the first build stored numbers as numbers under other names */
+    const c = raw.company || {};
+    state.co = {...blankCo(),
+      nameTh:c.nameTh || '', nameEn:c.nameEn || '', date:c.incorporationDate || '',
+      cap:c.registeredCapital ? groupDigits(String(c.registeredCapital)) : '',
+      par:c.parValue ? groupDigits(String(c.parValue)) : '',
+      pref:c.preferredShares ? groupDigits(String(c.preferredShares)) : '',
+      firstCert:String(c.firstCertNo || 1), firstShare:String(c.firstShareNo || 1)};
+    state.subs = (raw.shareholders || []).map(s => ({...blankSub(),
+      nameTh:s.nameTh || '', nameEn:s.nameEn || '',
+      shares:s.shares ? groupDigits(String(s.shares)) : '', type:s.shareType || 'ordinary'}));
+    if(!state.subs.length) state.subs = [blankSub()];
+    state.step = Math.min(raw.step || 1, 3);
+    return;
+  }
+  state = {v:1, step:raw.step || 1, co:{...blankCo(), ...(raw.co || {})},
+           subs:(Array.isArray(raw.subs) && raw.subs.length ? raw.subs : [blankSub()])
+             .map(s => ({...blankSub(), ...s, id:s.id || uid()}))};
+}
+function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(_){} }
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+/* ── Live thousands separators, caret kept in place ─────────────── */
+function groupInput(el){
+  const before = el.value.slice(0, el.selectionStart).replace(/[^\d]/g,'').length;
+  el.value = groupDigits(plainNum(el.value));
+  let seen = 0, pos = el.value.length;
+  for(let i = 0; i < el.value.length; i++){
+    if(/\d/.test(el.value[i])) seen++;
+    if(seen === before){ pos = i + 1; break; }
+    if(before === 0){ pos = 0; break; }
+  }
+  el.setSelectionRange(pos, pos);
+}
+
+/* ── The figures every step leans on ────────────────────────────── */
+function totalShares(){
+  const cap = numOf(state.co.cap), par = numOf(state.co.par);
+  if(!cap || !par) return null;
+  return cap / par;
+}
+function ordShares(){
+  if(!state.co.ordAuto) return numOf(state.co.ord) || 0;
+  const t = totalShares();
+  return t == null ? null : Math.max(0, t - (numOf(state.co.pref) || 0));
+}
+function prefShares(){ return numOf(state.co.pref) || 0; }
+const hasName = s => (s.nameTh || '').trim() || (s.nameEn || '').trim();
+
+/* certificate numbers and share ranges, run through the subscribers in
+   order — the same arithmetic the register book's standard move uses */
+function allocation(){
+  let no = intOf(state.co.firstCert) || 1;
+  let from = intOf(state.co.firstShare) || 1;
+  return state.subs.map(s => {
+    const n = numOf(s.shares) || 0;
+    const a = {...s, shares:n, certNo:no, from, to:from + n - 1,
+               value:n * (numOf(state.co.par) || 0)};
+    if(hasName(s) && n > 0){ no++; from += n; }
+    return a;
+  });
+}
+
+/* ── Rendering ──────────────────────────────────────────────────── */
+function render(){
+  document.querySelectorAll('#steps .step').forEach(el => {
+    const n = +el.dataset.step;
+    el.classList.toggle('done', n < state.step);
+    el.classList.toggle('active', n === state.step);
+  });
+  document.querySelectorAll('.step-body').forEach(el =>
+    el.classList.toggle('hidden', +el.dataset.step !== state.step));
+  if(state.step === 1) renderCo();
+  if(state.step === 2) renderSubs();
+  if(state.step === 3) renderReview();
+}
+
+function renderCo(){
+  document.querySelectorAll('[data-co]').forEach(el => {
+    if(el === document.activeElement) return;
+    const k = el.dataset.co;
+    el.value = k === 'ord' && state.co.ordAuto
+      ? (ordShares() == null ? '' : groupDigits(String(ordShares())))
+      : (state.co[k] == null ? '' : state.co[k]);
+  });
+  const ordEl = document.querySelector('[data-co="ord"]');
+  ordEl.classList.toggle('is-auto', state.co.ordAuto);
+  document.getElementById('resetOrd').hidden = state.co.ordAuto;
+  coSummary();
+  beHint();
+}
+function beHint(){
+  const el = document.getElementById('beHint');
+  const d = state.co.date;
+  if(!d){ el.textContent = ''; return; }
+  const dt = new Date(d + 'T00:00:00');
+  el.textContent = `= วันที่ ${dt.getDate()} ${['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'][dt.getMonth()]} พ.ศ. ${dt.getFullYear() + 543}`;
+}
+function coSummary(){
+  const el = document.getElementById('coSum');
+  const cap = numOf(state.co.cap), par = numOf(state.co.par);
+  if(!cap || !par){ el.innerHTML = 'กรอกทุนจดทะเบียนและมูลค่าหุ้น — จำนวนหุ้นทั้งหมดจะคำนวณให้'; return; }
+  const t = cap / par;
+  const whole = Number.isInteger(t);
+  const ord = ordShares() || 0, pref = prefShares();
+  let html = `หุ้นทั้งหมด <b>${groupDigits(String(t))}</b> หุ้น (${groupDigits(String(cap))} ÷ ${groupDigits(String(par))})`;
+  if(!whole) html += `<br><span class="bad">ทุนจดทะเบียนหารด้วยมูลค่าหุ้นไม่ลงตัว — ตรวจตัวเลขอีกครั้ง</span>`;
+  else if(ord + pref !== t) html += `<br><span class="warn">หุ้นสามัญ ${groupDigits(String(ord))} + บุริมสิทธิ ${groupDigits(String(pref))} = ${groupDigits(String(ord + pref))} — ไม่เท่าจำนวนหุ้นทั้งหมด</span>`;
+  el.innerHTML = html;
+}
+
+const ID_OPTS = [['both','บัตรประชาชน / พาสปอร์ต'], ['id','บัตรประชาชน'],
+                 ['passport','หนังสือเดินทาง'], ['juristic','เลขทะเบียนนิติบุคคล']];
+function renderSubs(){
+  const typed = prefShares() > 0;
+  document.getElementById('subList').innerHTML = state.subs.map((s, i) => `
+    <div class="sub">
+      <div class="subrow${typed ? ' typed' : ''}">
+        <span class="subno">${i+1}</span>
+        <input type="text" data-sb="${i}" data-sf="nameTh" value="${escHtml(s.nameTh)}" placeholder="นายสมชาย ใจดี">
+        <input type="text" data-sb="${i}" data-sf="nameEn" value="${escHtml(s.nameEn)}" placeholder="MR. SOMCHAI JAIDEE">
+        ${typed ? `<select data-sb="${i}" data-sf="type">
+          <option value="ordinary" ${s.type !== 'preferred' ? 'selected' : ''}>สามัญ</option>
+          <option value="preferred" ${s.type === 'preferred' ? 'selected' : ''}>บุริมสิทธิ</option>
+        </select>` : ''}
+        <input type="text" data-sb="${i}" data-sf="shares" data-group value="${escHtml(s.shares)}" placeholder="จำนวนหุ้น" inputmode="numeric">
+        <button class="mini" data-subdel="${i}">✕</button>
+      </div>
+      <div class="sub-meta" id="subMeta${i}"></div>
+      <div class="sub-more">
+        <button data-subtog="${i}">${s.open ? '▾' : '▸'} ที่อยู่และรายละเอียด${subHasDetail(s) ? ' ·✓' : ''} <span style="font-weight:400;color:#cbd5e1">— เว้นได้</span></button>
+        ${s.open ? `<div class="sub-detail">
+          <div class="grid2">
+            <div class="field"><label>ที่อยู่ (ไทย)</label>
+              <input type="text" data-sb="${i}" data-sf="addrTh" value="${escHtml(s.addrTh)}" placeholder="99 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพมหานคร"></div>
+            <div class="field"><label>ที่อยู่ (อังกฤษ)</label>
+              <input type="text" data-sb="${i}" data-sf="addrEn" value="${escHtml(s.addrEn)}" placeholder="99 Sukhumvit Road, Khlong Toei, Bangkok"></div>
+          </div>
+          <div class="grid2">
+            <div class="field"><label>ประเภทเลขประจำตัว</label>
+              <select data-sb="${i}" data-sf="idType">${ID_OPTS.map(o =>
+                `<option value="${o[0]}" ${s.idType === o[0] ? 'selected' : ''}>${o[1]}</option>`).join('')}</select></div>
+            <div class="field"><label>เลขประจำตัว</label>
+              <input type="text" data-sb="${i}" data-sf="idNo" value="${escHtml(s.idNo)}" placeholder="1101700200000"></div>
+          </div>
+          <div class="grid2">
+            <div class="field"><label>อาชีวะ (ไทย · อังกฤษ)</label>
+              <div style="display:flex;gap:7px">
+                <input type="text" data-sb="${i}" data-sf="occTh" value="${escHtml(s.occTh)}" placeholder="นักธุรกิจ">
+                <input type="text" data-sb="${i}" data-sf="occEn" value="${escHtml(s.occEn)}" placeholder="Business Person">
+              </div></div>
+            <div class="field"><label>สัญชาติ (ไทย · อังกฤษ)</label>
+              <div style="display:flex;gap:7px">
+                <input type="text" data-sb="${i}" data-sf="natTh" value="${escHtml(s.natTh)}" placeholder="ไทย">
+                <input type="text" data-sb="${i}" data-sf="natEn" value="${escHtml(s.natEn)}" placeholder="Thai">
+              </div></div>
+          </div>
+        </div>` : ''}
+      </div>
+    </div>`).join('');
+  document.getElementById('subCount').textContent = state.subs.filter(hasName).length;
+  renderSharePick();
+  subMeta();
+  subSummary();
+}
+const subHasDetail = s => s.addrTh || s.addrEn || s.idNo || s.occTh || s.occEn || s.natTh || s.natEn;
+
+/* the meta line under each row — recomputed on every keystroke without
+   rebuilding the inputs, so the caret stays where it is */
+function subMeta(){
+  const alloc = allocation();
+  alloc.forEach((a, i) => {
+    const el = document.getElementById('subMeta' + i);
+    if(!el) return;
+    el.innerHTML = a.shares > 0
+      ? `<span>ใบหุ้นเลขที่ <b>${a.certNo}</b></span>
+         <span>หุ้นหมายเลข <b>${groupDigits(String(a.from))}–${groupDigits(String(a.to))}</b></span>
+         <span>มูลค่า <b>฿${groupDigits(String(a.value))}</b></span>
+         ${a.type === 'preferred' ? '<span><b>บุริมสิทธิ</b></span>' : ''}`
+      : '';
+  });
+}
+function subTotals(){
+  let ord = 0, pref = 0, incomplete = false;
+  state.subs.forEach(s => {
+    const n = numOf(s.shares) || 0;
+    const named = hasName(s);
+    if(named !== (n > 0)) incomplete = true;
+    if(!named) return;
+    if(s.type === 'preferred') pref += n; else ord += n;
+  });
+  return {ord, pref, incomplete, any: state.subs.some(s => hasName(s) && numOf(s.shares) > 0)};
+}
+function subSummary(){
+  const el = document.getElementById('subSum');
+  const t = subTotals();
+  const needOrd = ordShares(), needPref = prefShares();
+  const lines = [];
+  let ok = t.any && !t.incomplete;
+  if(!t.any) lines.push('กรอกผู้จองซื้อหุ้นอย่างน้อยหนึ่งคน');
+  else lines.push(`รวม <b>${groupDigits(String(t.ord + t.pref))}</b> หุ้น` +
+    (needPref > 0 ? ` — สามัญ ${groupDigits(String(t.ord))} · บุริมสิทธิ ${groupDigits(String(t.pref))}` : ''));
+  if(t.incomplete) lines.push('<span class="warn">บางแถวมีชื่อแต่ไม่มีจำนวนหุ้น หรือมีจำนวนหุ้นแต่ไม่มีชื่อ</span>');
+  const diffLine = (need, got, label) => {
+    if(need == null || got === need) return true;
+    const d = need - got;
+    lines.push(`<span class="${d < 0 ? 'bad' : 'warn'}">${label}: จัดสรร ${groupDigits(String(got))} จาก ${groupDigits(String(need))} — ` +
+      (d > 0 ? `ขาด ${groupDigits(String(d))}` : `เกิน ${groupDigits(String(-d))}`) + '</span>');
+    return false;
+  };
+  if(t.any){
+    if(!diffLine(needOrd, t.ord, 'หุ้นสามัญ')) ok = false;
+    if(needPref > 0 || t.pref > 0){ if(!diffLine(needPref, t.pref, 'หุ้นบุริมสิทธิ')) ok = false; }
+  }
+  el.innerHTML = lines.join('<br>');
+  document.getElementById('btnTo3').disabled = !ok;
+  return ok;
+}
+
+/* people already sent through the shared slot by the other tools can be
+   pulled into a row instead of retyped */
+function renderSharePick(){
+  const pick = document.getElementById('subFromShare');
+  let pack = null;
+  try{ pack = JSON.parse(localStorage.getItem(SHARE_KEY) || 'null'); }catch(_){}
+  const people = (pack && Array.isArray(pack.people)) ? pack.people.filter(p => p.nameTh || p.nameEn) : [];
+  pick.hidden = !people.length;
+  if(!people.length) return;
+  pick.innerHTML = '<option value="">เพิ่มจากทะเบียนบุคคล…</option>' +
+    people.map((p, i) => `<option value="${i}">${escHtml(p.nameTh || p.nameEn)}</option>`).join('');
+  pick.onchange = () => {
+    const p = people[+pick.value];
+    pick.value = '';
+    if(!p) return;
+    const empty = state.subs.find(s => !hasName(s));
+    const row = empty || (state.subs.push(blankSub()), state.subs[state.subs.length - 1]);
+    Object.assign(row, {nameTh:p.nameTh || '', nameEn:p.nameEn || '', addrTh:p.addrTh || '', addrEn:p.addrEn || '',
+      idType:p.idType || 'both', idNo:p.idNo || '', occTh:p.occTh || '', occEn:p.occEn || '',
+      natTh:p.natTh || '', natEn:p.natEn || ''});
+    save(); renderSubs();
+  };
+}
+
+function renderReview(){
+  const c = state.co;
+  const t = totalShares();
+  const rows = [
+    ['ชื่อบริษัท', escHtml(c.nameTh) + (c.nameEn ? `<br><span style="font-weight:400;color:#94a3b8">${escHtml(c.nameEn)}</span>` : '')],
+    c.regNo ? ['เลขทะเบียน', escHtml(c.regNo)] : null,
+    ['ทุนจดทะเบียน', '฿' + groupDigits(plainNum(c.cap))],
+    ['มูลค่าหุ้นละ', '฿' + groupDigits(plainNum(c.par))],
+    ['หุ้นทั้งหมด', groupDigits(String(t || 0)) + ' หุ้น' +
+      (prefShares() > 0 ? ` (สามัญ ${groupDigits(String(ordShares()))} · บุริมสิทธิ ${groupDigits(String(prefShares()))})` : '')],
+    ['วันที่จดทะเบียน', c.date ? new Date(c.date + 'T00:00:00').toLocaleDateString('th-TH', {day:'numeric', month:'short', year:'numeric'}) : '—']
+  ].filter(Boolean);
+  document.getElementById('revCo').innerHTML = rows.map(r =>
+    `<div class="rev-row"><span class="k">${r[0]}</span><span class="v">${r[1]}</span></div>`).join('');
+
+  const alloc = allocation().filter(a => hasName(a) && a.shares > 0);
+  document.getElementById('revCerts').innerHTML = alloc.map(a =>
+    `<div class="rev-row"><span class="k">ใบหุ้นเลขที่ ${a.certNo} · ${escHtml(a.nameTh || a.nameEn)}</span>
+     <span class="v">${groupDigits(String(a.shares))} หุ้น${a.type === 'preferred' ? ' (บุริมสิทธิ)' : ''} · ${groupDigits(String(a.from))}–${groupDigits(String(a.to))}</span></div>`).join('') ||
+    '<p class="sect-note" style="margin:0">ยังไม่มีผู้จองซื้อหุ้น</p>';
+}
+
+/* ── Step validation ────────────────────────────────────────────── */
+function step1Ok(){
+  const c = state.co;
+  if(!c.nameTh.trim() && !c.nameEn.trim()){ toast('✗ กรอกชื่อบริษัทก่อน'); return false; }
+  const cap = numOf(c.cap), par = numOf(c.par);
+  if(!cap || !par){ toast('✗ กรอกทุนจดทะเบียนและมูลค่าหุ้น'); return false; }
+  if(!Number.isInteger(cap / par)){ toast('✗ ทุนจดทะเบียนหารด้วยมูลค่าหุ้นไม่ลงตัว'); return false; }
+  if((ordShares() || 0) + prefShares() !== cap / par){ toast('✗ หุ้นสามัญ + บุริมสิทธิ ต้องเท่าจำนวนหุ้นทั้งหมด'); return false; }
+  if(!c.date){ toast('✗ กรอกวันที่จดทะเบียน'); return false; }
+  return true;
+}
+function goStep(n){
+  if(n > 1 && state.step === 1 && !step1Ok()) return;
+  if(n > 2 && state.step === 2 && !subSummary()){ toast('✗ จัดสรรหุ้นให้ครบตามจำนวนก่อน'); return; }
+  state.step = n; save(); render();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+/* ── Hand-off ───────────────────────────────────────────────────── */
+function packOut(){
+  const c = state.co;
+  return {v:1, at:new Date().toISOString(), from:THIS_TOOL,
+    co:{th:c.nameTh, en:c.nameEn, nameTh:c.nameTh, nameEn:c.nameEn, regNo:c.regNo,
+        par:plainNum(c.par), paidUp:plainNum(c.par), regShares:String(totalShares() || '')},
+    people: state.subs.filter(hasName).map(s => ({
+      nameTh:s.nameTh, nameEn:s.nameEn, addrTh:s.addrTh, addrEn:s.addrEn,
+      idType:s.idType, idNo:s.idNo, occTh:s.occTh, occEn:s.occEn, natTh:s.natTh, natEn:s.natEn}))};
+}
+function shareWrite(){
+  try{ localStorage.setItem(SHARE_KEY, JSON.stringify(packOut())); }catch(_){}
+}
+const openTool = (tool, hash) => window.open(tool + hash, '_blank', 'noopener');
+
+document.getElementById('btnGoCert').addEventListener('click', () => {
+  const c = state.co;
+  const alloc = allocation().filter(a => hasName(a) && a.shares > 0);
+  if(!alloc.length) return toast('✗ ใส่ผู้จองซื้อหุ้นก่อน');
+  shareWrite();
+  openTool(CERT_TOOL, '#issue=' + encodeURIComponent(JSON.stringify({
+    co:{th:c.nameTh, en:c.nameEn, par:plainNum(c.par), regShares:String(totalShares() || ''),
+        ord:String(ordShares() || ''), pref:prefShares() ? String(prefShares()) : ''},
+    date:c.date, pad:'',
+    certs: alloc.map(a => ({no:String(a.certNo), nameTh:a.nameTh, nameEn:a.nameEn,
+      addrTh:a.addrTh, addrEn:a.addrEn, count:String(a.shares),
+      from:String(a.from), to:String(a.to), type:a.type}))})));
+  toast('✓ เปิดเครื่องมือใบหุ้นแล้ว — ใบหุ้นทั้งชุดถูกสร้างให้ทันที');
+});
+
+document.getElementById('btnGoReg').addEventListener('click', () => {
+  const c = state.co;
+  const subs = state.subs.filter(s => hasName(s) && numOf(s.shares) > 0);
+  if(!subs.length) return toast('✗ ใส่ผู้จองซื้อหุ้นก่อน');
+  shareWrite();
+  openTool(REG_TOOL, '#incorp=' + encodeURIComponent(JSON.stringify({
+    co:{th:c.nameTh, en:c.nameEn, regNo:c.regNo, par:plainNum(c.par), regShares:String(totalShares() || '')},
+    date:c.date, firstCert:plainNum(c.firstCert) || '1', firstShare:plainNum(c.firstShare) || '1',
+    subs: subs.map(s => ({nameTh:s.nameTh, nameEn:s.nameEn, shares:String(numOf(s.shares))}))})));
+  toast('✓ เปิดสมุดทะเบียนแล้ว — ตรวจใน “ท่ามาตรฐาน” แล้วกดลงในสมุดทะเบียน');
+});
+
+/* ── Backup ─────────────────────────────────────────────────────── */
+document.getElementById('btnBackup').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify({tool:'incorporation-wizard', ...state}, null, 2)],
+    {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (state.co.nameEn || state.co.nameTh || 'incorporation').replace(/\s+/g,'-') + '.json';
+  a.click(); URL.revokeObjectURL(a.href);
+});
+document.getElementById('btnRestore').addEventListener('click', () =>
+  document.getElementById('fileRestore').click());
+document.getElementById('fileRestore').addEventListener('change', e => {
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      const d = JSON.parse(r.result);
+      if(d.tool !== 'incorporation-wizard') throw 0;
+      state = {v:1, step:d.step || 1, co:{...blankCo(), ...(d.co || {})},
+        subs:(Array.isArray(d.subs) && d.subs.length ? d.subs : [blankSub()])
+          .map(s => ({...blankSub(), ...s}))};
+      save(); render(); toast('✓ เปิดไฟล์แล้ว');
+    }catch(_){ toast('✗ ไฟล์นี้ไม่ใช่ไฟล์ของตัวช่วยตั้งบริษัท'); }
+  };
+  r.readAsText(f); e.target.value = '';
+});
+document.getElementById('btnClear').addEventListener('click', () => {
+  if(!confirm('ล้างบริษัทและผู้จองซื้อหุ้นทั้งหมด?')) return;
+  state = {v:1, step:1, co:blankCo(), subs:[blankSub(), blankSub(), blankSub()]};
+  save(); render(); toast('✓ ล้างแล้ว');
+});
+
+/* ── Wiring ─────────────────────────────────────────────────────── */
+document.getElementById('btnTo2').addEventListener('click', () => goStep(2));
+document.getElementById('btnTo3').addEventListener('click', () => goStep(3));
+document.getElementById('btnBack1').addEventListener('click', () => goStep(1));
+document.getElementById('btnBack2').addEventListener('click', () => goStep(2));
+document.getElementById('steps').addEventListener('click', e => {
+  const s = e.target.closest('.step');
+  if(s && s.classList.contains('done')) goStep(+s.dataset.step);
+});
+document.getElementById('resetOrd').addEventListener('click', () => {
+  state.co.ordAuto = true; state.co.ord = ''; save(); renderCo();
+});
+
+document.addEventListener('input', e => {
+  const el = e.target;
+  if(el.dataset.group !== undefined && el.type === 'text') groupInput(el);
+  if(el.dataset.co !== undefined){
+    const k = el.dataset.co;
+    if(k === 'ord'){ state.co.ordAuto = false; }
+    state.co[k] = el.value;
+    save();
+    if(k === 'ord') { el.classList.remove('is-auto'); document.getElementById('resetOrd').hidden = false; }
+    if(k === 'date') beHint();
+    if(state.co.ordAuto && k !== 'ord'){
+      const ordEl = document.querySelector('[data-co="ord"]');
+      if(ordEl && ordEl !== document.activeElement)
+        ordEl.value = ordShares() == null ? '' : groupDigits(String(ordShares()));
+    }
+    coSummary();
+    return;
+  }
+  if(el.dataset.sb !== undefined){
+    const row = state.subs[+el.dataset.sb];
+    if(row){ row[el.dataset.sf] = el.value; save(); subMeta(); subSummary();
+      if(el.dataset.sf === 'nameTh' || el.dataset.sf === 'nameEn')
+        document.getElementById('subCount').textContent = state.subs.filter(hasName).length; }
+  }
+});
+document.addEventListener('change', e => {
+  const el = e.target;
+  if(el.dataset.sb !== undefined && el.tagName === 'SELECT'){
+    const row = state.subs[+el.dataset.sb];
+    if(row){ row[el.dataset.sf] = el.value; save(); subMeta(); subSummary(); }
+  }
+});
+document.addEventListener('click', e => {
+  const del = e.target.closest('[data-subdel]');
+  if(del){ state.subs.splice(+del.dataset.subdel, 1);
+    if(!state.subs.length) state.subs.push(blankSub());
+    save(); renderSubs(); return; }
+  const tog = e.target.closest('[data-subtog]');
+  if(tog){ const row = state.subs[+tog.dataset.subtog];
+    if(row){ row.open = !row.open; save(); renderSubs(); } return; }
+  if(e.target.closest('#btnSubAdd')){ state.subs.push(blankSub()); save(); renderSubs(); }
+});
+
+load();
+render();
+</script>
+</body>
+</html>
