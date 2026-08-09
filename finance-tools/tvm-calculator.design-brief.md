@@ -38,6 +38,7 @@ nav.nav                          sticky, 52px
     #periodsDetails details      per-period override table (#periodsTable)
   #timeCard .card                step 2 — time and rate
     .field-row.three             #fN  #fM (+#mCustomField)  #fRate + #rateChips
+    #interestToggle              .mode-toggle — compound / simple
     #rateDerived .derived        rate per period, auto with override
     #periodsDerived .derived     total periods · effective annual rate
     #rateWarn
@@ -75,8 +76,9 @@ Labels rewritten per tab: `lblPV` `lblPMT` `lblFV` `lblInvest`
 Notes: `notePV` `notePMT` `noteFV`
 
 **Time and rate (step 2)** — `timeCard` `fN` `nSuffix` `lblN` `fM` `mCustomField`
-`fMCustom` `fRate` `lblRate` `rateChips` `rateDerived` `perRateAuto` `fPerRate`
-`resetPerRate` `periodsDerived` `totPeriodsVal` `earVal` `rateWarn` `decimals` `rounding`
+`fMCustom` `fRate` `lblRate` `rateChips` `interestToggle` `interestNote` `rateDerived`
+`perRateAuto` `fPerRate` `resetPerRate` `periodsDerived` `totPeriodsVal` `earLabel`
+`earVal` `rateWarn` `decimals` `rounding`
 
 **Solve (step 3)** — `solveCard` `fSolve` `solveNote` `solveTolField` `fTol` `validation`
 
@@ -103,6 +105,7 @@ placeholder on each.
 | `data-scenario` | `#scenarioToggle .mode-btn` | `single` \| `annuity` \| `both` \| `custom` |
 | `data-preset` | `#presetToggle .mode-btn` | `loan` \| `save` \| `both` |
 | `data-timing` | `#timingToggle .mode-btn` | `end` \| `due` |
+| `data-interest` | `#interestToggle .mode-btn` | `compound` \| `simple` |
 | `data-rate` | `#rateChips .chip` | rate in percent, written into `#fRate` |
 | `data-lang` | `#langToggle .lang-btn` | `en` \| `th` |
 | `data-i18n` | any text node | key into the `TH` table; see §3.5 |
@@ -216,3 +219,16 @@ the method cards — change them in one place and both follow.
 
 - **Three steps, numbered.** Money, then time and rate, then the unknown. The order is the
   order the question is actually asked in.
+
+- **Compound and simple are one engine, not two.** Every factor goes through `accrue()` /
+  `discountF()`, so the solvers, the diagram and the working table needed no special cases.
+  Two things do change visibly and should stay changed: `#earLabel` becomes *Total interest
+  factor* (a simple-interest rate has no effective annual equivalent), and the amortisation
+  schedule is withheld, because paying a loan down on a simple-interest basis is a different
+  instrument rather than a variation of this one.
+
+- **The rate solver is floored at `rateFloor()`.** Under simple interest the objective has a
+  pole at −1/t for every flow, and a pole is a sign change without being a root — bisection
+  will bracket it and report it as an answer. The floor keeps every method inside the domain
+  where all factors stay positive, and any root at or below it is rejected. Do not widen the
+  search range without keeping that guard.

@@ -595,6 +595,15 @@
       </div>
     </div>
 
+    <div class="field" style="margin-top:2px">
+      <label data-i18n="interestLabel">Does the interest compound?</label>
+      <div class="mode-toggle" id="interestToggle">
+        <button class="mode-btn active" data-interest="compound" data-i18n="inCompound">Compound<span class="th">ทบต้น — interest earns interest</span></button>
+        <button class="mode-btn" data-interest="simple" data-i18n="inSimple">Simple<span class="th">ไม่ทบต้น — principal only</span></button>
+      </div>
+      <div class="field-note" id="interestNote"></div>
+    </div>
+
     <!-- derived: periodic rate (auto with override) + N + EAR -->
     <div class="derived" id="rateDerived">
       <span class="derived-label" data-i18n="perRate">Rate per period</span>
@@ -611,7 +620,7 @@
       <span class="derived-label" data-i18n="totPeriods">Total periods</span>
       <span class="derived-val" id="totPeriodsVal">—</span>
       <span class="sep">·</span>
-      <span class="derived-label" data-i18n="ear">Effective annual rate</span>
+      <span class="derived-label" id="earLabel" data-i18n="ear">Effective annual rate</span>
       <span class="derived-val" id="earVal">—</span>
     </div>
 
@@ -796,6 +805,8 @@
     years: 'ปี', lblM: 'ทบต้น (m)', lblMCustom: 'ครั้งต่อปี',
     mAnnual: 'ปีละครั้ง — 1 ครั้ง/ปี', mSemi: 'ทุก 6 เดือน — 2 ครั้ง/ปี', mQuarter: 'รายไตรมาส — 4 ครั้ง/ปี',
     mMonthly: 'รายเดือน — 12 ครั้ง/ปี', mDaily: 'รายวัน — 365 ครั้ง/ปี', mCustom: 'กำหนดเอง…',
+    interestLabel: 'ดอกเบี้ยทบต้นหรือไม่',
+    inCompound: 'ทบต้น', inSimple: 'ไม่ทบต้น (ดอกเบี้ยคงที่)',
     perRate: 'อัตราต่องวด', override: 'กำหนดเอง', totPeriods: 'จำนวนงวดทั้งหมด', ear: 'อัตราผลตอบแทนที่แท้จริงต่อปี',
     lblDecimals: 'ทศนิยม', lblRounding: 'วิธีปัดเศษ',
     rNormal: 'ปกติ (ปัดครึ่งขึ้น)', rFloor: 'ปัดลงเสมอ', rCeil: 'ปัดขึ้นเสมอ',
@@ -837,7 +848,7 @@
       perRate: '',          // '' = auto (i / m)
       timing: 'end',
       solveFor: tab === 'npv' ? 'npv' : tab,
-      tol: '1e-9', expand: false,
+      tol: '1e-9', expand: false, interest: 'compound',
       flows: {}             // { '<t>': '<signed amount string>' } — manual overrides
     };
   }
@@ -955,6 +966,26 @@
   function annPV(r, N) { return Math.abs(r) < 1e-12 ? N : (1 - Math.pow(1 + r, -N)) / r; }
   function due(r, isDue) { return isDue ? (1 + r) : 1; }
 
+  // ── Compound or simple ──────────────────────────────────────────────────
+  // Under simple interest nothing earns interest on interest: an amount left
+  // for k periods grows by r·k, not by (1+r)^k. Thai statutory and default
+  // interest works this way, so it is a mode rather than an afterthought.
+  // Everything downstream — the solvers, the diagram, the working table —
+  // goes through these two functions, so the rest of the engine is unchanged.
+  function accrue(r, k, simple) {          // value after k periods of 1 unit
+    return simple ? (1 + r * k) : Math.pow(1 + r, k);
+  }
+  function discountF(r, k, simple) {       // value today of 1 unit due in k periods
+    if (!simple) return Math.pow(1 + r, -k);
+    var d = 1 + r * k;
+    return d === 0 ? Infinity : 1 / d;
+  }
+  // Signed helper: k may be negative, meaning the flow sits past the focal point.
+  function factorAt(r, k, simple, mode) {
+    return mode === 'fv' ? accrue(r, k, simple)
+         : (k >= 0 ? discountF(r, k, simple) : accrue(r, -k, simple));
+  }
+
   // Reads every input into plain numbers. `N` is total periods = years × m.
   function readInputs() {
     var T = TS();
@@ -969,7 +1000,7 @@
       tab: S.tab, scenario: T.scenario, preset: T.preset,
       m: m, years: years, N: N, iNom: iNom,
       rAuto: rAuto, r: r, rOverridden: rOvr != null && isFinite(rOvr),
-      isDue: T.timing === 'due',
+      isDue: T.timing === 'due', simple: T.interest === 'simple',
       pv: parseAmt(T.pv), pmt: parseAmt(T.pmt), fv: parseAmt(T.fv), invest: parseAmt(T.invest),
       cfAmt: parseAmt(T.cfAmt), cfFrom: Math.round(num(T.cfFrom, 1)), cfTo: Math.round(num(T.cfTo, 0)),
       solveFor: T.solveFor, tol: parseFloat(T.tol) || 1e-9, flows: T.flows
@@ -1040,35 +1071,63 @@
     return out;
   }
 
-  function seriesPV(series, r) {
+  function seriesPV(series, r, simple) {
     var s = 0;
     for (var k = 0; k < series.length; k++) {
       if (!series[k].amt) continue;
-      s += series[k].amt * Math.pow(1 + r, -series[k].t);
+      s += series[k].amt * discountF(r, series[k].t, simple);
     }
     return s;
   }
-  function seriesFV(series, r, N) {
+  function seriesFV(series, r, N, simple) {
     var s = 0;
     for (var k = 0; k < series.length; k++) {
       if (!series[k].amt) continue;
-      s += series[k].amt * Math.pow(1 + r, N - series[k].t);
+      s += series[k].amt * accrue(r, N - series[k].t, simple);
     }
     return s;
   }
-  function seriesDeriv(series, r) {            // d/dr of seriesPV — for Newton
+  function seriesDeriv(series, r, simple) {    // d/dr of seriesPV — for Newton
     var s = 0;
     for (var k = 0; k < series.length; k++) {
       var t = series[k].t;
       if (!series[k].amt || t === 0) continue;
-      s += -t * series[k].amt * Math.pow(1 + r, -t - 1);
+      s += simple
+        ? -t * series[k].amt / Math.pow(1 + r * t, 2)
+        : -t * series[k].amt * Math.pow(1 + r, -t - 1);
     }
     return s;
   }
 
   // ── Solving for one unknown ─────────────────────────────────────────────
+  // Under simple interest there is no tidy annuity factor to invert — the
+  // present value of a simple-interest annuity is Σ PMT/(1+r·t), a harmonic
+  // sum with no closed form. But PV, PMT and FV each still enter the answer
+  // *linearly*, so measuring the value at 0 and at 1 gives the coefficient and
+  // one division finishes it. Exact, and it needs no per-case algebra.
+  function solveLinearly(inp) {
+    var want = inp.solveFor, isFvTab = inp.tab === 'fv';
+    function val(field, x) {
+      var o = {}; if (field) o[field] = x;
+      var q = Object.assign({}, inp, o);
+      var ser = buildSeries(q);
+      return isFvTab ? seriesFV(ser, inp.r, inp.N, true) : seriesPV(ser, inp.r, true);
+    }
+    if ((inp.tab === 'fv' && want === 'fv') || (inp.tab === 'pv' && want === 'pv')
+        || (inp.tab === 'npv' && want === 'npv')) {
+      return { ok: true, value: val(null, 0), closed: false };
+    }
+    var target = inp.tab === 'pmt' ? 0 : (isFvTab ? inp.fv : inp.pv);
+    if (inp.tab !== 'pmt' && !isFinite(target)) return { ok: false, why: 'needTarget' };
+    var v0 = val(want, 0), v1 = val(want, 1), c = v1 - v0;
+    if (!isFinite(c) || Math.abs(c) < 1e-15) return { ok: false, why: 'noAnnuity' };
+    var x = (target - v0) / c;
+    return { ok: true, value: inp.tab === 'pmt' ? Math.abs(x) : x, closed: false };
+  }
+
   // Returns { ok, value, label, closed, detail } or { ok:false, why }.
   function solveClosed(inp) {
+    if (inp.simple) return solveLinearly(inp);
     var r = inp.r, N = inp.N, D = due(r, inp.isDue);
     var gf = Math.pow(1 + r, N);
     var Af = annFV(r, N) * D, Ap = annPV(r, N) * D;
@@ -1078,7 +1137,7 @@
         fv = isFinite(inp.fv) ? inp.fv : 0;
 
     if (inp.tab === 'fv') {
-      if (want === 'fv') return { ok: true, value: seriesFV(buildSeries(inp), r, N), closed: sc !== 'custom' };
+      if (want === 'fv') return { ok: true, value: seriesFV(buildSeries(inp), r, N, inp.simple), closed: sc !== 'custom' };
       if (want === 'pmt') {
         if (Af === 0) return { ok: false, why: 'noAnnuity' };
         return { ok: true, value: (fv - (sc === 'annuity' ? 0 : pv) * gf) / Af, closed: true };
@@ -1089,7 +1148,7 @@
       }
     }
     if (inp.tab === 'pv') {
-      if (want === 'pv') return { ok: true, value: seriesPV(buildSeries(inp), r), closed: sc !== 'custom' };
+      if (want === 'pv') return { ok: true, value: seriesPV(buildSeries(inp), r, inp.simple), closed: sc !== 'custom' };
       if (want === 'pmt') {
         if (Ap === 0) return { ok: false, why: 'noAnnuity' };
         return { ok: true, value: (pv - (sc === 'annuity' ? 0 : fv) / gf) / Ap, closed: true };
@@ -1097,7 +1156,7 @@
       if (want === 'fv') return { ok: true, value: (pv - (sc === 'single' ? 0 : pmt) * Ap) * gf, closed: true };
     }
     if (inp.tab === 'npv') {
-      if (want === 'npv') return { ok: true, value: seriesPV(buildSeries(inp), r), closed: false };
+      if (want === 'npv') return { ok: true, value: seriesPV(buildSeries(inp), r, inp.simple), closed: false };
     }
     if (inp.tab === 'pmt') {
       var sg = pmtSigns(inp.preset);
@@ -1140,6 +1199,21 @@
   // the discrete series cannot be used here, because the search runs through
   // fractional periods on its way to the answer.
   function balanceAtN(inp, N) {
+    // Simple interest has no smooth annuity factor in N, so the balance is read
+    // off the series at whole periods and interpolated between them.
+    if (inp.simple) {
+      var lo = Math.max(0, Math.floor(N)), frac = N - lo;
+      var at = function (k) {
+        var q = Object.assign({}, inp, { N: k });
+        var ser = buildSeries(q);
+        var v = inp.tab === 'fv' ? seriesFV(ser, inp.r, k, true) : seriesPV(ser, inp.r, true);
+        return inp.tab === 'fv' ? v - (isFinite(inp.fv) ? inp.fv : 0)
+             : inp.tab === 'pv' ? v - (isFinite(inp.pv) ? inp.pv : 0)
+             : v;
+      };
+      var a = at(lo);
+      return frac < 1e-12 ? a : a + frac * (at(lo + 1) - a);
+    }
     var r = inp.r, D = due(r, inp.isDue), gf = Math.pow(1 + r, N);
     var pv = isFinite(inp.pv) ? inp.pv : 0,
         pmt = isFinite(inp.pmt) ? inp.pmt : 0,
@@ -1183,12 +1257,23 @@
   // explains its behaviour.
   var MAXIT = 100;
 
-  function findBracket(f) {
-    // Rates below −100% are meaningless; scan outward from zero.
-    var pts = [], x;
-    for (x = -0.9999; x < 0; x += 0.05) pts.push(x);
-    pts.push(0);
-    for (x = 0.01; x <= 3.0001; x += 0.01) pts.push(x);
+  // Below this rate a discount factor turns negative and the objective has a
+  // pole, not a root. Compounding blows up at −100%; simple interest blows up
+  // at −1/t for every t, so the last usable rate is −1/t of the furthest flow.
+  // Without this floor, bisection happily brackets the singularity and reports
+  // it as an answer — it is a sign change, just not a root.
+  function rateFloor(ser, simple) {
+    if (!simple) return -1;
+    var tmax = 0;
+    for (var k = 0; k < ser.length; k++) if (ser[k].amt && ser[k].t > tmax) tmax = ser[k].t;
+    return tmax > 0 ? -1 / tmax : -1;
+  }
+
+  function findBracket(f, floor) {
+    var lo = floor + Math.max(1e-6, Math.abs(floor) * 1e-4);
+    var pts = [], x, i;
+    for (i = 0; i <= 240; i++) pts.push(lo + (1 - lo) * i / 240);   // dense over the near field
+    for (x = 1.05; x <= 3.0001; x += 0.05) pts.push(x);
     for (x = 3.5; x <= 60; x += 0.5) pts.push(x);
     var prev = null, fprev = null;
     for (var k = 0; k < pts.length; k++) {
@@ -1206,13 +1291,14 @@
     for (var k = 0; k < MAXIT; k++) {
       var c = (a + b) / 2, fc = f(c);
       it.push({ k: k + 1, x: c, fx: fc, extra: Math.abs(b - a) });
-      if (Math.abs(fc) < tol || Math.abs(b - a) < 1e-15) return { ok: true, root: c, it: it, conv: true };
+      if (Math.abs(fc) < tol) return { ok: true, root: c, it: it, conv: true };
+      if (Math.abs(b - a) < 1e-15) return { ok: false, it: it, why: 'pole' };
       if (fa * fc < 0) { b = c; fb = fc; } else { a = c; fa = fc; }
     }
     return { ok: true, root: (a + b) / 2, it: it, conv: false, why: 'maxIter' };
   }
 
-  function mNewton(f, df, x0, tol) {
+  function mNewton(f, df, x0, tol, floor) {
     var x = x0, it = [];
     for (var k = 0; k < MAXIT; k++) {
       var fx = f(x), d = df(x);
@@ -1221,14 +1307,14 @@
       if (Math.abs(fx) < tol) return { ok: true, root: x, it: it, conv: true };
       if (Math.abs(d) < 1e-14) return { ok: false, it: it, why: 'flatDeriv' };
       var nx = x - fx / d;
-      if (nx <= -1) nx = (x - 1) / 2;                 // keep 1+r positive
+      if (nx <= floor) nx = (x + floor) / 2;          // stay inside the usable domain
       if (!isFinite(nx)) return { ok: false, it: it, why: 'diverged' };
       x = nx;
     }
     return { ok: true, root: x, it: it, conv: false, why: 'maxIter' };
   }
 
-  function mSecant(f, x0, x1, tol) {
+  function mSecant(f, x0, x1, tol, floor) {
     var a = x0, b = x1, fa = f(a), fb = f(b), it = [];
     for (var k = 0; k < MAXIT; k++) {
       it.push({ k: k + 1, x: b, fx: fb, extra: Math.abs(b - a) });
@@ -1236,7 +1322,7 @@
       if (Math.abs(fb) < tol) return { ok: true, root: b, it: it, conv: true };
       if (Math.abs(fb - fa) < 1e-16) return { ok: false, it: it, why: 'flatSecant' };
       var c = b - fb * (b - a) / (fb - fa);
-      if (c <= -1) c = (b - 1) / 2;
+      if (c <= floor) c = (b + floor) / 2;
       if (!isFinite(c)) return { ok: false, it: it, why: 'diverged' };
       a = b; fa = fb; b = c; fb = f(c);
     }
@@ -1250,7 +1336,8 @@
     var c = a, fc = fa, d = b - a, e = d, mflag = true, s = b, fs = fb, step = 'init';
     for (var k = 0; k < MAXIT; k++) {
       it.push({ k: k + 1, x: b, fx: fb, extra: step });
-      if (Math.abs(fb) < tol || Math.abs(b - a) < 1e-15) return { ok: true, root: b, it: it, conv: true };
+      if (Math.abs(fb) < tol) return { ok: true, root: b, it: it, conv: true };
+      if (Math.abs(b - a) < 1e-15) return { ok: false, it: it, why: 'pole' };
       if (fa !== fc && fb !== fc) {
         s = a * fb * fc / ((fa - fb) * (fa - fc))
           + b * fa * fc / ((fb - fa) * (fb - fc))
@@ -1290,17 +1377,18 @@
     if (!ser) return { ok: false, why: 'needTarget' };
     var any = ser.some(function (x) { return x.amt; });
     if (!any) return { ok: false, why: 'empty' };
-    var f = function (r) { return seriesPV(ser, r); };
-    var df = function (r) { return seriesDeriv(ser, r); };
+    var f = function (r) { return seriesPV(ser, r, inp.simple); };
+    var df = function (r) { return seriesDeriv(ser, r, inp.simple); };
     var tol = inp.tol;
 
-    var br = findBracket(f);
-    var res = {}, t0, seed = 0.08;
+    var floor = rateFloor(ser, inp.simple);
+    var br = findBracket(f, floor);
+    var res = {}, t0, seed = Math.max(0.08, floor + 0.05);
 
     t0 = performance.now();
-    res.newton = mNewton(f, df, seed, tol); res.newton.ms = performance.now() - t0;
+    res.newton = mNewton(f, df, seed, tol, floor); res.newton.ms = performance.now() - t0;
     t0 = performance.now();
-    res.secant = mSecant(f, seed, seed + 0.05, tol); res.secant.ms = performance.now() - t0;
+    res.secant = mSecant(f, seed, seed + 0.05, tol, floor); res.secant.ms = performance.now() - t0;
     if (br) {
       t0 = performance.now();
       res.bisect = mBisection(f, br, tol); res.bisect.ms = performance.now() - t0;
@@ -1314,6 +1402,10 @@
     // The answer is the converged root the most methods agree on; prefer
     // Brent, then Newton, then secant, then bisection.
     var order = ['brent', 'newton', 'secant', 'bisect'], root = null, from = null;
+    order.forEach(function (k2) {
+      var m2 = res[k2];
+      if (m2 && m2.ok && m2.root <= floor) { m2.ok = false; m2.conv = false; m2.why = 'pole'; }
+    });
     for (var k = 0; k < order.length; k++) {
       var m = res[order[k]];
       if (m && m.ok && m.conv) { root = m.root; from = order[k]; break; }
@@ -1425,9 +1517,14 @@
       }
     };
   }
-  // (1 + r)^k  — the growth factor, set the way a textbook sets it.
-  function mGrowth(rTxt, k, fs) {
+  // The growth factor, set the way a textbook sets it: (1 + r)^k when interest
+  // compounds, (1 + r × k) when it does not.
+  function mGrowth(rTxt, k, fs, simple) {
     fs = fs || 13;
+    if (simple) {
+      return mParen(mRow([mT('1', { fs: fs }), mT('+', { fs: fs }), mT(rTxt, { fs: fs }),
+                          mT('×', { fs: fs }), mT(String(k), { fs: fs })], 3), fs);
+    }
     var inner = mRow([mT('1', { fs: fs }), mT('+', { fs: fs }), mT(rTxt, { fs: fs })], 3);
     return mSup(mParen(inner, fs), mT(String(k), { fs: fs * 0.72 }));
   }
@@ -1509,9 +1606,9 @@
         f = mRow([mT(amtTxt, { fs: 12.5, weight: 600 }), mT('×', { fs: 12.5 }),
                   mT(String(sg.count) + (S.lang === 'th' ? ' งวด' : ' periods'), { fs: 12.5, fill: '#6e6e73' })], 4);
       } else if (D.mode === 'fv') {
-        f = mRow([mT(amtTxt, { fs: 12.5, weight: 600 }), mT('×', { fs: 12.5 }), mGrowth(rTxt, focal - sg.from, 12.5)], 4);
+        f = mRow([mT(amtTxt, { fs: 12.5, weight: 600 }), mT('×', { fs: 12.5 }), mGrowth(rTxt, focal - sg.from, 12.5, D.simple)], 4);
       } else {
-        f = mRow([mT(amtTxt, { fs: 12.5, weight: 600 }), mT('÷', { fs: 12.5 }), mGrowth(rTxt, sg.from - focal, 12.5)], 4);
+        f = mRow([mT(amtTxt, { fs: 12.5, weight: 600 }), mT('÷', { fs: 12.5 }), mGrowth(rTxt, sg.from - focal, 12.5, D.simple)], 4);
       }
       var fw = f.w;
       var fx = (toFocal > 0) ? Math.max(xs + 10, xF - 14 - fw) : xF + 14;
@@ -1590,8 +1687,8 @@
       var amtTxt = fmtShort(Math.abs(sg.amt));
       var f;
       if (sg.grouped) f = mRow([mT(amtTxt, { fs: 12, weight: 600, fill: col }), mT('×', { fs: 12 }), mT(String(sg.count), { fs: 12, fill: '#6e6e73' })], 3);
-      else if (D.mode === 'fv') f = mRow([mT(amtTxt, { fs: 12, weight: 600, fill: col }), mT('×', { fs: 12 }), mGrowth(rTxt, focal - sg.from, 12)], 3);
-      else f = mRow([mT(amtTxt, { fs: 12, weight: 600, fill: col }), mT('÷', { fs: 12 }), mGrowth(rTxt, sg.from - focal, 12)], 3);
+      else if (D.mode === 'fv') f = mRow([mT(amtTxt, { fs: 12, weight: 600, fill: col }), mT('×', { fs: 12 }), mGrowth(rTxt, focal - sg.from, 12, D.simple)], 3);
+      else f = mRow([mT(amtTxt, { fs: 12, weight: 600, fill: col }), mT('÷', { fs: 12 }), mGrowth(rTxt, sg.from - focal, 12, D.simple)], 3);
       s += mTerm(f, sg.id).draw(spineX + 34, y + 3);
       s += '<text x="' + (W - 8) + '" y="' + (y + 19) + '" font-size="12" font-weight="700" text-anchor="end" fill="' + col
          + '" style="font-variant-numeric:tabular-nums">= ' + esc(fmt(Math.abs(sg.value))) + '</text>';
@@ -1757,7 +1854,7 @@
       for (var t = sg.from; t <= sg.to; t++) {
         var a = series[t] ? series[t].amt : 0;
         if (!a) continue;
-        v += mode === 'fv' ? a * Math.pow(1 + r, focal - t) : a * Math.pow(1 + r, -(t - focal));
+        v += a * factorAt(r, mode === 'fv' ? focal - t : t - focal, inp.simple, mode);
       }
       return v;
     }
@@ -1783,7 +1880,7 @@
       + '</th></tr></thead><tbody>';
     R.segs.forEach(function (sg) {
       var k = R.mode === 'fv' ? (R.focal - sg.from) : (sg.from - R.focal);
-      var factor = Math.pow(1 + R.r, R.mode === 'fv' ? k : -k);
+      var factor = factorAt(R.r, k, R.inp.simple, R.mode);
       h += '<tr class="term" data-term="' + esc(sg.id) + '">'
         + '<td>' + (sg.grouped ? sg.from + '–' + sg.to + ' <span class="muted">(×' + sg.count + ')</span>' : sg.from) + '</td>'
         + '<td class="num ' + (sg.amt >= 0 ? 'pos' : 'neg') + '">' + esc(fmt(sg.amt)) + '</td>'
@@ -1938,6 +2035,11 @@
     document.querySelectorAll('#scenarioToggle .mode-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.scenario === T.scenario); });
     document.querySelectorAll('#presetToggle .mode-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.preset === T.preset); });
     document.querySelectorAll('#timingToggle .mode-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.timing === T.timing); });
+    document.querySelectorAll('#interestToggle .mode-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.interest === T.interest); });
+    $('interestNote').textContent = T.interest === 'simple'
+      ? (th ? 'ดอกเบี้ยคิดจากเงินต้นเท่านั้น เงินก้อนหนึ่งที่ทิ้งไว้ k งวดโตเป็น (1 + r×k) ไม่ใช่ (1+r)^k — ใช้กับดอกเบี้ยตามกฎหมายและดอกเบี้ยผิดนัด สำหรับเงินก้อนเดียว ความถี่ทบต้นจะไม่มีผลต่อคำตอบอีกต่อไป เหลือหน้าที่กำหนดจังหวะงวดเท่านั้น'
+             : 'Interest is earned on the principal only: an amount left for k periods grows by (1 + r×k), not (1+r)^k. This is how Thai statutory and default interest works. For a single amount the compounding frequency no longer changes the answer — it only sets the payment grid.')
+      : (th ? 'ดอกเบี้ยงวดก่อนถูกนำไปทบเป็นเงินต้นของงวดถัดไป' : 'Interest earned in one period becomes principal for the next.');
 
     // Field values
     if (document.activeElement !== $('fPV')) $('fPV').value = T.pv;
@@ -1984,8 +2086,16 @@
     $('perRateAuto').textContent = isFinite(inp.rAuto) ? fmtRate(inp.rAuto) : '—';
     $('rateDerived').classList.toggle('changed', inp.rOverridden);
     $('totPeriodsVal').textContent = isFinite(inp.N) ? inp.N.toLocaleString('en-US') + (th ? ' งวด' : '') : '—';
-    var ear = Math.pow(1 + inp.r, inp.m) - 1;
-    $('earVal').textContent = isFinite(ear) ? fmtRate(ear) : '—';
+    if (inp.simple) {
+      // Nothing compounds, so there is no effective annual rate to quote —
+      // the nominal rate is the whole story.
+      $('earLabel').textContent = th ? 'ดอกเบี้ยรวมตลอดอายุ' : 'Total interest factor';
+      $('earVal').textContent = isFinite(inp.r) ? fmtRate(inp.r * inp.N) : '—';
+    } else {
+      var ear = Math.pow(1 + inp.r, inp.m) - 1;
+      $('earLabel').textContent = th ? 'อัตราผลตอบแทนที่แท้จริงต่อปี' : 'Effective annual rate';
+      $('earVal').textContent = isFinite(ear) ? fmtRate(ear) : '—';
+    }
     $('rateWarn').innerHTML = inp.rOverridden
       ? '<div class="callout amber">' + (th
           ? 'ใช้อัตราต่องวดที่กำหนดเอง <strong>' + esc(fmtRate(inp.r)) + '</strong> แทนค่าอัตโนมัติ i ÷ m'
@@ -2043,7 +2153,7 @@
     var box2;
     if (inp.tab === 'npv') {
       box2 = { label: th ? 'คำแนะนำเบื้องต้น' : 'Reading',
-               value: sv.field === 'npv' ? (sv.value >= 0 ? (th ? 'คุ้มค่า' : 'Accept') : (th ? 'ไม่คุ้มค่า' : 'Reject')) : fmt(seriesPV(R.series, R.r)),
+               value: sv.field === 'npv' ? (sv.value >= 0 ? (th ? 'คุ้มค่า' : 'Accept') : (th ? 'ไม่คุ้มค่า' : 'Reject')) : fmt(seriesPV(R.series, R.r, R.inp.simple)),
                sub: sv.field === 'npv'
                  ? (th ? 'NPV ' + (sv.value >= 0 ? 'ไม่ติดลบ' : 'ติดลบ') + ' ที่อัตราคิดลด ' + fmtRate(R.r) + ' — เป็นการอ่านค่าทางเลขคณิต ไม่ใช่คำแนะนำการลงทุน'
                         : 'NPV is ' + (sv.value >= 0 ? 'not negative' : 'negative') + ' at a ' + fmtRate(R.r) + ' discount rate. This is arithmetic, not investment advice.')
@@ -2077,7 +2187,7 @@
     // ── diagram ───────────────────────────────────────────────────────────
     var narrow = window.matchMedia('(max-width: 620px)').matches;
     var D = { segs: R.segs, N: R.N, focal: R.focal, r: R.r, rTxt: R.rTxt, mode: R.mode,
-              total: R.total, totalLabel: R.totalLabel };
+              simple: inp.simple, total: R.total, totalLabel: R.totalLabel };
     $('diagram').innerHTML = R.segs.length ? (narrow ? diagramV(D) : diagramH(D)) : '';
     $('termsTable').innerHTML = termsTableHTML(R);
     $('termsNote').textContent = R.segs.length
@@ -2095,7 +2205,7 @@
     if (selTerm) applySel(selTerm);
 
     // ── amortisation ──────────────────────────────────────────────────────
-    var am = (inp.tab === 'pmt' && inp.preset !== 'save') ? amortTableHTML(R) : null;
+    var am = (inp.tab === 'pmt' && inp.preset !== 'save' && !inp.simple) ? amortTableHTML(R) : null;
     show($('amortDetails'), !!am);
     if (am) {
       $('amortTable').innerHTML = am.html;
@@ -2144,7 +2254,8 @@
                   diverged: th ? 'ลู่ออก' : 'diverged',
                   flatDeriv: th ? 'อนุพันธ์แบนเกินไป' : 'derivative went flat',
                   flatSecant: th ? 'สองจุดใกล้กันเกินไป' : 'the two points collapsed',
-                  noBracket: th ? 'หาช่วงคร่อมรากไม่ได้' : 'no sign change to bracket' }[m.why] || '';
+                  noBracket: th ? 'หาช่วงคร่อมรากไม่ได้' : 'no sign change to bracket',
+                  pole: th ? 'ไปเจอจุดอนันต์ ไม่ใช่ราก' : 'ran into a pole, not a root' }[m.why] || '';
       html += '<div class="method-card' + (isBest ? ' best' : '') + (m.ok ? '' : ' failed') + '">'
         + '<div class="method-head"><span class="method-dot" style="background:' + M.color + '"></span>'
         + '<span class="method-name">' + esc(th ? M.nameTh : M.name) + '</span>'
@@ -2193,6 +2304,7 @@
       '<li>NPV: <code>Σ CF_t ÷ (1+r)^t</code> โดยเงินลงทุนเริ่มต้นเป็นค่าลบที่งวด 0</li>',
       '<li>อัตราผลตอบแทน: รากของ <code>Σ CF_t ÷ (1+r)^t = 0</code></li>',
       '</ul>',
+      '<p><strong>ดอกเบี้ยไม่ทบต้น</strong> เมื่อปิดการทบต้น ตัวคูณทุกตัวจะกลายเป็นเชิงเส้น เงินที่ทิ้งไว้ k งวดมีค่า <code>1 + r·k</code> และเงินที่จะได้รับในอีก k งวดมีค่า <code>1 ÷ (1 + r·k)</code> เงินงวดเท่ากันจึงเป็น <code>Σ PMT(1 + r(N−t))</code> เมื่อทดไปข้างหน้า และ <code>Σ PMT ÷ (1 + r·t)</code> เมื่อคิดย้อนกลับ ซึ่งอย่างหลังไม่มีสูตรปิด เครื่องมือจึงรวมอนุกรมตรง ๆ และหาค่าที่ไม่ทราบด้วยความเป็นเชิงเส้นแทนการกลับตัวคูณ ผลที่ตามมาสองข้อ: สำหรับเงินก้อนเดียว ความถี่ทบต้นไม่มีผลต่อคำตอบอีกต่อไป (r·N = i·n ไม่ว่า m จะเป็นเท่าใด) และไม่มีอัตราผลตอบแทนที่แท้จริงต่อปีให้อ้าง ช่องนั้นจึงเปลี่ยนเป็นดอกเบี้ยรวมตลอดอายุ ส่วนตารางผ่อนชำระไม่แสดง เพราะการผ่อนแบบดอกเบี้ยคงที่เป็นสัญญาคนละแบบ ไม่ใช่รูปแปรของแบบนี้</p>',
       '<p><strong>ข้อตกลงเรื่องเครื่องหมาย</strong> แท็บ FV และ PV กรอกเป็นจำนวนบวกทั้งหมดและได้คำตอบเป็นบวก แบบเดียวกับตำรา เครื่องหมายบวกลบใช้เฉพาะที่มีสองทิศทางจริง ๆ คือแท็บ NPV และกระแสเงินสดที่กำหนดเอง ส่วนแท็บ PMT ใช้สมการสมดุลภายในตามที่ปุ่มสถานการณ์กำหนด แล้วรายงานผลเป็นค่าสัมบูรณ์</p>',
       '<p><strong>ยังไม่ได้คำนวณ</strong> ภาษี เงินเฟ้อ ค่าธรรมเนียม อัตราดอกเบี้ยลอยตัวหรือเปลี่ยนระหว่างทาง งวดที่ไม่เท่ากัน วันจริงตามปฏิทิน (day-count) การชำระก่อนกำหนด และกรณีที่ IRR มีหลายคำตอบ เครื่องมือนี้รายงานรากแรกที่พบเท่านั้น</p>'
     ] : [
@@ -2204,6 +2316,7 @@
       '<li>NPV: <code>Σ CF_t ÷ (1+r)^t</code>, with the initial investment as a negative flow at period 0</li>',
       '<li>Rate / IRR: the root of <code>Σ CF_t ÷ (1+r)^t = 0</code></li>',
       '</ul>',
+      '<p><strong>Simple interest.</strong> With compounding switched off, every factor above becomes linear: an amount left for k periods is worth <code>1 + r·k</code>, and an amount due in k periods is worth <code>1 ÷ (1 + r·k)</code>. A level annuity is then <code>Σ PMT(1 + r(N−t))</code> going forward and <code>Σ PMT ÷ (1 + r·t)</code> coming back — the second has no closed form, so the tool sums the series and solves the unknown by linearity rather than by inverting a factor. Two consequences worth knowing: for a single amount the compounding frequency stops affecting the answer (r·N = i·n whatever m is), and there is no effective annual rate to quote, so that readout becomes the total interest over the whole term. Amortisation is not offered, because paying a loan down on a simple-interest basis is a different instrument, not a variation of this one.</p>',
       '<p><strong>Sign convention.</strong> The FV and PV tabs take every amount as a positive magnitude and return a positive answer, the way a worked example in a textbook does. Signs appear only where the domain really has two directions — the NPV tab and custom series. The PMT tab uses the signed balance equation internally, with the signs set by the scenario button, and reports the answer as a magnitude.</p>',
       '<p><strong>Not modelled.</strong> Tax, inflation, fees, floating or stepped rates, unequal period lengths, real calendar day-count conventions, early repayment, and multiple IRRs — where a series has more than one root this tool reports the first one it brackets.</p>'
     ];
@@ -2230,7 +2343,8 @@
     R.segs.forEach(function (sg) {
       var k = R.mode === 'fv' ? (R.focal - sg.from) : (sg.from - R.focal);
       out.push('  ' + (sg.grouped ? sg.from + '–' + sg.to + ' (×' + sg.count + ')' : 't=' + sg.from)
-        + ': ' + fmt(sg.amt) + (sg.grouped ? '' : (R.mode === 'fv' ? ' × ' : ' ÷ ') + '(1+' + R.rTxt + ')^' + k)
+        + ': ' + fmt(sg.amt) + (sg.grouped ? '' : (R.mode === 'fv' ? ' × ' : ' ÷ ')
+            + (R.inp.simple ? '(1+' + R.rTxt + '×' + k + ')' : '(1+' + R.rTxt + ')^' + k))
         + ' = ' + fmt(sg.value));
     });
     out.push('  ' + R.totalLabel + ': ' + fmt(R.total));
@@ -2399,6 +2513,10 @@
   $('timingToggle').addEventListener('click', function (e) {
     var b = e.target.closest('.mode-btn'); if (!b) return;
     pull(); TS().timing = b.dataset.timing; selTerm = null; refresh();
+  });
+  $('interestToggle').addEventListener('click', function (e) {
+    var b = e.target.closest('.mode-btn'); if (!b) return;
+    pull(); TS().interest = b.dataset.interest; selTerm = null; refresh();
   });
   $('rateChips').addEventListener('click', function (e) {
     var c = e.target.closest('.chip'); if (!c) return;
