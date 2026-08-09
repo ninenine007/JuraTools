@@ -95,6 +95,7 @@ input.is-auto{background:#f8fafc;color:#64748b;}
 .plan-sum .bad{color:#b91c1c;font-weight:600;}
 
 /* ── Subscriber rows ─────────────────────────── */
+#subList{max-height:calc(100vh - 480px);overflow-y:auto;margin-bottom:8px;}
 .sub{border:1px solid var(--border);border-radius:11px;padding:12px 13px;background:#fcfdfe;margin-bottom:10px;
   border-left:3px solid #ddd6fe;}
 .subrow{display:grid;grid-template-columns:22px 1fr 1fr 118px 28px;gap:8px;align-items:center;}
@@ -465,7 +466,7 @@ function coSummary(){
 const ID_OPTS = [['both','บัตรประชาชน / พาสปอร์ต'], ['id','บัตรประชาชน'],
                  ['passport','หนังสือเดินทาง'], ['juristic','เลขทะเบียนนิติบุคคล']];
 function renderSubs(){
-  const typed = prefShares() > 0;
+  const typed = numOf(state.co.pref) > 0;
   document.getElementById('subList').innerHTML = state.subs.map((s, i) => `
     <div class="sub">
       <div class="subrow${typed ? ' typed' : ''}">
