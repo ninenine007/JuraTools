@@ -1799,17 +1799,33 @@ function shareWrite(){
   try{ localStorage.setItem(SHARE_KEY, JSON.stringify(pack)); return pack; }
   catch(_){ return null; }
 }
-/* Merging, never replacing: the other tool's directory is added to this one,
-   and a person already here by the same name is left alone. */
+/* Merging, never replacing — but down to the field, not the whole person.
+   A name already here used to be skipped outright, which threw away an
+   arriving record that knew the address or the identity number this book
+   was still missing. Blanks are filled; anything already typed here stands. */
+const PERSON_FIELDS = ['nameTh','nameEn','addrTh','addrEn','idType','idNo',
+                       'occTh','occEn','natTh','natEn'];
+function fillPerson(into, from){
+  let filled = 0;
+  PERSON_FIELDS.forEach(k => {
+    const v = from[k];
+    if(v == null || v === '') return;
+    /* 'both' is the default nobody chose, so it does not count as filled */
+    if(into[k] && !(k === 'idType' && into[k] === 'both')) return;
+    if(into[k] === v) return;
+    into[k] = v; filled++;
+  });
+  return filled;
+}
 function shareTake(pack){
-  if(!pack) return 0;
-  let added = 0;
+  if(!pack) return {added:0, filled:0};
+  let added = 0, filled = 0;
   (pack.people || []).forEach(p => {
     const th = personKey(p.nameTh), en = personKey(p.nameEn);
     if(!th && !en) return;
-    const known = state.people.some(x =>
+    const known = state.people.find(x =>
       (th && personKey(x.nameTh) === th) || (en && personKey(x.nameEn) === en));
-    if(known) return;
+    if(known){ if(fillPerson(known, p)) filled++; return; }
     state.people.push({...blankPerson(), ...p, id:'p' + uid()});
     added++;
   });
@@ -1820,8 +1836,11 @@ function shareTake(pack){
   if(!cc.regNo   && c.regNo)     cc.regNo = c.regNo;
   if(!cc.paidUp  && (c.par || c.paidUp)) cc.paidUp = c.par || c.paidUp;
   if(!cc.regShares && c.regShares) cc.regShares = groupDigits(String(c.regShares));
-  return added;
+  return {added, filled};
 }
+const tookLine = t => [t.added ? `เพิ่ม ${t.added} คน` : '',
+                       t.filled ? `เติมข้อมูล ${t.filled} คน` : ''
+                      ].filter(Boolean).join(' · ') || 'ไม่มีอะไรใหม่';
 const openTool = (tool, hash) => window.open(tool + hash, '_blank', 'noopener');
 
 /* Everything a transfer is, in the field names the other two tools already
@@ -3256,9 +3275,9 @@ document.addEventListener('click', e => {
   if(t.closest('#btnShareIn')){
     const pack = shareRead();
     if(!pack) return toast('ยังไม่มีข้อมูลที่ส่งมา');
-    const n = shareTake(pack);
+    const t = shareTake(pack);
     save(); render();
-    toast(`✓ รับจาก ${pack.from || 'เครื่องมืออื่น'} — เพิ่ม ${n} คน`);
+    toast(`✓ รับจาก ${pack.from || 'เครื่องมืออื่น'} — ${tookLine(t)}`);
     return;
   }
   if(t.closest('#btnGoCert')){ shareWrite(); openTool(CERT_TOOL, '#inbox=1'); return; }
@@ -3392,18 +3411,18 @@ function readHash(){
   let said = '';
   if(/^#inbox=1/.test(h)){
     const pack = shareRead();
-    if(pack){ said = `รับจาก ${pack.from || 'เครื่องมืออื่น'} — เพิ่ม ${shareTake(pack)} คน`; save(); }
+    if(pack){ said = `รับจาก ${pack.from || 'เครื่องมืออื่น'} — ${tookLine(shareTake(pack))}`; save(); }
   }
   const mi = /^#incorp=(.*)$/.exec(h);
   if(mi){
     try{
       const d = JSON.parse(decodeURIComponent(mi[1]));
-      const pack = shareRead();
-      if(pack) shareTake(pack);
       const c = d.co || {};
       /* the book the issue belongs in: the one already under that name,
          else this untouched book, else a new one — the certificate tool's
-         own rule for an arriving company */
+         own rule for an arriving company. This has to be settled before
+         anything is absorbed, or the arriving company is stamped onto
+         whichever book happened to be open. */
       const th = personKey(c.th || c.nameTh), en = personKey(c.en || c.nameEn);
       let b = state.books.find(x =>
         (th && personKey(x.co.nameTh) === th) || (en && personKey(x.co.nameEn) === en));
@@ -3414,6 +3433,20 @@ function readHash(){
         if(untouched) b = curB; else { b = blankBook(); state.books.push(b); }
       }
       state.activeBookId = b.id;
+      /* the subscribers travel in the link itself, so the register does not
+         depend on the shared slot having survived the trip; the slot is
+         still read, for anyone else already in the directory */
+      (Array.isArray(d.subs) ? d.subs : []).forEach(sub => {
+        const {shares, ...s} = sub;           /* the count belongs to the move, not the person */
+        if(!s.nameTh && !s.nameEn) return;
+        const k1 = personKey(s.nameTh), k2 = personKey(s.nameEn);
+        const known = state.people.find(x =>
+          (k1 && personKey(x.nameTh) === k1) || (k2 && personKey(x.nameEn) === k2));
+        if(known) fillPerson(known, s);
+        else state.people.push({...blankPerson(), ...s, id:'p' + uid()});
+      });
+      const pack = shareRead();
+      if(pack) shareTake(pack);
       const cc = co();
       if(!cc.nameTh && (c.th || c.nameTh)) cc.nameTh = c.th || c.nameTh;
       if(!cc.nameEn && (c.en || c.nameEn)) cc.nameEn = c.en || c.nameEn;

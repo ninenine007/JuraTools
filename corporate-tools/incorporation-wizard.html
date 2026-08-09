@@ -82,6 +82,21 @@ input.is-auto{background:#f8fafc;color:#64748b;}
 .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
 .field{margin-bottom:14px;}
 .field:last-child{margin-bottom:0;}
+
+/* ── The small field buttons the other three share tools give you ──
+   Same glyphs, same places, same behaviour: AA/aa/Aa recase an English
+   line, and (*) parks a value you do not have yet — it travels through to
+   the certificate and the register, which both highlight it. */
+.pair-row{display:flex;align-items:center;gap:6px;}
+.pair-row input{flex:1;min-width:0;}
+.casebar{flex:0 0 auto;display:inline-flex;gap:2px;}
+.mini{border:none;background:none;font-family:inherit;cursor:pointer;padding:4px 6px;border-radius:7px;
+  font-size:.74em;font-weight:700;color:#cbd5e1;line-height:1;flex-shrink:0;}
+.mini:hover{background:var(--hover-gray);color:#64748b;}
+.mini.up{font-size:.68em;letter-spacing:.02em;}
+.mini.up:hover{color:var(--primary);background:#eff6ff;}
+.mini.ph:hover{color:#a16207;background:#fefce8;}
+input.is-ph{background:#fefce8;border-color:#fcd34d;font-weight:600;color:#a16207;}
 .hintline{font-size:.75em;color:var(--muted);margin:5px 0 0;line-height:1.5;}
 .sect-note{font-size:.78em;color:var(--muted);margin:0 0 12px;line-height:1.55;}
 .reset-auto{border:none;background:none;font-family:inherit;font-size:.9em;font-weight:600;
@@ -95,15 +110,18 @@ input.is-auto{background:#f8fafc;color:#64748b;}
 .plan-sum .bad{color:#b91c1c;font-weight:600;}
 
 /* ── Subscriber rows ─────────────────────────── */
-#subList{max-height:calc(100vh - 480px);overflow-y:auto;margin-bottom:8px;}
-.sub{border:1px solid var(--border);border-radius:11px;padding:12px 13px 12px 42px;background:#fcfdfe;margin-bottom:10px;
+.sub{border:1px solid var(--border);border-radius:11px;padding:12px 13px 12px 40px;background:#fcfdfe;margin-bottom:10px;
   border-left:3px solid #ddd6fe;position:relative;}
 .subrow{display:grid;grid-template-columns:22px 1fr 1fr 118px 28px;gap:8px;align-items:center;}
 .subrow.typed{grid-template-columns:22px 1fr 1fr 108px 108px 28px;}
 .subno{font-size:.72em;font-weight:700;color:#94a3b8;text-align:right;}
-.sub-drag{position:absolute;top:16px;left:12px;border:none;background:none;color:#cbd5e1;cursor:grab;
-  font-size:.9em;line-height:1;padding:2px 4px;border-radius:6px;}
-.sub-drag:hover{background:#f1f5f9;color:#64748b;}
+/* order is not decoration here — certificate numbers run down the rows in
+   the order they sit in, so moving a row renumbers the issue */
+.sub-move{position:absolute;top:12px;left:10px;display:flex;flex-direction:column;gap:2px;}
+.sub-move button{border:none;background:none;color:#cbd5e1;cursor:pointer;font-size:.62em;
+  line-height:1;padding:2px 4px;border-radius:5px;font-family:inherit;}
+.sub-move button:hover:not(:disabled){background:#f1f5f9;color:#64748b;}
+.sub-move button:disabled{color:#eef2f7;cursor:default;}
 .sub-meta{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.74em;color:var(--muted);margin:8px 0 0 30px;
   font-variant-numeric:tabular-nums;}
 .sub-meta b{color:#475569;font-weight:600;}
@@ -153,8 +171,7 @@ input.is-auto{background:#f8fafc;color:#64748b;}
   .nav{padding-left:12px;padding-right:12px;}
   .grid2,.grid3{grid-template-columns:1fr;}
   .subrow,.subrow.typed{grid-template-columns:22px 1fr 28px;}
-  .subrow input[data-sf="nameEn"],.subrow select{grid-column:2;}
-  .subrow input[data-sf="shares"]{grid-column:2;}
+  .subrow > *:not(.subno):not([data-subdel]){grid-column:2;}
   .steps{flex-direction:column;}
 }
 </style>
@@ -200,11 +217,11 @@ input.is-auto{background:#f8fafc;color:#64748b;}
         <div class="field"><label>ชื่อบริษัท (ไทย)</label>
           <input type="text" data-co="nameTh" placeholder="บริษัท ตัวอย่าง จำกัด"></div>
         <div class="field"><label>ชื่อบริษัท (อังกฤษ) <span class="opt">— เว้นได้</span></label>
-          <input type="text" data-co="nameEn" placeholder="EXAMPLE CO., LTD."></div>
+          <div class="pair-row"><input type="text" data-co="nameEn" data-lang="en" placeholder="EXAMPLE CO., LTD."></div></div>
       </div>
       <div class="grid2">
         <div class="field"><label>เลขทะเบียนนิติบุคคล <span class="opt">— เว้นได้</span></label>
-          <input type="text" data-co="regNo" placeholder="0105566000000"></div>
+          <div class="pair-row"><input type="text" data-co="regNo" data-ph placeholder="0105566000000"></div></div>
         <div class="field"><label>วันที่จดทะเบียนบริษัท</label>
           <input type="date" data-co="date">
           <p class="hintline" id="beHint"></p></div>
@@ -305,6 +322,10 @@ input.is-auto{background:#f8fafc;color:#64748b;}
   </section>
 </div>
 
+<!-- the wording the firm's books reach for, same lists the register book offers -->
+<datalist id="occThList"></datalist><datalist id="occEnList"></datalist>
+<datalist id="natThList"></datalist><datalist id="natEnList"></datalist>
+
 <div id="toast"></div>
 
 <script>
@@ -377,6 +398,77 @@ function toast(msg){
   clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 2600);
 }
 
+/* ── The small field buttons, as the other three share tools do them ──
+   Title case lowercases first so a line typed in capitals can come back
+   from it, and only counts a letter after a non-letter as a word start —
+   CO., LTD. becomes Co., Ltd. and Int'l keeps its small l. The buttons
+   write into the field and fire the input event, so the state behind it
+   stores the result exactly as if it had been typed. */
+const CASE_FN = {
+  upper: s => s.toUpperCase(),
+  lower: s => s.toLowerCase(),
+  title: s => s.toLowerCase().replace(/(^|[^A-Za-z'’])([a-z])/g, (m, a, b) => a + b.toUpperCase())
+};
+const CASE_BTN = [['upper','AA','ตัวพิมพ์ใหญ่ทั้งบรรทัด'],
+                  ['lower','aa','ตัวพิมพ์เล็กทั้งบรรทัด'],
+                  ['title','Aa','ขึ้นต้นทุกคำด้วยตัวพิมพ์ใหญ่']];
+const caseBtns = () => CASE_BTN.map(([k, t, ti]) =>
+  `<button type="button" class="mini up" data-case="${k}" title="${ti}">${t}</button>`).join('');
+const PLACEHOLDER = '(*)';
+const isPlaceholder = v => String(v || '').trim() === PLACEHOLDER;
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-case]');
+  if(!b) return;
+  let el = b.parentElement && b.parentElement.classList.contains('casebar')
+    ? b.parentElement.previousElementSibling : b.previousElementSibling;
+  while(el && el.tagName !== 'INPUT') el = el.previousElementSibling;
+  if(!el) return;
+  el.value = CASE_FN[b.dataset.case](el.value);
+  el.dispatchEvent(new Event('input', {bubbles:true}));
+});
+
+/* Attached after every render, because the subscriber rows are rebuilt
+   whole — the guard keeps a second pass from doubling the buttons up. */
+function fieldButtons(){
+  document.querySelectorAll('.pair-row input').forEach(el => {
+    if(el.dataset.btns) return;
+    el.dataset.btns = '1';
+    el.classList.toggle('is-ph', isPlaceholder(el.value));
+    if(el.dataset.ph !== undefined){
+      const ph = document.createElement('button');
+      ph.type = 'button'; ph.className = 'mini ph'; ph.textContent = PLACEHOLDER;
+      ph.title = 'ยังไม่ทราบ — ใส่ (*) ไว้ก่อน เอกสารปลายทางจะไฮไลต์ให้';
+      ph.addEventListener('click', () => {
+        el.value = isPlaceholder(el.value) ? '' : PLACEHOLDER;
+        el.dispatchEvent(new Event('input', {bubbles:true}));
+        el.classList.toggle('is-ph', isPlaceholder(el.value));
+      });
+      el.after(ph);
+    }
+    if(el.dataset.lang === 'en'){
+      const box = document.createElement('span');
+      box.className = 'casebar';
+      box.innerHTML = caseBtns();
+      el.parentElement.appendChild(box);
+    }
+  });
+}
+
+/* the same suggestions the register book offers for these two fields */
+const OCC_LIST = [['นักธุรกิจ','Business Person'], ['ประกอบการค้า','Engage in business'],
+                  ['ค้าขาย','Engage in business'], ['รับจ้าง','Employee'], ['ธุรกิจส่วนตัว','Private business']];
+const NAT_LIST = [['ไทย','Thai'], ['สิงคโปร์','Singapore'], ['ญี่ปุ่น','Japanese'],
+                  ['จีน','Chinese'], ['อังกฤษ','British'], ['อเมริกัน','American']];
+function fillLists(){
+  const put = (id, vals) => {
+    const el = document.getElementById(id);
+    if(el) el.innerHTML = [...new Set(vals)].map(v => `<option value="${escHtml(v)}">`).join('');
+  };
+  put('occThList', OCC_LIST.map(x => x[0]));  put('occEnList', OCC_LIST.map(x => x[1]));
+  put('natThList', NAT_LIST.map(x => x[0]));  put('natEnList', NAT_LIST.map(x => x[1]));
+}
+
 /* ── Live thousands separators, caret kept in place ─────────────── */
 function groupInput(el){
   const before = el.value.slice(0, el.selectionStart).replace(/[^\d]/g,'').length;
@@ -402,7 +494,14 @@ function ordShares(){
   return t == null ? null : Math.max(0, t - (numOf(state.co.pref) || 0));
 }
 function prefShares(){ return numOf(state.co.pref) || 0; }
-const hasName = s => (s.nameTh || '').trim() || (s.nameEn || '').trim();
+/* a boolean, deliberately: the totals compare it against `shares > 0`, and a
+   bare string would never equal a boolean — every filled row would read as
+   half-filled and the step would never unlock */
+const hasName = s => !!((s.nameTh || '').trim() || (s.nameEn || '').trim());
+/* the type picker only exists while the company has preferred shares, so a
+   row left marked preferred from earlier must not keep counting as one —
+   there would be no control left on screen to correct it with */
+const isPref = s => prefShares() > 0 && s.type === 'preferred';
 
 /* certificate numbers and share ranges, run through the subscribers in
    order — the same arithmetic the register book's standard move uses */
@@ -430,15 +529,20 @@ function render(){
   if(state.step === 1) renderCo();
   if(state.step === 2) renderSubs();
   if(state.step === 3) renderReview();
+  fieldButtons();
 }
 
 function renderCo(){
   document.querySelectorAll('[data-co]').forEach(el => {
-    if(el === document.activeElement) return;
     const k = el.dataset.co;
-    el.value = k === 'ord' && state.co.ordAuto
-      ? (ordShares() == null ? '' : groupDigits(String(ordShares())))
-      : (state.co[k] == null ? '' : state.co[k]);
+    if(el !== document.activeElement){
+      el.value = k === 'ord' && state.co.ordAuto
+        ? (ordShares() == null ? '' : groupDigits(String(ordShares())))
+        : (state.co[k] == null ? '' : state.co[k]);
+    }
+    /* this step's markup is never rebuilt, so the highlight has to be
+       refreshed here rather than left to fieldButtons' one-time pass */
+    el.classList.toggle('is-ph', isPlaceholder(el.value));
   });
   const ordEl = document.querySelector('[data-co="ord"]');
   ordEl.classList.toggle('is-auto', state.co.ordAuto);
@@ -472,11 +576,14 @@ function renderSubs(){
   const typed = numOf(state.co.pref) > 0;
   document.getElementById('subList').innerHTML = state.subs.map((s, i) => `
     <div class="sub">
-      <button class="sub-drag" data-submv="${i}" title="เลื่อนลำดับ">⇅</button>
+      <span class="sub-move">
+        <button data-submv="${i}" data-dir="-1" title="เลื่อนขึ้น" ${i === 0 ? 'disabled' : ''}>▲</button>
+        <button data-submv="${i}" data-dir="1" title="เลื่อนลง" ${i === state.subs.length - 1 ? 'disabled' : ''}>▼</button>
+      </span>
       <div class="subrow${typed ? ' typed' : ''}">
         <span class="subno">${i+1}</span>
         <input type="text" data-sb="${i}" data-sf="nameTh" value="${escHtml(s.nameTh)}" placeholder="นายสมชาย ใจดี">
-        <input type="text" data-sb="${i}" data-sf="nameEn" value="${escHtml(s.nameEn)}" placeholder="MR. SOMCHAI JAIDEE">
+        <div class="pair-row"><input type="text" data-sb="${i}" data-sf="nameEn" data-lang="en" value="${escHtml(s.nameEn)}" placeholder="MR. SOMCHAI JAIDEE"></div>
         ${typed ? `<select data-sb="${i}" data-sf="type">
           <option value="ordinary" ${s.type !== 'preferred' ? 'selected' : ''}>สามัญ</option>
           <option value="preferred" ${s.type === 'preferred' ? 'selected' : ''}>บุริมสิทธิ</option>
@@ -490,27 +597,27 @@ function renderSubs(){
         ${s.open ? `<div class="sub-detail">
           <div class="grid2">
             <div class="field"><label>ที่อยู่ (ไทย)</label>
-              <input type="text" data-sb="${i}" data-sf="addrTh" value="${escHtml(s.addrTh)}" placeholder="99 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพมหานคร"></div>
+              <div class="pair-row"><input type="text" data-sb="${i}" data-sf="addrTh" data-ph value="${escHtml(s.addrTh)}" placeholder="99 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพมหานคร"></div></div>
             <div class="field"><label>ที่อยู่ (อังกฤษ)</label>
-              <input type="text" data-sb="${i}" data-sf="addrEn" value="${escHtml(s.addrEn)}" placeholder="99 Sukhumvit Road, Khlong Toei, Bangkok"></div>
+              <div class="pair-row"><input type="text" data-sb="${i}" data-sf="addrEn" data-lang="en" data-ph value="${escHtml(s.addrEn)}" placeholder="99 Sukhumvit Road, Khlong Toei, Bangkok"></div></div>
           </div>
           <div class="grid2">
             <div class="field"><label>ประเภทเลขประจำตัว</label>
               <select data-sb="${i}" data-sf="idType">${ID_OPTS.map(o =>
                 `<option value="${o[0]}" ${s.idType === o[0] ? 'selected' : ''}>${o[1]}</option>`).join('')}</select></div>
             <div class="field"><label>เลขประจำตัว</label>
-              <input type="text" data-sb="${i}" data-sf="idNo" value="${escHtml(s.idNo)}" placeholder="1101700200000"></div>
+              <div class="pair-row"><input type="text" data-sb="${i}" data-sf="idNo" data-ph value="${escHtml(s.idNo)}" placeholder="1101700200000"></div></div>
           </div>
           <div class="grid2">
             <div class="field"><label>อาชีวะ (ไทย · อังกฤษ)</label>
-              <div style="display:flex;gap:7px">
-                <input type="text" data-sb="${i}" data-sf="occTh" value="${escHtml(s.occTh)}" placeholder="นักธุรกิจ">
-                <input type="text" data-sb="${i}" data-sf="occEn" value="${escHtml(s.occEn)}" placeholder="Business Person">
+              <div class="pair-row">
+                <input type="text" data-sb="${i}" data-sf="occTh" list="occThList" value="${escHtml(s.occTh)}" placeholder="นักธุรกิจ">
+                <input type="text" data-sb="${i}" data-sf="occEn" data-lang="en" list="occEnList" value="${escHtml(s.occEn)}" placeholder="Business Person">
               </div></div>
             <div class="field"><label>สัญชาติ (ไทย · อังกฤษ)</label>
-              <div style="display:flex;gap:7px">
-                <input type="text" data-sb="${i}" data-sf="natTh" value="${escHtml(s.natTh)}" placeholder="ไทย">
-                <input type="text" data-sb="${i}" data-sf="natEn" value="${escHtml(s.natEn)}" placeholder="Thai">
+              <div class="pair-row">
+                <input type="text" data-sb="${i}" data-sf="natTh" list="natThList" value="${escHtml(s.natTh)}" placeholder="ไทย">
+                <input type="text" data-sb="${i}" data-sf="natEn" data-lang="en" list="natEnList" value="${escHtml(s.natEn)}" placeholder="Thai">
               </div></div>
           </div>
         </div>` : ''}
@@ -518,6 +625,7 @@ function renderSubs(){
     </div>`).join('');
   document.getElementById('subCount').textContent = state.subs.filter(hasName).length;
   renderSharePick();
+  fieldButtons();
   subMeta();
   subSummary();
 }
@@ -534,7 +642,7 @@ function subMeta(){
       ? `<span>ใบหุ้นเลขที่ <b>${a.certNo}</b></span>
          <span>หุ้นหมายเลข <b>${groupDigits(String(a.from))}–${groupDigits(String(a.to))}</b></span>
          <span>มูลค่า <b>฿${groupDigits(String(a.value))}</b></span>
-         ${a.type === 'preferred' ? '<span><b>บุริมสิทธิ</b></span>' : ''}`
+         ${isPref(a) ? '<span><b>บุริมสิทธิ</b></span>' : ''}`
       : '';
   });
 }
@@ -545,7 +653,7 @@ function subTotals(){
     const named = hasName(s);
     if(named !== (n > 0)) incomplete = true;
     if(!named) return;
-    if(s.type === 'preferred') pref += n; else ord += n;
+    if(isPref(s)) pref += n; else ord += n;
   });
   return {ord, pref, incomplete, any: state.subs.some(s => hasName(s) && numOf(s.shares) > 0)};
 }
@@ -617,7 +725,7 @@ function renderReview(){
   const alloc = allocation().filter(a => hasName(a) && a.shares > 0);
   document.getElementById('revCerts').innerHTML = alloc.map(a =>
     `<div class="rev-row"><span class="k">ใบหุ้นเลขที่ ${a.certNo} · ${escHtml(a.nameTh || a.nameEn)}</span>
-     <span class="v">${groupDigits(String(a.shares))} หุ้น${a.type === 'preferred' ? ' (บุริมสิทธิ)' : ''} · ${groupDigits(String(a.from))}–${groupDigits(String(a.to))}</span></div>`).join('') ||
+     <span class="v">${groupDigits(String(a.shares))} หุ้น${isPref(a) ? ' (บุริมสิทธิ)' : ''} · ${groupDigits(String(a.from))}–${groupDigits(String(a.to))}</span></div>`).join('') ||
     '<p class="sect-note" style="margin:0">ยังไม่มีผู้จองซื้อหุ้น</p>';
 }
 
@@ -663,9 +771,13 @@ document.getElementById('btnGoCert').addEventListener('click', () => {
     co:{th:c.nameTh, en:c.nameEn, par:plainNum(c.par), regShares:String(totalShares() || ''),
         ord:String(ordShares() || ''), pref:prefShares() ? String(prefShares()) : ''},
     date:c.date, pad:'',
+    /* each certificate carries its holder whole, so the register's directory
+       ends up knowing everything the wizard was told */
     certs: alloc.map(a => ({no:String(a.certNo), nameTh:a.nameTh, nameEn:a.nameEn,
-      addrTh:a.addrTh, addrEn:a.addrEn, count:String(a.shares),
-      from:String(a.from), to:String(a.to), type:a.type}))})));
+      addrTh:a.addrTh, addrEn:a.addrEn, idType:a.idType, idNo:a.idNo,
+      occTh:a.occTh, occEn:a.occEn, natTh:a.natTh, natEn:a.natEn,
+      count:String(a.shares), from:String(a.from), to:String(a.to),
+      type: isPref(a) ? 'preferred' : 'ordinary'}))})));
   toast('✓ เปิดเครื่องมือใบหุ้นแล้ว — ใบหุ้นทั้งชุดถูกสร้างให้ทันที');
 });
 
@@ -677,7 +789,11 @@ document.getElementById('btnGoReg').addEventListener('click', () => {
   openTool(REG_TOOL, '#incorp=' + encodeURIComponent(JSON.stringify({
     co:{th:c.nameTh, en:c.nameEn, regNo:c.regNo, par:plainNum(c.par), regShares:String(totalShares() || '')},
     date:c.date, firstCert:plainNum(c.firstCert) || '1', firstShare:plainNum(c.firstShare) || '1',
-    subs: subs.map(s => ({nameTh:s.nameTh, nameEn:s.nameEn, shares:String(numOf(s.shares))}))})));
+    /* the whole person, not just the name — the register writes a page per
+       subscriber and needs every field to fill it */
+    subs: subs.map(s => ({nameTh:s.nameTh, nameEn:s.nameEn, shares:String(numOf(s.shares)),
+      addrTh:s.addrTh, addrEn:s.addrEn, idType:s.idType, idNo:s.idNo,
+      occTh:s.occTh, occEn:s.occEn, natTh:s.natTh, natEn:s.natEn}))})));
   toast('✓ เปิดสมุดทะเบียนแล้ว — ตรวจใน “ท่ามาตรฐาน” แล้วกดลงในสมุดทะเบียน');
 });
 
@@ -768,23 +884,17 @@ document.addEventListener('click', e => {
     if(row){ row.open = !row.open; save(); renderSubs(); } return; }
   const mv = e.target.closest('[data-submv]');
   if(mv){
-    const i = +mv.dataset.submv;
-    const dir = prompt('เลื่อนไปไหน?\nพิมพ์ "up" หรือ "u" เพื่อเลื่อนขึ้น\nพิมพ์ "down" หรือ "d" เพื่อเลื่อนลง', '');
-    if(!dir) return;
-    const isUp = dir.toLowerCase().startsWith('u');
-    const j = isUp ? i - 1 : i + 1;
-    if(j >= 0 && j < state.subs.length){
-      [state.subs[i], state.subs[j]] = [state.subs[j], state.subs[i]];
-      save(); renderSubs();
-    } else {
-      toast(isUp ? '✗ อยู่แถวบนสุดแล้ว' : '✗ อยู่แถวล่างสุดแล้ว');
-    }
+    const i = +mv.dataset.submv, j = i + (+mv.dataset.dir);
+    if(j < 0 || j >= state.subs.length) return;
+    [state.subs[i], state.subs[j]] = [state.subs[j], state.subs[i]];
+    save(); renderSubs();
     return;
   }
   if(e.target.closest('#btnSubAdd')){ state.subs.push(blankSub()); save(); renderSubs(); }
 });
 
 load();
+fillLists();
 render();
 </script>
 </body>

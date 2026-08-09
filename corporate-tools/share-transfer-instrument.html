@@ -1549,6 +1549,36 @@ const SHARE_KEY = 'jt-corp-share';
 const REG_TOOL  = 'share-register-book.html';
 const pKey = v => String(v || '').trim().toLowerCase();
 
+/* One shape for a person across all four corporate tools. This instrument
+   only ever prints a name and an address, but it keeps — and passes on —
+   every field the share register book asks for as well, so a party who
+   travels through here is not stripped of their identity number,
+   occupation and nationality on the way. */
+const PERSON_FIELDS = ['nameTh','nameEn','addrTh','addrEn','idType','idNo',
+                       'occTh','occEn','natTh','natEn'];
+const personId = () => 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+function blankPerson(){
+  return {id:personId(), nameTh:'', nameEn:'', addrTh:'', addrEn:'',
+          idType:'both', idNo:'', occTh:'', occEn:'', natTh:'', natEn:''};
+}
+/* Anything not in the list above is carried along untouched, so a field one
+   of the other tools grows later still survives the round trip. */
+const takePerson = p => ({...blankPerson(), ...p, id:personId()});
+/* Filling blanks, never overwriting: what is typed in this directory is the
+   lawyer's own, and an arriving copy must not quietly replace it. */
+function fillPerson(into, from){
+  let filled = 0;
+  PERSON_FIELDS.forEach(k => {
+    const v = from[k];
+    if(v == null || v === '') return;
+    /* 'both' is the default nobody chose, so it does not count as filled */
+    if(into[k] && !(k === 'idType' && into[k] === 'both')) return;
+    if(into[k] === v) return;
+    into[k] = v; filled++;
+  });
+  return filled;
+}
+
 function shareRead(){
   try{ const raw = localStorage.getItem(SHARE_KEY); return raw ? JSON.parse(raw) : null; }
   catch(_){ return null; }
@@ -1556,29 +1586,36 @@ function shareRead(){
 function shareWrite(){
   const t = cur();
   const pack = {v:1, at:new Date().toISOString(), from:'ตราสารการโอนหุ้น',
-    co:{th:t.co.th, en:t.co.en, nameTh:t.co.th, nameEn:t.co.en, par:t.sh.par},
-    people: state.parties.map(p => ({nameTh:p.nameTh || '', nameEn:p.nameEn || '',
-                                     addrTh:p.addrTh || '', addrEn:p.addrEn || ''}))};
+    co:{th:t.co.th, en:t.co.en, nameTh:t.co.th, nameEn:t.co.en, par:t.sh.par, paidUp:t.sh.par},
+    /* the whole record, not the four fields this tool happens to print */
+    people: state.parties.map(({id, ...rest}) => rest)};
   try{ localStorage.setItem(SHARE_KEY, JSON.stringify(pack)); return pack; }
   catch(_){ return null; }
 }
+/* A name already here is filled in rather than skipped — the arriving copy
+   may know an address or an identity number this directory never had, and
+   dropping the whole record for the sake of the name loses all of it. */
 function shareTake(pack){
-  if(!pack) return 0;
-  let added = 0;
+  if(!pack) return {added:0, filled:0};
+  let added = 0, filled = 0;
   (pack.people || []).forEach(p => {
     const th = pKey(p.nameTh), en = pKey(p.nameEn);
     if(!th && !en) return;
-    if(state.parties.some(x => (th && pKey(x.nameTh) === th) || (en && pKey(x.nameEn) === en))) return;
-    state.parties.push({id:'p'+Date.now()+Math.random().toString(36).slice(2,6),
-      nameTh:p.nameTh || '', nameEn:p.nameEn || '', addrTh:p.addrTh || '', addrEn:p.addrEn || ''});
+    const known = state.parties.find(x =>
+      (th && pKey(x.nameTh) === th) || (en && pKey(x.nameEn) === en));
+    if(known){ if(fillPerson(known, p)) filled++; return; }
+    state.parties.push(takePerson(p));
     added++;
   });
   const c = pack.co || {}, t = cur();
   if(!t.co.th && (c.nameTh || c.th)) t.co.th = c.nameTh || c.th;
   if(!t.co.en && (c.nameEn || c.en)) t.co.en = c.nameEn || c.en;
   if(!t.sh.par && (c.par || c.paidUp)) t.sh.par = c.par || c.paidUp;
-  return added;
+  return {added, filled};
 }
+const tookLine = t => [t.added ? `เพิ่ม ${t.added} คน` : '',
+                       t.filled ? `เติมข้อมูล ${t.filled} คน` : ''
+                      ].filter(Boolean).join(' · ') || 'ไม่มีอะไรใหม่';
 function renderShareState(){
   const el = document.getElementById('shareState');
   if(!el) return;
@@ -1594,8 +1631,8 @@ document.getElementById('btnShareOut').addEventListener('click', ()=>{
 document.getElementById('btnShareIn').addEventListener('click', ()=>{
   const pack = shareRead();
   if(!pack){ toast('ยังไม่มีข้อมูลที่ส่งมา'); return; }
-  const n = shareTake(pack); save(); render();
-  toast(`✓ รับจาก ${pack.from || 'เครื่องมืออื่น'} — เพิ่ม ${n} คน`);
+  const t = shareTake(pack); save(); render();
+  toast(`✓ รับจาก ${pack.from || 'เครื่องมืออื่น'} — ${tookLine(t)}`);
 });
 document.getElementById('btnGoReg').addEventListener('click', ()=>{
   shareWrite(); window.open(REG_TOOL + '#inbox=1', '_blank', 'noopener');
@@ -1661,7 +1698,7 @@ document.getElementById('pfSave').addEventListener('click', ()=>{
                addrTh:pfAddrTh.value.trim(), addrEn:pfAddrEn.value.trim()};
   if(!rec.nameTh && !rec.nameEn){ toast('Give the party a name first'); return; }
   if(editingParty){ Object.assign(state.parties.find(p=>p.id===editingParty), rec); }
-  else{ state.parties.push({id:'p'+Date.now()+Math.random().toString(36).slice(2,6), ...rec}); }
+  else{ state.parties.push({...blankPerson(), ...rec}); }
   partyForm.hidden = true; editingParty = null; save(); render();
   toast('✓ Party saved');
 });
@@ -1697,7 +1734,7 @@ function captureParty(role){
   }
   else rec = {nameTh:t[role].nameTh, nameEn:t[role].nameEn, addrTh:t[role].addrTh, addrEn:t[role].addrEn};
   if(!rec.nameTh && !rec.nameEn){ toast('Nothing to save — fill the name first'); return; }
-  state.parties.push({id:'p'+Date.now()+Math.random().toString(36).slice(2,6), ...rec});
+  state.parties.push({...blankPerson(), ...rec});
   save(); render(); toast('✓ Added to the person directory');
 }
 const PICKERS = [['pickCo','co'],['pickTfr','tfr'],['pickTfe','tfe'],
@@ -2128,9 +2165,9 @@ function importHandoff(){
   /* `#inbox=1` says the shared slot holds a directory meant for this tool */
   if(/^#inbox=1/.test(location.hash || '')){
     const pack = shareRead();
-    const n = pack ? shareTake(pack) : 0;
+    const t = pack ? shareTake(pack) : null;
     history.replaceState(null, '', location.pathname + location.search);
-    if(pack){ save(); return `จาก ${pack.from || 'เครื่องมืออื่น'} — เพิ่ม ${n} คน`; }
+    if(pack){ save(); return `จาก ${pack.from || 'เครื่องมืออื่น'} — ${tookLine(t)}`; }
     return '';
   }
   const m = /^#xfer=(.*)$/.exec(location.hash || '');
