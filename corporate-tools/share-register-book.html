@@ -847,11 +847,11 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em;bac
         <button class="sheet-x" data-close="pasteScrim" title="ปิด (Esc)">✕</button>
       </div>
       <div class="card-bd">
-        <p class="sect-note">วางจาก Excel, Google Sheets หรือจากบทสนทนากับ AI ได้ตรง ๆ — คั่นด้วย Tab หรือ
-          จุลภาคก็ได้ ต้องมีแถวหัวตารางเป็นบรรทัดแรก ชื่อคอลัมน์ตรงกับแม่แบบ Excel
-          (กด “คัดลอกหัวตาราง” แล้วส่งให้ AI ใช้เป็นแบบได้)</p>
+        <p class="sect-note">วางจาก Excel, Google Sheets หรือจากบทสนทนากับ AI ได้ตรง ๆ — คั่นด้วย Tab
+          จุลภาค หรือตาราง Markdown ก็ได้ ต้องมีแถวหัวตารางเป็นบรรทัดแรก ชื่อคอลัมน์ตรงกับแม่แบบ Excel
+          (จะให้ AI ช่วยจัดข้อมูลให้ ให้กด “คัดลอกคำสั่งสำหรับ AI” แล้ววางในบทสนทนาพร้อมข้อมูลดิบ)</p>
         <div class="btn-row" style="margin-bottom:10px">
-          <button class="btn btn-ghost btn-sm" id="btnCopyHeader">⧉ คัดลอกหัวตาราง</button>
+          <button class="btn btn-ghost btn-sm" id="btnCopyHeader">⧉ คัดลอกคำสั่งสำหรับ AI</button>
         </div>
         <textarea id="pasteBox" rows="12" spellcheck="false"
           style="width:100%;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78em;white-space:pre"
@@ -1995,6 +1995,51 @@ const XLSX_E_COLS = [
                             (e,v) => e.out.descEn = v]
 ];
 const XLSX_COLS = ['Page'].concat(XLSX_H_COLS.map(c => c[0]), XLSX_E_COLS.map(c => c[0]));
+
+/* What to hand an assistant that is being asked to draft the table. The column
+   names alone are not enough: nothing in them says that a line is a movement
+   rather than a person, and left to itself an assistant writes a Markdown table
+   with a person per row. The example line is generated from the real column
+   list, so it cannot drift out of step with the header above it. */
+function aiBrief(){
+  const eg = {};
+  const put = (k, v) => { eg[k] = v; };
+  put('Page', '1');
+  put('Shareholder (Thai)', 'นายสมชาย ใจดี');
+  put('Shareholder (English)', 'Mr. Somchai Jaidee');
+  put('ID type (id/passport/juristic/both)', 'id');
+  put('ID no.', '1-2345-67890-12-3');
+  put('Kind (in/out/both/note)', 'in');
+  put('Date', '2011-01-14');
+  put('Refer to cert no.', '-');
+  put('Cert no.', '1');
+  put('Shares', '11,800');
+  put('Share nos. start', '1');
+  const row = XLSX_COLS.map(c => eg[c] || '');
+  return [
+    'ช่วยจัดข้อมูลทะเบียนผู้ถือหุ้นให้อยู่ในตารางข้างล่างนี้',
+    '',
+    'รูปแบบที่ต้องการ',
+    '- ตอบกลับเป็นข้อความคั่นด้วย Tab เท่านั้น อย่าใช้ตาราง Markdown และอย่าใส่คำอธิบายอื่น',
+    '- บรรทัดแรกคือหัวตารางตามนี้ทุกคอลัมน์ ห้ามสลับหรือตัดคอลัมน์ออก',
+    '',
+    'กติกา',
+    '- หนึ่งบรรทัด = หนึ่งรายการเคลื่อนไหว ไม่ใช่หนึ่งคน คนหนึ่งคนมีได้หลายบรรทัด',
+    '- ผู้ถือหุ้นหนึ่งคนคือหนึ่งหน้า เขียนชื่อและรายละเอียดตัวบุคคลเฉพาะบรรทัดแรกของคนนั้น',
+    '  บรรทัดถัด ๆ ไปของคนเดิมให้เว้นช่องชื่อว่างไว้ และใส่เลขหน้าเดิม',
+    '- Kind: in = ได้หุ้นมา · out = โอนหุ้นออก · both = ทั้งได้มาและโอนออกในบรรทัดเดียว ·',
+    '  note = บรรทัดข้อความอย่างเดียว เช่น หมดสภาพผู้ถือหุ้น',
+    '- Date: ค.ศ. แบบ 2019-03-02 หรือ พ.ศ. แบบ 02/03/2562 ก็ได้',
+    '- คอลัมน์ที่เขียนว่า "blank = auto" ถ้าไม่รู้ให้เว้นว่าง เครื่องมือคำนวณให้เอง',
+    '- จำนวนหุ้นใส่จุลภาคได้ เช่น 11,800',
+    '- ช่องที่ไม่มีข้อมูลให้เว้นว่าง อย่าเติม "-" หรือ "N/A" หรือเดาแทน',
+    '- ถ้าข้อมูลไม่พอจนไม่รู้จะเติมอะไร ให้ถามก่อน อย่าแต่งขึ้นเอง',
+    '',
+    XLSX_COLS.join('\t'),
+    row.join('\t')
+  ].join('\n');
+}
+
 /* where the two template columns sit, for the wording rule on the way back in */
 const eColAt   = label => XLSX_E_COLS.findIndex(c => c[0] === label);
 const E_TPL     = eColAt('Wording template');
@@ -2030,8 +2075,12 @@ async function downloadXlsxTemplate(){
    written. */
 function rowsToHolders(rows){
   if(!rows.length || !rows[0] || !rows[0].length) throw new Error('ไม่มีข้อมูลในไฟล์');
-  const header = rows[0].map(h => String(h||'').trim().toLowerCase());
-  const at = label => header.indexOf(label.toLowerCase());
+  /* Retyped rather than pasted, a header drifts: an em dash becomes a hyphen,
+     two spaces become one. None of that changes which column is meant. */
+  const norm = s => String(s || '').trim().toLowerCase()
+    .replace(/[‐-―]/g, '-').replace(/\s+/g, ' ');
+  const header = rows[0].map(norm);
+  const at = label => header.indexOf(norm(label));
   const pageAt = at('Page');
   const hIdx = XLSX_H_COLS.map(c => at(c[0]));
   const eIdx = XLSX_E_COLS.map(c => at(c[0]));
@@ -2098,13 +2147,26 @@ function rowsToHolders(rows){
   return {holders, problems, entryCount};
 }
 
-/* Tab- or comma-separated text, because an AI conversation can hand you a
-   table but not a .xlsx. Quoted fields are honoured so an address with a
-   comma in it survives. */
+/* A rule under the header — |---|:--:|---| — which is the giveaway that this is
+   a Markdown table and not a spreadsheet's tab-separated text. */
+const isMdRule = s => /^[\s|:-]+$/.test(s) && s.includes('-') && s.includes('|');
+
+/* Tab- or comma-separated text, because an AI conversation can hand you a table
+   but not a .xlsx. Quoted fields are honoured so an address with a comma in it
+   survives. Markdown tables are taken too: told to produce a table, an
+   assistant writes pipes and a rule of dashes more often than anything else,
+   and being turned away at the door for it is no use to anybody. Blank and rule
+   lines come back as empty rows rather than being dropped, so a complaint names
+   the line you can actually see in the box. */
 function splitDelimited(text){
   const t = text.replace(/\r\n?/g, '\n').replace(/\n+$/, '');
   if(!t.trim()) return [];
-  const first = t.split('\n')[0];
+  const lines = t.split('\n');
+  const first = lines[0];
+  if(first.includes('|') && (first.trim().startsWith('|') || lines.some(isMdRule)))
+    return lines.map(l => (!l.trim() || isMdRule(l)) ? [] :
+      l.replace(/^\s*\|/, '').replace(/\|\s*$/, '')
+       .split(/(?<!\\)\|/).map(c => c.trim().replace(/\\\|/g, '|')));
   const sep = first.includes('\t') ? '\t' : ',';
   const rows = [];
   let row = [], cell = '', q = false;
@@ -3351,16 +3413,17 @@ document.getElementById('xlsxFile').addEventListener('change', e => {
   e.target.value = '';
 });
 document.getElementById('btnCopyHeader').addEventListener('click', async () => {
-  const line = XLSX_COLS.join('\t');
+  const brief = aiBrief();
   try{
-    await navigator.clipboard.writeText(line);
-    toast('✓ คัดลอกหัวตารางแล้ว');
+    await navigator.clipboard.writeText(brief);
+    toast('✓ คัดลอกคำสั่งแล้ว — วางในบทสนทนากับ AI พร้อมข้อมูลดิบได้เลย');
   }catch(_){
     /* clipboard permission is not always given; put it in the box instead so
        it can be copied by hand rather than lost */
     const box = document.getElementById('pasteBox');
-    if(!box.value.trim()) box.value = line + '\n';
-    toast('วางหัวตารางไว้ในช่องแล้ว — คัดลอกจากตรงนั้นได้');
+    if(!box.value.trim()) box.value = brief;
+    box.select();
+    toast('วางคำสั่งไว้ในช่องแล้ว — คัดลอกออกไป แล้วล้างช่องก่อนนำเข้า');
   }
 });
 document.getElementById('btnPasteGo').addEventListener('click', () => {
