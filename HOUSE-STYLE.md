@@ -331,6 +331,36 @@ passing through. Merging is **field-level** — an arriving record fills the bla
 fields of a name already in the directory rather than being discarded whole, and
 never overwrites a non-blank field.
 
+### The dossier: a handoff you can hold
+
+A hash link and a `localStorage` slot only work between two tabs on one machine.
+Where a family of tools all describe **one subject** — the share tools all
+describe one company — they also read and write a **dossier**: one
+`juratools-corporate-dossier` JSON file per subject, which can be emailed, kept
+with the matter, or handed to an AI.
+
+Two rules make it a shared file rather than three separate exports:
+
+- **Canonical names, aliases accepted.** The file is written with every tool's
+  spelling of a field side by side (`nameTh` *and* `th`, `paidUp` *and* `par`)
+  and read as either, so no tool has to rename its internals to join in.
+- **Foreign sections are carried, never dropped.** Each tool owns one section
+  (`certs`, `transfers`, `register`); everything else — including sections added
+  by a version that does not exist yet — is kept verbatim in `carry` and
+  re-emitted untouched. A file round-tripped through every tool must accumulate.
+  Watch any `adopt`/`load` that rebuilds state from scratch: it has to name
+  `carry` explicitly or a reload silently truncates the file.
+
+Opening one **never writes silently**. The confirm dialog says what is arriving,
+what it replaces, what is being carried through, and — **named, not counted** —
+where the file disagrees with what is already here. Nothing already typed is
+overwritten; the file fills blanks, the way person merging does.
+
+The spec an AI is given is a **`.md` in the repo**, readable on GitHub, and the
+same bytes ship inside each tool as a `GUIDE_MD` block so the download works
+offline (§4). The copy is machine-made — a script owns the block and can check
+it — because three hand-kept copies drift.
+
 ### Import / export
 
 JSON in and out, with a tool tag and version:
