@@ -588,6 +588,17 @@ input.is-ph{background:#fefce8;border-color:#fcd34d;font-weight:600;color:#a1620
         </div>
 
         <div class="act">
+          <div class="act-hd"><span class="ico">💽</span> Company dossier</div>
+          <p class="sect-note">One file per company, carried between this tool, the share certificates and the register book — or handed to an AI to turn a client's raw material into it. Sections this tool does not own are kept and written back untouched.</p>
+          <div class="btn-row">
+            <button class="btn btn-ghost" id="btnDosSave">↓ Save dossier (.json)</button>
+            <button class="btn btn-ghost" id="btnDosOpen">↑ Open dossier</button>
+            <button class="btn btn-ghost" id="btnDosGuide">↓ AI guide (.md)</button>
+            <input type="file" id="dosFile" accept=".json,application/json" hidden>
+          </div>
+        </div>
+
+        <div class="act">
           <div class="act-hd"><span class="ico">💾</span> Backup</div>
           <p class="sect-note">Transfers and the person directory live in this browser only. Back up to JSON to move them to another device.</p>
           <div class="btn-row">
@@ -760,7 +771,9 @@ function blankTransfer(){
               stampOn:false, stamp1:'', stamp1Auto:true, stamp2:'', stamp2Auto:true},
           fileName:'', fileAuto:true};
 }
-let state = {transfers:[blankTransfer()], active:0, parties:[]};
+/* `carry` holds the dossier sections this tool does not own, so they go back
+   out untouched rather than being dropped on the way through. */
+let state = {transfers:[blankTransfer()], active:0, parties:[], carry:{}};
 const cur = () => state.transfers[state.active];
 
 const getPath = (o,p) => p.split('.').reduce((a,k)=> a==null?a:a[k], o);
@@ -1549,6 +1562,427 @@ const SHARE_KEY = 'jt-corp-share';
 const REG_TOOL  = 'share-register-book.html';
 const pKey = v => String(v || '').trim().toLowerCase();
 
+/* ── The AI guide ─────────────────────────────────────────────────
+   Source of truth: corporate-tools/corporate-dossier.guide.md
+   This block is that file verbatim. Edit the .md, then re-run
+   .scratch/share-register-book/build/syncguide.py — do not hand-edit here.
+   The tools must work offline (House Style 4), so the bytes are carried rather
+   than fetched.
+   ─────────────────────────────────────────────────────────────── */
+/* GUIDE_MD:BEGIN */
+const GUIDE_MD = `# คู่มือแฟ้มบริษัท — JuraTools Corporate Dossier
+
+**A guide for an AI asked to turn unstructured client material into a JuraTools
+corporate dossier file.**
+
+เอกสารนี้คือแบบของไฟล์ \`.dossier.json\` ที่เครื่องมือหุ้นทั้งสามตัวของ JuraTools
+อ่านและเขียน — ใบหุ้น (Share Certificates), สมุดทะเบียนผู้ถือหุ้น (Share Register
+Book) และตราสารการโอนหุ้น (Share Transfer Instrument) หนึ่งไฟล์ = หนึ่งบริษัท
+
+ให้ไฟล์นี้กับ AI พร้อมกับข้อมูลดิบของลูกความ (อีเมล บอจ.5 หนังสือรับรอง สำเนาบัตร
+บันทึกการประชุม) แล้วนำไฟล์ที่ได้กลับเข้าเครื่องมือ
+
+---
+
+## 1. สิ่งที่ต้องส่งกลับ
+
+**ส่งกลับเป็น JSON หนึ่งอ็อบเจ็กต์เท่านั้น** — ไม่มีคำอธิบาย ไม่มีข้อความนำ ไม่มี
+code fence ไม่มีคอมเมนต์ใน JSON บันทึกเป็นไฟล์ชื่อ \`<ชื่อย่อบริษัท>.dossier.json\`
+
+ถ้าจะถามหรือจะอธิบาย ให้พูดแยกออกมาต่างหาก **นอกไฟล์**
+
+---
+
+## 2. โครงของไฟล์
+
+ทุกคีย์เป็นตัวเลือก ยกเว้น \`format\` และ \`v\` — ส่งเฉพาะส่วนที่มีข้อมูลจริง
+ส่วนที่ไม่รู้ให้ **ตัดคีย์นั้นทิ้งไปเลย** ดีกว่าส่งค่าว่างหรือค่าที่เดาเอา
+
+\`\`\`jsonc
+{
+  "format": "juratools-corporate-dossier",   // ต้องเป็นค่านี้ตรงตัว
+  "v": 1,
+  "at": "2026-08-11T09:00:00.000Z",          // เวลาที่สร้างไฟล์ (ISO)
+  "from": "ChatGPT / Claude / ชื่อผู้จัดทำ",
+
+  "co": {
+    "nameTh":    "บริษัท ตัวอย่าง จำกัด",
+    "nameEn":    "EXAMPLE COMPANY LIMITED",
+    "regNo":     "0105551000001",            // เลขทะเบียนนิติบุคคล 13 หลัก
+    "par":       "100",                      // มูลค่าหุ้นละ (บาท)
+    "regShares": "10000",                    // จำนวนหุ้นจดทะเบียนทั้งหมด
+    "ord":       "10000",                    // หุ้นสามัญ
+    "pref":      "-",                        // หุ้นบุริมสิทธิ ("-" ถ้าไม่มี)
+    "cap":       "1000000",                  // ทุนจดทะเบียน (บาท)
+    "dirL":      "นายสมชาย ใจดี",             // กรรมการผู้ลงนาม ช่องซ้าย
+    "dirR":      "นางสาวมาลี รักไทย"          // กรรมการผู้ลงนาม ช่องขวา
+  },
+
+  "people": [
+    {
+      "nameTh":  "นายสมชาย ใจดี",
+      "nameEn":  "MR. SOMCHAI JAIDEE",
+      "addrTh":  "99/1 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพมหานคร 10110",
+      "addrEn":  "99/1 Sukhumvit Road, Khlong Toei, Bangkok 10110",
+      "idType":  "id",                       // id | passport | juristic | both
+      "idNo":    "1-2345-67890-12-3",
+      "occTh":   "ทนายความ",
+      "occEn":   "Lawyer",
+      "natTh":   "ไทย",
+      "natEn":   "Thai"
+    }
+  ],
+
+  "register": {
+    "holders": [
+      {
+        "nameTh": "นายสมชาย ใจดี",
+        "nameEn": "MR. SOMCHAI JAIDEE",
+        "idType": "id",
+        "idNo":   "1-2345-67890-12-3",
+        "occTh":  "ทนายความ",  "occEn": "Lawyer",
+        "natTh":  "ไทย",      "natEn": "Thai",
+        "addrTh": "99/1 ถนนสุขุมวิท …", "addrEn": "99/1 Sukhumvit Road …",
+        "entries": [
+          {
+            "kind":    "in",                 // in | out | both | note
+            "date":    "2011-01-14",
+            "refCert": "-",                  // อ้างถึงใบหุ้นเดิม; "-" ถ้าเป็นการออกครั้งแรก
+            "certNo":  "1",
+            "shares":  "11800",
+            "shareFrom": "1"                 // หุ้นหมายเลขเริ่มต้น — ที่เหลือคำนวณเอง
+          },
+          {
+            "kind":      "out",
+            "date":      "2019-03-02",
+            "counterTh": "นางสาวมาลี รักไทย",
+            "counterEn": "MISS MALEE RAKTHAI",
+            "refCert":   "1",
+            "outCert":   "8",                // ใบหุ้นที่ออกให้ "ผู้รับโอน" ไม่ใช่ใบที่คืนมา
+            "outShares": "8000"
+          },
+          { "kind": "note", "date": "2020-06-01",
+            "descTh": "ไม่ได้เป็นผู้ถือหุ้นของบริษัทอีกต่อไป",
+            "descEn": "No longer holds shares in the Company" }
+        ]
+      }
+    ]
+  },
+
+  "certs": [
+    {
+      "no":       "1",
+      "type":     "ordinary",                // ordinary | preference
+      "holderTh": "นายสมชาย ใจดี",
+      "holderEn": "MR. SOMCHAI JAIDEE",
+      "addrTh":   "99/1 ถนนสุขุมวิท …",
+      "addrEn":   "99/1 Sukhumvit Road …",
+      "count":    "11800",
+      "from":     "1",                       // หุ้นหมายเลขแรก
+      "to":       "11800",                   // หุ้นหมายเลขสุดท้าย
+      "issue":    "2011-01-14",
+      "par":      "100",
+      "paid":     "100"                      // ชำระแล้วหุ้นละ
+    }
+  ],
+
+  "transfers": [
+    {
+      "date":      "2019-03-02",
+      "tfrTh":     "นายสมชาย ใจดี",           // ผู้โอน
+      "tfrEn":     "MR. SOMCHAI JAIDEE",
+      "tfeTh":     "นางสาวมาลี รักไทย",        // ผู้รับโอน
+      "tfeEn":     "MISS MALEE RAKTHAI",
+      "count":     "8000",
+      "from":      "1",
+      "to":        "8000",
+      "par":       "100",
+      "paidUp":    "100",
+      "price":     "800000"
+    }
+  ],
+
+  "notes": [
+    "บอจ.5 ปี 2562 กับสมุดทะเบียนไม่ตรงกัน: บอจ.5 ว่า 8,000 หุ้น สมุดว่า 8,800 หุ้น"
+  ]
+}
+\`\`\`
+
+---
+
+## 3. ข้อตกลงเรื่องรูปแบบค่า
+
+นี่คือส่วนที่ผิดกันบ่อยที่สุด
+
+| เรื่อง | กติกา |
+|---|---|
+| **วันที่** | ISO \`YYYY-MM-DD\` และเป็น **ค.ศ.** เสมอ ในไฟล์ — เครื่องมือแปลงเป็น พ.ศ. ให้เอง ถ้าต้นทางเขียน \`14/01/2554\` ให้แปลงเป็น \`2011-01-14\` |
+| **ตัวเลข** | ตัวเลขล้วน ไม่มีจุลภาค ไม่มีสัญลักษณ์เงิน ไม่มีหน่วย → \`11800\` ไม่ใช่ \`"11,800 หุ้น"\` |
+| **ชื่ออังกฤษ** | ตัวพิมพ์ใหญ่ทั้งหมด พร้อมคำนำหน้า → \`MR. SOMCHAI JAIDEE\` |
+| **ชื่อไทย** | ติดคำนำหน้าไว้กับชื่อ → \`นายสมชาย ใจดี\` ไม่ต้องแยกฟิลด์ |
+| **ไทยกับอังกฤษ** | คนละฟิลด์ ถ้าต้นทางมีแต่ภาษาเดียว **ให้เว้นอีกฟิลด์ว่าง** อย่าถอดเสียงเอง |
+| **\`idType\`** | หนึ่งใน \`id\` (บัตรประชาชน) · \`passport\` · \`juristic\` (นิติบุคคล) · \`both\` |
+| **ที่ยังไม่รู้** | ใส่ \`"(*)"\` — เครื่องมือจะไฮไลต์สีเหลืองให้ทนายเติมเอง **ห้ามเดา และห้ามเว้นว่างจนดูเหมือนศูนย์** |
+| **ที่ไม่มีจริง ๆ** | ใช้ \`"-"\` เช่น หุ้นบุริมสิทธิที่บริษัทไม่มี |
+
+\`(*)\` กับ \`-\` ไม่เหมือนกัน: \`(*)\` แปลว่า *ยังไม่รู้* · \`-\` แปลว่า *ไม่มี*
+
+---
+
+## 4. ตัวอย่างจริง
+
+**ข้อมูลดิบที่ลูกความส่งมา**
+
+> เรียนทนาย
+> บริษัทตัวอย่างจำกัด ทะเบียน 0105551000001 ทุน 1 ล้าน แบ่งเป็น 10,000 หุ้น
+> หุ้นละ 100 บาท ตอนตั้งบริษัทปี 54 คุณสมชาย ใจดี (บัตร 1-2345-67890-12-3,
+> ทนายความ, อยู่ 99/1 ถ.สุขุมวิท คลองเตย กทม. 10110) ถือ 11,800 หุ้น ใบหุ้นเลข 1
+> ต่อมา 2 มีค 62 โอนให้คุณมาลี รักไทย 8,000 หุ้น ออกใบหุ้นเลข 8 ให้คุณมาลี
+> ไม่แน่ใจว่าคุณมาลีสัญชาติอะไร
+
+**ไฟล์ที่ควรส่งกลับ**
+
+\`\`\`json
+{
+  "format": "juratools-corporate-dossier",
+  "v": 1,
+  "at": "2026-08-11T09:00:00.000Z",
+  "from": "Claude",
+  "co": {
+    "nameTh": "บริษัท ตัวอย่าง จำกัด",
+    "nameEn": "(*)",
+    "regNo": "0105551000001",
+    "par": "100",
+    "regShares": "10000",
+    "cap": "1000000"
+  },
+  "people": [
+    { "nameTh": "นายสมชาย ใจดี", "nameEn": "(*)",
+      "addrTh": "99/1 ถนนสุขุมวิท เขตคลองเตย กรุงเทพมหานคร 10110", "addrEn": "(*)",
+      "idType": "id", "idNo": "1-2345-67890-12-3",
+      "occTh": "ทนายความ", "occEn": "(*)", "natTh": "ไทย", "natEn": "Thai" },
+    { "nameTh": "นางสาวมาลี รักไทย", "nameEn": "(*)",
+      "idType": "(*)", "idNo": "(*)", "natTh": "(*)", "natEn": "(*)" }
+  ],
+  "register": {
+    "holders": [
+      { "nameTh": "นายสมชาย ใจดี",
+        "idType": "id", "idNo": "1-2345-67890-12-3",
+        "occTh": "ทนายความ", "natTh": "ไทย",
+        "addrTh": "99/1 ถนนสุขุมวิท เขตคลองเตย กรุงเทพมหานคร 10110",
+        "entries": [
+          { "kind": "in", "date": "2011-01-14", "refCert": "-",
+            "certNo": "1", "shares": "11800", "shareFrom": "1" },
+          { "kind": "out", "date": "2019-03-02",
+            "counterTh": "นางสาวมาลี รักไทย",
+            "refCert": "1", "outCert": "8", "outShares": "8000" }
+        ] },
+      { "nameTh": "นางสาวมาลี รักไทย",
+        "entries": [
+          { "kind": "in", "date": "2019-03-02",
+            "counterTh": "นายสมชาย ใจดี",
+            "refCert": "1", "certNo": "8", "shares": "8000" } ] }
+    ]
+  },
+  "notes": [
+    "ลูกความไม่ได้ระบุสัญชาติและเลขประจำตัวของนางสาวมาลี รักไทย",
+    "ไม่มีชื่อภาษาอังกฤษของบริษัทและของบุคคลในเอกสารต้นทาง"
+  ]
+}
+\`\`\`
+
+สังเกตสามอย่าง: วันที่ พ.ศ. 54 และ 62 กลายเป็น ค.ศ. · ทุกช่องที่ลูกความไม่ได้บอก
+เป็น \`(*)\` ไม่ใช่การเดา · การโอนหนึ่งครั้งปรากฏ **สองหน้า** คือหน้าผู้โอนและ
+หน้าผู้รับโอน
+
+---
+
+## 5. กฎสองข้อที่ห้ามฝ่าฝืน
+
+1. **ห้ามคิดเลขใบหุ้นหรือหุ้นหมายเลขขึ้นเอง** เครื่องมือคำนวณให้ ถ้าต้นทางไม่ได้
+   บอกเลขใบหุ้น ให้ตัดคีย์นั้นทิ้ง อย่าไล่เลข 1, 2, 3 ให้เอง
+2. **ถ้าต้นทางขัดกันเอง ให้ใส่ทั้งสองทางแล้วบอกไว้ใน \`notes\`** อย่าเลือกข้างเอง
+   เช่น บอจ.5 กับสมุดทะเบียนไม่ตรงกัน ให้บันทึกไว้ว่าไม่ตรงกันอย่างไร ทนายเป็นคน
+   ตัดสิน ไม่ใช่ AI
+
+---
+
+## 6. คำสั่งสำเร็จรูป
+
+วางข้อความนี้ไว้ต้นบทสนทนา พร้อมแนบคู่มือฉบับนี้และข้อมูลดิบ
+
+> ช่วยอ่านข้อมูลบริษัทที่แนบมา แล้วสร้างไฟล์ JuraTools corporate dossier ตามคู่มือ
+> ที่แนบมาด้วย
+>
+> - ตอบกลับเป็น JSON หนึ่งอ็อบเจ็กต์เท่านั้น ไม่ต้องมีคำอธิบายหรือ code fence
+> - วันที่เป็น ค.ศ. รูปแบบ YYYY-MM-DD · ตัวเลขไม่มีจุลภาค
+> - ชื่ออังกฤษเป็นตัวพิมพ์ใหญ่ · ไทยกับอังกฤษคนละฟิลด์ ไม่ต้องถอดเสียงให้
+> - อะไรที่เอกสารไม่ได้บอก ใส่ "(*)" ห้ามเดา
+> - ห้ามคิดเลขใบหุ้นหรือหุ้นหมายเลขขึ้นเอง
+> - ถ้าข้อมูลขัดกัน ใส่ทั้งสองทางแล้วอธิบายไว้ใน notes
+>
+> ถ้ามีอะไรที่ต้องถามก่อน ให้ถามมาก่อนสร้างไฟล์
+
+---
+
+## 7. หมายเหตุสำหรับผู้ดูแลเครื่องมือ
+
+ไฟล์นี้คือ **ต้นฉบับ** ของคู่มือ เครื่องมือทั้งสามฝังข้อความเดียวกันนี้ไว้เป็น
+\`GUIDE_MD\` เพื่อให้ปุ่มดาวน์โหลดทำงานได้โดยไม่ต้องต่อเน็ต (House Style ข้อ 4)
+แก้ที่ไฟล์นี้ก่อน แล้วคัดลอกไปวางในบล็อกที่คั่นไว้ในแต่ละเครื่องมือ
+
+เครื่องมือแต่ละตัวเป็นเจ้าของคนละส่วน — ตราสาร → \`transfers\` · ใบหุ้น → \`certs\` ·
+สมุดทะเบียน → \`register\` ส่วนที่ไม่ได้เป็นเจ้าของจะถูกเก็บไว้ใน \`carry\` และเขียน
+กลับออกไปเหมือนเดิมทุกตัวอักษร เปิดไฟล์เดียวกันวนครบทั้งสามเครื่องมือแล้วข้อมูล
+ต้องไม่หาย
+`;
+/* GUIDE_MD:END */
+
+/* ── The dossier ──────────────────────────────────────────────────
+   One file, one company, carried between the three share tools. This tool owns
+   `transfers`; `certs`, `register` and anything a later version adds are kept
+   verbatim in `carry` and written back untouched.
+
+   An instrument holds a company name of its own on every transfer, because it
+   can be drawn up for a company this tool has never otherwise heard of. The
+   dossier's company block is written from the first transfer that names one,
+   and on the way back in it fills any transfer that has none.
+   ─────────────────────────────────────────────────────────────── */
+const DOSSIER_FORMAT = 'juratools-corporate-dossier';
+const DOS_OWN = ['format','v','at','from','co','people','transfers'];
+const dosNum = v => isPlaceholder(v) ? String(v).trim() : String(v || '').replace(/,/g, '');
+const dosPut = (o, k, v) => { if(v !== '' && v != null) o[k] = v; };
+
+function dossierPack(){
+  const out = {format:DOSSIER_FORMAT, v:1, at:new Date().toISOString(),
+               from:'ตราสารการโอนหุ้น'};
+  Object.entries(state.carry || {}).forEach(([k, v]) => { if(!DOS_OWN.includes(k)) out[k] = v; });
+
+  const named = state.transfers.find(t => t.co.th || t.co.en) || state.transfers[0];
+  out.co = {};
+  if(named){
+    dosPut(out.co, 'nameTh', named.co.th); dosPut(out.co, 'th', named.co.th);
+    dosPut(out.co, 'nameEn', named.co.en); dosPut(out.co, 'en', named.co.en);
+    dosPut(out.co, 'par', dosNum(named.sh.par)); dosPut(out.co, 'paidUp', dosNum(named.sh.par));
+  }
+
+  out.people = (state.parties || []).map(p => {
+    const o = {}; PERSON_FIELDS.forEach(k => dosPut(o, k, p[k])); return o;
+  });
+
+  out.transfers = state.transfers.map(t => {
+    const o = {};
+    dosPut(o, 'date', t.tfr.date);
+    dosPut(o, 'tfrTh', t.tfr.nameTh); dosPut(o, 'tfrEn', t.tfr.nameEn);
+    dosPut(o, 'tfrAddrTh', t.tfr.addrTh); dosPut(o, 'tfrAddrEn', t.tfr.addrEn);
+    dosPut(o, 'tfeTh', t.tfe.nameTh); dosPut(o, 'tfeEn', t.tfe.nameEn);
+    dosPut(o, 'tfeAddrTh', t.tfe.addrTh); dosPut(o, 'tfeAddrEn', t.tfe.addrEn);
+    dosPut(o, 'count', dosNum(t.sh.count));
+    dosPut(o, 'from', dosNum(t.sh.from)); dosPut(o, 'to', dosNum(t.sh.to));
+    dosPut(o, 'par', dosNum(t.sh.par)); dosPut(o, 'paidUp', dosNum(t.sh.paidUp));
+    if(!t.sh.priceAuto) dosPut(o, 'price', dosNum(t.sh.price));
+    return o;
+  });
+  return out;
+}
+
+function dossierApply(d){
+  const dco = d.co || {};
+  let added = 0, filled = 0;
+  (d.people || []).forEach(p => {
+    const th = pKey(p.nameTh), en = pKey(p.nameEn);
+    if(!th && !en) return;
+    const known = state.parties.find(x =>
+      (th && pKey(x.nameTh) === th) || (en && pKey(x.nameEn) === en));
+    if(known){ if(fillPerson(known, p)) filled++; }
+    else { const n = blankPerson();
+           PERSON_FIELDS.forEach(k => { if(p[k]) n[k] = String(p[k]); });
+           state.parties.push(n); added++; }
+  });
+
+  const made = (d.transfers || []).map(rt => {
+    const t = blankTransfer();
+    t.co.th = String(dco.nameTh || dco.th || '');
+    t.co.en = String(dco.nameEn || dco.en || '');
+    const set = (obj, k, v) => { if(v != null && v !== '') obj[k] = String(v); };
+    set(t.tfr, 'date', rt.date); set(t.tfe, 'date', rt.date);
+    set(t.tfr, 'nameTh', rt.tfrTh); set(t.tfr, 'nameEn', rt.tfrEn);
+    set(t.tfr, 'addrTh', rt.tfrAddrTh); set(t.tfr, 'addrEn', rt.tfrAddrEn);
+    set(t.tfe, 'nameTh', rt.tfeTh); set(t.tfe, 'nameEn', rt.tfeEn);
+    set(t.tfe, 'addrTh', rt.tfeAddrTh); set(t.tfe, 'addrEn', rt.tfeAddrEn);
+    if(rt.count != null && rt.count !== '') t.sh.count = groupDigits(rt.count) || String(rt.count);
+    set(t.sh, 'from', rt.from); set(t.sh, 'to', rt.to);
+    if(rt.par != null && rt.par !== '') t.sh.par = groupDigits(rt.par) || String(rt.par);
+    set(t.sh, 'paidUp', rt.paidUp || dco.par || dco.paidUp);
+    if(rt.price != null && rt.price !== ''){
+      t.sh.price = groupDigits(rt.price) || String(rt.price); t.sh.priceAuto = false;
+    }
+    return t;
+  });
+  if(made.length){ state.transfers = made; state.active = 0; }
+
+  state.carry = {};
+  Object.entries(d).forEach(([k, v]) => { if(!DOS_OWN.includes(k)) state.carry[k] = v; });
+
+  save(); render();
+  return {added, filled, transfers: made.length};
+}
+
+/* Named, not counted — a tally of conflicts is nothing you can act on. */
+function dossierConflicts(d){
+  const out = [];
+  const say = (a, b) => `“${a}” ⇄ “${b}”`;
+  const dco = d.co || {};
+  const here = state.transfers.find(t => t.co.th || t.co.en);
+  const inTh = dco.nameTh || dco.th, inEn = dco.nameEn || dco.en;
+  if(here && inTh && here.co.th && inTh !== here.co.th)
+    out.push('Company name (Thai): ' + say(here.co.th, inTh));
+  if(here && inEn && here.co.en && inEn !== here.co.en)
+    out.push('Company name (English): ' + say(here.co.en, inEn));
+
+  (d.people || []).forEach(p => {
+    const th = pKey(p.nameTh), en = pKey(p.nameEn);
+    const known = state.parties.find(x =>
+      (th && pKey(x.nameTh) === th) || (en && pKey(x.nameEn) === en));
+    if(!known) return;
+    ['addrTh','idNo'].forEach(k => {
+      if(p[k] && known[k] && p[k] !== known[k] && !isPlaceholder(p[k]) && !isPlaceholder(known[k]))
+        out.push(`${known.nameTh || known.nameEn} — ${k === 'idNo' ? 'ID no.' : 'address'}: ${say(known[k], p[k])}`);
+    });
+  });
+  return out;
+}
+
+async function dossierOpen(text){
+  let d;
+  try{ d = JSON.parse(text); }
+  catch(e){ toast('✗ Not readable JSON: ' + e.message); return; }
+  if(!d || typeof d !== 'object' || Array.isArray(d)){ toast('✗ Not a dossier file'); return; }
+  if(d.format && d.format !== DOSSIER_FORMAT){
+    toast('✗ This is a "' + String(d.format).slice(0, 40) + '" file, not a dossier'); return;
+  }
+  const foreign = Object.keys(d).filter(k => !DOS_OWN.includes(k));
+  const conflicts = dossierConflicts(d);
+  const arriving = (d.transfers || []).length;
+  const lines = [
+    ((d.co && (d.co.nameTh || d.co.th || d.co.nameEn || d.co.en)) || 'Unnamed company') +
+      (d.from ? ' · from ' + d.from : ''),
+    `People: ${(d.people || []).length} in the file` +
+      ` · Transfers: ${arriving}` +
+      (arriving ? ` (replacing the ${state.transfers.length} here)` : ' — none in the file, yours are left alone'),
+    foreign.length ? 'Carried through untouched: ' + foreign.join(', ')
+                   : 'No other tool\'s sections in this file',
+    conflicts.length
+      ? `${conflicts.length} conflict(s) — nothing already typed here is overwritten:\n` +
+        conflicts.slice(0, 8).map(x => '· ' + x).join('\n') +
+        (conflicts.length > 8 ? `\n… and ${conflicts.length - 8} more` : '')
+      : 'Nothing disagrees'
+  ];
+  if(!await ask('Open company dossier', lines.join('\n\n'), 'Open')) return;
+  const r = dossierApply(d);
+  toast(`✓ Opened — ${r.transfers} transfer(s) · ${r.added} new people · ${r.filled} filled in`);
+}
+
 /* One shape for a person across all four corporate tools. This instrument
    only ever prints a name and an address, but it keeps — and passes on —
    every field the share register book asks for as well, so a party who
@@ -1755,6 +2189,28 @@ document.getElementById('btnBackup').addEventListener('click', ()=>{
   download(blob, `Share Transfer Instrument backup ${new Date().toISOString().slice(0,10)}.json`);
   toast('✓ Backup downloaded');
 });
+document.getElementById('btnDosSave').addEventListener('click', ()=>{
+  try{
+    const t = state.transfers.find(x => x.co.th || x.co.en) || state.transfers[0];
+    const base = (t && (shortName(t.co.en) || shortName(t.co.th))) || 'company';
+    download(new Blob([JSON.stringify(dossierPack(), null, 2)], {type:'application/json'}),
+             base + '.dossier.json');
+    toast('✓ Dossier saved');
+  }catch(e){ toast('Dossier: ' + e.message); console.error(e); }
+});
+document.getElementById('btnDosOpen').addEventListener('click', ()=> document.getElementById('dosFile').click());
+document.getElementById('dosFile').addEventListener('change', async e=>{
+  const f = e.target.files[0]; e.target.value = '';
+  if(!f) return;
+  try{ await dossierOpen(await f.text()); }
+  catch(err){ toast('Dossier: ' + err.message); console.error(err); }
+});
+document.getElementById('btnDosGuide').addEventListener('click', ()=>{
+  download(new Blob([GUIDE_MD], {type:'text/markdown;charset=utf-8'}),
+           'corporate-dossier.guide.md');
+  toast('✓ Guide downloaded — hand it to an AI with the raw material');
+});
+
 document.getElementById('btnRestore').addEventListener('click', ()=> document.getElementById('jsonFile').click());
 document.getElementById('jsonFile').addEventListener('change', async e=>{
   const f = e.target.files[0]; e.target.value = '';
@@ -2135,7 +2591,10 @@ function adopt(s){
         tfe:{...b.tfe, ...(t.tfe||{})}, sh:{...b.sh, ...(t.sh||{})}};
     }),
     active: 0,
-    parties: Array.isArray(s.parties) ? s.parties : []
+    parties: Array.isArray(s.parties) ? s.parties : [],
+    /* rebuilt from scratch here, so the carried sections have to be named or a
+       reload would quietly drop the other tools' half of the dossier */
+    carry: (s.carry && typeof s.carry === 'object') ? s.carry : {}
   };
   if(!state.transfers.length) state.transfers = [blankTransfer()];
   state.active = Math.min(s.active || 0, state.transfers.length - 1);
