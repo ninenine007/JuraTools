@@ -71,6 +71,22 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .hl-del:hover{color:var(--danger);background:#fef2f2;}
 .hl-drag{position:absolute;top:6px;right:30px;border:none;background:none;color:#cbd5e1;cursor:grab;
   font-size:.9em;line-height:1;padding:2px 4px;border-radius:6px;}
+.hl-drag:hover{color:var(--primary);background:#eff6ff;}
+.hl.dragging{opacity:.45;}
+/* the line sits in the 7px gap between cards, so it reads as a place to drop
+   into rather than as a border on the card it is drawn against */
+.hl.drop-before::before,.hl.drop-after::after{content:'';position:absolute;left:0;right:0;
+  height:3px;background:var(--primary);border-radius:2px;}
+.hl.drop-before::before{top:-5px;}
+.hl.drop-after::after{bottom:-5px;}
+.hl-facts .mini{padding:1px 6px;font-size:1em;line-height:1.35;}
+/* dragging is no use in a book of forty pages, so the same move is here as a
+   number you can type */
+.hl-order{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin:-4px 0 12px;
+  font-size:.73em;color:var(--muted);}
+.hl-order input{width:46px;padding:3px 5px;font-size:1em;text-align:center;}
+.hl-order select{max-width:132px;padding:3px 5px;font-size:1em;}
+.hl-order .sep{color:#e2e8f0;}
 .empty{color:#cbd5e1;font-style:italic;}
 
 /* ── Cards ───────────────────────────────────── */
@@ -397,6 +413,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em;bac
     </div>
     <p class="hint">หนึ่งคน = หนึ่งหน้าในสมุดทะเบียน เรียงตามลำดับที่เห็นนี้</p>
     <div class="hl-list" id="hlList"></div>
+    <div class="hl-order" id="hlOrder"></div>
     <div class="btn-row">
       <button class="btn btn-primary btn-sm" id="btnAddHolder" style="flex:1">+ เพิ่มผู้ถือหุ้น</button>
       <button class="btn btn-ghost btn-sm" id="btnDupHolder" title="คัดลอกผู้ถือหุ้นที่เลือกอยู่">⧉</button>
@@ -2796,19 +2813,71 @@ function renderCos(){
 /* ── Sidebar ──────────────────────────────────────────────────── */
 function renderSidebar(){
   const list = document.getElementById('hlList');
-  document.getElementById('hlCount').textContent = book().holders.length;
-  list.innerHTML = book().holders.map((h, i) => {
+  const hs = book().holders;
+  document.getElementById('hlCount').textContent = hs.length;
+  list.innerHTML = hs.map((h, i) => {
     const bal = holderBalance(h);
     const moves = h.entries.filter(e => e.kind !== 'note').length;
-    return `<div class="hl ${h.id === book().activeId ? 'active' : ''}" data-id="${h.id}">
+    const active = h.id === book().activeId;
+    return `<div class="hl ${active ? 'active' : ''}" data-id="${h.id}" draggable="true">
       <button class="hl-del" data-del="${h.id}" title="ลบ">×</button>
+      <button class="hl-drag" title="ลากเพื่อจัดลำดับหน้า">⠿</button>
       <div class="hl-no">หน้า ${i+1}</div>
       <div class="hl-nm">${escHtml(h.nameTh || h.nameEn || '(ยังไม่ระบุชื่อ)')}</div>
       <div class="hl-facts">
         <span class="${bal === 0 ? 'zero' : ''}">คงเหลือ ${groupDigits(String(bal)) || '0'}</span>
         <span>${moves} รายการ</span>
+        ${active ? `<button class="mini" data-hmove="up" title="เลื่อนขึ้น (Alt+↑)"
+                      ${i === 0 ? 'disabled' : ''}>↑</button>
+                    <button class="mini" data-hmove="down" title="เลื่อนลง (Alt+↓)"
+                      ${i === hs.length - 1 ? 'disabled' : ''}>↓</button>` : ''}
       </div></div>`;
   }).join('') || '<p class="empty">ยังไม่มีผู้ถือหุ้น</p>';
+  renderOrderRow();
+}
+
+/* Page order is the document: the sidebar numbers pages by position and the
+   export walks the same array, so moving a card moves a page of the book. */
+function renderOrderRow(){
+  const row = document.getElementById('hlOrder');
+  const hs = book().holders, i = hs.findIndex(h => h.id === book().activeId);
+  if(hs.length < 2 || i < 0){ row.innerHTML = ''; return; }
+  const others = hs.map((h, j) => j === i ? '' :
+    `<option value="${h.id}">หน้า ${j+1} · ${escHtml(
+      (h.nameTh || h.nameEn || '(ยังไม่ระบุชื่อ)').slice(0, 18))}</option>`).join('');
+  row.innerHTML =
+    `<span>ย้ายหน้า ${i+1} ไปที่</span>
+     <input type="number" id="hlGoto" min="1" max="${hs.length}" placeholder="${i+1}">
+     <button class="mini" id="hlGotoBtn">ไป</button>
+     <span class="sep">|</span>
+     <span>สลับกับ</span>
+     <select id="hlSwap">${others}</select>
+     <button class="mini" id="hlSwapBtn">สลับ</button>`;
+}
+
+/* Where a page dropped onto the card at `over` should land. The dragged page is
+   lifted out before it is put back, so a target below it has already shifted up
+   by one by the time it lands — which is the whole of the arithmetic, and the
+   one part of dropping worth testing away from a mouse. */
+function dropIndex(from, over, after){
+  const to = over + (after ? 1 : 0);
+  return from < to ? to - 1 : to;
+}
+
+/* Every page move goes through here, so all four ways of asking for one — the
+   arrows, Alt+arrow, a typed page number and a drag — renumber, re-render and
+   say where the page landed in exactly the same way. */
+function movePage(id, to){
+  const hs = book().holders;
+  const from = hs.findIndex(h => h.id === id);
+  if(from < 0) return;
+  const at = Math.max(0, Math.min(hs.length - 1, to));
+  if(at === from) return;
+  hs.splice(at, 0, hs.splice(from, 1)[0]);
+  /* the page you were reading stays the page you are reading, wherever it went */
+  book().activeId = id;
+  save(); render();
+  toast(`✓ ย้ายไปเป็นหน้า ${at + 1} แล้ว`);
 }
 
 /* ── Entry list ───────────────────────────────────────────────── */
@@ -3289,8 +3358,38 @@ document.addEventListener('click', e => {
     save(); render(); return;
   }
 
+  const hmv = t.closest('[data-hmove]');
+  if(hmv){
+    const hs = book().holders, i = hs.findIndex(h => h.id === book().activeId);
+    movePage(book().activeId, hmv.dataset.hmove === 'up' ? i - 1 : i + 1);
+    return;
+  }
+  if(t.closest('#hlGotoBtn')){
+    const box = document.getElementById('hlGoto');
+    const n = parseInt(box.value, 10);
+    if(!n || n < 1 || n > book().holders.length){
+      toast(`ใส่เลขหน้าระหว่าง 1 ถึง ${book().holders.length}`); box.focus(); return;
+    }
+    movePage(book().activeId, n - 1);
+    return;
+  }
+  if(t.closest('#hlSwapBtn')){
+    const hs = book().holders, other = document.getElementById('hlSwap').value;
+    const i = hs.findIndex(h => h.id === book().activeId);
+    const j = hs.findIndex(h => h.id === other);
+    if(i < 0 || j < 0) return;
+    [hs[i], hs[j]] = [hs[j], hs[i]];
+    save(); render();
+    toast(`✓ สลับหน้า ${i+1} กับหน้า ${j+1} แล้ว`);
+    return;
+  }
+
   const pick = t.closest('.hl');
-  if(pick && !t.closest('[data-del]')){ book().activeId = pick.dataset.id; save(); render(); return; }
+  /* the delete, the drag handle and the two arrows all sit inside the card, and
+     none of them means "open this page" */
+  if(pick && !t.closest('[data-del]') && !t.closest('.hl-drag') && !t.closest('[data-hmove]')){
+    book().activeId = pick.dataset.id; save(); render(); return;
+  }
 
   const del = t.closest('[data-del]');
   if(del){
@@ -3403,6 +3502,55 @@ document.getElementById('btnPrint').addEventListener('click', () => {
     pvZoom = keep; app.dataset.view = keepView; renderDocPreview();
   }, 200);
 });
+
+/* ── Dragging a page into place ───────────────────────────────────
+   Delegated on the list, because the cards are rewritten on every render and
+   listeners bound to them would not survive it. */
+(function pageDrag(){
+  const list = document.getElementById('hlList');
+  let dragId = null;
+  const clear = () => list.querySelectorAll('.drop-before,.drop-after')
+    .forEach(el => el.classList.remove('drop-before', 'drop-after'));
+
+  list.addEventListener('dragstart', e => {
+    const card = e.target.closest('.hl');
+    if(!card) return;
+    dragId = card.dataset.id;
+    card.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    /* Firefox will not start a drag unless something is on the transfer */
+    try{ e.dataTransfer.setData('text/plain', dragId); }catch(_){}
+  });
+  list.addEventListener('dragend', () => {
+    dragId = null;
+    list.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+    clear();
+  });
+  list.addEventListener('dragover', e => {
+    if(!dragId) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const card = e.target.closest('.hl');
+    clear();
+    if(!card || card.dataset.id === dragId) return;
+    const box = card.getBoundingClientRect();
+    card.classList.add(e.clientY < box.top + box.height / 2 ? 'drop-before' : 'drop-after');
+  });
+  list.addEventListener('drop', e => {
+    if(!dragId) return;
+    e.preventDefault();
+    const card = e.target.closest('.hl');
+    const id = dragId;
+    dragId = null;
+    if(!card || card.dataset.id === id){ clear(); return; }
+    const box = card.getBoundingClientRect();
+    const after = e.clientY >= box.top + box.height / 2;
+    const hs = book().holders;
+    clear();
+    movePage(id, dropIndex(hs.findIndex(h => h.id === id),
+                           hs.findIndex(h => h.id === card.dataset.id), after));
+  });
+})();
 
 document.getElementById('btnXlsxTemplate').addEventListener('click', downloadXlsxTemplate);
 document.getElementById('btnXlsxUpload').addEventListener('click',
@@ -3579,6 +3727,15 @@ document.addEventListener('click', e => {
   if(t.closest('#btnPasteOpen')) return openSheet('pasteScrim');
 });
 document.addEventListener('keydown', e => {
+  /* Alt+↑/↓ moves the page you are on. Nothing else in the page binds it, and
+     it is the only way to reorder without reaching for the mouse. */
+  if(e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')){
+    const hs = book().holders, i = hs.findIndex(h => h.id === book().activeId);
+    if(i < 0 || hs.length < 2) return;
+    e.preventDefault();
+    movePage(book().activeId, e.key === 'ArrowUp' ? i - 1 : i + 1);
+    return;
+  }
   if(e.key !== 'Escape') return;
   ['perScrim','planScrim','tokScrim','pasteScrim'].forEach(id => {
     const el = document.getElementById(id);
