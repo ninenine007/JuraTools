@@ -217,7 +217,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em;bac
 .subno{font-size:.72em;font-weight:700;color:#94a3b8;text-align:right;}
 .plan-sum{margin-top:14px;padding:11px 13px;border-radius:9px;background:var(--accent-soft);
   border:1px solid var(--accent-line);line-height:1.65;}
-.plan-sum .warn{color:#b45309;font-weight:600;}
+.plan-sum .warn,#dlgBody .warn{color:#b45309;font-weight:600;}
 .perpick{width:auto;font-size:.75em;padding:4px 7px;font-weight:500;}
 #dlgInput{margin:0 0 14px;}
 /* the confirmation lists the rows it is about to write, one per line */
@@ -602,6 +602,16 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em;bac
           <p class="hintline" id="shareState"></p>
         </div>
         <div class="act">
+          <div class="act-hd"><span class="ico">📗</span> Batch from Excel</div>
+          <p class="sect-note">หนึ่งบรรทัด = หนึ่งรายการ ชื่อผู้ถือหุ้นซ้ำกันจะรวมเป็นหน้าเดียว ช่องที่เว้นว่างในคอลัมน์ “blank = auto” ให้เครื่องมือคำนวณเอง — ดาวน์โหลดแม่แบบที่มีข้อมูลเดิมอยู่แล้ว แก้ใน Excel แล้วนำกลับเข้ามา</p>
+          <div class="btn-row">
+            <button class="btn btn-ghost btn-sm" id="btnXlsxTemplate">↓ แม่แบบ Excel</button>
+            <button class="btn btn-ghost btn-sm" id="btnXlsxUpload">↑ นำเข้า .xlsx</button>
+            <button class="btn btn-ghost btn-sm" id="btnPasteOpen">📋 วางเป็นข้อความ</button>
+            <input type="file" id="xlsxFile" accept=".xlsx" hidden>
+          </div>
+        </div>
+        <div class="act">
           <div class="act-hd"><span>💾</span> สำรองข้อมูล</div>
           <p class="sect-note">ไฟล์ JSON เก็บทุกบริษัทในหน้านี้ พร้อมทะเบียนบุคคลและแม่แบบของฉัน ใช้ย้ายเครื่องหรือเก็บไว้กับแฟ้มลูกความ</p>
           <div class="btn-row">
@@ -821,6 +831,35 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em;bac
         <div id="tokList"></div>
         <p class="sect-note" style="margin-top:16px">แม่แบบข้อความที่เก็บไว้เอง — โผล่ในรายการ “แม่แบบของฉัน” ของทุกบริษัท</p>
         <div id="myTplList"></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="scrim" id="pasteScrim" hidden>
+  <div class="sheet-wrap" style="max-width:880px">
+    <!-- Paste a table as text -->
+    <section class="card sheet">
+      <div class="card-hd">
+        <span class="ico">📋</span>
+        <h3>วางตารางเป็นข้อความ</h3><span class="th">Paste a table</span>
+        <span class="spacer"></span>
+        <button class="sheet-x" data-close="pasteScrim" title="ปิด (Esc)">✕</button>
+      </div>
+      <div class="card-bd">
+        <p class="sect-note">วางจาก Excel, Google Sheets หรือจากบทสนทนากับ AI ได้ตรง ๆ — คั่นด้วย Tab หรือ
+          จุลภาคก็ได้ ต้องมีแถวหัวตารางเป็นบรรทัดแรก ชื่อคอลัมน์ตรงกับแม่แบบ Excel
+          (กด “คัดลอกหัวตาราง” แล้วส่งให้ AI ใช้เป็นแบบได้)</p>
+        <div class="btn-row" style="margin-bottom:10px">
+          <button class="btn btn-ghost btn-sm" id="btnCopyHeader">⧉ คัดลอกหัวตาราง</button>
+        </div>
+        <textarea id="pasteBox" rows="12" spellcheck="false"
+          style="width:100%;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78em;white-space:pre"
+          placeholder="Page&#9;Shareholder (Thai)&#9;…&#10;1&#9;นายสมชาย ใจดี&#9;…"></textarea>
+        <div class="btn-row" style="margin-top:10px">
+          <button class="btn btn-primary btn-sm" id="btnPasteGo">ตรวจแล้วนำเข้า</button>
+          <button class="btn btn-ghost btn-sm" data-close="pasteScrim">ยกเลิก</button>
+        </div>
       </div>
     </section>
   </div>
@@ -1772,6 +1811,359 @@ async function exportAll(){
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   Excel batch — and the same rows as pasted text
+
+   Written and read with JSZip directly: a .xlsx is just a zip of XML, and
+   avoiding a spreadsheet library keeps this file self-contained. The same
+   plumbing is in the certificate and instrument tools; this is that code with
+   the register's own columns.
+
+   The sheet is flat — one row per entry — because a register page is a person
+   plus a list of moves and a spreadsheet has no room for that shape. Rows
+   naming the same person fold back into one page, and a row that leaves the
+   identity cells blank simply adds a move to the page already being filled, so
+   the person is typed once.
+   ═══════════════════════════════════════════════════════════════ */
+function colName(n){ let s=''; n++; while(n>0){ const r=(n-1)%26; s=String.fromCharCode(65+r)+s; n=Math.floor((n-1)/26);} return s; }
+
+function sheetXml(rows){
+  const body = rows.map((cells,ri)=>{
+    const r = ri+1;
+    const cs = cells.map((v,ci)=> v === '' || v == null ? '' :
+      `<c r="${colName(ci)}${r}" t="inlineStr"><is><t xml:space="preserve">${escX(v)}</t></is></c>`).join('');
+    return `<row r="${r}">${cs}</row>`;
+  }).join('');
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${body}</sheetData></worksheet>`;
+}
+
+async function xlsxBlob(rows){
+  const zip = new JSZip();
+  zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`);
+  zip.folder('_rels').file('.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`);
+  const xl = zip.folder('xl');
+  xl.file('workbook.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Register" sheetId="1" r:id="rId1"/></sheets></workbook>`);
+  xl.folder('_rels').file('workbook.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`);
+  xl.folder('worksheets').file('sheet1.xml', sheetXml(rows));
+  return zip.generateAsync({type:'blob', compression:'DEFLATE',
+    mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+
+async function parseXlsx(file){
+  const zip = await JSZip.loadAsync(await file.arrayBuffer());
+  const sheetPath = Object.keys(zip.files).find(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n));
+  if(!sheetPath) throw new Error('ไม่พบแผ่นงานในไฟล์นี้');
+  const doc = new DOMParser().parseFromString(await zip.file(sheetPath).async('string'), 'application/xml');
+
+  let shared = [];
+  const ssFile = zip.file('xl/sharedStrings.xml');
+  if(ssFile){
+    const ss = new DOMParser().parseFromString(await ssFile.async('string'), 'application/xml');
+    shared = [...ss.getElementsByTagNameNS('*','si')].map(si =>
+      [...si.getElementsByTagNameNS('*','t')].map(t=>t.textContent).join(''));
+  }
+
+  const rows = [];
+  for(const row of doc.getElementsByTagNameNS('*','row')){
+    const cells = [];
+    for(const c of row.getElementsByTagNameNS('*','c')){
+      const ref = (c.getAttribute('r')||'').match(/^([A-Z]+)/);
+      let idx = 0;
+      if(ref) for(const ch of ref[1]) idx = idx*26 + (ch.charCodeAt(0)-64);
+      idx = idx ? idx-1 : cells.length;
+      const type = c.getAttribute('t');
+      let v = '';
+      if(type === 'inlineStr') v = [...c.getElementsByTagNameNS('*','t')].map(t=>t.textContent).join('');
+      else{
+        const vEl = c.getElementsByTagNameNS('*','v')[0];
+        const raw = vEl ? vEl.textContent : '';
+        v = type === 's' ? (shared[Number(raw)] ?? '') : raw;
+      }
+      while(cells.length < idx) cells.push('');
+      cells[idx] = v;
+    }
+    /* A sheet leaves out rows that hold nothing, so the row's own number is
+       what says where it sits. Putting it back means the line a complaint
+       names is the line Excel shows. */
+    const rn = Number(row.getAttribute('r')) || rows.length + 1;
+    while(rows.length < rn - 1) rows.push([]);
+    rows[rn - 1] = cells;
+  }
+  return rows;
+}
+
+/* Excel serial dates come back as a number when the column is date-formatted.
+   A พ.ศ. date typed by hand is accepted too: the book's own dates are written
+   14/01/2554, and refusing to read back what the tool prints would be perverse. */
+function toIsoDate(v){
+  const s = String(v || '').trim();
+  if(!s) return '';
+  if(isPlaceholder(s)) return s;
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const dmy = /^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/.exec(s);
+  if(dmy){
+    let y = Number(dmy[3]);
+    if(y > 2400) y -= 543;                    /* พ.ศ. → ค.ศ. */
+    const p = n => String(n).padStart(2,'0');
+    return `${y}-${p(Number(dmy[2]))}-${p(Number(dmy[1]))}`;
+  }
+  if(/^\d+(\.\d+)?$/.test(s)){
+    const d = new Date(Date.UTC(1899,11,30) + Math.round(Number(s)) * 86400000);
+    return isNaN(d) ? '' : d.toISOString().slice(0,10);
+  }
+  const d = new Date(s);
+  return isNaN(d) ? s : d.toISOString().slice(0,10);
+}
+
+/* The columns, in two halves: who the page belongs to, and one move on it.
+   Every column round-trips — what comes out of the book goes back in
+   unchanged — so a sheet edited in Excel can rebuild the register exactly.
+   A number keeps its separators; a blank auto cell stays auto. */
+const numTxt = v => isPlaceholder(v) ? String(v).trim() : (groupDigits(v) || '');
+
+const XLSX_H_COLS = [
+  ['Shareholder (Thai)',     h => h.nameTh,  (h,v) => h.nameTh = v],
+  ['Shareholder (English)',  h => h.nameEn,  (h,v) => h.nameEn = v],
+  ['ID type (id/passport/juristic/both)',
+                             h => h.idType,  (h,v) => { const t = v.trim().toLowerCase();
+                               if(ID_LABEL[t]) h.idType = t; }],
+  ['ID no.',                 h => h.idNo,    (h,v) => h.idNo = v],
+  ['Occupation (Thai)',      h => h.occTh,   (h,v) => h.occTh = v],
+  ['Occupation (English)',   h => h.occEn,   (h,v) => h.occEn = v],
+  ['Nationality (Thai)',     h => h.natTh,   (h,v) => h.natTh = v],
+  ['Nationality (English)',  h => h.natEn,   (h,v) => h.natEn = v],
+  ['Address (Thai)',         h => h.addrTh,  (h,v) => h.addrTh = v],
+  ['Address (English)',      h => h.addrEn,  (h,v) => h.addrEn = v]
+];
+
+/* A both-halves row keeps the transfer's own certificate in `out.cert`, while a
+   plain transfer row keeps it in `outCert` — the form does the same, so the
+   setter has to know which kind of row it is writing. */
+const outCertOf = e => String((e.kind === 'both' ? (e.out && e.out.cert) : e.outCert) || '');
+const setOutCert = (e,v) => { if(e.kind === 'both') e.out.cert = v; else e.outCert = v; };
+
+const XLSX_E_COLS = [
+  ['Kind (in/out/both/note)', e => e.kind, (e,v) => {
+      const k = v.trim().toLowerCase();
+      if(['in','out','both','note'].includes(k)) e.kind = k;
+    }],
+  ['Date',                  e => e.date,     (e,v) => e.date = toIsoDate(v)],
+  ['Counterparty (Thai)',   e => e.counterTh,(e,v) => e.counterTh = v],
+  ['Counterparty (English)',e => e.counterEn,(e,v) => e.counterEn = v],
+  /* A row says its wording one of two ways: a template id, or the words
+     themselves. Never both — a chosen template is what the document prints, so
+     writing the resolved text beside it would only invite editing a cell that
+     has no effect. The wording cells stay empty until the row is custom. */
+  ['Wording template',      e => e.tpl,      (e,v) => { const id = v.trim();
+      if(id && (id === 'custom' || tplById(id))) e.tpl = id; }],
+  ['Wording (Thai)',        e => e.tpl === 'custom' ? e.descTh : '', (e,v) => e.descTh = v],
+  ['Wording (English)',     e => e.tpl === 'custom' ? e.descEn : '', (e,v) => e.descEn = v],
+  ['Refer to cert no.',     e => e.refCert,  (e,v) => e.refCert = v],
+  ['Cert no.',              e => e.certNo,   (e,v) => e.certNo = v],
+  ['Shares',                e => numTxt(e.shares), (e,v) => e.shares = numTxt(v)],
+  /* the number the automatic range counts up from — without it a round-trip
+     would hand back a page whose share numbers had nothing to work from */
+  ['Share nos. start',      e => e.shareFrom, (e,v) => e.shareFrom = v],
+  ['Share nos. (blank = auto)',
+                            e => e.shareNosAuto ? '' : e.shareNos,
+                            (e,v) => { if(v){ e.shareNos = v; e.shareNosAuto = false; } }],
+  ['Paid-up per share (blank = auto)',
+                            e => e.paidUpAuto ? '' : e.paidUp,
+                            (e,v) => { if(v){ e.paidUp = v; e.paidUpAuto = false; } }],
+  ['Balance (blank = auto)',e => e.balanceAuto ? '' : e.balance,
+                            (e,v) => { if(v){ e.balance = numTxt(v); e.balanceAuto = false; } }],
+  /* the transferred half — only a plain transfer or a both-halves row uses these */
+  ['Transferred — date (blank = same day)',
+                            e => (e.out && e.out.date) || '', (e,v) => e.out.date = toIsoDate(v)],
+  ['Transferred — cert no.',outCertOf,       setOutCert],
+  ['Transferred — shares',  e => numTxt(e.outShares), (e,v) => e.outShares = numTxt(v)],
+  ['Transferred to (Thai)', e => (e.out && e.out.counterTh) || '', (e,v) => e.out.counterTh = v],
+  ['Transferred to (English)',
+                            e => (e.out && e.out.counterEn) || '', (e,v) => e.out.counterEn = v],
+  ['Transferred — wording template',
+                            e => (e.out && e.out.tpl) || '', (e,v) => { const id = v.trim();
+      if(id && (id === 'custom' || tplById(id))) e.out.tpl = id; }],
+  ['Transferred — wording (Thai)',
+                            e => (e.out && e.out.tpl === 'custom' && e.out.descTh) || '',
+                            (e,v) => e.out.descTh = v],
+  ['Transferred — wording (English)',
+                            e => (e.out && e.out.tpl === 'custom' && e.out.descEn) || '',
+                            (e,v) => e.out.descEn = v]
+];
+const XLSX_COLS = ['Page'].concat(XLSX_H_COLS.map(c => c[0]), XLSX_E_COLS.map(c => c[0]));
+/* where the two template columns sit, for the wording rule on the way back in */
+const eColAt   = label => XLSX_E_COLS.findIndex(c => c[0] === label);
+const E_TPL     = eColAt('Wording template');
+const E_OUT_TPL = eColAt('Transferred — wording template');
+
+/* ── The sheet, out ───────────────────────────────────────────── */
+function bookRows(b){
+  const rows = [XLSX_COLS.slice()];
+  (b.holders || []).forEach((h, i) => {
+    const entries = h.entries && h.entries.length ? h.entries : [blankEntry('in')];
+    entries.forEach((e, j) => {
+      /* the person is written on the first of their rows only, which is how
+         you would fill the sheet by hand — and it reads back the same */
+      const hCells = XLSX_H_COLS.map(c => j === 0 ? String(c[1](h) ?? '') : '');
+      rows.push([String(i+1)].concat(hCells, XLSX_E_COLS.map(c => String(c[1](e) ?? ''))));
+    });
+  });
+  if(rows.length === 1) rows.push(XLSX_COLS.map(() => ''));
+  return rows;
+}
+
+async function downloadXlsxTemplate(){
+  try{
+    download(await xlsxBlob(bookRows(book())),
+             shortName() + ' — register batch template.xlsx');
+    toast('✓ ดาวน์โหลดแม่แบบ Excel พร้อมข้อมูลในสมุดเล่มนี้แล้ว');
+  }catch(e){ toast('✗ สร้างไฟล์ไม่สำเร็จ: ' + e.message); console.error(e); }
+}
+
+/* ── The sheet, back in ───────────────────────────────────────────
+   Nothing is dropped quietly: a row that cannot be read is collected and
+   named, and the count of them is put in front of you before anything is
+   written. */
+function rowsToHolders(rows){
+  if(!rows.length || !rows[0] || !rows[0].length) throw new Error('ไม่มีข้อมูลในไฟล์');
+  const header = rows[0].map(h => String(h||'').trim().toLowerCase());
+  const at = label => header.indexOf(label.toLowerCase());
+  const pageAt = at('Page');
+  const hIdx = XLSX_H_COLS.map(c => at(c[0]));
+  const eIdx = XLSX_E_COLS.map(c => at(c[0]));
+  if(hIdx[0] === -1 && hIdx[1] === -1)
+    throw new Error('หัวตารางไม่ตรงกับแม่แบบ — ดาวน์โหลดแม่แบบใหม่แล้วคงแถวที่ 1 ไว้');
+
+  const holders = [], problems = [];
+  let cur = null, curKey = null, curPage = null, entryCount = 0;
+
+  rows.slice(1).forEach((r, n) => {
+    const line = n + 2;                       /* what Excel calls this row */
+    if(!r.some(x => String(x||'').trim())) return;          /* a blank spacer */
+    const cell = i => i === -1 ? '' : String(r[i] ?? '').trim();
+
+    const raw = hIdx.map(cell);
+    const page = pageAt === -1 ? '' : cell(pageAt);
+    const key = personKey(raw[0]) + '|' + personKey(raw[1]);
+
+    /* a new page starts when the page number changes, or — with no page
+       column — when a row names somebody other than the page being filled */
+    const newPage = !cur ||
+      (page ? page !== curPage : (key !== curKey && (raw[0] || raw[1])));
+    if(newPage){
+      if(!raw[0] && !raw[1]){
+        problems.push(`บรรทัด ${line}: ไม่มีชื่อผู้ถือหุ้น`);
+        return;
+      }
+      cur = blankHolder();
+      cur.entries = [];
+      holders.push(cur);
+      curKey = key; curPage = page;
+    }
+    /* The page itself is what carries the identity down its own rows, so a
+       blank cell simply leaves what is already there — and nothing can leak
+       onto the next person's page. A later row may still be the first to name
+       the address or the occupation. */
+    XLSX_H_COLS.forEach((c, i) => { if(raw[i]) c[2](cur, raw[i]); });
+
+    const vals = eIdx.map(cell);
+    if(!vals.some(Boolean)) return;            /* identity only, no move on it */
+    /* the kind is settled before the row is built: it picks the row's default
+       wording, and the transferred-side setters branch on it */
+    const kind = (vals[0] || 'in').trim().toLowerCase();
+    const e = blankEntry(['in','out','both','note'].includes(kind) ? kind : 'in');
+    XLSX_E_COLS.forEach((c, i) => { if(i && vals[i]) c[2](e, vals[i]); });
+    /* Words with no template named are the row's own wording. A template named
+       alongside them wins, because that is what the document prints. */
+    if(!vals[E_TPL] && (e.descTh || e.descEn)) e.tpl = 'custom';
+    if(!vals[E_OUT_TPL] && (e.out.descTh || e.out.descEn)) e.out.tpl = 'custom';
+    /* A note prints on its wording alone, so it needs nothing else. Any other
+       row with nothing that would reach the page is dropped and named — the
+       confirmation says these rows are not coming in, and they are not. */
+    const bare = !e.date && !e.shares && !e.certNo && !e.refCert && !e.outShares &&
+                 !e.descTh && !e.descEn && !e.counterTh && !e.counterEn;
+    if(e.kind !== 'note' && bare){
+      problems.push(`บรรทัด ${line}: รายการว่าง — ไม่มีวันที่ จำนวนหุ้น เลขใบหุ้น หรือข้อความ`);
+      return;
+    }
+    cur.entries.push(e); entryCount++;
+  });
+
+  holders.forEach(h => { if(!h.entries.length) h.entries = [blankEntry('in')]; });
+  if(!holders.length) throw new Error('ไม่พบผู้ถือหุ้นในไฟล์นี้');
+  return {holders, problems, entryCount};
+}
+
+/* Tab- or comma-separated text, because an AI conversation can hand you a
+   table but not a .xlsx. Quoted fields are honoured so an address with a
+   comma in it survives. */
+function splitDelimited(text){
+  const t = text.replace(/\r\n?/g, '\n').replace(/\n+$/, '');
+  if(!t.trim()) return [];
+  const first = t.split('\n')[0];
+  const sep = first.includes('\t') ? '\t' : ',';
+  const rows = [];
+  let row = [], cell = '', q = false;
+  for(let i = 0; i < t.length; i++){
+    const c = t[i];
+    if(q){
+      if(c === '"' && t[i+1] === '"'){ cell += '"'; i++; }
+      else if(c === '"') q = false;
+      else cell += c;
+    }else if(c === '"') q = true;
+    else if(c === sep){ row.push(cell); cell = ''; }
+    else if(c === '\n'){ row.push(cell); rows.push(row); row = []; cell = ''; }
+    else cell += c;
+  }
+  row.push(cell); rows.push(row);
+  return rows;
+}
+
+/* Replacing a book's pages is not something to do by surprise, so what is
+   arriving and what it will overwrite is said first. */
+function applyRows(rows, where){
+  let got;
+  try{ got = rowsToHolders(rows); }
+  catch(e){ toast('✗ ' + e.message); return; }
+  const b = book();
+  /* The sheet says what the register says, not how it is set to print. A page
+     for somebody already in this book keeps the condensing and the ID layout
+     that were chosen for them. */
+  const printSet = ['idSpace','idOnEn','condOn','condTh','condEn'];
+  const keyOf = h => personKey(h.nameTh) + '|' + personKey(h.nameEn);
+  const before = new Map(b.holders.map(h => [keyOf(h), h]));
+  got.holders.forEach(h => {
+    const was = before.get(keyOf(h));
+    if(was) printSet.forEach(k => h[k] = was[k]);
+  });
+  const had = b.holders.length, hadEntries = b.holders.reduce((a,h)=> a + h.entries.length, 0);
+  const lines = [
+    `กำลังจะนำเข้า <b>${got.holders.length}</b> หน้า · <b>${got.entryCount}</b> รายการ จาก${where}`,
+    `แทนที่ของเดิมในสมุดเล่มนี้: <b>${had}</b> หน้า · <b>${hadEntries}</b> รายการ`,
+    got.problems.length
+      ? `<span class="warn">อ่านไม่ได้ ${got.problems.length} บรรทัด — จะไม่ถูกนำเข้า:</span><br>` +
+        got.problems.slice(0, 8).map(escHtml).join('<br>') +
+        (got.problems.length > 8 ? `<br>… และอีก ${got.problems.length - 8} บรรทัด` : '')
+      : 'อ่านได้ทุกบรรทัด'
+  ];
+  confirmHtml('นำเข้าจากตาราง', lines.join('<br><br>'), () => {
+    b.holders = got.holders;
+    b.activeId = b.holders[0].id;
+    save(); render();
+    toast(`✓ นำเข้า ${got.holders.length} หน้า · ${got.entryCount} รายการ`);
+  });
+}
+
+async function importXlsx(file){
+  try{ applyRows(await parseXlsx(file), 'ไฟล์ Excel'); }
+  catch(e){ toast('✗ Excel: ' + e.message); console.error(e); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
    Passing work between the tools
 
    The certificate tool and the instrument tool already hand a single transfer
@@ -2294,7 +2686,12 @@ function toast(msg){
 let dlgAction = null;
 function openDlg(title, body, ask, initial, onYes, yesLabel){
   document.getElementById('dlgTitle').textContent = title;
-  document.getElementById('dlgBody').textContent = body;
+  /* An object body is markup this file built itself, with anything that came
+     from the user already put through escHtml. A plain string is text and stays
+     text — a company name with an angle bracket in it must never become tags. */
+  const bodyEl = document.getElementById('dlgBody');
+  if(body && typeof body === 'object' && body.html !== undefined) bodyEl.innerHTML = body.html;
+  else bodyEl.textContent = body;
   const inp = document.getElementById('dlgInput');
   inp.hidden = !ask;
   inp.value = ask ? (initial || '') : '';
@@ -2306,6 +2703,9 @@ function openDlg(title, body, ask, initial, onYes, yesLabel){
   if(ask) setTimeout(() => { inp.focus(); inp.select(); }, 20);
 }
 const confirmDlg = (title, body, onYes) => openDlg(title, body, false, '', onYes);
+/* the same dialog, for a summary this file assembled — counts, warnings, a
+   list of rows that would not read */
+const confirmHtml = (title, html, onYes) => openDlg(title, {html}, false, '', onYes);
 const promptDlg  = (title, body, initial, onYes) => openDlg(title, body, true, initial, onYes, 'บันทึก');
 function closeDlg(){ document.getElementById('scrim').hidden = true; dlgAction = null; }
 document.getElementById('dlgNo').addEventListener('click', closeDlg);
@@ -2942,6 +3342,36 @@ document.getElementById('btnPrint').addEventListener('click', () => {
   }, 200);
 });
 
+document.getElementById('btnXlsxTemplate').addEventListener('click', downloadXlsxTemplate);
+document.getElementById('btnXlsxUpload').addEventListener('click',
+  () => document.getElementById('xlsxFile').click());
+document.getElementById('xlsxFile').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if(f) importXlsx(f);
+  e.target.value = '';
+});
+document.getElementById('btnCopyHeader').addEventListener('click', async () => {
+  const line = XLSX_COLS.join('\t');
+  try{
+    await navigator.clipboard.writeText(line);
+    toast('✓ คัดลอกหัวตารางแล้ว');
+  }catch(_){
+    /* clipboard permission is not always given; put it in the box instead so
+       it can be copied by hand rather than lost */
+    const box = document.getElementById('pasteBox');
+    if(!box.value.trim()) box.value = line + '\n';
+    toast('วางหัวตารางไว้ในช่องแล้ว — คัดลอกจากตรงนั้นได้');
+  }
+});
+document.getElementById('btnPasteGo').addEventListener('click', () => {
+  const text = document.getElementById('pasteBox').value;
+  if(!text.trim()){ toast('ยังไม่ได้วางข้อมูล'); return; }
+  const rows = splitDelimited(text);
+  if(rows.length < 2){ toast('ต้องมีแถวหัวตารางและข้อมูลอย่างน้อยหนึ่งบรรทัด'); return; }
+  document.getElementById('pasteScrim').hidden = true;
+  applyRows(rows, 'ข้อความที่วาง');
+});
+
 document.getElementById('btnBackup').addEventListener('click', () => {
   const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
@@ -3083,10 +3513,11 @@ document.addEventListener('click', e => {
   if(t.closest('#btnPerOpen'))  return openSheet('perScrim');
   if(t.closest('#btnPlanOpen')) return openSheet('planScrim');
   if(t.closest('#btnTokOpen'))  return openSheet('tokScrim');
+  if(t.closest('#btnPasteOpen')) return openSheet('pasteScrim');
 });
 document.addEventListener('keydown', e => {
   if(e.key !== 'Escape') return;
-  ['perScrim','planScrim','tokScrim'].forEach(id => {
+  ['perScrim','planScrim','tokScrim','pasteScrim'].forEach(id => {
     const el = document.getElementById(id);
     if(el) el.hidden = true;
   });
