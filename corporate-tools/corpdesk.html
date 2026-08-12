@@ -268,6 +268,8 @@
         .btn-export:hover { background: var(--hover-gray); }
         .btn-export.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
         .btn-export.primary:hover { background: #1d4ed8; }
+        .btn-export.handoff { background: #7c3aed; border-color: #7c3aed; color: #fff; }
+        .btn-export.handoff:hover { background: #6d28d9; }
 
         /* --- Block 2: transactions --- */
         .part-title {
@@ -514,9 +516,11 @@
                 <button class="btn-export primary" onclick="copyCurrentTable()">Copy Table</button>
                 <button class="btn-export" onclick="exportCurrentCSV()">Export CSV</button>
                 <span class="spacer"></span>
+                <button class="btn-export handoff" onclick="exportDossierJSON()" title="Open this file in Share Certificates, Share Transfer Instrument, or Share Register Book">⇢ Hand off to share tools (.dossier.json)</button>
                 <button class="btn-export" onclick="exportThaiDocsJSON()" title="Download master-data.json for the share-data-collector-v2 / thai-share-documents-v2 skills">⤓ Thai docs (master-data.json)</button>
                 <button class="btn-export" onclick="copyThaiDocsJSON()">Copy JSON</button>
             </div>
+            <p class="form-hint" style="margin:10px 0 0 0;"><b>Hand off to share tools</b> exports this company’s derived company record, people, full certificate history, transfers and shareholder register as one JuraTools <code>.dossier.json</code>. Open that file in Share Certificates, Share Transfer Instrument, or Share Register Book.</p>
             <p class="form-hint" style="margin:10px 0 0 0;">"Thai docs" exports a <b>master-data.json</b> pre-filled with the full cap table, every certificate (active &amp; cancelled), and the transfer history — ready for the <code>/share-data-collector-v2</code> and <code>/thai-share-documents-v2</code> skills. Blank fields (Thai names, IDs, addresses, BOJ5 metadata) are what those skills collect.</p>
         </div>
 
@@ -3425,6 +3429,226 @@
 
     function exportCurrentCSV() {
         downloadCSV(currentRows(), safeName(activeCompany().name || 'register') + '-current-shareholding.csv');
+    }
+
+    // ============================================================
+    // Export → JuraTools corporate dossier
+    // One derived company file that can be opened by Share Certificates,
+    // Share Transfer Instrument, and Share Register Book. CorpDesk has one
+    // name field, so Thai script is sent to the Thai field and every other
+    // name to the English field rather than pretending one value is bilingual.
+    // Unknown dates are explicit placeholders: otherwise the certificate tool
+    // would silently replace an unknown historical issue date with its default.
+    // ============================================================
+    const DOSSIER_FORMAT = 'juratools-corporate-dossier';
+
+    function dossierNumber(value) {
+        if (value === null || value === undefined || value === '') return '';
+        if (/^\(\*/.test(String(value).trim())) return String(value).trim();
+        const n = Number(String(value).replace(/,/g, ''));
+        if (!Number.isFinite(n)) return '(*)';
+        return Number.isInteger(n) ? String(n) : String(+n.toFixed(10));
+    }
+
+    function dossierPut(target, key, value) {
+        if (value !== '' && value !== null && value !== undefined) target[key] = value;
+    }
+
+    function dossierPutName(target, thaiKey, englishKey, value) {
+        const name = String(value || '').trim();
+        if (!name) return;
+        target[/[\u0E00-\u0E7F]/.test(name) || /^\(\*/.test(name) ? thaiKey : englishKey] = name;
+    }
+
+    function dossierEntryTemplate(event, issuedCert, txn) {
+        if (event.kind === 'disposition') {
+            return txn && txn.type === 'transfer' ? { tpl: 'transfer' }
+                 : { descEn: String(event.detail || 'Share cancellation') };
+        }
+        if (!issuedCert || issuedCert.issuedBy === 'initial') return { tpl: 'issue' };
+        if (!txn) return { descEn: String(event.detail || 'Share acquisition') };
+        if (txn.type === 'transfer') {
+            return issuedCert.ownerShId === txn.toShId ? { tpl: 'receive' } : { tpl: 'cancelIssue' };
+        }
+        if (txn.type === 'renumber') return { tpl: 'rearrange' };
+        if (txn.type === 'increase') {
+            return event.referCertNo === '—' ? { tpl: 'subscribeInc' } : { tpl: 'cancelIssueInc' };
+        }
+        return { descEn: String(event.detail || 'Cancel and reissue share certificate') };
+    }
+
+    function buildCorporateDossier() {
+        const company = activeCompany();
+        const rep = replayCompany(company, state.settings);
+        const numericIssues = [];
+        const num = (value, label) => {
+            const result = dossierNumber(value);
+            if (result === '(*)' && value !== null && value !== undefined && value !== '' &&
+                !/^\(\*/.test(String(value).trim())) numericIssues.push(label);
+            return result;
+        };
+        const peopleInOrder = allShareholders(company);
+        const personIndex = new Map(peopleInOrder.map((person, index) => [person.id, index + 1]));
+        const personName = id => {
+            const person = peopleInOrder.find(item => item.id === id);
+            return String(person && person.name || '').trim() || `(* Shareholder ${personIndex.get(id) || '?'})`;
+        };
+        const putPersonName = (target, thKey, enKey, id) =>
+            dossierPutName(target, thKey, enKey, personName(id));
+
+        const txnById = {};
+        (company.transactions || []).forEach(txn => { txnById[txn.id] = txn; });
+        const issuedByTxn = {};
+        rep.certs.forEach(cert => {
+            if (cert.issuedBy && cert.issuedBy !== 'initial') {
+                (issuedByTxn[cert.issuedBy] = issuedByTxn[cert.issuedBy] || []).push(cert.certNo);
+            }
+        });
+
+        const activeCerts = rep.certs.filter(cert => cert.status === 'active');
+        const activeShares = activeCerts.reduce((sum, cert) => sum + cert.shares, 0);
+        const currentPar = num(rep.curPar !== null && rep.curPar !== undefined ? rep.curPar : company.parValue,
+            'company par value');
+        const registeredCapital = activeCerts.reduce((sum, cert) => {
+            const par = Number(cert.par !== null && cert.par !== undefined ? cert.par : rep.curPar);
+            return sum + (Number.isFinite(par) ? par * cert.shares : 0);
+        }, 0);
+        const co = {};
+        dossierPutName(co, 'nameTh', 'nameEn', company.name || '(*)');
+        if (co.nameTh) co.th = co.nameTh;
+        if (co.nameEn) co.en = co.nameEn;
+        dossierPut(co, 'par', currentPar);
+        dossierPut(co, 'paidUp', currentPar);
+        dossierPut(co, 'regShares', num(activeShares, 'registered shares'));
+        dossierPut(co, 'ord', num(activeShares, 'ordinary shares'));
+        co.pref = '-';
+        if (currentPar && currentPar !== '(*)') dossierPut(co, 'cap', num(registeredCapital, 'registered capital'));
+
+        const people = peopleInOrder.map(person => {
+            const result = {};
+            dossierPutName(result, 'nameTh', 'nameEn', personName(person.id));
+            return result;
+        });
+
+        const certs = rep.certs.map(cert => {
+            const result = {
+                no: String(cert.certNo),
+                type: 'ordinary'
+            };
+            putPersonName(result, 'holderTh', 'holderEn', cert.ownerShId);
+            dossierPut(result, 'count', num(cert.shares, `certificate ${cert.certNo} share count`));
+            dossierPut(result, 'from', num(cert.start, `certificate ${cert.certNo} first share number`));
+            dossierPut(result, 'to', num(cert.end, `certificate ${cert.certNo} last share number`));
+            dossierPut(result, 'issue', cert.issuedDate || '(*)');
+            if (cert.cancelledBy) {
+                const cancellation = txnById[cert.cancelledBy];
+                dossierPut(result, 'cancel', cancellation && cancellation.date || '(*)');
+                const replacements = cert.replacedBy || issuedByTxn[cert.cancelledBy] || [];
+                dossierPut(result, 'replacedBy', replacements.map(String).join(', '));
+            }
+            dossierPut(result, 'par', num(cert.par, `certificate ${cert.certNo} par value`));
+            dossierPut(result, 'paid', num(cert.paidUp, `certificate ${cert.certNo} paid-up value`));
+            return result;
+        });
+
+        const transfers = rep.steps
+            .filter(step => step.txn.type === 'transfer' && !step.errors.length)
+            .map(step => {
+                const txn = step.txn;
+                const source = step.cancelled.find(cert => cert.ownerShId === txn.fromShId);
+                const count = parseInt(txn.shares);
+                const span = transferRange(source, count, txn.takeFrom, txn.takeStart);
+                const result = {};
+                dossierPut(result, 'date', txn.date || '(*)');
+                putPersonName(result, 'tfrTh', 'tfrEn', txn.fromShId);
+                putPersonName(result, 'tfeTh', 'tfeEn', txn.toShId);
+                dossierPut(result, 'count', num(count, `transfer ${txn.id} share count`));
+                if (span) {
+                    dossierPut(result, 'from', num(span.tStart, `transfer ${txn.id} first share number`));
+                    dossierPut(result, 'to', num(span.tEnd, `transfer ${txn.id} last share number`));
+                }
+                dossierPut(result, 'par', num(source && source.par, `transfer ${txn.id} par value`));
+                const paidUp = txn.paidUp !== null && txn.paidUp !== undefined && txn.paidUp !== ''
+                    ? txn.paidUp : source && source.paidUp;
+                dossierPut(result, 'paidUp', num(paidUp, `transfer ${txn.id} paid-up value`));
+                if (txn.pricePerShare !== null && txn.pricePerShare !== undefined && txn.pricePerShare !== '') {
+                    dossierPut(result, 'price', num(Number(txn.pricePerShare) * count, `transfer ${txn.id} price`));
+                }
+                return result;
+            });
+
+        const dispositionTxn = (event, ownerShId) => (company.transactions || []).find(txn =>
+            txn.date === event.date &&
+            ((txn.type === 'transfer' && txn.fromShId === ownerShId) ||
+             (txn.type === 'decrease' && txn.method === 'shares' &&
+              (txn.reductions || []).some(item => item.shId === ownerShId)))
+        );
+
+        const register = { holders: peopleInOrder.map(person => {
+            const holder = {};
+            dossierPutName(holder, 'nameTh', 'nameEn', personName(person.id));
+            holder.entries = (rep.ledgers[person.id] || [])
+            .filter(event => event.kind !== 'disposition' || dispositionTxn(event, person.id))
+            .map(event => {
+                const issuedCert = rep.certs.find(cert =>
+                    cert.ownerShId === person.id && String(cert.certNo) === String(event.issuedCertNo));
+                const txn = issuedCert && issuedCert.issuedBy !== 'initial' ? txnById[issuedCert.issuedBy]
+                          : (event.kind === 'disposition' ? dispositionTxn(event, person.id) : null);
+                const entry = {
+                    kind: event.kind === 'disposition' ? 'out' : 'in',
+                    ...dossierEntryTemplate(event, issuedCert, txn)
+                };
+                dossierPut(entry, 'date', event.date || '(*)');
+                if (event.counterparty && event.counterparty !== '—') {
+                    dossierPutName(entry, 'counterTh', 'counterEn', event.counterparty);
+                }
+                dossierPut(entry, 'refCert', event.referCertNo === '—' ? '-' : String(event.referCertNo || ''));
+                if (entry.kind === 'in') {
+                    dossierPut(entry, 'certNo', String(event.issuedCertNo || ''));
+                    dossierPut(entry, 'shares', num(issuedCert ? issuedCert.shares : event.shares,
+                        `register entry ${event.issuedCertNo || '?'} share count`));
+                    const rangeStart = /^0*(\d+)/.exec(String(issuedCert ? issuedCert.start : event.range || ''));
+                    if (rangeStart) dossierPut(entry, 'shareFrom', String(Number(rangeStart[1])));
+                    dossierPut(entry, 'paidUp', num(issuedCert ? issuedCert.paidUp : event.paidUp,
+                        `register entry ${event.issuedCertNo || '?'} paid-up value`));
+                } else {
+                    dossierPut(entry, 'outCert', String(event.issuedCertNo || ''));
+                    dossierPut(entry, 'outShares', num(event.shares, `register disposition share count`));
+                }
+                dossierPut(entry, 'balance', num(event.balanceAfter, `register balance for ${personName(person.id)}`));
+                return entry;
+            });
+            return holder;
+        }) };
+
+        const dossier = {
+            format: DOSSIER_FORMAT,
+            v: 1,
+            at: new Date().toISOString(),
+            from: 'CorpDesk',
+            co,
+            people,
+            register,
+            certs,
+            transfers
+        };
+        const invalid = rep.steps.filter(step => step.errors.length);
+        if (invalid.length) {
+            dossier.notes = invalid.map(step =>
+                `CorpDesk did not apply transaction "${step.summary}" to the derived handoff: ${step.errors.join('; ')}`);
+        }
+        if (numericIssues.length) {
+            dossier.notes = (dossier.notes || []).concat(
+                `CorpDesk exported (*) for invalid numeric data: ${[...new Set(numericIssues)].join(', ')}`);
+        }
+        return dossier;
+    }
+
+    function exportDossierJSON() {
+        const company = activeCompany();
+        const blob = new Blob([JSON.stringify(buildCorporateDossier(), null, 2)], { type: 'application/json' });
+        downloadBlob(blob, safeName(company.name || 'company') + '.dossier.json');
+        showToast('JuraTools dossier ready for the three share tools ✓', 'success');
     }
 
     // ============================================================
