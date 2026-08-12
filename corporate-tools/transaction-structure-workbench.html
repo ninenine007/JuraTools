@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Plan before, closing, and after corporate transaction structures on an offline visual workbench.">
+  <title>Transaction Structure Workbench — JuraTools</title>
+  <style>
+    :root {
+      --bg:#ececf2; --paper:#fff; --panel:#f8f8fb; --ink:#1c1c1e; --muted:#6e6e73;
+      --line:#d9d9e1; --line-strong:#b9bac5; --purple:#6d28d9; --purple-2:#7c3aed;
+      --purple-soft:#f0eafe; --blue:#2463a5; --green:#177245; --amber:#a45b08;
+      --red:#c92a3a; --cyan:#149f99; --shadow:0 8px 30px rgba(25,22,43,.09);
+      --top:56px; --left:236px; --right:306px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;overflow:hidden}
+    body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI","Noto Sans Thai",sans-serif;color:var(--ink);background:var(--bg);font-size:13px;-webkit-font-smoothing:antialiased}
+    button,input,select,textarea{font:inherit;color:inherit}
+    button{cursor:pointer}
+    ::selection{background:#d9ccfb;color:#28124e}
+    :focus-visible{outline:3px solid rgba(109,40,217,.26);outline-offset:2px}
+    *{scrollbar-color:#b7b7c2 transparent;scrollbar-width:thin}
+    .small-screen{display:none}
+    .app{height:100%;display:grid;grid-template-columns:var(--left) minmax(440px,1fr) var(--right);grid-template-rows:var(--top) 1fr;grid-template-areas:"top top top" "left work right"}
+    .topbar{grid-area:top;display:flex;align-items:center;gap:12px;padding:0 14px;background:#fff;border-bottom:1px solid var(--line);z-index:20}
+    .brand{display:flex;align-items:center;gap:9px;min-width:212px}
+    .brand-mark{width:28px;height:28px;border-radius:7px;background:var(--purple);position:relative;box-shadow:0 3px 9px rgba(109,40,217,.28)}
+    .brand-mark:before,.brand-mark:after{content:"";position:absolute;background:#fff;border-radius:2px}
+    .brand-mark:before{width:14px;height:3px;left:7px;top:8px;box-shadow:0 5px 0 #fff,0 10px 0 #fff}
+    .brand-mark:after{width:3px;height:14px;left:12px;top:7px;opacity:.38}
+    .brand b{display:block;font-size:14px;letter-spacing:-.25px}.brand span{display:block;font-size:10.5px;color:var(--muted);margin-top:-1px}
+    .crumb{color:var(--muted);text-decoration:none;font-size:12px}.crumb:hover{color:var(--purple)}
+    .project-name{border:0;background:transparent;font-weight:700;font-size:13.5px;min-width:170px;max-width:280px;padding:7px 8px;border-radius:7px}
+    .project-name:hover,.project-name:focus{background:var(--panel)}
+    .save-state{font-size:11px;color:var(--green);white-space:nowrap}
+    .top-spacer{flex:1}
+    .btn,.tool-btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 10px;font-weight:650;font-size:12px;line-height:1;white-space:nowrap}
+    .btn:hover,.tool-btn:hover{border-color:#aa94df;color:var(--purple);background:#fbfaff}
+    .btn.primary{background:var(--purple);border-color:var(--purple);color:#fff}.btn.primary:hover{background:#5b21b6;color:#fff}
+    .btn.danger:hover{border-color:#e5a1aa;color:var(--red);background:#fff7f8}
+    .tool-btn.danger{color:var(--red);border-color:#e6bdc3;background:#fffafb}.tool-btn.danger:hover{color:#fff;border-color:var(--red);background:var(--red)}
+    .tool-btn.danger:disabled{color:#aaa6ad;border-color:var(--line);background:#f7f7f9;cursor:not-allowed}
+    .btn:disabled{opacity:.4;cursor:not-allowed}
+    .top-actions{display:flex;align-items:center;gap:6px}
+    .left-panel{grid-area:left;background:#f8f8fb;border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;z-index:10}
+    .panel-head{padding:14px 14px 10px;border-bottom:1px solid var(--line)}
+    .panel-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:#686773;margin:0}
+    .stage-list{padding:9px;overflow:auto;flex:1}
+    .stage-row{width:100%;border:1px solid transparent;background:transparent;border-radius:9px;text-align:left;padding:10px 9px;margin-bottom:4px;display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:start}
+    .stage-row:hover{background:#fff;border-color:var(--line)}.stage-row.active{background:#fff;border-color:#cdbcf3;box-shadow:0 2px 8px rgba(42,31,74,.06)}
+    .stage-no{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;background:#e8e8ee;color:#555;font-weight:800;font-size:11px}.stage-row.active .stage-no{background:var(--purple);color:#fff}
+    .stage-name{display:block;font-weight:720;line-height:1.25}.stage-meta{display:block;font-size:10.5px;color:var(--muted);margin-top:3px}.stage-dot{width:7px;height:7px;border-radius:50%;background:#b9b9c4;margin-top:7px}.stage-row.active .stage-dot{background:var(--purple)}
+    .left-actions{padding:10px;border-top:1px solid var(--line);display:grid;grid-template-columns:1fr 1fr;gap:6px}
+    .left-actions .btn{padding:8px 6px}
+    .legend{padding:11px 13px 13px;border-top:1px solid var(--line);font-size:10.5px;color:var(--muted);line-height:1.5}
+    .workarea{grid-area:work;position:relative;overflow:hidden;background-color:#e9e9ef;background-image:radial-gradient(circle,#c8c8d2 1px,transparent 1px);background-size:20px 20px}
+    #canvas{width:100%;height:100%;display:block;touch-action:none;cursor:default}
+    #canvas.panning{cursor:grabbing}
+    .canvas-toolbar{position:absolute;left:12px;top:12px;display:flex;gap:6px;align-items:center;background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:10px;padding:5px;box-shadow:0 5px 18px rgba(29,26,49,.1);z-index:5}
+    .tool-btn.active{background:var(--purple-soft);border-color:#cbbaf1;color:var(--purple)}
+    .tool-sep{width:1px;height:22px;background:var(--line);margin:0 2px}
+    .zoom-readout{min-width:42px;text-align:center;color:var(--muted);font-variant-numeric:tabular-nums;font-size:11px}
+    .canvas-help{position:absolute;left:14px;bottom:12px;background:rgba(255,255,255,.93);border:1px solid var(--line);border-radius:8px;padding:7px 9px;color:var(--muted);font-size:10.5px;z-index:5}
+    .frame-empty-title{font-size:15px;font-weight:750;fill:#56535e;text-anchor:middle}.frame-empty-copy{font-size:10.5px;fill:#85828c;text-anchor:middle}
+    .right-panel{grid-area:right;background:#fff;border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0;z-index:10}
+    .tabs{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--line)}
+    .tab{border:0;background:#fff;padding:12px 4px;font-weight:700;font-size:11.5px;color:var(--muted);border-bottom:2px solid transparent}.tab.active{color:var(--purple);border-bottom-color:var(--purple)}
+    .tab-panel{display:none;overflow:auto;padding:14px;flex:1}.tab-panel.active{display:block}
+    .empty-inspector{padding:46px 18px;text-align:center;color:var(--muted);line-height:1.6}.empty-inspector strong{color:var(--ink);display:block;margin-bottom:5px}
+    .section{padding:0 0 14px;margin:0 0 14px;border-bottom:1px solid #ececf1}.section:last-child{border:0}
+    .section-title{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.68px;color:#777582;margin:0 0 9px;display:flex;justify-content:space-between;align-items:center}
+    .field{display:flex;flex-direction:column;gap:4px;margin:0 0 9px}.field>span{font-size:10.5px;color:var(--muted);font-weight:650}.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);border-radius:7px;background:#fff;padding:7px 8px}.field textarea{min-height:68px;resize:vertical}.field input:focus,.field select:focus,.field textarea:focus{border-color:#a98ce9;outline:3px solid rgba(109,40,217,.1)}
+    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.field.inline{flex-direction:row;align-items:center;justify-content:space-between}.field.inline select{width:auto;min-width:120px}
+    .mini-actions{display:flex;gap:6px;flex-wrap:wrap}.mini-actions .btn{font-size:11px;padding:6px 8px}
+    .warning{padding:8px 9px;border-radius:7px;background:#fff5e8;color:#7d4504;border:1px solid #f1d5ae;font-size:11px;line-height:1.45;margin-top:8px}
+    .ok{padding:8px 9px;border-radius:7px;background:#ebf7f0;color:#125f39;border:1px solid #bfe2cd;font-size:11px;line-height:1.45;margin-top:8px}
+    .action-card{border:1px solid var(--line);border-radius:9px;padding:9px 10px;margin-bottom:7px;background:#fcfcfd}.action-card-head{display:flex;gap:7px;align-items:center}.action-kind{font-weight:750;flex:1}.action-index{width:20px;height:20px;border-radius:6px;background:var(--purple-soft);color:var(--purple);display:grid;place-items:center;font-size:10px;font-weight:800}.action-desc{margin:5px 0 0 27px;color:var(--muted);font-size:11px;line-height:1.4}
+    .note-row{border-bottom:1px solid #ececf1;padding:9px 0}.note-row:last-child{border:0}.note-ref{color:var(--purple);font-weight:800;font-size:11px}.note-text{font-size:11.5px;line-height:1.45;margin-top:3px}.note-target{font-size:10px;color:var(--muted);margin-top:3px}
+    .status-strip{display:flex;gap:5px;flex-wrap:wrap}.status-pill{border:1px solid var(--line);border-radius:999px;padding:4px 8px;font-size:10.5px;background:#fff}.status-pill.active{border-color:#bca5ed;background:var(--purple-soft);color:var(--purple);font-weight:700}
+    dialog{border:0;border-radius:14px;padding:0;width:min(470px,calc(100vw - 32px));box-shadow:0 28px 80px rgba(24,18,45,.28);background:#fff}dialog::backdrop{background:rgba(25,22,39,.4)}
+    .dialog-head{padding:17px 18px 13px;border-bottom:1px solid var(--line)}.dialog-head h2{margin:0;font-size:17px;letter-spacing:-.25px}.dialog-head p{margin:4px 0 0;color:var(--muted);font-size:11.5px;line-height:1.45}
+    .dialog-body{padding:16px 18px;max-height:65vh;overflow:auto}.dialog-actions{display:flex;justify-content:flex-end;gap:7px;padding:12px 18px 16px;border-top:1px solid var(--line)}
+    .toast-region{position:fixed;right:322px;bottom:16px;z-index:80;display:flex;flex-direction:column;gap:7px;pointer-events:none}.toast{background:#25222d;color:#fff;padding:9px 12px;border-radius:8px;font-size:11.5px;box-shadow:var(--shadow);animation:toast-in .2s ease-out}@keyframes toast-in{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+    .kbd{border:1px solid #ceced6;background:#fff;border-bottom-width:2px;border-radius:4px;padding:1px 4px;font-size:9.5px;color:#666}
+    .frame-bg{fill:#fff;stroke:#bbbcc7;stroke-width:1.2}.frame-head{fill:#f7f5fc}.frame-title{font-size:18px;font-weight:750;fill:#1c1c1e}.frame-subtitle{font-size:10.5px;fill:#777582}.frame-tag{font-size:9.5px;font-weight:800;fill:#6d28d9;letter-spacing:.6px}.frame-selected .frame-bg{stroke:#7c3aed;stroke-width:2}
+    .node{cursor:grab}.node.dragging{cursor:grabbing}.node-body{fill:#fff;stroke:#33343b;stroke-width:1.25;rx:3}.node-shadow{fill:#dcdce4;opacity:.42}.node-name{font-size:13px;font-weight:700;fill:#17171b;text-anchor:middle}.node-sub{font-size:9.5px;fill:#676772;text-anchor:middle}.node-status{font-size:8.5px;font-weight:800;text-anchor:middle;letter-spacing:.45px}.node.selected .node-body{stroke:#6d28d9;stroke-width:2.2}.node.dissolved .node-body{opacity:.58}.node.dissolved text{opacity:.55}.strike{stroke:#d72535;stroke-width:3.2;stroke-linecap:round}
+    .edge path{fill:none;stroke:#303038;stroke-width:1.45}.edge text{font-size:10.5px;font-weight:700;fill:#202027;paint-order:stroke;stroke:#fff;stroke-width:4;stroke-linejoin:round}.edge.control path{stroke-dasharray:5 4;stroke:#6d28d9}.edge.loan path{stroke:#2463a5;stroke-dasharray:3 3}.edge.selected path{stroke:#6d28d9;stroke-width:2.6}
+    .flow path{fill:none;stroke:#d72535;stroke-width:1.8;stroke-dasharray:6 4}.flow.cash path{stroke:#177245}.flow.debt path{stroke:#2463a5}.flow.business path{stroke:#d72535}.flow text{font-size:9.5px;font-weight:700;fill:#9f2030;paint-order:stroke;stroke:#fff;stroke-width:3}.flow.cash text{fill:#177245}.flow.debt text{fill:#2463a5}
+    .free-item{cursor:grab}.free-item.selected rect,.free-item.selected path{stroke:#6d28d9!important;stroke-width:2.2!important}.free-box{fill:#fffdf2;stroke:#9a8e53;stroke-width:1.2}.free-text{font-size:12px;fill:#333}.free-arrow{fill:none;stroke:#777;stroke-width:1.5;stroke-dasharray:5 4}
+    .note-marker{fill:#6d28d9}.note-marker-text{fill:#fff;font-size:7px;font-weight:800;text-anchor:middle}.notes-rule{stroke:#d8d8df;stroke-width:1}.notes-title{font-size:8.5px;font-weight:800;fill:#555}.notes-text{font-size:7.6px;fill:#444}
+    #canvas [tabindex]:focus{outline:none}.node:focus .node-body,.frame:focus .frame-bg{stroke:#6d28d9;stroke-width:2.4}.edge:focus path,.flow:focus path,.free-item:focus rect,.free-item:focus path{stroke:#6d28d9!important;stroke-width:2.6!important}
+    @media(max-width:900px){.app{display:none}.small-screen{display:grid;place-items:center;height:100%;padding:28px;background:#f2f2f7}.small-card{max-width:430px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:26px;box-shadow:var(--shadow)}.small-card h1{font-size:24px;margin:0 0 8px}.small-card p{color:var(--muted);line-height:1.6}.small-card a{color:var(--purple);font-weight:700;text-decoration:none}}
+    @media print{body{background:#fff}.app,.small-screen{display:none!important}}
+  </style>
+</head>
+<body>
+  <!--
+  THESIS: A transaction is edited as a spatial sequence of truthful states, not as disconnected diagram files.
+  OWN-WORLD: JuraTools corporate purple, white drafting frames, graphite connectors, compact workhorse controls, and a visible measurement grid.
+  STORY: The user moves from before to closing to after, applies typed actions, adjusts the generated result, and exports selected frames.
+  FIRST VIEWPORT: A three-frame transaction fills the central drafting field; stages remain visible at left, precision controls at right, and creation/export commands stay overhead.
+  FORM: Spatial closing table, fifth grounded structure, seed 0f942016.
+  FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+  -->
+  <div class="small-screen"><div class="small-card"><h1>Transaction Structure Workbench</h1><p>This first version is designed for a laptop-sized workspace. Open it on a wider screen to edit transaction stages and export diagrams.</p><a href="index.html">Back to Corporate Tools</a></div></div>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span><b>Transaction Workbench</b><span>JuraTools Corporate</span></span></div>
+      <a class="crumb" href="index.html">Corporate Tools</a>
+      <input id="project-name" class="project-name" value="Project" aria-label="Project name">
+      <span id="save-state" class="save-state">Saved locally</span>
+      <div class="top-spacer"></div>
+      <div class="top-actions">
+        <button class="btn" id="undo-btn" type="button">Undo</button>
+        <button class="btn" id="redo-btn" type="button">Redo</button>
+        <button class="btn" id="new-blank-btn" type="button">New blank</button>
+        <button class="btn" id="checkpoint-btn" type="button">Checkpoint</button>
+        <button class="btn" id="project-menu-btn" type="button">Project file</button>
+        <button class="btn primary" id="export-btn" type="button">Export frame</button>
+      </div>
+    </header>
+
+    <aside class="left-panel" aria-label="Transaction stages">
+      <div class="panel-head"><p class="panel-title">Transaction stages</p></div>
+      <div id="stage-list" class="stage-list"></div>
+      <div class="left-actions">
+        <button class="btn" id="add-stage-btn" type="button">New stage</button>
+        <button class="btn" id="add-view-btn" type="button">New view</button>
+      </div>
+      <div class="legend">Each stage is a data state. A stage may have several independently arranged views. Changes autosave on this laptop.</div>
+    </aside>
+
+    <section class="workarea" aria-label="Diagram workspace">
+      <div class="canvas-toolbar" role="toolbar" aria-label="Canvas tools">
+        <button class="tool-btn active" data-tool="select" type="button">Select</button>
+        <button class="tool-btn" id="add-entity-btn" type="button">Entity</button>
+        <button class="tool-btn" id="add-owner-btn" type="button">Ownership</button>
+        <button class="tool-btn" id="add-flow-btn" type="button">Flow</button>
+        <span class="tool-sep"></span>
+        <button class="tool-btn" id="free-box-btn" type="button">Box</button>
+        <button class="tool-btn" id="free-text-btn" type="button">Text</button>
+        <button class="tool-btn" id="free-arrow-btn" type="button">Arrow</button>
+        <button class="tool-btn danger" id="delete-btn" type="button" disabled>Delete</button>
+        <span class="tool-sep"></span>
+        <button class="tool-btn" id="layout-btn" type="button">Auto-layout</button>
+        <button class="tool-btn" id="focus-btn" type="button">Focus</button>
+        <button class="tool-btn" id="fit-btn" type="button">Overview</button>
+        <button class="tool-btn" id="zoom-out-btn" type="button" aria-label="Zoom out">−</button>
+        <span id="zoom-readout" class="zoom-readout">100%</span>
+        <button class="tool-btn" id="zoom-in-btn" type="button" aria-label="Zoom in">+</button>
+      </div>
+      <svg id="canvas" role="img" aria-label="Transaction structure diagram workspace"></svg>
+      <div class="canvas-help">Drag objects to compose · drag empty space to pan · wheel to zoom · <span class="kbd">Delete</span> removes selected</div>
+    </section>
+
+    <aside class="right-panel" aria-label="Inspector">
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="inspect" type="button" role="tab">Inspect</button>
+        <button class="tab" data-tab="actions" type="button" role="tab">Actions</button>
+        <button class="tab" data-tab="notes" type="button" role="tab">Notes</button>
+      </div>
+      <div id="inspect-panel" class="tab-panel active"></div>
+      <div id="actions-panel" class="tab-panel"></div>
+      <div id="notes-panel" class="tab-panel"></div>
+    </aside>
+  </main>
+
+  <div id="toast-region" class="toast-region" aria-live="polite"></div>
+
+  <dialog id="entity-dialog"><form method="dialog" id="entity-form">
+    <div class="dialog-head"><h2>Add entity</h2><p>Create a project snapshot or add another linked visual instance of an existing entity.</p></div>
+    <div class="dialog-body">
+      <label class="field"><span>Use existing entity</span><select id="entity-existing"><option value="">Create a new entity</option></select></label>
+      <div class="field-row"><label class="field"><span>English name</span><input id="entity-name-en" required></label><label class="field"><span>Thai name</span><input id="entity-name-th"></label></div>
+      <div class="field-row"><label class="field"><span>Type</span><select id="entity-type"><option value="company">Company</option><option value="person">Person / shareholder</option><option value="newco">NewCo / SPV</option><option value="public">Public / other holders</option></select></label><label class="field"><span>Color</span><select id="entity-color"><option value="#ffffff">White</option><option value="#efe9ff">Purple</option><option value="#dff5f2">Teal</option><option value="#fff0c2">Amber</option><option value="#dfeeff">Blue</option><option value="#fde2e4">Red</option></select></label></div>
+    </div>
+    <div class="dialog-actions"><button class="btn" value="cancel" formnovalidate>Cancel</button><button class="btn primary" value="default" id="entity-submit">Add entity</button></div>
+  </form></dialog>
+
+  <dialog id="relation-dialog"><form method="dialog" id="relation-form">
+    <div class="dialog-head"><h2>Add ownership or control</h2><p>The arrow runs from holder to company. Validation warns but never blocks.</p></div>
+    <div class="dialog-body">
+      <label class="field"><span>Holder</span><select id="relation-from" required></select></label>
+      <label class="field"><span>Company</span><select id="relation-to" required></select></label>
+      <div class="field-row"><label class="field"><span>Relationship</span><select id="relation-type"><option value="ownership">Ownership</option><option value="control">Control</option><option value="loan">Loan / financing</option></select></label><label class="field"><span>Percentage / label</span><input id="relation-pct" placeholder="99.99%"></label></div>
+    </div>
+    <div class="dialog-actions"><button class="btn" value="cancel" formnovalidate>Cancel</button><button class="btn primary" value="default" id="relation-submit">Add relationship</button></div>
+  </form></dialog>
+
+  <dialog id="flow-dialog"><form method="dialog" id="flow-form">
+    <div class="dialog-head"><h2>Add transaction flow</h2><p>Flows describe movement without changing ownership automatically.</p></div>
+    <div class="dialog-body">
+      <label class="field"><span>From</span><select id="flow-from" required></select></label><label class="field"><span>To</span><select id="flow-to" required></select></label>
+      <div class="field-row"><label class="field"><span>Flow type</span><select id="flow-type"><option value="shares">Shares</option><option value="cash">Cash</option><option value="business">Business / assets</option><option value="employees">Employees</option><option value="debt">Debt</option></select></label><label class="field"><span>Label</span><input id="flow-label" placeholder="Transfer 70% shares"></label></div>
+    </div>
+    <div class="dialog-actions"><button class="btn" value="cancel" formnovalidate>Cancel</button><button class="btn primary" value="default" id="flow-submit">Add flow</button></div>
+  </form></dialog>
+
+  <dialog id="stage-dialog"><form method="dialog" id="stage-form">
+    <div class="dialog-head"><h2>Create next stage</h2><p>The data and layout are cloned once, then the new stage can diverge independently.</p></div>
+    <div class="dialog-body"><div class="field-row"><label class="field"><span>English name</span><input id="stage-name-en" value="Next stage" required></label><label class="field"><span>Thai name</span><input id="stage-name-th"></label></div></div>
+    <div class="dialog-actions"><button class="btn" value="cancel" formnovalidate>Cancel</button><button class="btn primary" value="default" id="stage-submit">Create stage</button></div>
+  </form></dialog>
+
+  <dialog id="action-dialog"><form method="dialog" id="action-form">
+    <div class="dialog-head"><h2>Apply transaction action</h2><p>The workbench proposes the resulting state. You may override every result afterwards.</p></div>
+    <div class="dialog-body">
+      <label class="field"><span>Action</span><select id="action-type"><option value="transfer">Transfer ownership</option><option value="issue">Issue / add ownership</option><option value="dissolve">Dissolve entity</option><option value="merge">Merge entity into another</option><option value="asset">Transfer business / assets</option><option value="cash">Pay cash</option><option value="debt">Borrow / transfer debt</option></select></label>
+      <div id="action-fields"></div>
+      <label class="field"><span>Action note</span><textarea id="action-note" placeholder="Optional explanation"></textarea></label>
+    </div>
+    <div class="dialog-actions"><button class="btn" value="cancel" formnovalidate>Cancel</button><button class="btn primary" value="default" id="action-submit">Apply action</button></div>
+  </form></dialog>
+
+  <dialog id="checkpoint-dialog"><form method="dialog" id="checkpoint-form">
+    <div class="dialog-head"><h2>Named checkpoints</h2><p>Preserve a milestone or restore an earlier one. Current work remains in local autosave.</p></div>
+    <div class="dialog-body"><label class="field"><span>New checkpoint name</span><input id="checkpoint-name" placeholder="Client draft"></label><div id="checkpoint-list"></div></div>
+    <div class="dialog-actions"><button class="btn" value="cancel">Close</button><button class="btn primary" value="default" id="checkpoint-submit">Save checkpoint</button></div>
+  </form></dialog>
+
+  <dialog id="project-dialog"><form method="dialog">
+    <div class="dialog-head"><h2>Project file</h2><p>Backups contain project data and remain on your laptop.</p></div>
+    <div class="dialog-body">
+      <div class="section"><p class="section-title">Start another project</p><div class="mini-actions"><button class="btn primary" id="new-blank-project" type="button">New blank project</button><button class="btn" id="load-sample-project" type="button">Load sample project</button></div></div>
+      <div class="section"><p class="section-title">Portable backup</p><div class="mini-actions"><button class="btn" id="download-project" type="button">Download backup</button><button class="btn" id="import-project" type="button">Import backup</button><input type="file" id="project-file" accept=".json,application/json" hidden></div></div>
+    </div>
+    <div class="dialog-actions"><button class="btn" value="cancel">Close</button></div>
+  </form></dialog>
+
+  <dialog id="export-dialog"><form method="dialog">
+    <div class="dialog-head"><h2>Export selected frame</h2><p>SVG stays sharp, PNG is rendered at 2×, and PDF opens the browser’s Save as PDF workflow.</p></div>
+    <div class="dialog-body"><div class="mini-actions"><button class="btn" id="export-svg" type="button">Download SVG</button><button class="btn" id="export-png" type="button">Download PNG</button><button class="btn" id="export-pdf" type="button">PDF / Print</button></div></div>
+    <div class="dialog-actions"><button class="btn" value="cancel">Close</button></div>
+  </form></dialog>
+
+  <script>
+  (function(){
+    'use strict';
+    const KEY='juratools_transaction_workbench_v1';
+    const LIB_KEY='juratools_transaction_entity_library_v1';
+    const THEME_KEY='juratools_transaction_theme_library_v1';
+    const BUILTIN_THEMES=[
+      {id:'formal',name:'Formal purple',paper:'#ffffff',head:'#f7f5fc',ink:'#1c1c1e',accent:'#6d28d9',border:'#bbbcc7',connector:'#303038'},
+      {id:'paper',name:'Board paper',paper:'#fffefb',head:'#f5f3ed',ink:'#24231f',accent:'#8a4d14',border:'#bdb8ad',connector:'#3c3933'},
+      {id:'blueprint',name:'Blueprint',paper:'#f7fbff',head:'#e9f3ff',ink:'#102a43',accent:'#2463a5',border:'#9db8d2',connector:'#234f78'}
+    ];
+    const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
+    const uid=p=>p+'_'+Math.random().toString(36).slice(2,9);
+    const clone=v=>JSON.parse(JSON.stringify(v));
+    const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const dl=(blob,name)=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},300)};
+
+    function sample(){
+      const e=[
+        {id:'e_group',nameEn:'Northstar Group',nameTh:'กลุ่มนอร์ทสตาร์',type:'company',color:'#efe9ff',status:'active'},
+        {id:'e_hold',nameEn:'Retail Development Co.',nameTh:'บริษัท รีเทล ดีเวลลอปเมนท์ จำกัด',type:'company',color:'#ffffff',status:'active'},
+        {id:'e_th',nameEn:'Siam Stores',nameTh:'บริษัท สยาม สโตร์ส จำกัด',type:'company',color:'#dff5f2',status:'active'},
+        {id:'e_my',nameEn:'Malaysia Stores',nameTh:'บริษัท มาเลเซีย สโตร์ส จำกัด',type:'company',color:'#ffffff',status:'active'},
+        {id:'e_ek',nameEn:'Ek-Chai Operations',nameTh:'บริษัท เอกชัย โอเปอเรชั่นส์ จำกัด',type:'company',color:'#fff0c2',status:'active'}
+      ];
+      const own=[
+        {id:'r1',from:'e_group',to:'e_hold',type:'ownership',label:'99.99%'},
+        {id:'r2',from:'e_hold',to:'e_th',type:'ownership',label:'99.99%'},
+        {id:'r3',from:'e_hold',to:'e_my',type:'ownership',label:'100%'},
+        {id:'r4',from:'e_th',to:'e_ek',type:'ownership',label:'99.99%'}
+      ];
+      const s1={id:'s_before',nameEn:'Before closing',nameTh:'ก่อนธุรกรรม',parentId:null,entities:clone(e),ownerships:clone(own),flows:[],actions:[],notes:[{id:'n1',targetType:'entity',targetId:'e_hold',textEn:'Holding company used for the transaction structure.',textTh:'บริษัทโฮลดิ้งที่ใช้ในโครงสร้างธุรกรรม'}]};
+      const s2=clone(s1);s2.id='s_closing';s2.nameEn='Closing';s2.nameTh='วันดำเนินธุรกรรม';s2.parentId=s1.id;s2.flows=[{id:'f1',from:'e_th',to:'e_ek',type:'business',label:'Entire business transfer'}];s2.actions=[{id:'a1',type:'asset',description:'Transfer the Thailand business to Ek-Chai Operations',note:''}];
+      const s3=clone(s2);s3.id='s_after';s3.nameEn='After closing';s3.nameTh='หลังธุรกรรม';s3.parentId=s2.id;s3.flows=[];s3.actions=[{id:'a2',type:'dissolve',description:'Dissolve Siam Stores after completion',note:''}];s3.entities.find(x=>x.id==='e_th').status='dissolved';
+      const mk=(id,stageId,x,title)=>({id,stageId,titleEn:title,titleTh:stageId==='s_before'?'ก่อนธุรกรรม':stageId==='s_closing'?'วันดำเนินธุรกรรม':'หลังธุรกรรม',x,y:120,w:700,h:620,language:'en',theme:'formal',instances:[
+        {id:uid('i'),entityId:'e_group',x:270,y:78,w:160,h:68},
+        {id:uid('i'),entityId:'e_hold',x:270,y:196,w:160,h:68},
+        {id:uid('i'),entityId:'e_th',x:90,y:330,w:160,h:68},
+        {id:uid('i'),entityId:'e_my',x:450,y:330,w:160,h:68},
+        {id:uid('i'),entityId:'e_ek',x:90,y:452,w:160,h:68}
+      ],freeforms:[]});
+      return {version:1,projectName:'Sample restructuring',library:clone(e),stages:[s1,s2,s3],views:[mk('v1','s_before',100,'Before closing'),mk('v2','s_closing',870,'Closing'),mk('v3','s_after',1640,'After closing')],activeStageId:'s_before',activeViewId:'v1',checkpoints:[],settings:{grid:true}};
+    }
+
+    function blankProject(){
+      const stageId=uid('s'),viewId=uid('v');
+      return {version:1,projectName:'Untitled transaction',library:[],stages:[{id:stageId,nameEn:'Before',nameTh:'ก่อนธุรกรรม',parentId:null,entities:[],ownerships:[],flows:[],actions:[],notes:[]}],views:[{id:viewId,stageId,titleEn:'Before',titleTh:'ก่อนธุรกรรม',x:100,y:120,w:700,h:620,language:'en',theme:'formal',instances:[],freeforms:[]}],activeStageId:stageId,activeViewId:viewId,checkpoints:[],settings:{grid:true}};
+    }
+
+    function load(){try{const raw=localStorage.getItem(KEY);if(raw){const v=JSON.parse(raw);if(v&&v.version===1)return v}}catch(e){}return sample()}
+    function loadPersonalLibrary(seed){try{const raw=localStorage.getItem(LIB_KEY);if(raw){const v=JSON.parse(raw);if(Array.isArray(v))return v}}catch(e){}const v=clone(seed||[]);try{localStorage.setItem(LIB_KEY,JSON.stringify(v))}catch(e){}return v}
+    function loadThemes(){try{const raw=localStorage.getItem(THEME_KEY);if(raw){const v=JSON.parse(raw);if(Array.isArray(v))return BUILTIN_THEMES.concat(v.filter(x=>!BUILTIN_THEMES.some(b=>b.id===x.id)))}}catch(e){}return clone(BUILTIN_THEMES)}
+    let state=load(), personalLibrary=loadPersonalLibrary(state.library), personalThemes=loadThemes(), selected=null, tab='inspect', undoStack=[],redoStack=[], saveTimer=null;
+    function savePersonalLibrary(){try{localStorage.setItem(LIB_KEY,JSON.stringify(personalLibrary))}catch(e){toast('Personal library could not be saved')}}
+    function saveThemes(){try{localStorage.setItem(THEME_KEY,JSON.stringify(personalThemes.filter(t=>!BUILTIN_THEMES.some(b=>b.id===t.id))))}catch(e){toast('Theme library could not be saved')}}
+    function themeFor(v){const base=personalThemes.find(t=>t.id===v.theme)||personalThemes[0];return Object.assign({},base,v.themeOverrides||{})}
+    let camera={x:30,y:40,scale:.72}, viewport={w:1000,h:700};
+    let drag=null,pan=null;
+    const stage=()=>state.stages.find(s=>s.id===state.activeStageId)||state.stages[0];
+    const view=()=>state.views.find(v=>v.id===state.activeViewId)||state.views[0];
+    const entity=id=>stage().entities.find(e=>e.id===id);
+    const activeViews=()=>state.views.filter(v=>v.stageId===state.activeStageId);
+    const display=(obj,lang)=>{lang=lang||view().language;if(lang==='th')return obj.nameTh||obj.nameEn||'';if(lang==='both'&&obj.nameTh)return (obj.nameEn||'')+'\n'+obj.nameTh;return obj.nameEn||obj.nameTh||''};
+    const labelPct=v=>{v=String(v||'').trim();if(!v)return '';return /%|control|loan/i.test(v)?v:v+'%'};
+    function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;$('#toast-region').appendChild(t);setTimeout(()=>t.remove(),2600)}
+    function markSaved(){clearTimeout(saveTimer);$('#save-state').textContent='Saving…';saveTimer=setTimeout(()=>{try{localStorage.setItem(KEY,JSON.stringify(state));$('#save-state').textContent='Saved locally'}catch(e){$('#save-state').textContent='Storage unavailable'}},180)}
+    function snapshot(){const x=clone(state);x.checkpoints=[];return x}
+    function commit(mutator,msg){undoStack.push(JSON.stringify(snapshot()));if(undoStack.length>80)undoStack.shift();redoStack=[];mutator();markSaved();render();if(msg)toast(msg)}
+    function restoreSerialized(raw){const keep=state.checkpoints;state=JSON.parse(raw);state.checkpoints=keep;selected=null;markSaved();render()}
+    function undo(){if(!undoStack.length)return;redoStack.push(JSON.stringify(snapshot()));restoreSerialized(undoStack.pop())}
+    function redo(){if(!redoStack.length)return;undoStack.push(JSON.stringify(snapshot()));restoreSerialized(redoStack.pop())}
+
+    function lines(text,x,y,cls,anchor='middle',max=22){const words=String(text||'').split(/\s+/),out=[];let line='';words.forEach(w=>{if((line+' '+w).trim().length>max&&line){out.push(line);line=w}else line=(line+' '+w).trim()});if(line)out.push(line);return out.slice(0,3).map((l,i)=>`<text class="${cls}" x="${x}" y="${y+i*15}" text-anchor="${anchor}">${esc(l)}</text>`).join('')}
+    function instanceFor(v,eid){return v.instances.find(i=>i.entityId===eid)}
+    function noteIndex(s,type,id){const i=s.notes.findIndex(n=>n.targetType===type&&n.targetId===id);return i<0?0:i+1}
+    function edgePath(a,b){const ax=a.x+a.w/2,ay=a.y+a.h,bx=b.x+b.w/2,by=b.y,mid=(ay+by)/2;return `M ${ax} ${ay} L ${ax} ${mid} L ${bx} ${mid} L ${bx} ${by}`}
+    function flowPath(a,b){const ax=a.x+a.w,ay=a.y+a.h/2,bx=b.x,by=b.y+b.h/2,mx=(ax+bx)/2;return `M ${ax} ${ay} C ${mx} ${ay}, ${mx} ${by}, ${bx} ${by}`}
+    function renderFrame(v,forExport){
+      const s=state.stages.find(x=>x.id===v.stageId);if(!s)return '';
+      const selectedFrame=selected&&selected.kind==='frame'&&selected.id===v.id;
+      const notes=s.notes||[],t=themeFor(v),frameTitle=v.language==='th'?(v.titleTh||v.titleEn):v.titleEn||v.titleTh;
+      let h=`<g class="frame ${selectedFrame?'frame-selected':''}" data-kind="frame" data-id="${v.id}" tabindex="0" role="button" aria-label="Frame ${esc(frameTitle)}"><rect class="frame-bg" x="${v.x}" y="${v.y}" width="${v.w}" height="${v.h}" rx="4" style="fill:${esc(t.paper)};stroke:${esc(t.border)}"/><rect class="frame-head" x="${v.x}" y="${v.y}" width="${v.w}" height="60" rx="4" style="fill:${esc(t.head)}"/><text class="frame-tag" x="${v.x+24}" y="${v.y+22}" style="fill:${esc(t.accent)}">TRANSACTION VIEW</text><text class="frame-title" x="${v.x+24}" y="${v.y+46}" style="fill:${esc(t.ink)}">${esc(frameTitle)}</text><text class="frame-subtitle" x="${v.x+v.w-24}" y="${v.y+40}" text-anchor="end" style="fill:${esc(t.ink)}">${esc(s.actions.length+' actions · '+s.entities.length+' entities')}</text>`;
+      s.ownerships.forEach(r=>{const a=instanceFor(v,r.from),b=instanceFor(v,r.to);if(!a||!b)return;const sel=selected&&selected.kind==='relation'&&selected.id===r.id;const p=edgePath({x:v.x+a.x,y:v.y+a.y,w:a.w,h:a.h},{x:v.x+b.x,y:v.y+b.y,w:b.w,h:b.h});const lx=v.x+(a.x+a.w/2+b.x+b.w/2)/2,ly=v.y+(a.y+a.h+b.y)/2-4;h+=`<g class="edge ${esc(r.type)} ${sel?'selected':''}" data-kind="relation" data-id="${r.id}" data-view="${v.id}" tabindex="0" role="button" aria-label="${esc(r.type+' '+labelPct(r.label))}"><path d="${p}" style="stroke:${esc(r.type==='control'?t.accent:r.type==='loan'?'#2463a5':t.connector)}" marker-end="url(#arrow-${r.type==='control'?'purple':r.type==='loan'?'blue':'dark'})"/><text x="${lx}" y="${ly}" style="fill:${esc(t.ink)}">${esc(labelPct(r.label))}</text></g>`});
+      s.flows.forEach(f=>{const a=instanceFor(v,f.from),b=instanceFor(v,f.to);if(!a||!b)return;const p=flowPath({x:v.x+a.x,y:v.y+a.y,w:a.w,h:a.h},{x:v.x+b.x,y:v.y+b.y,w:b.w,h:b.h});h+=`<g class="flow ${esc(f.type)}" data-kind="flow" data-id="${f.id}" data-view="${v.id}" tabindex="0" role="button" aria-label="${esc((f.label||f.type)+' flow')}"><path d="${p}" marker-end="url(#arrow-${f.type==='cash'?'green':f.type==='debt'?'blue':'red'})"/><text x="${v.x+(a.x+a.w+b.x)/2}" y="${v.y+(a.y+b.y)/2-8}" text-anchor="middle">${esc(f.label||f.type)}</text></g>`});
+      v.instances.forEach(i=>{const e=s.entities.find(x=>x.id===i.entityId);if(!e)return;const x=v.x+i.x,y=v.y+i.y,sel=selected&&selected.kind==='instance'&&selected.id===i.id;const d=e.status==='dissolved'||e.status==='merged';const note=noteIndex(s,'entity',e.id);const nm=display(e,v.language);h+=`<g class="node ${sel?'selected':''} ${d?'dissolved':''}" data-kind="instance" data-id="${i.id}" data-view="${v.id}" tabindex="0" role="button" aria-label="Entity ${esc(display(e,'en'))}"><rect class="node-shadow" x="${x+3}" y="${y+4}" width="${i.w}" height="${i.h}" rx="3"/><rect class="node-body" x="${x}" y="${y}" width="${i.w}" height="${i.h}" style="fill:${esc(e.color||t.paper)};stroke:${esc(t.connector)}"/>${lines(nm,x+i.w/2,y+(v.language==='both'?25:34),'node-name','middle',22)}${e.type!=='company'?`<text class="node-sub" x="${x+i.w/2}" y="${y+i.h-9}">${esc(e.type.toUpperCase())}</text>`:''}${d?`<line class="strike" x1="${x-5}" y1="${y+i.h+5}" x2="${x+i.w+5}" y2="${y-5}"/><text class="node-status" x="${x+i.w/2}" y="${y+i.h-8}" fill="#b12636">${esc(e.status.toUpperCase())}</text>`:''}${note?`<circle class="note-marker" cx="${x+i.w-8}" cy="${y+9}" r="7" style="fill:${esc(t.accent)}"/><text class="note-marker-text" x="${x+i.w-8}" y="${y+11.5}">${note}</text>`:''}</g>`});
+      v.freeforms.forEach(f=>{const sel=selected&&selected.kind==='free'&&selected.id===f.id,x=v.x+f.x,y=v.y+f.y,common=`class="free-item ${sel?'selected':''}" data-kind="free" data-id="${f.id}" data-view="${v.id}" tabindex="0" role="button" aria-label="Free-form ${f.type}"`;if(f.type==='box')h+=`<g ${common}><rect class="free-box" x="${x}" y="${y}" width="${f.w}" height="${f.h}" rx="3"/><text class="free-text" x="${x+10}" y="${y+23}">${esc(f.text)}</text></g>`;else if(f.type==='text')h+=`<g ${common}><text class="free-text" x="${x}" y="${y}">${esc(f.text)}</text></g>`;else h+=`<g ${common}><path class="free-arrow" d="M ${x} ${y} L ${x+f.w} ${y+f.h}" marker-end="url(#arrow-dark)"/></g>`});
+      if(!forExport&&!v.instances.length&&!v.freeforms.length){h+=`<g aria-hidden="true"><text class="frame-empty-title" x="${v.x+v.w/2}" y="${v.y+v.h/2-8}">Add an entity to begin</text><text class="frame-empty-copy" x="${v.x+v.w/2}" y="${v.y+v.h/2+14}">Use Entity in the toolbar, then add ownership or transaction flows.</text></g>`}
+      if(notes.length){const noteLines=notes.reduce((n,x)=>n+(v.language==='both'&&x.textEn&&x.textTh?2:1),0),base=v.y+v.h-24-noteLines*12;h+=`<line class="notes-rule" x1="${v.x+24}" y1="${base-13}" x2="${v.x+v.w-24}" y2="${base-13}" style="stroke:${esc(t.border)}"/><text class="notes-title" x="${v.x+24}" y="${base}" style="fill:${esc(t.ink)}">NOTES</text>`;let row=0;notes.forEach((n,idx)=>{const arr=v.language==='both'?[n.textEn,n.textTh].filter(Boolean):[v.language==='th'?(n.textTh||n.textEn):(n.textEn||n.textTh)];arr.forEach((txt,j)=>{h+=`<text class="notes-text" x="${v.x+72}" y="${base+row*12}" style="fill:${esc(t.ink)}">${j===0?'('+(idx+1)+') ':''}${esc(txt)}</text>`;row++})})}
+      return h+'</g>';
+    }
+    function defs(){return `<defs><marker id="arrow-dark" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#303038"/></marker><marker id="arrow-purple" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#6d28d9"/></marker><marker id="arrow-red" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#c92a3a"/></marker><marker id="arrow-green" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#177245"/></marker><marker id="arrow-blue" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#2463a5"/></marker></defs>`}
+    function renderCanvas(){const svg=$('#canvas');svg.setAttribute('viewBox',`${-camera.x/camera.scale} ${-camera.y/camera.scale} ${viewport.w/camera.scale} ${viewport.h/camera.scale}`);svg.innerHTML=defs()+state.views.map(view=>renderFrame(view,false)).join('');$('#zoom-readout').textContent=Math.round(camera.scale*100)+'%'}
+    function renderStages(){$('#stage-list').innerHTML=state.stages.map((s,i)=>`<button class="stage-row ${s.id===state.activeStageId?'active':''}" data-stage="${s.id}"><span class="stage-no">${i+1}</span><span><span class="stage-name">${esc(s.nameEn)}</span><span class="stage-meta">${s.actions.length} actions · ${state.views.filter(v=>v.stageId===s.id).length} views</span></span><span class="stage-dot"></span></button>`).join('')}
+    function ownershipWarning(s,to){const rels=s.ownerships.filter(r=>r.to===to&&r.type==='ownership');const nums=rels.map(r=>parseFloat(String(r.label).replace(/[^0-9.]/g,''))).filter(Number.isFinite);const total=nums.reduce((a,b)=>a+b,0);if(total>100.0001)return `Inbound ownership totals ${total.toFixed(2)}%. Review the percentages.`;if(nums.length&&total<99.9)return `Disclosed ownership totals ${total.toFixed(2)}%. This may be intentional or incomplete.`;return ''}
+    function themeOptions(v){return personalThemes.map(t=>`<option value="${t.id}" ${v.theme===t.id?'selected':''}>${esc(t.name)}</option>`).join('')}
+    function inspector(){
+      const p=$('#inspect-panel');if(!selected){p.innerHTML='<div class="empty-inspector"><strong>Select something on the workspace</strong>Inspect an entity, connector, free-form item, or export frame.</div>';return}
+      if(selected.kind==='frame'){const v=state.views.find(x=>x.id===selected.id);if(!v){selected=null;return inspector()}const t=themeFor(v);p.innerHTML=`<div class="section"><p class="section-title">Export frame</p><label class="field"><span>English title</span><input data-bind="frame.titleEn" value="${esc(v.titleEn)}"></label><label class="field"><span>Thai title</span><input data-bind="frame.titleTh" value="${esc(v.titleTh||'')}"></label><div class="field-row"><label class="field"><span>Language</span><select data-bind="frame.language"><option value="en" ${v.language==='en'?'selected':''}>English</option><option value="th" ${v.language==='th'?'selected':''}>Thai</option><option value="both" ${v.language==='both'?'selected':''}>Bilingual</option></select></label><label class="field"><span>Reusable theme</span><select data-bind="frame.theme">${themeOptions(v)}</select></label></div></div><div class="section"><p class="section-title">Theme overrides</p><div class="field-row"><label class="field"><span>Accent</span><input type="color" data-bind="theme.accent" value="${esc(t.accent)}"></label><label class="field"><span>Paper</span><input type="color" data-bind="theme.paper" value="${esc(t.paper)}"></label></div><div class="field-row"><label class="field"><span>Header</span><input type="color" data-bind="theme.head" value="${esc(t.head)}"></label><label class="field"><span>Connector</span><input type="color" data-bind="theme.connector" value="${esc(t.connector)}"></label></div><div class="mini-actions"><button class="btn" data-action="save-theme">Save as personal theme</button><button class="btn" data-action="reset-theme">Reset overrides</button></div></div><div class="section"><p class="section-title">Frame geometry</p><div class="field-row"><label class="field"><span>Width</span><input type="number" data-bind="frame.w" value="${v.w}"></label><label class="field"><span>Height</span><input type="number" data-bind="frame.h" value="${v.h}"></label></div><div class="mini-actions"><button class="btn" data-action="sync-layout">Match previous</button><button class="btn danger" data-action="delete-view">Delete view</button></div></div>`;return}
+      if(selected.kind==='instance'){const v=state.views.find(x=>x.id===selected.viewId),i=v&&v.instances.find(x=>x.id===selected.id),s=state.stages.find(x=>x.id===v?.stageId),e=s&&s.entities.find(x=>x.id===i?.entityId);if(!e){selected=null;return inspector()}const warn=ownershipWarning(s,e.id);p.innerHTML=`<div class="section"><p class="section-title">Entity snapshot</p><label class="field"><span>English name</span><input data-bind="entity.nameEn" value="${esc(e.nameEn)}"></label><label class="field"><span>Thai name</span><input data-bind="entity.nameTh" value="${esc(e.nameTh||'')}"></label><div class="field-row"><label class="field"><span>Type</span><select data-bind="entity.type">${['company','person','newco','public'].map(x=>`<option ${e.type===x?'selected':''}>${x}</option>`).join('')}</select></label><label class="field"><span>Fill</span><input type="color" data-bind="entity.color" value="${esc(e.color||'#ffffff')}"></label></div><label class="field"><span>Lifecycle status</span><select data-bind="entity.status"><option value="active" ${e.status==='active'?'selected':''}>Active</option><option value="dissolved" ${e.status==='dissolved'?'selected':''}>Dissolved</option><option value="merged" ${e.status==='merged'?'selected':''}>Merged</option><option value="inactive" ${e.status==='inactive'?'selected':''}>Inactive</option></select></label>${warn?`<div class="warning">${esc(warn)}</div>`:'<div class="ok">No blocking ownership issues. Validation remains advisory.</div>'}</div><div class="section"><p class="section-title">Visual instance</p><div class="field-row"><label class="field"><span>Width</span><input type="number" data-bind="instance.w" value="${i.w}"></label><label class="field"><span>Height</span><input type="number" data-bind="instance.h" value="${i.h}"></label></div><div class="mini-actions"><button class="btn" data-action="duplicate-instance">Duplicate appearance</button><button class="btn" data-action="add-note">Add note</button><button class="btn danger" data-action="delete-instance">Delete appearance</button></div></div><div class="section"><p class="section-title">Library</p><div class="mini-actions"><button class="btn" data-action="sync-library">Update personal entity</button><button class="btn" data-action="pull-library">Refresh from library</button></div></div>`;return}
+      if(selected.kind==='relation'){const r=stage().ownerships.find(x=>x.id===selected.id);if(!r){selected=null;return inspector()}p.innerHTML=`<div class="section"><p class="section-title">Relationship</p><label class="field"><span>Type</span><select data-bind="relation.type"><option value="ownership" ${r.type==='ownership'?'selected':''}>Ownership</option><option value="control" ${r.type==='control'?'selected':''}>Control</option><option value="loan" ${r.type==='loan'?'selected':''}>Loan / financing</option></select></label><label class="field"><span>Percentage or label</span><input data-bind="relation.label" value="${esc(r.label||'')}"></label><div class="mini-actions"><button class="btn" data-action="add-note">Add note</button><button class="btn danger" data-action="delete-relation">Delete relationship</button></div></div>`;return}
+      if(selected.kind==='flow'){const f=stage().flows.find(x=>x.id===selected.id);if(!f){selected=null;return inspector()}p.innerHTML=`<div class="section"><p class="section-title">Transaction flow</p><label class="field"><span>Type</span><select data-bind="flow.type">${['shares','cash','business','employees','debt'].map(x=>`<option ${f.type===x?'selected':''}>${x}</option>`).join('')}</select></label><label class="field"><span>Label</span><input data-bind="flow.label" value="${esc(f.label||'')}"></label><div class="mini-actions"><button class="btn danger" data-action="delete-flow">Delete flow</button></div></div>`;return}
+      if(selected.kind==='free'){const v=state.views.find(x=>x.id===selected.viewId),f=v&&v.freeforms.find(x=>x.id===selected.id);if(!f){selected=null;return inspector()}p.innerHTML=`<div class="section"><p class="section-title">Free-form ${esc(f.type)}</p>${f.type!=='arrow'?`<label class="field"><span>Text</span><textarea data-bind="free.text">${esc(f.text||'')}</textarea></label>`:''}<div class="field-row"><label class="field"><span>Width</span><input type="number" data-bind="free.w" value="${f.w||0}"></label><label class="field"><span>Height</span><input type="number" data-bind="free.h" value="${f.h||0}"></label></div><div class="mini-actions"><button class="btn danger" data-action="delete-free">Delete item</button></div></div>`}
+    }
+    function actionsPanel(){const s=stage();$('#actions-panel').innerHTML=`<div class="section"><p class="section-title">${esc(s.nameEn)} <button class="btn" id="apply-action-btn" type="button">Apply action</button></p>${s.actions.length?s.actions.map((a,i)=>`<div class="action-card"><div class="action-card-head"><span class="action-index">${i+1}</span><span class="action-kind">${esc(actionName(a.type))}</span></div><p class="action-desc">${esc(a.description)}${a.note?' · '+esc(a.note):''}</p></div>`).join(''):'<div class="empty-inspector"><strong>No actions in this stage</strong>Apply a transaction action or edit the state directly.</div>'}</div>`}
+    function notesPanel(){const s=stage();$('#notes-panel').innerHTML=`<div class="section"><p class="section-title">Structured notes <button class="btn" id="new-general-note" type="button">New note</button></p>${s.notes.length?s.notes.map((n,i)=>`<div class="note-row"><span class="note-ref">(${i+1})</span><label class="field"><span>English note</span><textarea data-note-id="${n.id}" data-note-key="textEn">${esc(n.textEn||'')}</textarea></label><label class="field"><span>Thai note</span><textarea data-note-id="${n.id}" data-note-key="textTh">${esc(n.textTh||'')}</textarea></label><div class="note-target">Attached to: ${esc(noteTarget(n,s))}</div><div class="mini-actions" style="margin-top:6px"><button class="btn danger" data-delete-note="${n.id}">Delete</button></div></div>`).join(''):'<div class="empty-inspector"><strong>No notes yet</strong>Attach a note to a selected object or create a general frame note.</div>'}</div>`}
+    function noteTarget(n,s){if(n.targetType==='general')return 'General frame note';if(n.targetType==='entity')return display(s.entities.find(e=>e.id===n.targetId)||{},'en');return n.targetType}
+    function deleteMeta(){if(!selected)return {enabled:false,label:'Delete'};const labels={instance:'Delete appearance',relation:'Delete relationship',flow:'Delete flow',free:'Delete item',frame:'Delete view'};const enabled=!!labels[selected.kind]&&(selected.kind!=='frame'||state.views.length>1);return {enabled,label:labels[selected.kind]||'Delete'}}
+    function updateDeleteControl(){const dm=deleteMeta(),db=$('#delete-btn');db.disabled=!dm.enabled;db.textContent=dm.label;db.title=dm.enabled?dm.label+' (Delete or Backspace)':'Select an object to delete'}
+    function render(){renderStages();renderCanvas();inspector();actionsPanel();notesPanel();$('#project-name').value=state.projectName;$('#undo-btn').disabled=!undoStack.length;$('#redo-btn').disabled=!redoStack.length;updateDeleteControl()}
+
+    function openEntity(){const linked=stage().entities.map(e=>`<option value="stage:${e.id}">${esc(e.nameEn||e.nameTh)} (linked appearance)</option>`).join(''),library=personalLibrary.map(e=>`<option value="library:${e.id}">${esc(e.nameEn||e.nameTh)}</option>`).join('');$('#entity-existing').innerHTML='<option value="">Create a new entity</option><optgroup label="This stage">'+linked+'</optgroup><optgroup label="Personal entity library">'+library+'</optgroup>';$('#entity-name-en').value='';$('#entity-name-th').value='';$('#entity-dialog').showModal()}
+    function entityOptions(){return stage().entities.map(e=>`<option value="${e.id}">${esc(e.nameEn||e.nameTh)}</option>`).join('')}
+    function openRelation(){const o=entityOptions();$('#relation-from').innerHTML=o;$('#relation-to').innerHTML=o;$('#relation-pct').value='';$('#relation-dialog').showModal()}
+    function openFlow(){const o=entityOptions();$('#flow-from').innerHTML=o;$('#flow-to').innerHTML=o;$('#flow-label').value='';$('#flow-dialog').showModal()}
+    function addEntity(){const existing=$('#entity-existing').value,v=view();if(existing.startsWith('stage:')){const id=existing.slice(6);if(v.instances.some(i=>i.entityId===id)&&!confirm('Add another linked appearance of this entity?'))return;commit(()=>v.instances.push({id:uid('i'),entityId:id,x:250,y:180,w:160,h:68}),'Entity appearance added');return}if(existing.startsWith('library:')){const lib=personalLibrary.find(e=>e.id===existing.slice(8));if(!lib)return;const e=clone(lib);e.libraryId=lib.id;e.id=uid('e');commit(()=>{stage().entities.push(e);v.instances.push({id:uid('i'),entityId:e.id,x:250,y:180,w:160,h:68})},'Library entity added as a project snapshot');return}const nameEn=$('#entity-name-en').value.trim(),nameTh=$('#entity-name-th').value.trim();if(!nameEn&&!nameTh)return;const lib={id:uid('lib'),nameEn,nameTh,type:$('#entity-type').value,color:$('#entity-color').value,status:'active'},e=Object.assign(clone(lib),{id:uid('e'),libraryId:lib.id});commit(()=>{personalLibrary.push(lib);savePersonalLibrary();stage().entities.push(e);v.instances.push({id:uid('i'),entityId:e.id,x:250,y:180,w:160,h:68})},'Entity created and saved to the personal library')}
+    function addRelation(){const from=$('#relation-from').value,to=$('#relation-to').value;if(!from||!to||from===to){toast('Choose two different entities');return}commit(()=>stage().ownerships.push({id:uid('r'),from,to,type:$('#relation-type').value,label:$('#relation-pct').value.trim()}),'Relationship added')}
+    function addFlow(){const from=$('#flow-from').value,to=$('#flow-to').value;if(!from||!to||from===to){toast('Choose two different entities');return}commit(()=>stage().flows.push({id:uid('f'),from,to,type:$('#flow-type').value,label:$('#flow-label').value.trim()}),'Transaction flow added')}
+    function createStage(){const cur=stage(),baseView=view(),ns=clone(cur);ns.id=uid('s');ns.parentId=cur.id;ns.nameEn=$('#stage-name-en').value.trim()||'Next stage';ns.nameTh=$('#stage-name-th').value.trim();ns.actions=[];ns.flows=[];const maxX=Math.max(...state.views.map(v=>v.x+v.w),0);const nv=clone(baseView);nv.id=uid('v');nv.stageId=ns.id;nv.titleEn=ns.nameEn;nv.titleTh=ns.nameTh;nv.x=maxX+170;commit(()=>{state.stages.push(ns);state.views.push(nv);state.activeStageId=ns.id;state.activeViewId=nv.id;selected={kind:'frame',id:nv.id}},'Stage created')}
+    function addView(){const base=view(),nv=clone(base);nv.id=uid('v');nv.stageId=stage().id;nv.titleEn=stage().nameEn+' detail';nv.x=Math.max(...state.views.map(v=>v.x+v.w),0)+170;commit(()=>{state.views.push(nv);state.activeViewId=nv.id;selected={kind:'frame',id:nv.id}},'New view created')}
+    function actionName(t){return ({transfer:'Transfer ownership',issue:'Issue / add ownership',dissolve:'Dissolve entity',merge:'Merge entities',asset:'Transfer business / assets',cash:'Pay cash',debt:'Debt movement'})[t]||t}
+    function openAction(){updateActionFields();$('#action-note').value='';$('#action-dialog').showModal()}
+    function updateActionFields(){const type=$('#action-type').value,o=entityOptions();let h='';if(type==='transfer')h=`<label class="field"><span>Company whose ownership changes</span><select id="act-subject">${o}</select></label><div class="field-row"><label class="field"><span>Seller / current holder</span><select id="act-from">${o}</select></label><label class="field"><span>Buyer / new holder</span><select id="act-to">${o}</select></label></div><label class="field"><span>Percentage transferred</span><input id="act-value" value="10"></label>`;else if(type==='issue')h=`<label class="field"><span>Issuing company</span><select id="act-subject">${o}</select></label><label class="field"><span>Subscriber / holder</span><select id="act-to">${o}</select></label><label class="field"><span>Resulting percentage</span><input id="act-value" value="10"></label>`;else if(type==='dissolve')h=`<label class="field"><span>Entity</span><select id="act-subject">${o}</select></label>`;else if(type==='merge')h=`<label class="field"><span>Entity that disappears</span><select id="act-from">${o}</select></label><label class="field"><span>Surviving / new entity</span><select id="act-to">${o}</select></label>`;else h=`<label class="field"><span>From</span><select id="act-from">${o}</select></label><label class="field"><span>To</span><select id="act-to">${o}</select></label><label class="field"><span>Label</span><input id="act-value" placeholder="Describe the movement"></label>`;$('#action-fields').innerHTML=h}
+    function applyAction(){const type=$('#action-type').value,s=stage(),note=$('#action-note').value.trim();const val=$('#act-value')?.value.trim()||'';let desc='';commit(()=>{if(type==='transfer'){const subject=$('#act-subject').value,from=$('#act-from').value,to=$('#act-to').value,pct=parseFloat(val)||0;let old=s.ownerships.find(r=>r.from===from&&r.to===subject&&r.type==='ownership');if(old){const n=parseFloat(String(old.label).replace(/[^0-9.]/g,''));if(Number.isFinite(n))old.label=Math.max(0,n-pct).toFixed(2).replace(/\.00$/,'')+'%'}let next=s.ownerships.find(r=>r.from===to&&r.to===subject&&r.type==='ownership');if(next){const n=parseFloat(String(next.label).replace(/[^0-9.]/g,''))||0;next.label=(n+pct).toFixed(2).replace(/\.00$/,'')+'%'}else s.ownerships.push({id:uid('r'),from:to,to:subject,type:'ownership',label:pct+'%'});desc=`Transfer ${pct}% of ${display(entity(subject),'en')} from ${display(entity(from),'en')} to ${display(entity(to),'en')}`}
+      else if(type==='issue'){const subject=$('#act-subject').value,to=$('#act-to').value;let r=s.ownerships.find(x=>x.from===to&&x.to===subject&&x.type==='ownership');if(r)r.label=val+'%';else s.ownerships.push({id:uid('r'),from:to,to:subject,type:'ownership',label:val+'%'});desc=`Issue ownership in ${display(entity(subject),'en')} to ${display(entity(to),'en')} (${val}%)`}
+      else if(type==='dissolve'){const id=$('#act-subject').value;entity(id).status='dissolved';desc=`Dissolve ${display(entity(id),'en')}`}
+      else if(type==='merge'){const from=$('#act-from').value,to=$('#act-to').value;entity(from).status='merged';desc=`Merge ${display(entity(from),'en')} into ${display(entity(to),'en')}`}
+      else{const from=$('#act-from').value,to=$('#act-to').value,ft=type==='asset'?'business':type;s.flows.push({id:uid('f'),from,to,type:ft,label:val||actionName(type)});desc=`${actionName(type)} from ${display(entity(from),'en')} to ${display(entity(to),'en')}`}
+      s.actions.push({id:uid('a'),type,description:desc,note})},actionName(type)+' applied')}
+    function addFree(type){const v=view(),f={id:uid('free'),type,x:230,y:160,w:type==='arrow'?170:150,h:type==='arrow'?70:54,text:type==='text'?'Annotation':type==='box'?'Transaction note':''};commit(()=>{v.freeforms.push(f);selected={kind:'free',id:f.id,viewId:v.id}},'Free-form '+type+' added')}
+    function autoLayout(){const s=stage(),v=view(),ids=v.instances.map(i=>i.entityId),incoming={};ids.forEach(id=>incoming[id]=0);s.ownerships.filter(r=>ids.includes(r.from)&&ids.includes(r.to)).forEach(r=>incoming[r.to]=(incoming[r.to]||0)+1);let roots=ids.filter(id=>!incoming[id]);if(!roots.length)roots=[ids[0]];const level={},q=roots.map(id=>[id,0]);while(q.length){const [id,l]=q.shift();if(level[id]!=null&&level[id]>=l)continue;level[id]=l;s.ownerships.filter(r=>r.from===id&&ids.includes(r.to)).forEach(r=>q.push([r.to,l+1]))}ids.forEach(id=>{if(level[id]==null)level[id]=0});const groups={};ids.forEach(id=>(groups[level[id]]||(groups[level[id]]=[])).push(id));commit(()=>Object.keys(groups).forEach(k=>{const arr=groups[k],gap=Math.min(210,(v.w-100)/Math.max(1,arr.length));arr.forEach((id,j)=>{const i=v.instances.find(x=>x.entityId===id);i.x=50+j*gap+(v.w-100-arr.length*gap)/2;i.y=85+Number(k)*135})}),'Layout applied')}
+    function fit(){if(!state.views.length)return;const minX=Math.min(...state.views.map(v=>v.x))-40,minY=Math.min(...state.views.map(v=>v.y))-40,maxX=Math.max(...state.views.map(v=>v.x+v.w))+40,maxY=Math.max(...state.views.map(v=>v.y+v.h))+40;camera.scale=Math.min(viewport.w/(maxX-minX),viewport.h/(maxY-minY),1);camera.x=-minX*camera.scale+(viewport.w-(maxX-minX)*camera.scale)/2;camera.y=-minY*camera.scale+(viewport.h-(maxY-minY)*camera.scale)/2;renderCanvas()}
+    function focusActive(){const v=view();if(!v)return;camera.scale=Math.min((viewport.w-110)/v.w,(viewport.h-110)/v.h,1.15);camera.x=(viewport.w-v.w*camera.scale)/2-v.x*camera.scale;camera.y=(viewport.h-v.h*camera.scale)/2-v.y*camera.scale;renderCanvas()}
+    function syncPrevious(){const v=view(),s=stage();if(!s.parentId){toast('This is the first stage');return}const pv=state.views.find(x=>x.stageId===s.parentId);if(!pv)return;commit(()=>v.instances.forEach(i=>{const p=pv.instances.find(x=>x.entityId===i.entityId);if(p){i.x=p.x;i.y=p.y;i.w=p.w;i.h=p.h}}),'Shared positions matched')}
+    function addNote(targetType,targetId){const en=prompt('English note');if(en===null)return;const th=prompt('Thai note (optional)')||'';commit(()=>stage().notes.push({id:uid('n'),targetType,targetId,textEn:en,textTh:th}),'Note added')}
+    function updateBound(el){const [kind,key]=el.dataset.bind.split('.');let obj;if(kind==='frame')obj=view();else if(kind==='theme')obj=view().themeOverrides||(view().themeOverrides={});else if(kind==='entity'){const v=state.views.find(x=>x.id===selected.viewId),i=v.instances.find(x=>x.id===selected.id);obj=state.stages.find(x=>x.id===v.stageId).entities.find(x=>x.id===i.entityId)}else if(kind==='instance'){obj=view().instances.find(x=>x.id===selected.id)}else if(kind==='relation')obj=stage().ownerships.find(x=>x.id===selected.id);else if(kind==='flow')obj=stage().flows.find(x=>x.id===selected.id);else if(kind==='free')obj=view().freeforms.find(x=>x.id===selected.id);if(!obj)return;const val=el.type==='number'?Number(el.value):el.value;commit(()=>obj[key]=val)}
+    function handleInspectorAction(a){const v=view();if(a==='save-theme'){const name=prompt('Personal theme name');if(!name)return;const t=themeFor(v),nt=Object.assign({},t,{id:uid('theme'),name:name.trim()||'Personal theme'});commit(()=>{personalThemes.push(nt);saveThemes();v.theme=nt.id;v.themeOverrides={}},'Personal theme saved');return}if(a==='reset-theme'){commit(()=>v.themeOverrides={},'Theme overrides reset');return}if(a==='sync-layout')return syncPrevious();if(a==='delete-view'){if(state.views.length===1)return toast('At least one view is required');commit(()=>{state.views=state.views.filter(x=>x.id!==v.id);const nv=state.views.find(x=>x.stageId===stage().id)||state.views[0];state.activeViewId=nv.id;state.activeStageId=nv.stageId;selected=null},'View deleted');return}if(a==='duplicate-instance'){const i=v.instances.find(x=>x.id===selected.id),n=clone(i);n.id=uid('i');n.x+=35;n.y+=35;commit(()=>{v.instances.push(n);selected={kind:'instance',id:n.id,viewId:v.id}},'Linked appearance duplicated');return}if(a==='delete-instance'){commit(()=>{v.instances=v.instances.filter(x=>x.id!==selected.id);selected=null},'Appearance removed');return}if(a==='delete-relation'){commit(()=>{stage().ownerships=stage().ownerships.filter(x=>x.id!==selected.id);selected=null},'Relationship removed');return}if(a==='delete-flow'){commit(()=>{stage().flows=stage().flows.filter(x=>x.id!==selected.id);selected=null},'Flow removed');return}if(a==='delete-free'){commit(()=>{v.freeforms=v.freeforms.filter(x=>x.id!==selected.id);selected=null},'Free-form item removed');return}if(a==='add-note'){if(selected.kind==='instance'){const i=v.instances.find(x=>x.id===selected.id);addNote('entity',i.entityId)}else addNote(selected.kind,selected.id);return}if(a==='sync-library'||a==='pull-library'){const i=v.instances.find(x=>x.id===selected.id),e=entity(i.entityId),lid=e.libraryId||e.id;let lib=personalLibrary.find(x=>x.id===lid);if(a==='sync-library')commit(()=>{if(!lib){lib={id:uid('lib')};personalLibrary.push(lib);e.libraryId=lib.id}Object.assign(lib,{nameEn:e.nameEn,nameTh:e.nameTh,type:e.type,color:e.color});savePersonalLibrary()},'Personal entity updated');else if(lib)commit(()=>Object.assign(e,{nameEn:lib.nameEn,nameTh:lib.nameTh,type:lib.type,color:lib.color}),'Entity refreshed from library');else toast('No matching personal entity');}}
+    function selectedViewFromTarget(t){const id=t.closest('[data-view]')?.dataset.view;return state.views.find(v=>v.id===id)}
+    function screenToWorld(ev){const r=$('#canvas').getBoundingClientRect();return{x:(ev.clientX-r.left-camera.x)/camera.scale,y:(ev.clientY-r.top-camera.y)/camera.scale}}
+    function pointerDown(ev){const target=ev.target.closest('[data-kind]');if(target){const kind=target.dataset.kind,id=target.dataset.id,v=selectedViewFromTarget(target)||state.views.find(x=>x.id===id);if(v){state.activeViewId=v.id;state.activeStageId=v.stageId}selected={kind,id,viewId:v?.id};render();if(kind==='instance'||kind==='free'){const p=screenToWorld(ev),obj=kind==='instance'?v.instances.find(x=>x.id===id):v.freeforms.find(x=>x.id===id);drag={kind,obj,v,start:p,ox:obj.x,oy:obj.y,moved:false,before:JSON.stringify(snapshot())};target.classList.add('dragging');$('#canvas').setPointerCapture(ev.pointerId)}return}selected=null;render();const p={x:ev.clientX,y:ev.clientY};pan={start:p,ox:camera.x,oy:camera.y};$('#canvas').classList.add('panning');$('#canvas').setPointerCapture(ev.pointerId)}
+    function pointerMove(ev){if(drag){const p=screenToWorld(ev),dx=p.x-drag.start.x,dy=p.y-drag.start.y;if(Math.abs(dx)+Math.abs(dy)>2)drag.moved=true;drag.obj.x=Math.round((drag.ox+dx)/5)*5;drag.obj.y=Math.round((drag.oy+dy)/5)*5;renderCanvas()}else if(pan){camera.x=pan.ox+ev.clientX-pan.start.x;camera.y=pan.oy+ev.clientY-pan.start.y;renderCanvas()}}
+    function pointerUp(){if(drag&&drag.moved){undoStack.push(drag.before);if(undoStack.length>80)undoStack.shift();redoStack=[];markSaved()}drag=null;pan=null;$('#canvas').classList.remove('panning');render()}
+    function wheel(ev){ev.preventDefault();const rect=$('#canvas').getBoundingClientRect(),sx=ev.clientX-rect.left,sy=ev.clientY-rect.top,wx=(sx-camera.x)/camera.scale,wy=(sy-camera.y)/camera.scale,n=Math.min(1.8,Math.max(.25,camera.scale*(ev.deltaY>0?.9:1.1)));camera.x=sx-wx*n;camera.y=sy-wy*n;camera.scale=n;renderCanvas()}
+    function deleteSelected(){if(!selected)return;const k=selected.kind;if(k==='instance')handleInspectorAction('delete-instance');else if(k==='relation')handleInspectorAction('delete-relation');else if(k==='flow')handleInspectorAction('delete-flow');else if(k==='free')handleInspectorAction('delete-free');else if(k==='frame'){if(state.views.length===1)return toast('Keep at least one view in the project');handleInspectorAction('delete-view')}}
+    function moveSelected(dx,dy){if(!selected||!['instance','free'].includes(selected.kind))return false;const v=state.views.find(x=>x.id===selected.viewId),obj=selected.kind==='instance'?v&&v.instances.find(x=>x.id===selected.id):v&&v.freeforms.find(x=>x.id===selected.id);if(!obj)return false;commit(()=>{obj.x+=dx;obj.y+=dy});return true}
+    function frameSvg(v){const s=state.stages.find(x=>x.id===v.stageId),copy=clone(v);copy.x=0;copy.y=0;const css=Array.from(document.styleSheets[0].cssRules).map(r=>r.cssText).join('\n');const old=selected;selected=null;const html=renderFrame(copy,true);selected=old;return `<svg xmlns="http://www.w3.org/2000/svg" width="${v.w}" height="${v.h}" viewBox="0 0 ${v.w} ${v.h}"><style>${css}</style>${defs()}${html}</svg>`}
+    function exportSvg(){const v=view(),blob=new Blob([frameSvg(v)],{type:'image/svg+xml;charset=utf-8'});dl(blob,slug(v.titleEn)+'.svg')}
+    function exportPng(){const v=view(),url=URL.createObjectURL(new Blob([frameSvg(v)],{type:'image/svg+xml'})),img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=v.w*2;c.height=v.h*2;const ctx=c.getContext('2d');ctx.scale(2,2);ctx.fillStyle='#fff';ctx.fillRect(0,0,v.w,v.h);ctx.drawImage(img,0,0);c.toBlob(b=>dl(b,slug(v.titleEn)+'.png'),'image/png');URL.revokeObjectURL(url)};img.src=url}
+    function exportPdf(){const v=view(),w=window.open('','_blank');if(!w)return toast('Allow pop-ups to open the PDF view');w.document.write(`<!doctype html><title>${esc(v.titleEn)}</title><style>@page{size:landscape;margin:8mm}html,body{margin:0}svg{width:100%;height:auto}</style>${frameSvg(v)}<script>onload=()=>setTimeout(()=>print(),200)<\/script>`);w.document.close()}
+    function slug(v){return String(v||'diagram').trim().replace(/[^a-z0-9ก-๙]+/gi,'-').replace(/^-|-$/g,'').toLowerCase()||'diagram'}
+    function checkpointList(){$('#checkpoint-list').innerHTML=state.checkpoints.length?state.checkpoints.map(c=>`<div class="action-card"><div class="action-card-head"><span class="action-index">${state.checkpoints.indexOf(c)+1}</span><span class="action-kind">${esc(c.name)}</span><button class="btn" type="button" data-restore="${c.id}">Restore</button></div><p class="action-desc">${new Date(c.at).toLocaleString()}</p></div>`).join(''):'<div class="empty-inspector"><strong>No checkpoints yet</strong>Create one for a meaningful project milestone.</div>'}
+    function saveCheckpoint(){const name=$('#checkpoint-name').value.trim()||'Checkpoint '+(state.checkpoints.length+1);const snap=snapshot();state.checkpoints.push({id:uid('cp'),name,at:new Date().toISOString(),snapshot:snap});markSaved();checkpointList();$('#checkpoint-name').value='';toast('Checkpoint saved')}
+    function restoreCheckpoint(id){const cp=state.checkpoints.find(c=>c.id===id);if(!cp)return;undoStack.push(JSON.stringify(snapshot()));const keep=state.checkpoints;state=clone(cp.snapshot);state.checkpoints=keep;selected=null;markSaved();render();$('#checkpoint-dialog').close();toast('Checkpoint restored')}
+    function downloadProject(){dl(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),slug(state.projectName)+'.juratools-transaction.json')}
+    function importProject(file){const reader=new FileReader();reader.onload=()=>{try{const n=JSON.parse(reader.result);if(!n||!Array.isArray(n.stages)||!Array.isArray(n.views))throw new Error();undoStack.push(JSON.stringify(snapshot()));state=n;selected=null;markSaved();render();$('#project-dialog').close();toast('Project imported')}catch(e){toast('That file is not a valid project backup')}};reader.readAsText(file)}
+    function replaceProject(next,message){if(!confirm('Replace the current project? Download a backup first if you may need it later.'))return;commit(()=>{state=next;selected=null;camera={x:30,y:40,scale:.72}},message);$('#project-dialog').close();setTimeout(focusActive,30)}
+    function newBlankProject(){replaceProject(blankProject(),'Blank project created')}
+    function loadSampleProject(){replaceProject(sample(),'Sample project loaded')}
+    function bind(){
+      $('#project-name').addEventListener('change',e=>commit(()=>state.projectName=e.target.value.trim()||'Untitled project'));
+      $('#undo-btn').onclick=undo;$('#redo-btn').onclick=redo;$('#new-blank-btn').onclick=newBlankProject;$('#checkpoint-btn').onclick=()=>{checkpointList();$('#checkpoint-dialog').showModal()};$('#project-menu-btn').onclick=()=>$('#project-dialog').showModal();$('#export-btn').onclick=()=>$('#export-dialog').showModal();
+      $('#add-entity-btn').onclick=openEntity;$('#add-owner-btn').onclick=openRelation;$('#add-flow-btn').onclick=openFlow;$('#add-stage-btn').onclick=()=>$('#stage-dialog').showModal();$('#add-view-btn').onclick=addView;
+      $('#free-box-btn').onclick=()=>addFree('box');$('#free-text-btn').onclick=()=>addFree('text');$('#free-arrow-btn').onclick=()=>addFree('arrow');$('#delete-btn').onclick=deleteSelected;$('#layout-btn').onclick=autoLayout;$('#focus-btn').onclick=focusActive;$('#fit-btn').onclick=fit;
+      $('#zoom-in-btn').onclick=()=>{camera.scale=Math.min(1.8,camera.scale*1.15);renderCanvas()};$('#zoom-out-btn').onclick=()=>{camera.scale=Math.max(.25,camera.scale/1.15);renderCanvas()};
+      $('#entity-form').addEventListener('close',()=>{});$('#entity-submit').onclick=e=>{e.preventDefault();addEntity();$('#entity-dialog').close()};$('#relation-submit').onclick=e=>{e.preventDefault();addRelation();$('#relation-dialog').close()};$('#flow-submit').onclick=e=>{e.preventDefault();addFlow();$('#flow-dialog').close()};$('#stage-submit').onclick=e=>{e.preventDefault();createStage();$('#stage-dialog').close()};$('#action-submit').onclick=e=>{e.preventDefault();applyAction();$('#action-dialog').close()};$('#action-type').onchange=updateActionFields;
+      $('#checkpoint-submit').onclick=e=>{e.preventDefault();saveCheckpoint()};$('#checkpoint-list').onclick=e=>{const b=e.target.closest('[data-restore]');if(b)restoreCheckpoint(b.dataset.restore)};
+      $('#new-blank-project').onclick=newBlankProject;$('#load-sample-project').onclick=loadSampleProject;$('#download-project').onclick=downloadProject;$('#import-project').onclick=()=>$('#project-file').click();$('#project-file').onchange=e=>{if(e.target.files[0])importProject(e.target.files[0]);e.target.value=''};
+      $('#export-svg').onclick=exportSvg;$('#export-png').onclick=exportPng;$('#export-pdf').onclick=exportPdf;
+      $('#stage-list').onclick=e=>{const b=e.target.closest('[data-stage]');if(!b)return;state.activeStageId=b.dataset.stage;const v=state.views.find(v=>v.stageId===state.activeStageId);if(v)state.activeViewId=v.id;selected=null;markSaved();render();focusActive()};
+      $$('.tab').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;$$('.tab').forEach(x=>x.classList.toggle('active',x===b));$$('.tab-panel').forEach(x=>x.classList.toggle('active',x.id===tab+'-panel'))});
+      $('#inspect-panel').addEventListener('change',e=>{if(e.target.dataset.bind)updateBound(e.target)});$('#inspect-panel').addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(b)handleInspectorAction(b.dataset.action)});
+      $('#actions-panel').addEventListener('click',e=>{if(e.target.closest('#apply-action-btn'))openAction()});$('#notes-panel').addEventListener('click',e=>{const d=e.target.closest('[data-delete-note]');if(d)commit(()=>stage().notes=stage().notes.filter(n=>n.id!==d.dataset.deleteNote),'Note deleted');else if(e.target.closest('#new-general-note'))addNote('general','')});$('#notes-panel').addEventListener('change',e=>{const id=e.target.dataset.noteId,key=e.target.dataset.noteKey;if(!id||!key)return;const n=stage().notes.find(x=>x.id===id);if(n)commit(()=>n[key]=e.target.value,'Note updated')});
+      const svg=$('#canvas');svg.addEventListener('pointerdown',pointerDown);svg.addEventListener('pointermove',pointerMove);svg.addEventListener('pointerup',pointerUp);svg.addEventListener('pointercancel',pointerUp);svg.addEventListener('wheel',wheel,{passive:false});svg.addEventListener('focusin',e=>{const t=e.target.closest('[data-kind]');if(!t)return;const v=selectedViewFromTarget(t)||state.views.find(x=>x.id===t.dataset.id);if(v){state.activeViewId=v.id;state.activeStageId=v.stageId}selected={kind:t.dataset.kind,id:t.dataset.id,viewId:v&&v.id};renderStages();inspector();actionsPanel();notesPanel();updateDeleteControl()});
+      window.addEventListener('keydown',e=>{if(/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))return;if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='z'){e.preventDefault();e.shiftKey?redo():undo()}else if(/^Arrow/.test(e.key)){const d=e.shiftKey?20:5,delta={ArrowLeft:[-d,0],ArrowRight:[d,0],ArrowUp:[0,-d],ArrowDown:[0,d]}[e.key];if(delta&&moveSelected(delta[0],delta[1]))e.preventDefault()}else if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();deleteSelected()}else if(e.key==='Escape'){selected=null;render()}});
+      const ro=new ResizeObserver(entries=>{const r=entries[0].contentRect;viewport={w:r.width,h:r.height};renderCanvas()});ro.observe($('.workarea'));
+    }
+    bind();render();setTimeout(fit,60);
+  })();
+  </script>
+</body>
+</html>
