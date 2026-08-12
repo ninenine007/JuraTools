@@ -1266,6 +1266,7 @@
                 ensureLedger(group.shId);
                 balances[group.shId] += c.shares;
                 ledgers[group.shId].push({
+                    txnId: null,
                     date: '', kind: 'acquisition', detail: 'Initial allotment', counterparty: 'Company',
                     referCertNo: '—', issuedCertNo: String(c.certNo), range: fmtRange(c.start, c.end),
                     shares: c.shares, balanceAfter: balances[group.shId], paidUp: cPaid
@@ -1453,6 +1454,7 @@
         balances[txn.toShId] += shares;
 
         ledgers[txn.fromShId].push({
+            txnId: txn.id,
             date: txn.date, kind: 'disposition', detail: 'Transfer', counterparty: toName,
             referCertNo: String(src.certNo), issuedCertNo: String(newCert.certNo),
             range: fmtRange(tStart, tEnd), shares: shares,
@@ -1460,6 +1462,7 @@
         });
         remCerts.forEach(remCert => {
             ledgers[txn.fromShId].push({
+                txnId: txn.id,
                 date: txn.date, kind: 'acquisition', detail: 'Reissue (balance after transfer)', counterparty: 'Company',
                 referCertNo: String(src.certNo), issuedCertNo: String(remCert.certNo),
                 range: fmtRange(remCert.start, remCert.end), shares: remCert.shares,
@@ -1467,6 +1470,7 @@
             });
         });
         ledgers[txn.toShId].push({
+            txnId: txn.id,
             date: txn.date, kind: 'acquisition',
             detail: cons ? `Transfer (consolidated with cert ${cons.certNo})` : 'Transfer',
             counterparty: fromName,
@@ -1501,6 +1505,7 @@
                 c.cancelledBy = txn.id;
                 cancelled.push(c);
                 ledgers[sh.id].push({
+                    txnId: txn.id,
                     date: txn.date, kind: 'disposition', detail: 'Renumbering (certificate cancelled)', counterparty: '—',
                     referCertNo: String(c.certNo), issuedCertNo: '', range: fmtRange(c.start, c.end),
                     shares: c.shares, balanceAfter: balances[sh.id]
@@ -1517,6 +1522,7 @@
                 certs.push(nc);
                 issued.push(nc);
                 ledgers[sh.id].push({
+                    txnId: txn.id,
                     date: txn.date, kind: 'acquisition', detail: 'Reissue (renumbering)', counterparty: 'Company',
                     referCertNo: referNos, issuedCertNo: String(nc.certNo),
                     range: fmtRange(nc.start, nc.end), shares: shares, balanceAfter: balances[sh.id], paidUp: paidUp
@@ -1707,6 +1713,7 @@
                 old.cancelledBy = txn.id;
                 cancelled.push(old);
                 ledgers[sh.id].push({
+                    txnId: txn.id,
                     date: txn.date, kind: 'disposition', detail: 'Cancelled — reissued (capital increase, updated registered capital)', counterparty: '—',
                     referCertNo: String(old.certNo), issuedCertNo: '', range: fmtRange(old.start, old.end),
                     shares: old.shares, balanceAfter: balances[sh.id]
@@ -1720,6 +1727,7 @@
                 issued.push(nc);
                 old.replacedBy = [nc.certNo];
                 ledgers[sh.id].push({
+                    txnId: txn.id,
                     date: txn.date, kind: 'acquisition', detail: 'Reissue (capital increase, updated registered capital)', counterparty: 'Company',
                     referCertNo: String(old.certNo), issuedCertNo: String(nc.certNo), range: fmtRange(nc.start, nc.end),
                     shares: nc.shares, balanceAfter: balances[sh.id], paidUp: old.paidUp
@@ -1737,6 +1745,7 @@
                 issued.push(nc);
                 balances[sh.id] += lot.shares;
                 ledgers[sh.id].push({
+                    txnId: txn.id,
                     date: txn.date, kind: 'acquisition', detail: 'Subscription (capital increase)', counterparty: 'Company',
                     referCertNo: '—', issuedCertNo: String(nc.certNo), range: fmtRange(nc.start, nc.end),
                     shares: lot.shares, balanceAfter: balances[sh.id], paidUp: subPaid
@@ -1801,6 +1810,7 @@
                 old.cancelledBy = txn.id;
                 cancelled.push(old);
                 ledgers[sh.id].push({
+                    txnId: txn.id,
                     date: txn.date, kind: 'disposition', detail: 'Cancelled — reissued (paid-up updated)', counterparty: '—',
                     referCertNo: String(old.certNo), issuedCertNo: '', range: fmtRange(old.start, old.end),
                     shares: old.shares, balanceAfter: balances[sh.id]
@@ -1814,6 +1824,7 @@
                 issued.push(nc);
                 old.replacedBy = [nc.certNo];
                 ledgers[sh.id].push({
+                    txnId: txn.id,
                     date: txn.date, kind: 'acquisition', detail: 'Reissue (paid-up updated)', counterparty: 'Company',
                     referCertNo: String(old.certNo), issuedCertNo: String(nc.certNo), range: fmtRange(nc.start, nc.end),
                     shares: nc.shares, balanceAfter: balances[sh.id], paidUp: newPaid
@@ -1873,6 +1884,7 @@
                     capitalReturned += ret;
                     perHolderReturned[sh.id] = (perHolderReturned[sh.id] || 0) + ret;
                     ledgers[sh.id].push({
+                        txnId: txn.id,
                         date: txn.date, kind: 'disposition', detail: 'Cancelled — reissued (capital decrease, par value reduced)', counterparty: '—',
                         referCertNo: String(old.certNo), issuedCertNo: '', range: fmtRange(old.start, old.end),
                         shares: old.shares, balanceAfter: balances[sh.id]
@@ -1884,6 +1896,7 @@
                     };
                     certs.push(nc); issued.push(nc); old.replacedBy = [nc.certNo];
                     ledgers[sh.id].push({
+                        txnId: txn.id,
                         date: txn.date, kind: 'acquisition', detail: 'Reissue (capital decrease, par value reduced)', counterparty: 'Company',
                         referCertNo: String(old.certNo), issuedCertNo: String(nc.certNo), range: fmtRange(nc.start, nc.end),
                         shares: nc.shares, balanceAfter: balances[sh.id], paidUp: newPaid
@@ -1931,6 +1944,7 @@
                 lots.forEach(old => {
                     old.status = 'cancelled'; old.cancelledBy = txn.id; cancelled.push(old);
                     ledgers[sh.id].push({
+                        txnId: txn.id,
                         date: txn.date, kind: 'disposition', detail: 'Cancelled — reissued (capital decrease, updated registered capital)', counterparty: '—',
                         referCertNo: String(old.certNo), issuedCertNo: '', range: fmtRange(old.start, old.end),
                         shares: old.shares, balanceAfter: balances[sh.id]
@@ -1942,6 +1956,7 @@
                     };
                     certs.push(nc); issued.push(nc); old.replacedBy = [nc.certNo];
                     ledgers[sh.id].push({
+                        txnId: txn.id,
                         date: txn.date, kind: 'acquisition', detail: 'Reissue (capital decrease, updated registered capital)', counterparty: 'Company',
                         referCertNo: String(old.certNo), issuedCertNo: String(nc.certNo), range: fmtRange(nc.start, nc.end),
                         shares: nc.shares, balanceAfter: balances[sh.id], paidUp: old.paidUp
@@ -1991,6 +2006,7 @@
             const removedTxt = removedRanges.map(r => fmtRange(r.start, r.end)).join(', ');
             // one disposition line covering the cancelled (reduced) shares
             ledgers[sh.id].push({
+                txnId: txn.id,
                 date: txn.date, kind: 'disposition', detail: 'Shares cancelled (capital decrease)', counterparty: '—',
                 referCertNo: lots.map(l => l.certNo).join(', '), issuedCertNo: '', range: removedTxt,
                 shares: red, balanceAfter: balances[sh.id]
@@ -2005,6 +2021,7 @@
                 };
                 certs.push(nc); issued.push(nc);
                 ledgers[sh.id].push({
+                    txnId: txn.id,
                     date: txn.date, kind: 'acquisition', detail: 'Reissue (capital decrease, shares reduced)', counterparty: 'Company',
                     referCertNo: lots.map(l => l.certNo).join(', '), issuedCertNo: String(nc.certNo), range: fmtRange(nc.start, nc.end),
                     shares: nc.shares, balanceAfter: balances[sh.id], paidUp: nc.paidUp
@@ -3509,6 +3526,9 @@
         const activeShares = activeCerts.reduce((sum, cert) => sum + cert.shares, 0);
         const currentPar = num(rep.curPar !== null && rep.curPar !== undefined ? rep.curPar : company.parValue,
             'company par value');
+        const activePaid = activeCerts.map(cert => num(cert.paidUp, `certificate ${cert.certNo} paid-up value`));
+        const commonPaidUp = activePaid.length && activePaid.every(value => value && value === activePaid[0])
+            ? activePaid[0] : '';
         const registeredCapital = activeCerts.reduce((sum, cert) => {
             const par = Number(cert.par !== null && cert.par !== undefined ? cert.par : rep.curPar);
             return sum + (Number.isFinite(par) ? par * cert.shares : 0);
@@ -3518,7 +3538,7 @@
         if (co.nameTh) co.th = co.nameTh;
         if (co.nameEn) co.en = co.nameEn;
         dossierPut(co, 'par', currentPar);
-        dossierPut(co, 'paidUp', currentPar);
+        dossierPut(co, 'paidUp', commonPaidUp);
         dossierPut(co, 'regShares', num(activeShares, 'registered shares'));
         dossierPut(co, 'ord', num(activeShares, 'ordinary shares'));
         co.pref = '-';
@@ -3577,23 +3597,22 @@
                 return result;
             });
 
-        const dispositionTxn = (event, ownerShId) => (company.transactions || []).find(txn =>
-            txn.date === event.date &&
-            ((txn.type === 'transfer' && txn.fromShId === ownerShId) ||
-             (txn.type === 'decrease' && txn.method === 'shares' &&
-              (txn.reductions || []).some(item => item.shId === ownerShId)))
-        );
+        const dispositionTxn = event => event.txnId ? txnById[event.txnId] : null;
 
         const register = { holders: peopleInOrder.map(person => {
             const holder = {};
             dossierPutName(holder, 'nameTh', 'nameEn', personName(person.id));
             holder.entries = (rep.ledgers[person.id] || [])
-            .filter(event => event.kind !== 'disposition' || dispositionTxn(event, person.id))
+            .filter(event => {
+                if (event.kind !== 'disposition') return true;
+                const txn = dispositionTxn(event);
+                return txn && (txn.type === 'transfer' || (txn.type === 'decrease' && txn.method === 'shares'));
+            })
             .map(event => {
-                const issuedCert = rep.certs.find(cert =>
-                    cert.ownerShId === person.id && String(cert.certNo) === String(event.issuedCertNo));
-                const txn = issuedCert && issuedCert.issuedBy !== 'initial' ? txnById[issuedCert.issuedBy]
-                          : (event.kind === 'disposition' ? dispositionTxn(event, person.id) : null);
+                const txn = event.txnId ? txnById[event.txnId] : null;
+                const issuedCert = [...rep.certs].reverse().find(cert =>
+                    cert.ownerShId === person.id && String(cert.certNo) === String(event.issuedCertNo) &&
+                    (event.txnId ? cert.issuedBy === event.txnId : cert.issuedBy === 'initial'));
                 const entry = {
                     kind: event.kind === 'disposition' ? 'out' : 'in',
                     ...dossierEntryTemplate(event, issuedCert, txn)

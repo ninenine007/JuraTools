@@ -58,8 +58,9 @@ assert.equal(dossier.from, 'CorpDesk');
 assert.deepEqual(dossier.co, {
   nameTh: 'บริษัท ตัวอย่าง จำกัด',
   th: 'บริษัท ตัวอย่าง จำกัด',
-  par: '100', paidUp: '100', regShares: '150', ord: '150', pref: '-', cap: '15000'
+  par: '100', regShares: '150', ord: '150', pref: '-', cap: '15000'
 });
+assert.equal('paidUp' in dossier.co, false, 'mixed certificate paid-up values are not flattened into company data');
 assert.deepEqual(dossier.people, [
   { nameTh: 'นายอาดัม' },
   { nameTh: 'นายบีน' }
@@ -125,13 +126,43 @@ assert.equal(increasedAdam.find(entry => entry.shares === '10').tpl, 'subscribeI
 assert.equal(increasedAdam.find(entry => entry.shares === '100' && entry.date === '2024-03-04').tpl, 'cancelIssueInc');
 assert.equal(increasedAdam.at(-1).balance, '110');
 
+const sameDayFixture = structuredClone(fixture);
+sameDayFixture.companies[0].transactions = [
+  { id: 'paid1', type: 'paidup', date: '2024-02-03', newPaidUp: 80 },
+  {
+    id: 'transfer2', type: 'transfer', date: '2024-02-03', fromShId: 'adam', toShId: 'bean',
+    certId: 'paid1-pu-cert1', shares: 40, takeFrom: 'back', issueOrder: 'transferor',
+    mode: 'new', paidUp: 80, pricePerShare: 10, overrides: {}
+  }
+];
+vm.runInContext(`state = ${JSON.stringify(sameDayFixture)}`, context);
+const sameDay = JSON.parse(vm.runInContext('JSON.stringify(buildCorporateDossier())', context));
+const sameDayAdam = sameDay.register.holders[0].entries;
+assert.equal(sameDayAdam.filter(entry => entry.kind === 'out').length, 1, 'a same-day reissue is not mistaken for a transfer');
+assert.equal(sameDayAdam.find(entry => entry.kind === 'out').outShares, '40');
+
+const renumberFixture = structuredClone(fixture);
+renumberFixture.companies[0].shareholders[0].certificates = [
+  { id: 'old1', shares: 60, certNo: null, rangeStart: null, rangeEnd: null, paidUp: 100 },
+  { id: 'old2', shares: 40, certNo: null, rangeStart: null, rangeEnd: null, paidUp: 100 }
+];
+renumberFixture.companies[0].transactions = [
+  { id: 'renumber1', type: 'renumber', date: '2024-05-06', combinePerHolder: true }
+];
+vm.runInContext(`state = ${JSON.stringify(renumberFixture)}`, context);
+const renumbered = JSON.parse(vm.runInContext('JSON.stringify(buildCorporateDossier())', context));
+const renumberEntry = renumbered.register.holders[0].entries.find(entry => entry.date === '2024-05-06');
+assert.equal(renumberEntry.certNo, '1');
+assert.equal(renumberEntry.shares, '100', 'a reused certificate number resolves to the new combined certificate');
+assert.equal(renumberEntry.tpl, 'rearrange');
+
 const invalidNumberFixture = structuredClone(fixture);
 invalidNumberFixture.companies[0].parValue = 'not a number';
 invalidNumberFixture.companies[0].transactions = [];
 vm.runInContext(`state = ${JSON.stringify(invalidNumberFixture)}`, context);
 const invalidNumberDossier = JSON.parse(vm.runInContext('JSON.stringify(buildCorporateDossier())', context));
 assert.equal(invalidNumberDossier.co.par, '(*)');
-assert.equal(invalidNumberDossier.co.paidUp, '(*)');
+assert.equal(invalidNumberDossier.co.paidUp, '100');
 assert.match(invalidNumberDossier.notes.join('\n'), /company par value/);
 
 const certificateHtml = readFileSync(new URL('../corporate-tools/share-certificate.html', import.meta.url), 'utf8');

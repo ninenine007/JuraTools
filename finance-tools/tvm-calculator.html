@@ -222,6 +222,7 @@
     table.data tr.term.sel td { color: var(--accent-dark); font-weight: 600; }
     table.data td.pos { color: var(--green-mid); }
     table.data td.neg { color: var(--rose); }
+    table.data td.res { color: var(--accent); font-weight: 700; }
     table.data input.cf {
       width: 118px; padding: 5px 8px; font-size: 13px; text-align: right;
     }
@@ -247,6 +248,18 @@
       gap: 10px; flex-wrap: wrap; margin-bottom: 8px;
     }
     .diagram-hint { font-size: 12px; color: var(--muted); }
+    .value-at-bar {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      flex-wrap: wrap; margin: 0 0 8px; padding: 8px 10px;
+      background: var(--accent-light); border: 1px solid var(--accent-border); border-radius: var(--radius-sm);
+    }
+    .value-at-label { font-size: 12px; font-weight: 600; color: var(--accent-dark); }
+    .value-at-bar .mode-toggle { min-width: 310px; border-color: var(--accent-border); }
+    .value-at-bar .mode-btn { padding: 7px 12px; font-size: 12px; }
+    @media (max-width: 560px) {
+      .value-at-bar { align-items: stretch; }
+      .value-at-bar .mode-toggle { min-width: 0; width: 100%; }
+    }
     .diagram-wrap {
       background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm);
       padding: 6px 4px; overflow-x: auto; -webkit-overflow-scrolling: touch;
@@ -683,6 +696,13 @@
         <div class="diagram-hint" data-i18n="diagramHint">Click any arrow, formula term or table row — the matching parts light up together.</div>
       </div>
     </div>
+    <div class="value-at-bar no-print">
+      <span class="value-at-label" data-i18n="valueAtLabel">Value each cash flow at</span>
+      <div class="mode-toggle" id="valueAtToggle">
+        <button class="mode-btn" data-value-at="pv" data-i18n="valueAtPV">Today (PV)</button>
+        <button class="mode-btn" data-value-at="fv" data-i18n="valueAtFV">End of the term (FV)</button>
+      </div>
+    </div>
     <div class="diagram-wrap">
       <div id="diagram"></div>
     </div>
@@ -815,6 +835,8 @@
     noteTol: 'หยุดเมื่อ |f(r)| ต่ำกว่าค่านี้ หรือครบ 100 รอบ',
     resultTitle: 'ผลลัพธ์', diagramTitle: 'เส้นเวลากระแสเงินสด',
     diagramHint: 'คลิกลูกศร พจน์ในสูตร หรือแถวในตาราง — ส่วนที่ตรงกันจะสว่างพร้อมกัน',
+    valueAtLabel: 'แสดงมูลค่าของกระแสเงินสดแต่ละรายการ ณ',
+    valueAtPV: 'วันนี้ (PV)', valueAtFV: 'ปลายงวดสุดท้าย (FV)',
     legIn: 'เงินเข้า', legOut: 'เงินออก', legRes: 'ผลลัพธ์',
     termsSummary: 'การคำนวณทีละงวด', amortSummary: 'ตารางผ่อนชำระ',
     solverTitle: 'ตัวหาอัตราดอกเบี้ย — เทียบ 4 วิธี',
@@ -846,7 +868,7 @@
       cfAmt: '', cfFrom: '1', cfTo: '5',
       n: '5', m: '1', mCustom: '1', rate: '6',
       perRate: '',          // '' = auto (i / m)
-      timing: 'end',
+      timing: 'end', valueAt: 'auto',
       solveFor: tab === 'npv' ? 'npv' : tab,
       tol: '1e-9', expand: false, interest: 'compound',
       flows: {}             // { '<t>': '<signed amount string>' } — manual overrides
@@ -859,6 +881,10 @@
     history: [], saved: []
   };
   function TS() { return S.tabs[S.tab]; }
+  function valuationMode(T) {
+    if (T.valueAt === 'pv' || T.valueAt === 'fv') return T.valueAt;
+    return T.solveFor === 'fv' ? 'fv' : 'pv';
+  }
 
   function save() {
     try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
@@ -1021,12 +1047,12 @@
     var payFrom = inp.isDue ? 0 : 1;
     var payTo = inp.isDue ? N - 1 : N;
 
-    for (t = 0; t <= N; t++) out.push({ t: t, auto: 0, role: null });
+    for (t = 0; t <= N; t++) out.push({ t: t, auto: 0, parts: [] });
 
     function add(t, v, role) {
       if (t < 0 || t > N || !isFinite(v) || v === 0) return;
       out[t].auto += v;
-      out[t].role = out[t].role && out[t].role !== role ? 'mixed' : role;
+      out[t].parts.push({ amt: v, role: role });
     }
 
     if (inp.tab === 'npv') {
@@ -1065,9 +1091,26 @@
       var has = ov !== undefined && ov !== null && String(ov).trim() !== '';
       out[t].manual = has;
       out[t].amt = has ? num(ov, 0) : out[t].auto;
-      if (has && out[t].role == null) out[t].role = 'cf';
+      if (has) {
+        out[t].parts = out[t].amt ? [{ amt: out[t].amt, role: 'cf' }] : [];
+      }
     }
 
+    return out;
+  }
+
+  // The calculation series is net by period, but the diagram must not hide
+  // coincident flows.  An annuity due, for example, has both the loan advance
+  // and the first instalment at period 0.  Keep those components separate for
+  // the timeline and working table; a manual period override still replaces
+  // the whole period with one explicit cash flow.
+  function displaySeries(series) {
+    var out = [];
+    series.forEach(function (x) {
+      (x.parts || []).forEach(function (part) {
+        if (part.amt) out.push({ t: x.t, amt: part.amt, role: part.role });
+      });
+    });
     return out;
   }
 
@@ -1538,19 +1581,20 @@
   function segment(series, expand) {
     var live = series.filter(function (x) { return x.amt; });
     if (expand || live.length <= INDIV_MAX) {
-      return live.map(function (x) { return { from: x.t, to: x.t, amt: x.amt, count: 1, id: 'p' + x.t, role: x.role }; });
+      return live.map(function (x) { return { from: x.t, to: x.t, amt: x.amt, count: 1, id: 'p' + x.t + '-' + (x.role || 'cf'), role: x.role }; });
     }
     var segs = [], i = 0;
     while (i < live.length) {
       var j = i;
-      while (j + 1 < live.length && live[j + 1].amt === live[i].amt && live[j + 1].t === live[j].t + 1) j++;
+      while (j + 1 < live.length && live[j + 1].amt === live[i].amt
+             && live[j + 1].role === live[i].role && live[j + 1].t === live[j].t + 1) j++;
       var count = j - i + 1;
       if (count >= GROUP_MIN) {
         segs.push({ from: live[i].t, to: live[j].t, amt: live[i].amt, count: count,
-                    id: 'g' + live[i].t + '-' + live[j].t, role: live[i].role, grouped: true });
+                    id: 'g' + live[i].t + '-' + live[j].t + '-' + (live[i].role || 'cf'), role: live[i].role, grouped: true });
         i = j + 1;
       } else {
-        for (var k = i; k <= j; k++) segs.push({ from: live[k].t, to: live[k].t, amt: live[k].amt, count: 1, id: 'p' + live[k].t, role: live[k].role });
+        for (var k = i; k <= j; k++) segs.push({ from: live[k].t, to: live[k].t, amt: live[k].amt, count: 1, id: 'p' + live[k].t + '-' + (live[k].role || 'cf'), role: live[k].role });
         i = j + 1;
       }
     }
@@ -1567,6 +1611,25 @@
 
   function CUR() { return S.lang === 'th' ? 'บาท' : 'THB'; }
   function flowColor(amt) { return amt >= 0 ? '#059669' : '#e11d48'; }
+  function termColor(sg, resultRole) { return sg.role === resultRole ? '#4f46e5' : flowColor(sg.amt); }
+  function isFocalResult(sg, D) {
+    return sg.role === D.resultRole && (
+         (sg.role === 'fv' && D.mode === 'fv' && sg.from === D.focal && sg.to === D.focal)
+      || (sg.role === 'pv' && D.mode === 'pv' && sg.from === D.focal && sg.to === D.focal));
+  }
+  function resultTermLabel(D, fs) {
+    return mT((D.mode === 'fv' ? 'FV' : 'PV') + (S.lang === 'th' ? ' ผลลัพธ์' : ' result'),
+              { fs: fs, weight: 700, fill: '#4f46e5' });
+  }
+  function factorBasis(mode) {
+    if (S.lang === 'th') return mode === 'fv' ? 'ตัวคูณ FV' : 'ตัวคูณ PV';
+    return mode === 'fv' ? 'FV factors' : 'PV factors';
+  }
+  function groupedTerm(sg, D, fs) {
+    var range = 't=' + sg.from + '…' + sg.to;
+    return mRow([mT(fmtShort(Math.abs(sg.amt)), { fs: fs, weight: 600 }), mT('×', { fs: fs }),
+                 mT('Σ ' + factorBasis(D.mode) + ' (' + range + ')', { fs: fs, fill: '#6e6e73' })], 4);
+  }
 
   // Horizontal layout — the textbook picture: timeline along the bottom,
   // one lane per cash flow fanning out above it, formula and value on the right.
@@ -1574,10 +1637,10 @@
     var segs = D.segs, N = D.N, focal = D.focal, r = D.r, rTxt = D.rTxt;
     var W = 940, labelW = 268;
     var padL = 54, plotR = W - labelW - 10;
-    var laneH = 27, topPad = 16;
+    var laneH = 38, topPad = 16;
     var lanes = segs.length;
     var axisY = topPad + lanes * laneH + 46;
-    var H = axisY + 54;
+    var H = axisY + 100;
     var x0 = padL, x1 = plotR - 26;
     var span = Math.max(1, N);
     function X(t) { return x0 + (x1 - x0) * (t / span); }
@@ -1587,7 +1650,7 @@
     // lanes
     segs.forEach(function (sg, idx) {
       var y = topPad + idx * laneH + 12;
-      var col = flowColor(sg.amt);
+      var col = termColor(sg, D.resultRole);
       var xs = X(sg.grouped ? (sg.from + sg.to) / 2 : sg.from);
       var toFocal = focal >= sg.to ? 1 : -1;
       s += '<g class="term" data-term="' + esc(sg.id) + '">';
@@ -1602,9 +1665,10 @@
       // formula, right-aligned into the focal point
       var amtTxt = fmtShort(Math.abs(sg.amt));
       var f;
-      if (sg.grouped) {
-        f = mRow([mT(amtTxt, { fs: 12.5, weight: 600 }), mT('×', { fs: 12.5 }),
-                  mT(String(sg.count) + (S.lang === 'th' ? ' งวด' : ' periods'), { fs: 12.5, fill: '#6e6e73' })], 4);
+      if (isFocalResult(sg, D)) {
+        f = resultTermLabel(D, 12.5);
+      } else if (sg.grouped) {
+        f = groupedTerm(sg, D, 12.5);
       } else if (D.mode === 'fv') {
         f = mRow([mT(amtTxt, { fs: 12.5, weight: 600 }), mT('×', { fs: 12.5 }), mGrowth(rTxt, focal - sg.from, 12.5, D.simple)], 4);
       } else {
@@ -1631,21 +1695,28 @@
     s += '<text x="' + (x1 + 20) + '" y="' + (axisY + 21) + '" font-size="11" fill="#aeaeb2">'
        + esc(S.lang === 'th' ? 'งวด' : 'period') + '</text>';
 
-    // cash flow amounts above the axis
+    // Cash-flow markers. Money in sits above the axis and money out below it,
+    // so opposite flows in the same period remain visibly distinct.
     segs.forEach(function (sg) {
-      var col = flowColor(sg.amt);
+      var col = termColor(sg, D.resultRole);
       var xs = X(sg.grouped ? (sg.from + sg.to) / 2 : sg.from);
       s += '<g class="term" data-term="' + esc(sg.id) + '">';
       if (sg.grouped) {
         var xa = X(sg.from), xb = X(sg.to);
-        s += '<path d="M ' + xa.toFixed(1) + ' ' + (axisY + 30) + ' L ' + xa.toFixed(1) + ' ' + (axisY + 35)
-           + ' L ' + xb.toFixed(1) + ' ' + (axisY + 35) + ' L ' + xb.toFixed(1) + ' ' + (axisY + 30)
+        var bracketTop = sg.amt >= 0 ? axisY + 30 : axisY + 57;
+        var bracketBase = sg.amt >= 0 ? axisY + 35 : axisY + 62;
+        var countY = sg.amt >= 0 ? axisY + 47 : axisY + 75;
+        s += '<path d="M ' + xa.toFixed(1) + ' ' + bracketTop + ' L ' + xa.toFixed(1) + ' ' + bracketBase
+           + ' L ' + xb.toFixed(1) + ' ' + bracketBase + ' L ' + xb.toFixed(1) + ' ' + bracketTop
            + '" fill="none" stroke="' + col + '" stroke-width="1.2" opacity=".55"/>';
-        s += '<text x="' + xs.toFixed(1) + '" y="' + (axisY + 47) + '" font-size="10.5" text-anchor="middle" fill="' + col + '">×' + sg.count + '</text>';
+        s += '<text x="' + xs.toFixed(1) + '" y="' + countY + '" font-size="10.5" text-anchor="middle" fill="' + col + '">×' + sg.count + '</text>';
       }
-      s += '<text x="' + xs.toFixed(1) + '" y="' + (axisY - 12) + '" font-size="12" font-weight="600" text-anchor="middle" fill="' + col
+      var amtY = sg.amt >= 0 ? axisY - 12 : axisY + 46;
+      var headY = sg.amt >= 0 ? axisY - 26 : axisY + 28;
+      s += '<text x="' + xs.toFixed(1) + '" y="' + amtY + '" font-size="12" font-weight="600" text-anchor="middle" fill="' + col
          + '" style="font-variant-numeric:tabular-nums">' + esc(fmtShort(Math.abs(sg.amt))) + '</text>';
-      s += arrowHead(xs, axisY - 26, sg.amt >= 0 ? 'up' : 'down', col);
+      s += '<line x1="' + xs.toFixed(1) + '" y1="' + (sg.amt >= 0 ? axisY - 4 : axisY + 4) + '" x2="' + xs.toFixed(1) + '" y2="' + headY + '" stroke="' + col + '" stroke-width="1.4"/>';
+      s += arrowHead(xs, headY, sg.amt >= 0 ? 'up' : 'down', col);
       s += '</g>';
     });
 
@@ -1676,7 +1747,7 @@
 
     segs.forEach(function (sg, idx) {
       var y = topPad + idx * rowH;
-      var col = flowColor(sg.amt);
+      var col = termColor(sg, D.resultRole);
       s += '<g class="term" data-term="' + esc(sg.id) + '">';
       s += '<rect x="6" y="' + (y - 15) + '" width="' + (W - 12) + '" height="' + (rowH - 4) + '" rx="6" class="halo" fill="rgba(79,70,229,0.10)"/>';
       s += '<line x1="' + (spineX - 5) + '" y1="' + y + '" x2="' + (spineX + 5) + '" y2="' + y + '" stroke="#1c1c1e" stroke-width="1.2"/>';
@@ -1686,7 +1757,9 @@
       s += arrowHead(spineX + 24, y, 1, col);
       var amtTxt = fmtShort(Math.abs(sg.amt));
       var f;
-      if (sg.grouped) f = mRow([mT(amtTxt, { fs: 12, weight: 600, fill: col }), mT('×', { fs: 12 }), mT(String(sg.count), { fs: 12, fill: '#6e6e73' })], 3);
+      if (isFocalResult(sg, D)) {
+        f = resultTermLabel(D, 12);
+      } else if (sg.grouped) f = groupedTerm(sg, D, 12);
       else if (D.mode === 'fv') f = mRow([mT(amtTxt, { fs: 12, weight: 600, fill: col }), mT('×', { fs: 12 }), mGrowth(rTxt, focal - sg.from, 12, D.simple)], 3);
       else f = mRow([mT(amtTxt, { fs: 12, weight: 600, fill: col }), mT('÷', { fs: 12 }), mGrowth(rTxt, sg.from - focal, 12, D.simple)], 3);
       s += mTerm(f, sg.id).draw(spineX + 34, y + 3);
@@ -1843,30 +1916,48 @@
     // ── series at the settled rate ────────────────────────────────────────
     var r = inpEff.r, N = inpEff.N;
     var series = buildSeries(inpEff);
-    var mode = inp.tab === 'fv' ? 'fv' : 'pv';
-    var focal = inp.tab === 'fv' ? N : 0;
-    var segs = segment(series, !!TS().expand);
+    var shownSeries = displaySeries(series);
+    var mode = valuationMode(TS());
+    var focal = mode === 'fv' ? N : 0;
+    var segs = segment(shownSeries, !!TS().expand);
     R.grouped = segs.some(function (s2) { return s2.grouped; });
-    R.liveCount = series.filter(function (x) { return x.amt; }).length;
+    R.liveCount = shownSeries.length;
 
     function valueOf(sg) {
       var v = 0;
       for (var t = sg.from; t <= sg.to; t++) {
-        var a = series[t] ? series[t].amt : 0;
-        if (!a) continue;
-        v += a * factorAt(r, mode === 'fv' ? focal - t : t - focal, inp.simple, mode);
+        v += sg.amt * factorAt(r, mode === 'fv' ? focal - t : t - focal, inp.simple, mode);
       }
       return v;
     }
     segs.forEach(function (sg) { sg.value = valueOf(sg); });
     var total = segs.reduce(function (a, b) { return a + b.value; }, 0);
+    var displayedTotal = segs.reduce(function (a, b) { return a + roundAmt(b.value); }, 0);
 
-    R.series = series; R.segs = segs; R.mode = mode; R.focal = focal;
+    R.series = series; R.displaySeries = shownSeries; R.segs = segs; R.mode = mode; R.focal = focal;
+    var solvedEndpointRole = solved && (solved.field === 'pv' || solved.field === 'fv') ? solved.field : null;
+    R.resultRole = solvedEndpointRole && segs.some(function (sg) { return sg.role === solvedEndpointRole; })
+      ? solvedEndpointRole : null;
     R.r = r; R.N = N; R.total = total; R.inpEff = inpEff;
     R.rTxt = (Math.round(r * 1e10) / 1e10).toString();
-    R.totalLabel = inp.tab === 'fv' ? (S.lang === 'th' ? 'รวม ณ งวดที่ ' + focal : 'Total at period ' + focal)
-                 : inp.tab === 'npv' ? (S.lang === 'th' ? 'NPV' : 'NPV')
+    R.totalLabel = inp.tab === 'pmt' ? (mode === 'fv'
+                     ? (S.lang === 'th' ? 'สมดุล ณ งวดที่ ' + focal : 'Balance at period ' + focal)
+                     : (S.lang === 'th' ? 'สมดุล ณ วันนี้' : 'Balance today'))
+                 : mode === 'fv' ? (S.lang === 'th' ? 'รวม ณ งวดที่ ' + focal : 'Total at period ' + focal)
+                 : inp.tab === 'npv' ? 'NPV'
                  : (S.lang === 'th' ? 'รวม ณ วันนี้' : 'Total today');
+    var counterpart = segs.filter(function (sg) { return sg.role !== R.resultRole; })
+                          .reduce(function (sum, sg) { return sum + roundAmt(sg.value); }, 0);
+    R.displayTotal = R.resultRole ? Math.abs(counterpart) : displayedTotal;
+    R.displayBalance = roundAmt(displayedTotal);
+    R.displayBalanceLabel = Math.abs(R.displayBalance) > Math.pow(10, -dp()) / 2
+      ? (S.lang === 'th' ? 'ผลต่างจากการปัดเศษที่แสดง' : 'Displayed rounding difference')
+      : R.totalLabel;
+    R.displayTotalLabel = R.resultRole
+      ? (mode === 'fv'
+          ? (S.lang === 'th' ? 'กระแสเงินสดสะสม ณ งวดที่ ' + focal : 'Cash flows accumulated at period ' + focal)
+          : (S.lang === 'th' ? 'มูลค่าปัจจุบันของกระแสเงินสด' : 'Present value of cash flows'))
+      : R.totalLabel;
     if (!segs.length) R.warnings.push(S.lang === 'th' ? 'ยังไม่มีกระแสเงินสด — กรอกจำนวนเงินก่อน' : 'No cash flows yet — enter an amount above.');
     return R;
   }
@@ -1883,12 +1974,15 @@
       var factor = factorAt(R.r, k, R.inp.simple, R.mode);
       h += '<tr class="term" data-term="' + esc(sg.id) + '">'
         + '<td>' + (sg.grouped ? sg.from + '–' + sg.to + ' <span class="muted">(×' + sg.count + ')</span>' : sg.from) + '</td>'
-        + '<td class="num ' + (sg.amt >= 0 ? 'pos' : 'neg') + '">' + esc(fmt(sg.amt)) + '</td>'
-        + '<td class="num muted">' + (sg.grouped ? '—' : esc(factor.toFixed(6))) + '</td>'
+        + '<td class="num ' + (sg.role === R.resultRole ? 'res' : (sg.amt >= 0 ? 'pos' : 'neg')) + '">' + esc(fmt(sg.amt)) + '</td>'
+        + '<td class="num muted">' + (sg.grouped ? esc('Σ ' + factorBasis(R.mode)) : esc(factor.toFixed(6))) + '</td>'
         + '<td class="num">' + esc(fmt(sg.value)) + '</td></tr>';
     });
-    h += '<tr class="total"><td>' + esc(R.totalLabel) + '</td><td class="num"></td><td class="num"></td><td class="num">'
-      + esc(fmt(R.total)) + '</td></tr></tbody>';
+    h += '<tr class="total"><td>' + esc(R.displayTotalLabel) + '</td><td class="num"></td><td class="num"></td><td class="num">'
+      + esc(fmt(R.displayTotal)) + '</td></tr>';
+    if (R.resultRole) h += '<tr class="muted"><td>' + esc(R.displayBalanceLabel) + '</td><td class="num"></td><td class="num"></td><td class="num">'
+      + esc(fmt(R.displayBalance)) + '</td></tr>';
+    h += '</tbody>';
     return h;
   }
 
@@ -2036,6 +2130,8 @@
     document.querySelectorAll('#presetToggle .mode-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.preset === T.preset); });
     document.querySelectorAll('#timingToggle .mode-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.timing === T.timing); });
     document.querySelectorAll('#interestToggle .mode-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.interest === T.interest); });
+    var valueAt = valuationMode(T);
+    document.querySelectorAll('#valueAtToggle .mode-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.valueAt === valueAt); });
     $('interestNote').textContent = T.interest === 'simple'
       ? (th ? 'ดอกเบี้ยคิดจากเงินต้นเท่านั้น เงินก้อนหนึ่งที่ทิ้งไว้ k งวดโตเป็น (1 + r×k) ไม่ใช่ (1+r)^k — ใช้กับดอกเบี้ยตามกฎหมายและดอกเบี้ยผิดนัด สำหรับเงินก้อนเดียว ความถี่ทบต้นจะไม่มีผลต่อคำตอบอีกต่อไป เหลือหน้าที่กำหนดจังหวะงวดเท่านั้น'
              : 'Interest is earned on the principal only: an amount left for k periods grows by (1 + r×k), not (1+r)^k. This is how Thai statutory and default interest works. For a single amount the compounding frequency no longer changes the answer — it only sets the payment grid.')
@@ -2187,7 +2283,7 @@
     // ── diagram ───────────────────────────────────────────────────────────
     var narrow = window.matchMedia('(max-width: 620px)').matches;
     var D = { segs: R.segs, N: R.N, focal: R.focal, r: R.r, rTxt: R.rTxt, mode: R.mode,
-              simple: inp.simple, total: R.total, totalLabel: R.totalLabel };
+              simple: inp.simple, total: R.displayTotal, totalLabel: R.displayTotalLabel, resultRole: R.resultRole };
     $('diagram').innerHTML = R.segs.length ? (narrow ? diagramV(D) : diagramH(D)) : '';
     $('termsTable').innerHTML = termsTableHTML(R);
     $('termsNote').textContent = R.segs.length
@@ -2340,14 +2436,18 @@
     if (isFinite(inp.invest)) out.push('  ' + (th ? 'เงินลงทุนเริ่มต้น' : 'Initial investment') + ': ' + fmt(inp.invest));
     out.push('');
     out.push(th ? 'การคำนวณทีละงวด' : 'Period by period');
+    out.push('  ' + (th ? 'แสดงมูลค่า ณ ' : 'Value each flow at: ')
+      + (R.mode === 'fv' ? (th ? 'ปลายงวดที่ ' + R.focal + ' (FV)' : 'end of period ' + R.focal + ' (FV)')
+                         : (th ? 'วันนี้ (PV)' : 'today (PV)')));
     R.segs.forEach(function (sg) {
       var k = R.mode === 'fv' ? (R.focal - sg.from) : (sg.from - R.focal);
       out.push('  ' + (sg.grouped ? sg.from + '–' + sg.to + ' (×' + sg.count + ')' : 't=' + sg.from)
-        + ': ' + fmt(sg.amt) + (sg.grouped ? '' : (R.mode === 'fv' ? ' × ' : ' ÷ ')
+        + ': ' + fmt(sg.amt) + (sg.grouped ? ' × Σ ' + factorBasis(R.mode) : (R.mode === 'fv' ? ' × ' : ' ÷ ')
             + (R.inp.simple ? '(1+' + R.rTxt + '×' + k + ')' : '(1+' + R.rTxt + ')^' + k))
         + ' = ' + fmt(sg.value));
     });
-    out.push('  ' + R.totalLabel + ': ' + fmt(R.total));
+    out.push('  ' + R.displayTotalLabel + ': ' + fmt(R.displayTotal));
+    if (R.resultRole) out.push('  ' + R.displayBalanceLabel + ': ' + fmt(R.displayBalance));
     if (R.solver && R.solver.ok) {
       out.push('');
       out.push(th ? 'ตัวหาอัตราดอกเบี้ย' : 'Rate solver');
@@ -2507,7 +2607,6 @@
     var b = e.target.closest('.mode-btn'); if (!b) return;
     pull(); var T = TS(); T.preset = b.dataset.preset;
     T.solveFor = 'pmt';
-    if (T.preset === 'save') { T.pv = ''; } else if (T.preset === 'loan') { T.fv = ''; }
     selTerm = null; refresh();
   });
   $('timingToggle').addEventListener('click', function (e) {
@@ -2524,6 +2623,10 @@
   });
   $('fSolve').addEventListener('change', function () {
     pull(); TS().solveFor = this.value; selTerm = null; refresh();
+  });
+  $('valueAtToggle').addEventListener('click', function (e) {
+    var b = e.target.closest('.mode-btn'); if (!b) return;
+    TS().valueAt = b.dataset.valueAt; selTerm = null; refresh();
   });
   ['fPV', 'fPMT', 'fFV', 'fInvest', 'fCfAmt'].forEach(function (k) {
     $(k).addEventListener('input', function () { liveFormat(this); });
