@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f3f1">
+  <title>Combinatorics Workbench — JuraTools</title>
+  <meta name="description" content="Model, count, visualize, and generate permutations, combinations, group allocations, and stars-and-bars outcomes entirely in your browser.">
+  <style>
+    :root {
+      --paper:#fff; --ground:#f4f3f1; --panel:#f9f8f6; --ink:#202124; --muted:#68696e;
+      --line:#dad8d3; --line-strong:#b9b6af; --accent:#c44d12; --accent-bright:#ea580c;
+      --accent-soft:#fff0e6; --blue:#285f9d; --blue-soft:#edf5ff; --green:#167247;
+      --green-soft:#eaf8f0; --amber:#9a5a0a; --amber-soft:#fff7df; --red:#b42335;
+      --red-soft:#fff0f1; --purple:#6d43a8; --purple-soft:#f4effb; --shadow:0 8px 26px rgba(37,31,24,.08);
+      --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
+      --serif:Georgia,"Times New Roman",serif;
+    }
+    * { box-sizing:border-box; }
+    html, body { margin:0; min-height:100%; }
+    body { font:13px/1.45 var(--sans); color:var(--ink); background:var(--ground); overflow:hidden; }
+    button, input, select, textarea { font:inherit; color:inherit; }
+    button, select, input[type="checkbox"] { cursor:pointer; }
+    button:disabled { cursor:not-allowed; opacity:.42; }
+    a { color:inherit; text-decoration:none; }
+    ::selection { background:#fed7aa; color:#431407; }
+    :focus-visible { outline:3px solid rgba(234,88,12,.24); outline-offset:2px; }
+    * { scrollbar-width:thin; scrollbar-color:#bbb7b0 transparent; }
+    .topbar { height:56px; display:flex; align-items:center; gap:10px; padding:0 14px; background:#fff;
+      border-bottom:1px solid var(--line); position:relative; z-index:20; }
+    .brand { display:flex; align-items:center; gap:9px; font-weight:750; letter-spacing:-.25px; }
+    .brand-mark { width:31px; height:31px; display:grid; place-items:center; color:#fff; background:var(--accent);
+      border-radius:7px; box-shadow:0 3px 9px rgba(196,77,18,.25); }
+    .brand-mark svg { width:18px; height:18px; }
+    .crumb { color:var(--muted); white-space:nowrap; }
+    .crumb::before { content:"/"; color:#bbb7b0; margin-right:10px; }
+    .project-title { border:0; border-bottom:1px solid transparent; min-width:160px; max-width:280px; padding:4px 3px;
+      font-weight:650; background:transparent; }
+    .project-title:hover, .project-title:focus { background:var(--panel); border-color:var(--line); outline:none; }
+    .save-state { color:var(--green); font-size:11px; margin-right:auto; white-space:nowrap; }
+    .toolbar { display:flex; align-items:center; gap:6px; }
+    .btn { border:1px solid var(--line); background:#fff; padding:7px 10px; min-height:32px; border-radius:8px;
+      font-size:12px; font-weight:650; line-height:1; transition:border-color .15s, background .15s, color .15s; }
+    .btn:hover { border-color:#aaa59d; background:#faf9f7; }
+    .btn.primary { color:#fff; background:var(--accent); border-color:var(--accent); }
+    .btn.primary:hover { background:#a93e0c; }
+    .btn.soft { color:#8f350c; background:var(--accent-soft); border-color:#f2c7b1; }
+    .btn.danger:hover { color:var(--red); border-color:#e6aab3; background:var(--red-soft); }
+    .btn.icon { width:32px; padding:0; display:grid; place-items:center; }
+    .btn svg { width:15px; height:15px; }
+    .app { height:calc(100vh - 56px); display:grid; grid-template-columns:310px minmax(460px,1fr) 350px; }
+    .pane { min-width:0; min-height:0; background:var(--panel); }
+    .setup { border-right:1px solid var(--line); overflow:auto; }
+    .evidence { background:#eeece8; display:grid; grid-template-rows:auto 1fr auto; overflow:hidden; }
+    .results { border-left:1px solid var(--line); overflow:auto; background:#fff; }
+    .pane-head { min-height:58px; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 14px;
+      background:rgba(255,255,255,.88); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:8; }
+    .pane-head h1, .pane-head h2 { font-size:14px; line-height:1.2; margin:0; letter-spacing:-.2px; }
+    .pane-head p { color:var(--muted); font-size:11px; margin:3px 0 0; }
+    .status-pill { border:1px solid var(--line); background:#fff; color:var(--muted); padding:3px 7px; border-radius:999px;
+      font-size:10px; font-weight:750; text-transform:uppercase; letter-spacing:.45px; white-space:nowrap; }
+    .status-pill.stale { color:var(--amber); background:var(--amber-soft); border-color:#ecd69d; }
+    .status-pill.exact { color:var(--green); background:var(--green-soft); border-color:#b9dfc8; }
+    .setup-body, .results-body { padding:12px; }
+    .section { border-bottom:1px solid var(--line); padding:4px 2px 14px; margin-bottom:12px; }
+    .section:last-child { border-bottom:0; }
+    .section-title { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 0 9px;
+      font-size:10.5px; font-weight:800; letter-spacing:.66px; text-transform:uppercase; color:#56575c; }
+    .section-title button { border:0; color:var(--accent); background:transparent; padding:2px; font-size:11px; font-weight:700; }
+    .mode-tabs { display:grid; grid-template-columns:1fr 1fr; padding:3px; border:1px solid var(--line); border-radius:9px; background:#efeeeb; }
+    .mode-tab { border:0; background:transparent; padding:7px 5px; border-radius:6px; color:var(--muted); font-weight:700; font-size:11px; }
+    .mode-tab.active { color:var(--ink); background:#fff; box-shadow:0 1px 4px rgba(30,28,24,.08); }
+    .field { display:grid; gap:4px; margin-bottom:9px; }
+    .field label, .micro-label { color:#5d5e63; font-size:10.5px; font-weight:680; }
+    .field input, .field select, .field textarea, .cell-input { width:100%; border:1px solid #cbc8c2; background:#fff;
+      min-height:34px; border-radius:7px; padding:7px 8px; }
+    .field input:focus, .field select:focus, .field textarea:focus, .cell-input:focus { border-color:#e38a5d; outline:3px solid rgba(234,88,12,.12); }
+    .field-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .hint { color:var(--muted); font-size:10.5px; margin:-2px 0 8px; }
+    .row-table { border:1px solid var(--line); border-radius:8px; overflow:hidden; background:#fff; }
+    .row-head, .member-row, .group-row { display:grid; gap:5px; align-items:center; padding:6px; border-bottom:1px solid #ebe9e5; }
+    .row-head { background:#f1f0ed; color:var(--muted); font-size:9.5px; font-weight:750; text-transform:uppercase; }
+    .row-head:last-child, .member-row:last-child, .group-row:last-child { border-bottom:0; }
+    .member-row, .row-head.members { grid-template-columns:minmax(72px,1fr) 48px 72px 28px; }
+    .group-row, .row-head.groups { grid-template-columns:minmax(75px,1fr) 50px 50px 28px; }
+    .member-tags { grid-column:1/-1; display:flex; gap:5px; align-items:center; }
+    .member-tags input { min-height:28px; }
+    .cell-input { min-height:30px; padding:5px 6px; font-size:11px; }
+    .row-remove { width:26px; height:26px; display:grid; place-items:center; border:0; border-radius:6px; background:transparent; color:#8d8b86; }
+    .row-remove:hover { color:var(--red); background:var(--red-soft); }
+    .inline-actions { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+    details.advanced { border:1px solid var(--line); border-radius:8px; background:#fff; margin-top:8px; }
+    details.advanced > summary { list-style:none; padding:9px 10px; font-size:11px; font-weight:700; cursor:pointer; }
+    details.advanced > summary::-webkit-details-marker { display:none; }
+    details.advanced > summary::after { content:"+"; float:right; color:var(--muted); }
+    details.advanced[open] > summary::after { content:"−"; }
+    .advanced-body { padding:0 10px 10px; }
+    .constraint-list { display:grid; gap:6px; }
+    .constraint { border:1px solid var(--line); border-radius:7px; padding:7px; background:#fff; }
+    .constraint-top { display:flex; align-items:center; gap:6px; }
+    .constraint-top select { min-width:0; flex:1; }
+    .constraint-fields { display:grid; grid-template-columns:1fr 1fr; gap:5px; margin-top:6px; }
+    .template-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+    .template { min-height:58px; text-align:left; border:1px solid var(--line); border-radius:8px; background:#fff; padding:8px; }
+    .template:hover { border-color:#e39a76; background:#fffaf7; }
+    .template b { display:block; font-size:10.5px; }
+    .template span { color:var(--muted); font-size:9.5px; }
+    .evidence-toolbar { height:58px; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 14px;
+      background:#fff; border-bottom:1px solid var(--line); }
+    .view-tabs { display:flex; gap:3px; padding:3px; background:#efeeeb; border-radius:9px; overflow:auto; }
+    .view-tab { border:0; background:transparent; color:var(--muted); border-radius:6px; padding:6px 9px; font-size:10.5px; font-weight:700; white-space:nowrap; }
+    .view-tab.active { background:#fff; color:var(--accent); box-shadow:0 1px 4px rgba(30,28,24,.08); }
+    .canvas { min-height:0; overflow:auto; padding:30px; position:relative; background-color:#eeece8;
+      background-image:radial-gradient(#c9c5be 1px,transparent 1px); background-size:20px 20px; }
+    .sheet { width:min(820px,100%); min-height:540px; margin:0 auto; padding:34px; background:#fff; border:1px solid #c9c6c0;
+      border-radius:4px; box-shadow:var(--shadow); }
+    .sheet-head { display:flex; justify-content:space-between; align-items:flex-start; gap:18px; padding-bottom:20px; border-bottom:1px solid var(--line); }
+    .sheet h2 { font-size:20px; letter-spacing:-.45px; margin:0 0 5px; }
+    .sheet-sub { color:var(--muted); margin:0; max-width:66ch; }
+    .sheet-stamp { color:var(--accent); border:1px solid #e8b89e; background:var(--accent-soft); padding:5px 8px; border-radius:5px;
+      font-size:9px; font-weight:800; letter-spacing:.8px; text-transform:uppercase; }
+    .visual-stage { min-height:360px; display:grid; align-content:center; padding:26px 0; }
+    .empty-stage { max-width:430px; margin:auto; text-align:center; color:var(--muted); }
+    .empty-stage svg { width:58px; height:58px; color:#aca8a1; margin-bottom:12px; }
+    .empty-stage h3 { margin:0 0 6px; color:var(--ink); font-size:15px; }
+    .slot-row, .selection-pool, .starbar { display:flex; flex-wrap:wrap; justify-content:center; gap:10px; align-items:center; }
+    .slot { width:96px; min-height:76px; border:1px solid #c5c1ba; background:#faf9f7; display:grid; place-items:center; border-radius:5px; text-align:center; padding:8px; }
+    .slot .index { display:block; color:var(--accent); font:700 10px var(--sans); margin-bottom:4px; }
+    .member-chip { border:1px solid #bdcbe0; background:var(--blue-soft); color:#244f7d; border-radius:6px; padding:7px 10px; font-weight:700; }
+    .member-chip.muted { border-color:#d3d0ca; background:#f3f2ef; color:#77746f; }
+    .group-board { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; align-items:stretch; }
+    .group-box { min-height:155px; border:1px solid #c2beb7; background:#faf9f7; border-radius:5px; padding:11px; }
+    .group-box h3 { margin:0 0 9px; padding-bottom:7px; border-bottom:1px solid var(--line); font-size:12px; }
+    .group-box .capacity { float:right; color:var(--muted); font-size:9px; font-weight:500; }
+    .star { width:30px; height:30px; border-radius:50%; background:var(--accent); box-shadow:inset 0 0 0 5px #fff,0 0 0 1px #d77545; }
+    .bar { height:54px; width:3px; background:#754323; border-radius:2px; margin:0 3px; }
+    .outcome-table { width:100%; border-collapse:collapse; font-size:11px; }
+    .outcome-table th, .outcome-table td { text-align:left; padding:7px 8px; border-bottom:1px solid var(--line); }
+    .outcome-table th { position:sticky; top:0; background:#f4f3f1; color:var(--muted); font-size:9.5px; text-transform:uppercase; }
+    .outcome-table td:first-child { color:var(--muted); width:50px; font-variant-numeric:tabular-nums; }
+    .sheet-foot { border-top:1px solid var(--line); padding-top:12px; color:var(--muted); font-size:10.5px; display:flex; justify-content:space-between; gap:12px; }
+    .generation { padding:9px 14px; background:#fff; border-top:1px solid var(--line); }
+    .generation-row { display:flex; align-items:center; gap:8px; }
+    progress.progress { appearance:none; -webkit-appearance:none; height:5px; flex:1; border:0; background:#e7e5e1; border-radius:999px; overflow:hidden; }
+    progress.progress::-webkit-progress-bar { background:#e7e5e1; }
+    progress.progress::-webkit-progress-value { background:var(--accent); }
+    progress.progress::-moz-progress-bar { background:var(--accent); }
+    .generation-note { color:var(--muted); font-size:10px; min-width:100px; text-align:right; }
+    .model-summary { border:1px solid #d7c6ba; background:#fff9f5; padding:10px; border-radius:8px; margin-bottom:12px; }
+    .model-summary label { display:block; color:#9a4318; font-size:9.5px; font-weight:800; text-transform:uppercase; letter-spacing:.6px; margin-bottom:4px; }
+    .model-summary p { margin:0; font-size:12px; font-weight:620; }
+    .result-state { padding:14px 0 18px; border-bottom:1px solid var(--line); }
+    .result-label { color:var(--muted); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.65px; }
+    .result-number { display:block; max-width:100%; margin:6px 0 3px; font:600 clamp(28px,3vw,42px)/1.08 var(--serif); letter-spacing:-1px;
+      overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
+    .result-meta { display:flex; gap:8px; flex-wrap:wrap; color:var(--muted); font-size:10px; }
+    .math-work { padding:16px 0; border-bottom:1px solid var(--line); }
+    .math-line { font:17px/1.6 var(--serif); padding:4px 0; overflow-wrap:anywhere; }
+    .method-chip { display:inline-flex; color:#734606; background:var(--amber-soft); border:1px solid #ead59e; padding:3px 7px; border-radius:999px;
+      font-size:9.5px; font-weight:800; text-transform:uppercase; letter-spacing:.45px; }
+    .verification { margin-top:12px; padding:9px; border-radius:7px; color:var(--green); background:var(--green-soft); border:1px solid #b8dfc7; font-size:10.5px; }
+    .verification.warn { color:var(--amber); background:var(--amber-soft); border-color:#ead49b; }
+    .result-error { padding:12px; border:1px solid #ebb1ba; background:var(--red-soft); color:#842031; border-radius:8px; }
+    .result-error h3 { margin:0 0 4px; font-size:12px; }
+    .result-error p { margin:0; font-size:11px; }
+    .result-actions { display:grid; grid-template-columns:1fr 1fr; gap:6px; padding-top:14px; }
+    .roadmap { margin-top:14px; padding:10px; border:1px dashed #c8c5bf; color:var(--muted); font-size:10px; border-radius:7px; }
+    .roadmap strong { color:var(--ink); }
+    .mobile-tabs { display:none; }
+    .toast { position:fixed; left:50%; bottom:24px; transform:translate(-50%,20px); opacity:0; pointer-events:none; z-index:99;
+      color:#fff; background:#2b2926; box-shadow:0 10px 30px rgba(0,0,0,.2); border-radius:8px; padding:9px 13px; font-size:11px;
+      transition:opacity .18s, transform .18s; }
+    .toast.show { opacity:1; transform:translate(-50%,0); }
+    .dialog-backdrop { position:fixed; inset:0; z-index:80; display:none; place-items:center; padding:20px; background:rgba(37,34,30,.42); }
+    .dialog-backdrop.open { display:grid; }
+    .dialog { width:min(520px,100%); max-height:min(680px,90vh); overflow:auto; background:#fff; border-radius:14px; box-shadow:0 28px 80px rgba(24,18,12,.25); }
+    .dialog-head, .dialog-body, .dialog-actions { padding:15px 18px; }
+    .dialog-head { border-bottom:1px solid var(--line); }
+    .dialog-head h2 { margin:0; font-size:16px; }
+    .dialog-body p { color:var(--muted); }
+    .dialog-actions { display:flex; justify-content:flex-end; gap:7px; border-top:1px solid var(--line); }
+    .warning-block { padding:10px; background:var(--amber-soft); border:1px solid #e8d297; color:#70440a; border-radius:8px; }
+    @media (max-width:1100px) { .app { grid-template-columns:280px minmax(420px,1fr) 320px; } .crumb { display:none; } }
+    @media (max-width:900px) {
+      body { overflow:auto; }
+      .topbar { position:sticky; top:0; }
+      .project-title, .save-state { display:none; }
+      .toolbar .desktop-only { display:none; }
+      .mobile-tabs { display:grid; grid-template-columns:repeat(3,1fr); position:sticky; top:56px; z-index:15; background:#fff; border-bottom:1px solid var(--line); }
+      .mobile-tabs button { border:0; border-right:1px solid var(--line); background:#fff; padding:10px; color:var(--muted); font-weight:700; }
+      .mobile-tabs button.active { color:var(--accent); box-shadow:inset 0 -2px var(--accent); }
+      .app { display:block; height:auto; }
+      .pane { display:none; min-height:calc(100vh - 96px); border:0; }
+      .pane.mobile-active { display:block; }
+      .evidence { min-height:calc(100vh - 96px); }
+      .canvas { min-height:580px; }
+    }
+    @media (max-width:560px) {
+      .topbar { padding:0 9px; }
+      .brand > span:not(.brand-mark) { display:none; }
+      .toolbar { margin-left:auto; }
+      .sheet { padding:22px 16px; }
+      .canvas { padding:14px; }
+      .field-row, .constraint-fields, .template-grid { grid-template-columns:1fr; }
+      .result-actions { grid-template-columns:1fr; }
+    }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto!important; transition:none!important; animation:none!important; } }
+    @media print {
+      body { overflow:visible; background:#fff; }
+      .topbar, .mobile-tabs, .setup, .evidence-toolbar, .generation, .result-actions, .roadmap, .toast { display:none!important; }
+      .app { height:auto; display:grid; grid-template-columns:1fr 340px; }
+      .evidence, .results { display:block!important; overflow:visible; border:0; }
+      .pane-head { position:static; }
+      .canvas { overflow:visible; background:#fff; padding:0; }
+      .sheet { width:100%; min-height:0; box-shadow:none; border:0; padding:20px; }
+      .results { border-left:1px solid #bbb; }
+    }
+  </style>
+</head>
+<body>
+<!--
+THESIS: A counting problem is a visible model before it is a number; this surface refuses the lone-form calculator.
+OWN-WORLD: A cool office drafting desk, white evidence sheet, compact paper controls, graphite rules, and one burnt-orange mathematical action color.
+STORY: Define neutral members, state the structure, inspect its exact mathematical count, then explore or export deterministic outcomes.
+FIRST VIEWPORT: A 56px command rail sits above model setup, a dominant output-only evidence sheet, and exact working; Calculate anchors the top right.
+FORM: Three-zone analytical workbench, fixed by the confirmed specification; surface seed d348f6e5 (index 6), with the user-pinned structure taking precedence.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+-->
+  <header class="topbar">
+    <a class="brand" href="../index.html" aria-label="JuraTools home">
+      <span class="brand-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v17M5 6h14M7 6l-4 7h8L7 6Zm10 0-4 7h8l-4-7ZM8 21h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span>JuraTools</span>
+    </a>
+    <a class="crumb" href="index.html">Utilities</a>
+    <input id="projectTitle" class="project-title" value="Untitled combinatorics model" aria-label="Problem title">
+    <span id="saveState" class="save-state">Saved locally</span>
+    <div class="toolbar">
+      <button class="btn desktop-only" id="newBtn" type="button">New</button>
+      <button class="btn desktop-only" id="openBtn" type="button">Saved models</button>
+      <button class="btn desktop-only" id="fileBtn" type="button">Import</button>
+      <button class="btn desktop-only" id="shareBtn" type="button">Share</button>
+      <button class="btn primary" id="calculateBtn" type="button">Calculate</button>
+    </div>
+  </header>
+
+  <nav class="mobile-tabs" aria-label="Workbench sections" role="tablist">
+    <button id="mobileTabSetup" class="active" data-mobile-pane="setup" role="tab" aria-selected="true" aria-controls="paneSetup">Model</button>
+    <button id="mobileTabEvidence" data-mobile-pane="evidence" role="tab" aria-selected="false" aria-controls="paneEvidence">Visual</button>
+    <button id="mobileTabResults" data-mobile-pane="results" role="tab" aria-selected="false" aria-controls="paneResults">Result</button>
+  </nav>
+
+  <main class="app">
+    <aside id="paneSetup" class="pane setup mobile-active" data-pane="setup" aria-label="Problem setup" aria-labelledby="mobileTabSetup">
+      <div class="pane-head">
+        <div><h1>Combinatorics Workbench</h1><p>Define the structure. You decide what each member means.</p></div>
+        <span class="status-pill">Phase 1</span>
+      </div>
+      <div class="setup-body">
+        <section class="section">
+          <div class="section-title">Starting point</div>
+          <div class="mode-tabs" role="tablist" aria-label="Entry mode">
+            <button id="entryGuidedTab" class="mode-tab active" type="button" data-entry="guided" role="tab" aria-selected="true" aria-controls="guidedFields">Help me model it</button>
+            <button id="entryDirectTab" class="mode-tab" type="button" data-entry="direct" role="tab" aria-selected="false" aria-controls="directFields">I know the method</button>
+          </div>
+          <div id="guidedFields" role="tabpanel" aria-labelledby="entryGuidedTab" style="margin-top:9px">
+            <div class="field"><label for="goalSelect">What are you doing?</label><select id="goalSelect"><option value="select">Selecting members</option><option value="arrange">Arranging members</option><option value="allocate">Allocating members to groups</option><option value="distribute">Allocating identical units</option></select></div>
+            <div class="field-row">
+              <div class="field"><label for="orderSelect">Does order matter?</label><select id="orderSelect"><option value="no">No</option><option value="yes">Yes</option></select></div>
+              <div class="field"><label for="repeatSelect">May a choice repeat?</label><select id="repeatSelect"><option value="no">No</option><option value="yes">Yes</option></select></div>
+            </div>
+          </div>
+          <div id="directFields" role="tabpanel" aria-labelledby="entryDirectTab" hidden style="margin-top:9px">
+            <div class="field"><label for="methodSelect">Counting method</label><select id="methodSelect"></select></div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-title"><span>Members</span><button id="addMemberBtn" type="button">+ Add row</button></div>
+          <div class="row-table" id="membersTable">
+            <div class="row-head members"><span>Label</span><span>Qty.</span><span>Identity</span><span></span></div>
+            <div id="memberRows"></div>
+          </div>
+          <div class="inline-actions">
+            <button class="btn" id="pasteNamesBtn" type="button">Paste names</button>
+            <button class="btn" id="csvBtn" type="button">Import CSV</button>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-title">Selection and allocation</div>
+          <div class="field-row">
+            <div class="field"><label for="chooseCount">Choose / positions (r)</label><input id="chooseCount" type="number" inputmode="numeric" min="0" value="3"></div>
+            <div class="field"><label for="groupCount">Number of groups</label><input id="groupCount" type="number" inputmode="numeric" min="1" value="3"></div>
+          </div>
+          <div id="starsFields" hidden>
+            <div class="field-row">
+              <div class="field"><label for="minEach">Minimum per group</label><input id="minEach" type="number" min="0" value="0"></div>
+              <div class="field"><label for="maxEach">Maximum per group</label><input id="maxEach" type="number" min="0" placeholder="No maximum"></div>
+            </div>
+          </div>
+          <div id="groupFields" hidden>
+            <div class="row-table">
+              <div class="row-head groups"><span>Group</span><span>Min.</span><span>Max.</span><span></span></div>
+              <div id="groupRows"></div>
+            </div>
+            <div class="inline-actions"><button class="btn" id="addGroupBtn" type="button">Add group</button></div>
+          </div>
+          <div id="multinomialFields" hidden>
+            <div class="field"><label for="groupSizes">Group sizes</label><input id="groupSizes" value="2, 2, 1" placeholder="e.g. 2, 2, 1"><div class="hint">Comma-separated sizes must sum to the member count.</div></div>
+          </div>
+          <div id="factorFields" hidden>
+            <div class="field"><label for="factorValues">Case or stage counts</label><input id="factorValues" value="3, 4" placeholder="e.g. 3, 4, 2"><div class="hint" id="factorHint">Comma-separated exact counts.</div></div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-title"><span>Constraints</span><button id="addConstraintBtn" type="button">+ Add rule</button></div>
+          <div id="constraintList" class="constraint-list"></div>
+          <p id="constraintEmpty" class="hint">No constraints. Active rules are combined with AND.</p>
+          <details class="advanced">
+            <summary>Advanced model settings</summary>
+            <div class="advanced-body">
+              <div class="field"><label for="groupMode">Group identity</label><select id="groupMode"><option value="labeled">Labeled groups</option><option value="unlabeled">Unlabeled groups</option></select></div>
+              <div class="field"><label for="notes">Private notes</label><textarea id="notes" rows="3" placeholder="What the abstract members represent in this problem"></textarea></div>
+            </div>
+          </details>
+        </section>
+
+        <section class="section">
+          <div class="section-title">Starter templates</div>
+          <div class="template-grid" id="templateGrid"></div>
+        </section>
+      </div>
+    </aside>
+
+    <section id="paneEvidence" class="pane evidence" data-pane="evidence" aria-label="Visualization" aria-labelledby="mobileTabEvidence">
+      <div class="evidence-toolbar">
+          <div class="view-tabs" id="viewTabs" role="tablist" aria-label="Visualization type"></div>
+        <div class="toolbar">
+          <button class="btn" id="previousOutcomeBtn" type="button" aria-label="Previous outcome">Previous</button>
+          <button class="btn" id="nextOutcomeBtn" type="button" aria-label="Next outcome">Next</button>
+        </div>
+      </div>
+      <div class="canvas">
+        <article class="sheet" id="printSheet">
+          <div class="sheet-head">
+            <div><h2 id="sheetTitle">Untitled combinatorics model</h2><p class="sheet-sub" id="sheetSummary">Define a model to see its structure.</p></div>
+            <span class="sheet-stamp" id="sheetMethod">Model draft</span>
+          </div>
+          <div class="visual-stage" id="visualStage"></div>
+          <div class="sheet-foot"><span id="sheetFootLeft">Output-only visualization</span><span id="sheetFootRight">All processing stays in this browser</span></div>
+        </article>
+      </div>
+      <div class="generation">
+        <div class="generation-row">
+          <button class="btn soft" id="generateBtn" type="button">Generate all</button>
+          <button class="btn" id="pauseBtn" type="button" hidden>Pause</button>
+          <button class="btn danger" id="cancelBtn" type="button" hidden>Cancel</button>
+          <progress class="progress" id="progressBar" aria-label="Generation progress" max="100" value="0"></progress>
+          <span class="generation-note" id="generationNote" role="status" aria-live="polite" aria-atomic="true">Count first</span>
+        </div>
+      </div>
+    </section>
+
+    <aside id="paneResults" class="pane results" data-pane="results" aria-label="Calculation result" aria-labelledby="mobileTabResults">
+      <div class="pane-head">
+        <div><h2>Exact result</h2><p>Compact mathematical working</p></div>
+        <span class="status-pill stale" id="resultStatus">Not calculated</span>
+      </div>
+      <div class="results-body">
+        <div class="model-summary"><label>Model summary</label><p id="modelSummary">5 distinct members; choose 3; order ignored; no repetition.</p></div>
+        <div id="resultContent"></div>
+        <div class="result-actions">
+          <button class="btn" id="copyResultBtn" type="button">Copy calculation</button>
+          <button class="btn" id="exportModelBtn" type="button">Export model</button>
+          <button class="btn" id="exportOutcomesBtn" type="button">Export outcomes</button>
+          <button class="btn" id="printBtn" type="button">Print report</button>
+          <button class="btn" id="saveNamedBtn" type="button">Save named model</button>
+          <button class="btn" id="anonymizeBtn" type="button">Anonymized JSON</button>
+        </div>
+        <div class="roadmap"><strong>Later phases:</strong> nested logic and expressions, comparisons, multi-stage models, case and decision trees, advanced combinatorial families, and approximate counting.</div>
+      </div>
+    </aside>
+  </main>
+
+  <input id="fileInput" type="file" accept=".json,application/json" hidden>
+  <input id="csvInput" type="file" accept=".csv,text/csv" hidden>
+  <div id="dialogBackdrop" class="dialog-backdrop" role="presentation">
+    <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialogTitle" tabindex="-1">
+      <div class="dialog-head"><h2 id="dialogTitle">Dialog</h2></div>
+      <div class="dialog-body" id="dialogBody"></div>
+      <div class="dialog-actions" id="dialogActions"></div>
+    </section>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script id="combinatorics-core">
+(function () {
+  'use strict';
+  function asBig(value) { try { return BigInt(value); } catch (e) { return 0n; } }
+  function factorial(n) { n=asBig(n); if(n<0n) throw new RangeError('Factorial requires a non-negative integer.'); var v=1n; for(var i=2n;i<=n;i++) v*=i; return v; }
+  function choose(n,r) { n=asBig(n); r=asBig(r); if(r<0n||n<0n||r>n) return 0n; if(r>n-r) r=n-r; var v=1n; for(var i=1n;i<=r;i++) v=v*(n-r+i)/i; return v; }
+  function permute(n,r) { n=asBig(n); r=asBig(r); if(r<0n||n<0n||r>n) return 0n; var v=1n; for(var i=0n;i<r;i++) v*=n-i; return v; }
+  function powBig(base,exp) { base=asBig(base); exp=asBig(exp); var out=1n; while(exp>0n){if(exp&1n)out*=base;base*=base;exp>>=1n;} return out; }
+  function activeRules(model) { return (model.constraints||[]).filter(function(c){return c&&c.active!==false;}); }
+  function expandMembers(model) {
+    var out=[];
+    (model.memberRows||[]).forEach(function(row,ri){
+      var q=Math.max(0,Number(row.quantity)||0), label=String(row.label||('Member '+(ri+1))).trim()||('Member '+(ri+1));
+      for(var i=0;i<q;i++) out.push({ id:row.identity==='identical'?String(row.id):String(row.id)+'__'+i, sourceId:String(row.id), label:row.identity==='identical'?label:label+(q>1?' '+(i+1):''), baseLabel:label, identical:row.identity==='identical', tags:(row.tags||[]).map(String) });
+    });
+    if(!out.length && Number(model.n)>0) for(var j=0;j<Number(model.n);j++) out.push({id:'auto__'+j,sourceId:'auto',label:'Member '+(j+1),baseLabel:'Member',identical:false,tags:[]});
+    return out;
+  }
+  function memberKey(member) { return member.identical?'same:'+member.sourceId:'distinct:'+member.id; }
+  function uniqueKey(outcome,method,model) {
+    if(method==='distribution') {
+      var groups=Object.keys(outcome).map(function(k){return outcome[k].map(memberKey).sort().join('|');});
+      if(model.groupMode==='unlabeled') groups.sort();
+      return groups.join('||');
+    }
+    if(method==='stars-bars') return outcome.join('|');
+    return (Array.isArray(outcome)?outcome:[]).map(memberKey).join('\u0001');
+  }
+  function displayOutcome(items) { return items.map(function(x){return typeof x==='string'?x:x.label;}); }
+  function memberTokens(rule) { return (rule.members||[]).map(String); }
+  function includesMember(items,token) { return items.some(function(x){return x.sourceId===token||x.id===token||x.label===token||x.baseLabel===token;}); }
+  function rulePassSequence(items, rules, method) {
+    for(var ri=0;ri<rules.length;ri++){
+      var rule=rules[ri], tokens=memberTokens(rule), hits=tokens.map(function(t){return includesMember(items,t);});
+      if(rule.type==='required' && hits.some(function(x){return !x;})) return false;
+      if(rule.type==='excluded' && hits.some(Boolean)) return false;
+      if(rule.type==='together' && hits.some(Boolean) && !hits.every(Boolean)) return false;
+      if(rule.type==='fixed-position') { var pos=Math.max(0,(Number(rule.value)||1)-1); if(!items[pos]||!tokens.some(function(t){return includesMember([items[pos]],t);})) return false; }
+      if(rule.type==='separated'&&(method==='combination'||method==='combination-repetition'||method==='subset')) { if(hits.filter(Boolean).length>1)return false; continue; }
+      if(rule.type==='adjacent'||rule.type==='separated') {
+        var idx=tokens.map(function(t){return items.findIndex(function(x){return includesMember([x],t);});});
+        if(idx.some(function(x){return x<0;})) { if(rule.type==='adjacent') return false; else continue; }
+        idx.sort(function(a,b){return a-b;}); var adjacent=idx.every(function(x,i){return i===0||x===idx[i-1]+1;});
+        if(method==='circular'&&idx.length===2&&idx[0]===0&&idx[1]===items.length-1)adjacent=true;
+        if(rule.type==='adjacent'&&!adjacent) return false; if(rule.type==='separated'&&adjacent) return false;
+      }
+      if(rule.type==='tag-count') {
+        var count=items.filter(function(x){return (x.tags||[]).indexOf(String(rule.tag||''))>=0;}).length, v=Number(rule.value)||0;
+        if(rule.operator==='min'&&count<v) return false; if(rule.operator==='max'&&count>v) return false; if((!rule.operator||rule.operator==='exact')&&count!==v) return false;
+      }
+    }
+    return true;
+  }
+  function rulePassDistribution(groups,model,rules) {
+    var groupDefs=model.groups||[];
+    for(var i=0;i<groupDefs.length;i++){var g=groupDefs[i], size=(groups[g.id]||[]).length, min=Number(g.min)||0, max=g.max==null||g.max===''?Infinity:Number(g.max); if(size<min||size>max)return false;}
+    for(var ri=0;ri<rules.length;ri++){
+      var rule=rules[ri], tokens=memberTokens(rule), locations={};
+      Object.keys(groups).forEach(function(gid){groups[gid].forEach(function(x){tokens.forEach(function(t){if(includesMember([x],t))locations[t]=gid;});});});
+      if(rule.type==='fixed-group'&&tokens.some(function(t){return locations[t]!==String(rule.groupId);})) return false;
+      if(rule.type==='together'){var vals=tokens.map(function(t){return locations[t];});if(vals.some(Boolean)&&(!vals.every(Boolean)||new Set(vals).size!==1))return false;}
+      if(rule.type==='separated'){var locs=tokens.map(function(t){return locations[t];}).filter(Boolean);if(new Set(locs).size!==locs.length)return false;}
+      if(rule.type==='tag-count'){
+        var target=rule.groupId?groups[rule.groupId]||[]:Object.values(groups).flat(), count=target.filter(function(x){return (x.tags||[]).indexOf(String(rule.tag||''))>=0;}).length,v=Number(rule.value)||0;
+        if(rule.operator==='min'&&count<v)return false;if(rule.operator==='max'&&count>v)return false;if((!rule.operator||rule.operator==='exact')&&count!==v)return false;
+      }
+    }
+    return true;
+  }
+  function* combinations(items,r,start,prefix){ if(prefix.length===r){yield prefix.slice();return;} for(var i=start;i<=items.length-(r-prefix.length);i++)yield* combinations(items,r,i+1,prefix.concat(items[i])); }
+  function* combinationsRep(items,r,start,prefix){if(prefix.length===r){yield prefix.slice();return;}for(var i=start;i<items.length;i++)yield* combinationsRep(items,r,i,prefix.concat(items[i]));}
+  function* permutations(items,r,prefix,used,repeat){if(prefix.length===r){yield prefix.slice();return;}for(var i=0;i<items.length;i++){if(!repeat&&used[i])continue;var next=used.slice();next[i]=true;yield* permutations(items,r,prefix.concat(items[i]),next,repeat);}}
+  function* distributions(items,groups,index,current){if(index===items.length){var copy={};groups.forEach(function(g){copy[g.id]=(current[g.id]||[]).slice();});yield copy;return;}for(var i=0;i<groups.length;i++){var g=groups[i];current[g.id].push(items[index]);yield* distributions(items,groups,index+1,current);current[g.id].pop();}}
+  function* allocations(total,k,min,max,index,prefix){if(index===k-1){var last=total-prefix.reduce(function(a,b){return a+b;},0);if(last>=min&&(max==null||last<=max))yield prefix.concat(last);return;}var used=prefix.reduce(function(a,b){return a+b;},0),limit=max==null?total-used:max;for(var x=min;x<=limit;x++){if(used+x<=total)yield* allocations(total,k,min,max,index+1,prefix.concat(x));}}
+  function* enumerateRaw(model){
+    var method=model.method, items=expandMembers(model),r=Math.max(0,Number(model.r)||0),rules=activeRules(model),seen=new Set(),candidate;
+    if(method==='combination') candidate=combinations(items,r,0,[]);
+    else if(method==='combination-repetition') candidate=combinationsRep(items,r,0,[]);
+    else if(method==='permutation') candidate=permutations(items,r,[],[],false);
+    else if(method==='permutation-repetition') candidate=permutations(items,r,[],[],true);
+    else if(method==='subset'){candidate=(function*(){for(var s=0;s<=items.length;s++)yield* combinations(items,s,0,[]);})();}
+    else if(method==='circular'){candidate=(function*(){if(!items.length){yield [];return;}var anchor=items[0];for(var p of permutations(items.slice(1),items.length-1,[],[],false))yield [anchor].concat(p);})();}
+    else if(method==='multiset'){candidate=permutations(items,items.length,[],[],false);}
+    else if(method==='distribution'){var groups=(model.groups||[]).slice(0,Math.max(1,Number(model.groupCount)||0));var cur={};groups.forEach(function(g){cur[g.id]=[];});candidate=distributions(items,groups,0,cur);}
+    else if(method==='stars-bars'){candidate=allocations(Number(model.n)||0,Math.max(1,Number(model.groupCount)||1),Math.max(0,Number(model.minEach)||0),model.maxEach==null||model.maxEach===''?null:Number(model.maxEach),0,[]);}
+    else return;
+    for(var outcome of candidate){
+      var pass=method==='distribution'?rulePassDistribution(outcome,model,rules):method==='stars-bars'?true:rulePassSequence(outcome,rules,method);
+      if(!pass)continue;
+      var key=uniqueKey(outcome,method,model);if(seen.has(key))continue;seen.add(key);
+      var display=method==='distribution'?Object.fromEntries(Object.entries(outcome).map(function(entry){return [entry[0],displayOutcome(entry[1])];})):method==='stars-bars'?outcome.slice():displayOutcome(outcome);
+      yield display;
+    }
+  }
+  function* enumerate(model,limit){var i=0,max=limit==null?Infinity:Number(limit);for(var outcome of enumerateRaw(model)){if(i++>=max)return;yield outcome;}}
+  function countEnumerated(model){var n=0n;for(var ignored of enumerateRaw(model))n++;return n;}
+  function validate(model){
+    var method=model.method,n=Number(model.n),r=Number(model.r),rules=activeRules(model),required=new Set(),excluded=new Set();
+    if(!method)return 'Choose a counting method.';
+    if(['combination','permutation'].indexOf(method)>=0&&(r<0||r>n))return 'Choose / positions (r) must be between 0 and the member count.';
+    if(!Number.isInteger(n)||n<0)return 'Member count must be a non-negative integer.';
+    rules.forEach(function(rule){if(rule.type==='required')memberTokens(rule).forEach(function(x){required.add(x);});if(rule.type==='excluded')memberTokens(rule).forEach(function(x){excluded.add(x);});});
+    for(var x of required)if(excluded.has(x))return 'The same member cannot be both required and excluded.';
+    if(method==='multinomial'){var sizes=(model.groupSizes||[]).map(Number);if(sizes.some(function(x){return !Number.isInteger(x)||x<0;})||sizes.reduce(function(a,b){return a+b;},0)!==n)return 'Multinomial group sizes must be non-negative integers that sum to the member count.';}
+    if(method==='distribution'&&!(model.groups||[]).length)return 'Add at least one group.';
+    if(rules.some(function(rule){return rule.type==='adjacent'||rule.type==='fixed-position';})&&['combination','combination-repetition','subset'].indexOf(method)>=0)return 'Position and adjacency rules require an ordered arrangement.';
+    if(rules.some(function(rule){return rule.type==='fixed-position';})&&method==='circular')return 'A fixed position is not defined when rotations are identified.';
+    if(rules.some(function(rule){return rule.type==='fixed-group';})&&method!=='distribution')return 'A fixed-group rule requires a group-distribution model.';
+    if(model.groupMode==='unlabeled'&&rules.some(function(rule){return rule.type==='fixed-group';}))return 'A fixed-group rule requires labeled groups.';
+    return '';
+  }
+  function boundedStars(total,k,min,max){var dp=Array(total+1).fill(0n);dp[0]=1n;for(var g=0;g<k;g++){var next=Array(total+1).fill(0n);for(var used=0;used<=total;used++)if(dp[used])for(var x=min;x<=total-used&&(max==null||x<=max);x++)next[used+x]+=dp[used];dp=next;}return dp[total];}
+  function result(status,count,method,summary,math,extra){return Object.assign({status:status,count:count,method:method,summary:summary,math:math,verification:'formula-identities'},extra||{});}
+  function solve(model){
+    model=Object.assign({},model);model.n=expandMembers(model).length||Number(model.n)||0;var err=validate(model);if(err)return result('invalid',null,model.method||'none','Model is incomplete.',[],{message:err,verification:'not-run'});
+    var n=BigInt(model.n),r=BigInt(Math.max(0,Number(model.r)||0)),method=model.method,rules=activeRules(model),count=0n,summary='',math=[],name='';
+    var hasIdentical=(model.memberRows||[]).some(function(x){return x.identity==='identical'&&Number(x.quantity)>1;}), constrained=rules.length>0||hasIdentical&&['combination','permutation','combination-repetition','permutation-repetition','distribution'].indexOf(method)>=0||method==='distribution'&&(model.groupMode==='unlabeled'||(model.groups||[]).some(function(g){return Number(g.min)>0||g.max!=null&&g.max!=='';}));
+    if(['burnside','derangement','partition','bell','catalan'].indexOf(method)>=0)return result('unsupported',null,method,'Valid advanced model.',[],{message:'This exact method is scheduled for a later phase.',verification:'not-run'});
+    if(constrained){count=countEnumerated(model);name='Canonical enumeration';summary=model.n+' total members; '+method.replaceAll('-',' ')+(hasIdentical?'; identical copies canonicalized':'')+(model.groupMode==='unlabeled'?'; unlabeled groups canonicalized':'')+(rules.length?'; '+rules.length+' active constraint'+(rules.length===1?'':'s'):'')+'.';math=['N = |{ distinct canonical outcomes satisfying every active rule }|', 'N = '+count.toString()];return result(count===0n?'zero':'exact',count,name,summary,math,{verification:'independent-enumeration'});}
+    if(method==='combination'){count=choose(n,r);name='Combination';summary=model.n+' distinct members; choose '+r+'; order ignored; no repetition.';math=['C('+n+', '+r+') = '+n+'! / ('+r+'!('+n+' − '+r+')!)','C('+n+', '+r+') = '+count];}
+    else if(method==='permutation'){count=permute(n,r);name='Permutation';summary=model.n+' distinct members; arrange '+r+'; order matters; no repetition.';math=['P('+n+', '+r+') = '+n+'! / ('+n+' − '+r+')!','P('+n+', '+r+') = '+count];}
+    else if(method==='combination-repetition'){count=choose(n+r-1n,r);name='Combination with repetition';summary=model.n+' member types; choose '+r+'; order ignored; repetition allowed.';math=['C('+n+' + '+r+' − 1, '+r+') = C('+(n+r-1n)+', '+r+')','C('+(n+r-1n)+', '+r+') = '+count];}
+    else if(method==='permutation-repetition'){count=powBig(n,r);name='Permutation with repetition';summary=model.n+' member types; fill '+r+' positions; order matters; repetition allowed.';math=[n+'^'+r+' = '+count];}
+    else if(method==='subset'){count=powBig(2n,n);name='Power set';summary=model.n+' distinct members; every subset, including the empty set.';math=['2^'+n+' = '+count];}
+    else if(method==='circular'){count=n===0n?1n:factorial(n-1n);name='Circular permutation';summary=model.n+' distinct members arranged around a circle; rotations identified.';math=['('+n+' − 1)! = '+count];}
+    else if(method==='multiset'){var qs=(model.memberRows||[]).map(function(x){return BigInt(Math.max(0,Number(x.quantity)||0));});count=factorial(n);qs.forEach(function(q){count/=factorial(q);});name='Multiset arrangement';summary=n+' total members; copies within each quantity row are identical.';math=[n+'! / ('+qs.map(function(q){return q+'!';}).join(' × ')+') = '+count];}
+    else if(method==='multinomial'){var sizes=(model.groupSizes||[]).map(function(x){return BigInt(x);});count=factorial(n);sizes.forEach(function(q){count/=factorial(q);});name='Multinomial allocation';summary=n+' distinct members allocated to labeled groups of sizes '+sizes.join(', ')+'.';math=[n+'! / ('+sizes.map(function(q){return q+'!';}).join(' × ')+') = '+count];}
+    else if(method==='stars-bars'){var k=BigInt(Math.max(1,Number(model.groupCount)||1)),min=BigInt(Math.max(0,Number(model.minEach)||0)),remaining=n-k*min,max=model.maxEach==null||model.maxEach===''?null:Number(model.maxEach);count=remaining<0n?0n:max==null?choose(remaining+k-1n,k-1n):boundedStars(Number(n),Number(k),Number(min),max);name='Stars and bars';summary=n+' identical units allocated to '+k+' labeled groups; minimum '+min+' each'+(max==null?'.':'; maximum '+max+' each.');math=max==null?['Let yᵢ = xᵢ − '+min+'; Σyᵢ = '+remaining,'C('+(remaining+k-1n)+', '+(k-1n)+') = '+count]:['N = [z^'+n+'] ('+Array.from({length:max-Number(min)+1},function(_,i){return 'z^'+(i+Number(min));}).join(' + ')+')^'+k,'N = '+count];}
+    else if(method==='distribution'){count=countEnumerated(model);name='Labeled group distribution';summary=n+' distinct members allocated to '+(model.groups||[]).length+' labeled groups.';math=[(model.groups||[]).length+'^'+n+' = '+count];}
+    else if(method==='addition'){var cases=(model.factors||[]).map(function(x){return BigInt(x);});count=cases.reduce(function(a,b){return a+b;},0n);name='Addition rule';summary=cases.length+' mutually exclusive case counts.';math=[cases.join(' + ')+' = '+count];}
+    else if(method==='multiplication'){var factors=(model.factors||[]).map(function(x){return BigInt(x);});count=factors.reduce(function(a,b){return a*b;},1n);name='Multiplication rule';summary=factors.length+' sequential choice counts.';math=[factors.join(' × ')+' = '+count];}
+    else return result('unsupported',null,method,'Valid model.',[],{message:'This method is not available in Phase 1.',verification:'not-run'});
+    var verification='formula-identities';if(count<=100000n&&['combination','permutation','combination-repetition','permutation-repetition','subset','circular','distribution','stars-bars'].indexOf(method)>=0){var checked=countEnumerated(model);if(checked!==count)return result('invalid',null,name,summary,math,{message:'Independent verification disagreed with the primary calculation.',verification:'failed'});verification='independent-enumeration';}
+    return result(count===0n?'zero':'exact',count,name,summary,math,{verification:verification});
+  }
+  window.CombinatoricsCore={factorial:factorial,choose:choose,permute:permute,powBig:powBig,expandMembers:expandMembers,enumerate:enumerate,solve:solve};
+})();
+  </script>
+
+  <script>
+(function () {
+  'use strict';
+  var Core=window.CombinatoricsCore, KEY='juratools_combinatorics_workbench_v1', SAVES_KEY='juratools_combinatorics_named_v1', SCHEMA=1;
+  var methods=[
+    ['combination','Combination — C(n, r)'],['permutation','Permutation — P(n, r)'],['combination-repetition','Combination with repetition'],['permutation-repetition','Permutation with repetition'],
+    ['multiset','Multiset arrangement'],['subset','Subsets / power set'],['circular','Circular permutation'],['multinomial','Multinomial allocation'],
+    ['distribution','Distinct members → labeled groups'],['stars-bars','Stars and bars'],['addition','Addition rule'],['multiplication','Multiplication rule']
+  ];
+  var templates=[
+    {name:'Committee selection',desc:'Choose members without order',model:{method:'combination',memberRows:[row('m1','Eligible member',8,'distinct',['eligible'])],r:3}},
+    {name:'Signing sequence',desc:'Arrange selected signers',model:{method:'permutation',memberRows:[row('m1','Signer',5,'distinct',['signer'])],r:5}},
+    {name:'Units to recipients',desc:'Identical allocation',model:{method:'stars-bars',memberRows:[row('m1','Unit',10,'identical',[])],groupCount:3,minEach:0}},
+    {name:'Members to teams',desc:'Labeled groups with capacity',model:{method:'distribution',memberRows:[row('m1','Member',5,'distinct',[])],groups:[group('g1','Team A',1,3),group('g2','Team B',1,3)],groupCount:2}},
+    {name:'Threshold coalition',desc:'Enumerate selecting coalitions',model:{method:'combination',memberRows:[row('a','Holder A',1,'distinct',['holder']),row('b','Holder B',1,'distinct',['holder']),row('c','Holder C',1,'distinct',['holder']),row('d','Holder D',1,'distinct',['holder'])],r:3}},
+    {name:'Order comparison',desc:'Start with an arrangement model',model:{method:'permutation',memberRows:[row('m1','Member',6,'distinct',[])],r:3}}
+  ];
+  function uid(prefix){return prefix+'_'+Math.random().toString(36).slice(2,9);}
+  function row(id,label,quantity,identity,tags){return{id:id,label:label,quantity:quantity,identity:identity,tags:tags||[]};}
+  function group(id,label,min,max){return{id:id,label:label,min:min,max:max};}
+  function defaultState(){return{tool:'combinatorics-workbench',version:SCHEMA,title:'Untitled combinatorics model',entryMode:'guided',goal:'select',order:'no',repeat:'no',method:'combination',memberRows:[row('m1','Member',5,'distinct',[])],r:3,groups:[group('g1','Group A',0,null),group('g2','Group B',0,null),group('g3','Group C',0,null)],groupCount:3,groupMode:'labeled',minEach:0,maxEach:null,groupSizes:[2,2,1],factors:[3,4],constraints:[],notes:'',view:'selection',savedAt:null};}
+  var S=loadState()||defaultState(), result=null, stale=true, preview=[], generated=[], outcomeIndex=0, worker=null, paused=false, generationStarted=0, dialogReturnFocus=null;
+  var $=function(id){return document.getElementById(id);};
+  function clone(x){return JSON.parse(JSON.stringify(x));}
+  function loadState(){try{var x=JSON.parse(localStorage.getItem(KEY)||'null');return x&&x.tool==='combinatorics-workbench'?Object.assign(defaultState(),x):null;}catch(e){return null;}}
+  function saveState(){S.savedAt=new Date().toISOString();try{localStorage.setItem(KEY,JSON.stringify(S));$('saveState').textContent='Saved locally';}catch(e){$('saveState').textContent='Storage unavailable';}}
+  function totalMembers(){return Core.expandMembers(S).length;}
+  function inferMethod(){if(S.goal==='arrange'||S.goal==='select'&&S.order==='yes')return S.repeat==='yes'?'permutation-repetition':'permutation';if(S.goal==='allocate')return'distribution';if(S.goal==='distribute')return'stars-bars';return S.repeat==='yes'?'combination-repetition':'combination';}
+  function syncDerived(){if(S.entryMode==='guided')S.method=inferMethod();S.n=totalMembers();S.groupCount=Math.max(1,Number(S.groupCount)||1);if(S.groups.length<S.groupCount)while(S.groups.length<S.groupCount)S.groups.push(group(uid('g'),'Group '+String.fromCharCode(65+S.groups.length),0,null));}
+  function shouldLiveModel(){return !S.constraints.length&&!S.memberRows.some(function(x){return x.identity==='identical'&&Number(x.quantity)>1;})&&['combination','permutation','combination-repetition','permutation-repetition','subset','circular','multiset','multinomial','addition','multiplication'].indexOf(S.method)>=0;}
+  function solveCurrent(){result=Core.solve(currentModel());stale=false;preview=result.status==='exact'||result.status==='zero'?Array.from(Core.enumerate(currentModel(),120)):[];generated=[];outcomeIndex=0;}
+  function markStale(){stale=true;result=null;preview=[];generated=[];outcomeIndex=0;syncDerived();saveState();if(shouldLiveModel())solveCurrent();paint();}
+  function noteDynamicEdit(){stale=true;result=null;preview=[];generated=[];outcomeIndex=0;saveState();$('resultStatus').textContent='Out of date';$('resultStatus').className='status-pill stale';$('generateBtn').disabled=true;}
+  function pullStatic(){S.title=$('projectTitle').value.trim()||'Untitled combinatorics model';S.goal=$('goalSelect').value;S.order=$('orderSelect').value;S.repeat=$('repeatSelect').value;S.method=S.entryMode==='direct'?$('methodSelect').value:inferMethod();S.r=Math.max(0,Number($('chooseCount').value)||0);S.groupCount=Math.max(1,Number($('groupCount').value)||1);S.minEach=Math.max(0,Number($('minEach').value)||0);S.maxEach=$('maxEach').value===''?null:Math.max(0,Number($('maxEach').value)||0);S.groupMode=$('groupMode').value;S.notes=$('notes').value;S.groupSizes=$('groupSizes').value.split(',').map(function(x){return Number(x.trim());}).filter(function(x){return Number.isFinite(x);});S.factors=$('factorValues').value.split(',').map(function(x){return String(x).trim();}).filter(function(x){return /^\d+$/.test(x);});syncDerived();}
+  function currentModel(){syncDerived();return clone(S);}
+  function methodLabel(value){var found=methods.find(function(x){return x[0]===value;});return found?found[1]:value;}
+  function formatBig(n){if(n==null)return'—';var s=n.toString(),neg=s[0]==='-';if(neg)s=s.slice(1);return(neg?'-':'')+s.replace(/\B(?=(\d{3})+(?!\d))/g,',');}
+  function resultText(){if(!result)return'No current calculation.';return [S.title,result.summary,'Method: '+result.method].concat(result.math).concat(['Result: '+(result.count==null?'—':result.count.toString()),'Verification: '+result.verification]).join('\n');}
+  function escapeHtml(value){return String(value==null?'':value).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function toast(message){var el=$('toast');el.textContent=message;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(function(){el.classList.remove('show');},2200);}
+  function download(name,text,type){var blob=new Blob([text],{type:type||'text/plain;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(a.href);},1000);}
+  function safeName(){return(S.title||'combinatorics-model').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60)||'combinatorics-model';}
+  function openDialog(title,body,actions){dialogReturnFocus=document.activeElement;$('dialogTitle').textContent=title;$('dialogBody').innerHTML=body;$('dialogActions').innerHTML='';actions.forEach(function(a){var b=document.createElement('button');b.className='btn '+(a.primary?'primary':'')+(a.danger?' danger':'');b.textContent=a.label;b.addEventListener('click',function(){if(a.run)a.run();if(a.close!==false)closeDialog();});$('dialogActions').appendChild(b);});$('dialogBackdrop').classList.add('open');document.querySelector('.topbar').inert=true;document.querySelector('.mobile-tabs').inert=true;document.querySelector('.app').inert=true;requestAnimationFrame(function(){var first=$('dialogActions').querySelector('button')||document.querySelector('.dialog');first.focus();});}
+  function closeDialog(){if(!$('dialogBackdrop').classList.contains('open'))return;$('dialogBackdrop').classList.remove('open');document.querySelector('.topbar').inert=false;document.querySelector('.mobile-tabs').inert=false;document.querySelector('.app').inert=false;if(dialogReturnFocus&&document.contains(dialogReturnFocus))dialogReturnFocus.focus();dialogReturnFocus=null;}
+  function paint(){
+    syncDerived();$('projectTitle').value=S.title;$('goalSelect').value=S.goal;$('orderSelect').value=S.order;$('repeatSelect').value=S.repeat;$('methodSelect').value=S.method;$('chooseCount').value=S.r;$('groupCount').value=S.groupCount;$('minEach').value=S.minEach;$('maxEach').value=S.maxEach==null?'':S.maxEach;$('groupMode').value=S.groupMode;$('notes').value=S.notes;$('groupSizes').value=S.groupSizes.join(', ');$('factorValues').value=(S.factors||[]).join(', ');
+    document.querySelectorAll('.mode-tab').forEach(function(el){var active=el.dataset.entry===S.entryMode;el.classList.toggle('active',active);el.setAttribute('aria-selected',String(active));el.tabIndex=active?0:-1;});$('guidedFields').hidden=S.entryMode!=='guided';$('directFields').hidden=S.entryMode!=='direct';
+    var showGroups=S.method==='distribution',showStars=S.method==='stars-bars',showMulti=S.method==='multinomial',showFactors=S.method==='addition'||S.method==='multiplication';$('groupFields').hidden=!showGroups;$('starsFields').hidden=!showStars;$('multinomialFields').hidden=!showMulti;$('factorFields').hidden=!showFactors;$('factorHint').textContent=S.method==='addition'?'Counts must represent mutually exclusive cases.':'Counts represent successive independent stages.';
+    renderMembers();renderGroups();renderConstraints();renderTemplates();renderViews();paintResult();paintVisual();
+    $('resultStatus').textContent=stale?'Out of date':result?result.status:'Not calculated';$('resultStatus').className='status-pill '+(stale?'stale':result&&result.status==='exact'?'exact':'');
+    $('sheetTitle').textContent=S.title;$('sheetSummary').textContent=result?result.summary:summaryDraft();$('modelSummary').textContent=result?result.summary:summaryDraft();$('sheetMethod').textContent=result?result.method:methodLabel(S.method);
+    $('generationNote').textContent=result&&result.count!=null?formatBig(result.count)+' outcomes':'Count first';$('generateBtn').disabled=!result||result.status!=='exact'&&result.status!=='zero';
+  }
+  function summaryDraft(){var n=totalMembers();if(S.method==='combination')return n+' distinct members; choose '+S.r+'; order ignored; no repetition.';if(S.method==='permutation')return n+' distinct members; arrange '+S.r+'; order matters; no repetition.';if(S.method==='stars-bars')return n+' identical units allocated to '+S.groupCount+' labeled groups.';if(S.method==='distribution')return n+' members allocated to '+S.groupCount+' labeled groups.';return n+' members; '+methodLabel(S.method)+'.';}
+  function renderMembers(){var host=$('memberRows');host.innerHTML='';S.memberRows.forEach(function(m){var div=document.createElement('div'),identityLocked=S.method==='stars-bars'||S.method==='multiset';div.className='member-row';div.dataset.id=m.id;div.innerHTML='<input class="cell-input" data-field="label" aria-label="Member label" value="'+escapeHtml(m.label)+'"><input class="cell-input" data-field="quantity" aria-label="Quantity" type="number" min="0" value="'+m.quantity+'">'+(identityLocked?'<select class="cell-input" aria-label="Identity" disabled><option selected>Identical</option></select>':'<select class="cell-input" data-field="identity" aria-label="Identity"><option value="distinct"'+(m.identity==='distinct'?' selected':'')+'>Distinct</option><option value="identical"'+(m.identity==='identical'?' selected':'')+'>Identical</option></select>')+'<button class="row-remove" data-remove-member type="button" aria-label="Remove member row">×</button><div class="member-tags"><span class="micro-label">Tags</span><input class="cell-input" data-field="tags" aria-label="Comma-separated tags" value="'+escapeHtml((m.tags||[]).join(', '))+'" placeholder="optional, comma-separated"></div>';host.appendChild(div);});}
+  function renderGroups(){var host=$('groupRows');host.innerHTML='';S.groups.slice(0,S.groupCount).forEach(function(g){var div=document.createElement('div');div.className='group-row';div.dataset.id=g.id;div.innerHTML='<input class="cell-input" data-group-field="label" aria-label="Group label" value="'+escapeHtml(g.label)+'"><input class="cell-input" data-group-field="min" aria-label="Minimum capacity" type="number" min="0" value="'+(g.min||0)+'"><input class="cell-input" data-group-field="max" aria-label="Maximum capacity" type="number" min="0" value="'+(g.max==null?'':g.max)+'" placeholder="∞"><button class="row-remove" data-remove-group type="button" aria-label="Remove group">×</button>';host.appendChild(div);});}
+  function memberOptions(selected){return S.memberRows.map(function(m){return'<option value="'+escapeHtml(m.id)+'"'+((selected||[]).indexOf(m.id)>=0?' selected':'')+'>'+escapeHtml(m.label)+'</option>';}).join('');}
+  function renderConstraints(){var host=$('constraintList');host.innerHTML='';$('constraintEmpty').hidden=S.constraints.length>0;S.constraints.forEach(function(c){var div=document.createElement('div');div.className='constraint';div.dataset.id=c.id;var typeOpts=[['required','Required member(s)'],['excluded','Excluded member(s)'],['together','Members together'],['separated','Members separated / non-adjacent'],['adjacent','Members adjacent'],['fixed-position','Fixed position'],['fixed-group','Fixed group'],['tag-count','Tag count']].map(function(o){return'<option value="'+o[0]+'"'+(c.type===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('');var extra='';if(c.type==='fixed-position')extra='<input class="cell-input" data-constraint-field="value" type="number" min="1" value="'+(c.value||1)+'" aria-label="Position">';else if(c.type==='fixed-group')extra='<select class="cell-input" data-constraint-field="groupId">'+S.groups.slice(0,S.groupCount).map(function(g){return'<option value="'+g.id+'"'+(c.groupId===g.id?' selected':'')+'>'+escapeHtml(g.label)+'</option>';}).join('')+'</select>';else if(c.type==='tag-count')extra='<input class="cell-input" data-constraint-field="tag" value="'+escapeHtml(c.tag||'')+'" placeholder="tag"><select class="cell-input" data-constraint-field="operator"><option value="exact"'+(c.operator==='exact'?' selected':'')+'>Exactly</option><option value="min"'+(c.operator==='min'?' selected':'')+'>At least</option><option value="max"'+(c.operator==='max'?' selected':'')+'>At most</option></select><input class="cell-input" data-constraint-field="value" type="number" min="0" value="'+(c.value||0)+'">';div.innerHTML='<div class="constraint-top"><input type="checkbox" data-constraint-field="active"'+(c.active!==false?' checked':'')+' aria-label="Rule active"><select class="cell-input" data-constraint-field="type">'+typeOpts+'</select><button class="row-remove" data-remove-constraint type="button" aria-label="Remove constraint">×</button></div><div class="constraint-fields">'+(c.type==='tag-count'?'':'<select class="cell-input" data-constraint-field="members" multiple aria-label="Members">'+memberOptions(c.members)+'</select>')+extra+'</div>';host.appendChild(div);});}
+  function renderTemplates(){var host=$('templateGrid');if(host.children.length)return;templates.forEach(function(t,i){var b=document.createElement('button');b.className='template';b.type='button';b.dataset.template=i;b.innerHTML='<b>'+escapeHtml(t.name)+'</b><span>'+escapeHtml(t.desc)+'</span>';host.appendChild(b);});}
+  function viewsForMethod(){var base=[['auto','Auto'],['outcomes','Outcomes']];if(S.method.indexOf('permutation')>=0||S.method==='circular'||S.method==='multiset')base.splice(1,0,['slots','Slots']);else if(S.method.indexOf('combination')>=0||S.method==='subset')base.splice(1,0,['selection','Selection']);else if(S.method==='distribution'||S.method==='multinomial')base.splice(1,0,['groups','Groups']);else if(S.method==='stars-bars')base.splice(1,0,['stars','Stars & bars']);return base;}
+  function autoView(){if(S.method.indexOf('permutation')>=0||S.method==='circular'||S.method==='multiset')return'slots';if(S.method.indexOf('combination')>=0||S.method==='subset')return'selection';if(S.method==='distribution'||S.method==='multinomial')return'groups';if(S.method==='stars-bars')return'stars';return'outcomes';}
+  function renderViews(){var choices=viewsForMethod();if(!choices.some(function(v){return v[0]===S.view;}))S.view='auto';var host=$('viewTabs');host.innerHTML='';choices.forEach(function(v){var b=document.createElement('button'),active=S.view===v[0];b.type='button';b.className='view-tab '+(active?'active':'');b.dataset.view=v[0];b.textContent=v[1];b.setAttribute('role','tab');b.setAttribute('aria-selected',String(active));b.setAttribute('aria-controls','visualStage');b.tabIndex=active?0:-1;host.appendChild(b);});}
+  function shownOutcome(){var list=generated.length?generated:preview;return list.length?list[Math.min(outcomeIndex,list.length-1)]:null;}
+  function paintVisual(){var host=$('visualStage'),view=S.view==='auto'?autoView():S.view,out=shownOutcome(),members=Core.expandMembers(S);host.innerHTML='';if(stale){host.innerHTML='<div class="empty-stage"><svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="18" cy="20" r="7" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="45" cy="18" r="7" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="31" cy="45" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M24 23l4 15m12-14-6 14M25 20h13" fill="none" stroke="currentColor" stroke-width="2"/></svg><h3>Ready to model the count</h3><p>Review the structure on the left, then calculate. The visualization never changes your inputs.</p></div>';return;}
+    if(view==='slots'){var values=Array.isArray(out)?out:members.slice(0,Math.max(1,S.r)).map(function(x){return x.label;});var wrap=document.createElement('div');wrap.className='slot-row';for(var i=0;i<Math.max(1,S.method==='circular'?members.length:S.r);i++){var slot=document.createElement('div');slot.className='slot';slot.innerHTML='<span><span class="index">POSITION '+(i+1)+'</span>'+escapeHtml(values[i]||'—')+'</span>';wrap.appendChild(slot);}host.appendChild(wrap);}
+    else if(view==='selection'){var selected=Array.isArray(out)?new Set(out):new Set(members.slice(0,S.r).map(function(x){return x.label;}));var pool=document.createElement('div');pool.className='selection-pool';members.slice(0,60).forEach(function(m){var chip=document.createElement('span');chip.className='member-chip '+(selected.has(m.label)?'':'muted');chip.textContent=m.label;pool.appendChild(chip);});host.appendChild(pool);}
+    else if(view==='groups'){var board=document.createElement('div');board.className='group-board';var groups=S.groups.slice(0,S.groupCount);groups.forEach(function(g,gi){var box=document.createElement('div');box.className='group-box';var vals=out&&!Array.isArray(out)?out[g.id]||[]:members.filter(function(_,i){return i%groups.length===gi;}).map(function(x){return x.label;});box.innerHTML='<h3>'+escapeHtml(g.label)+' <span class="capacity">'+(g.min||0)+'–'+(g.max==null?'∞':g.max)+'</span></h3><div class="selection-pool">'+vals.map(function(x){return'<span class="member-chip">'+escapeHtml(x)+'</span>';}).join('')+'</div>';board.appendChild(box);});host.appendChild(board);}
+    else if(view==='stars'){var alloc=Array.isArray(out)?out:Array.from({length:S.groupCount},function(_,i){return i===0?Math.max(0,totalMembers()-S.minEach*(S.groupCount-1)):S.minEach;});var strip=document.createElement('div');strip.className='starbar';alloc.forEach(function(q,gi){for(var i=0;i<q;i++){var star=document.createElement('span');star.className='star';star.title=(S.groups[gi]||{label:'Group '+(gi+1)}).label;strip.appendChild(star);}if(gi<alloc.length-1){var bar=document.createElement('span');bar.className='bar';strip.appendChild(bar);}});host.appendChild(strip);}
+    else {var list=generated.length?generated:preview;if(!list.length){host.innerHTML='<div class="empty-stage"><h3>No outcomes to display</h3><p>The count can still be valid. Generate outcomes when the result is greater than zero.</p></div>';return;}var table=document.createElement('table');table.className='outcome-table';table.innerHTML='<thead><tr><th>#</th><th>Outcome</th></tr></thead><tbody>'+list.slice(0,500).map(function(x,i){return'<tr><td>'+(i+1)+'</td><td>'+escapeHtml(outcomeToText(x))+'</td></tr>';}).join('')+'</tbody>';host.appendChild(table);}
+    $('sheetFootLeft').textContent=(generated.length?generated.length:preview.length)+' outcome'+((generated.length?generated.length:preview.length)===1?'':'s')+' loaded';$('sheetFootRight').textContent=outcomeIndex>=0&&shownOutcome()?'Showing outcome '+(outcomeIndex+1):'All processing stays in this browser';
+  }
+  function outcomeToText(x){if(Array.isArray(x))return x.join(' | ');return Object.entries(x).map(function(e){var g=S.groups.find(function(y){return y.id===e[0];});return(g?g.label:e[0])+': '+e[1].join(', ');}).join(' ; ');}
+  function paintResult(){var host=$('resultContent');if(stale||!result){host.innerHTML='<div class="result-state"><span class="result-label">Awaiting calculation</span><span class="result-number">—</span><div class="result-meta"><span>Review the model, then calculate.</span></div></div>';return;}if(result.status==='invalid'||result.status==='unsupported'){host.innerHTML='<div class="result-error"><h3>'+(result.status==='invalid'?'Invalid model':'Unsupported exact method')+'</h3><p>'+escapeHtml(result.message)+'</p></div>';return;}host.innerHTML='<div class="result-state"><span class="result-label">'+(result.status==='zero'?'Valid model · zero outcomes':'Exact outcome count')+'</span><span class="result-number" title="'+result.count+'">'+formatBig(result.count)+'</span><div class="result-meta"><span>'+result.count.toString().length+' digit'+(result.count.toString().length===1?'':'s')+'</span><span>·</span><span>Full integer preserved</span></div></div><div class="math-work"><span class="method-chip">'+escapeHtml(result.method)+'</span>'+result.math.map(function(line){return'<div class="math-line">'+escapeHtml(line)+'</div>';}).join('')+'<div class="verification '+(result.verification==='failed'?'warn':'')+'">'+(result.verification==='independent-enumeration'?'Cross-checked by independent enumeration.':'Verified against exact formula identities.')+'</div></div>';}
+  function calculate(){pullStatic();solveCurrent();saveState();paint();if(window.innerWidth<=900)setMobilePane('results');}
+  function generationRisk(){var count=result&&result.count||0n,avg=Math.max(24,totalMembers()*14),bytes=count*BigInt(avg);return{count:count,bytes:bytes,large:count>10000n,high:count>1000000n||bytes>100000000n};}
+  function confirmGeneration(){var risk=generationRisk();if(!risk.large){startGeneration();return;}var body='<div class="warning-block"><strong>'+(risk.high?'High-risk generation':'Large generation')+'</strong><br>'+formatBig(risk.count)+' outcomes; estimated output '+formatBytes(risk.bytes)+'. '+(risk.high?'File export is recommended. The browser may run out of memory.':'The interface may take time to display every result.')+'</div><p>This is a warning, not a limit. You can pause or cancel the job.</p>';openDialog('Generate every outcome?',body,[{label:'Cancel'},{label:'Generate all',primary:true,run:startGeneration}]);}
+  function formatBytes(bytes){var n=Number(bytes>9007199254740991n?9007199254740991n:bytes),units=['B','KB','MB','GB','TB'],i=0;while(n>=1024&&i<units.length-1){n/=1024;i++;}return n.toFixed(i?1:0)+' '+units[i]+(bytes>9007199254740991n?' or more':'');}
+  function startGeneration(){if(worker)worker.terminate();generated=[];outcomeIndex=0;paused=false;generationStarted=Date.now();var core=$('combinatorics-core').textContent;var workerCode='var window=self;'+core+'\nvar iterator=null,total=0n,done=false,paused=false;function batch(){if(paused||done)return;var rows=[];for(var i=0;i<200;i++){var x=iterator.next();if(x.done){done=true;break;}rows.push(x.value);total++;}postMessage({type:"chunk",rows:rows,total:total.toString(),done:done});if(!done)setTimeout(batch,0);}onmessage=function(e){if(e.data.type==="start"){iterator=window.CombinatoricsCore.enumerate(e.data.model,Infinity);batch();}else if(e.data.type==="pause"){paused=true;}else if(e.data.type==="resume"){paused=false;batch();}};';worker=new Worker(URL.createObjectURL(new Blob([workerCode],{type:'text/javascript'})));worker.onmessage=function(e){generated.push.apply(generated,e.data.rows);var done=e.data.done,current=BigInt(e.data.total),expected=result.count||0n,pct=expected?Number(current*10000n/expected)/100:100;$('progressBar').value=Math.min(100,pct);$('generationNote').textContent=formatBig(current)+' / '+formatBig(expected);if(generated.length<=20000||done)paintVisual();if(done){worker.terminate();worker=null;$('pauseBtn').hidden=true;$('cancelBtn').hidden=true;$('generateBtn').hidden=false;toast('Generation complete');paint();}};worker.postMessage({type:'start',model:currentModel()});$('generateBtn').hidden=true;$('pauseBtn').hidden=false;$('cancelBtn').hidden=false;$('pauseBtn').textContent='Pause';$('progressBar').value=0;$('generationNote').textContent='Starting generation';}
+  function pauseGeneration(){if(!worker)return;paused=!paused;worker.postMessage({type:paused?'pause':'resume'});$('pauseBtn').textContent=paused?'Resume':'Pause';}
+  function cancelGeneration(){if(worker)worker.terminate();worker=null;$('pauseBtn').hidden=true;$('cancelBtn').hidden=true;$('generateBtn').hidden=false;$('progressBar').value=0;$('generationNote').textContent='Cancelled at '+formatBig(BigInt(generated.length));toast('Generation cancelled; partial results kept');paintVisual();}
+  function setMobilePane(name){document.querySelectorAll('[data-pane]').forEach(function(el){el.classList.toggle('mobile-active',el.dataset.pane===name);});document.querySelectorAll('[data-mobile-pane]').forEach(function(el){var active=el.dataset.mobilePane===name;el.classList.toggle('active',active);el.setAttribute('aria-selected',String(active));el.tabIndex=active?0:-1;});}
+  function bindTabKeys(host){host.addEventListener('keydown',function(e){if(['ArrowLeft','ArrowRight','Home','End'].indexOf(e.key)<0)return;var tabs=Array.from(host.querySelectorAll('[role="tab"]')).filter(function(x){return !x.hidden;});if(!tabs.length)return;var current=tabs.indexOf(document.activeElement),next=e.key==='Home'?0:e.key==='End'?tabs.length-1:(current+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;e.preventDefault();tabs[next].focus();tabs[next].click();});}
+  function applyTemplate(index){var t=templates[index];S=Object.assign(defaultState(),clone(t.model),{title:t.name,entryMode:'direct'});syncDerived();markStale();toast('Template loaded. Every field remains editable.');}
+  function parseCsv(text){var lines=text.replace(/^\uFEFF/,'').split(/\r?\n/).filter(function(x){return x.trim();});if(!lines.length)return[];var header=splitCsv(lines[0]).map(function(x){return x.trim().toLowerCase();});var hasHeader=header.indexOf('label')>=0,start=hasHeader?1:0;return lines.slice(start).map(function(line,i){var vals=splitCsv(line),get=function(name,fallback){var idx=header.indexOf(name);return hasHeader&&idx>=0?vals[idx]:vals[fallback];};return row(uid('m'),get('label',0)||('Member '+(i+1)),Math.max(0,Number(get('quantity',1))||1),(get('identity',2)||'distinct').toLowerCase()==='identical'?'identical':'distinct',String(get('tags',3)||'').split(/[;|]/).map(function(x){return x.trim();}).filter(Boolean));});}
+  function splitCsv(line){var out=[],cur='',quoted=false;for(var i=0;i<line.length;i++){var c=line[i];if(c==='"'&&line[i+1]==='"'){cur+='"';i++;}else if(c==='"')quoted=!quoted;else if(c===','&&!quoted){out.push(cur);cur='';}else cur+=c;}out.push(cur);return out;}
+  function exportModel(anonymized){var model=currentModel();if(anonymized){model.memberRows.forEach(function(m,i){m.label='Member type '+(i+1);m.tags=[];});model.groups.forEach(function(g,i){g.label='Group '+(i+1);});model.title='Anonymized combinatorics model';model.notes='';}var payload={tool:'combinatorics-workbench',version:SCHEMA,savedAt:new Date().toISOString(),exact:result?result.status==='exact':null,method:result?result.method:null,verification:result?result.verification:null,generationOrder:'member-row then lexicographic',state:model};download(safeName()+(anonymized?'-anonymized':'')+'.juratools-combinatorics.json',JSON.stringify(payload,null,2),'application/json');}
+  function exportOutcomes(){var rows=generated.length?generated:preview;if(!rows.length){toast('Generate or preview outcomes first');return;}openDialog('Export outcomes','<p>Choose a deterministic export format. The current model and its reproducibility record remain available in the JSON model export.</p>',[
+    {label:'TXT',run:function(){download(safeName()+'-outcomes.txt',rows.map(outcomeToText).join('\n'));}},
+    {label:'JSON',run:function(){download(safeName()+'-outcomes.json',JSON.stringify(rows,null,2),'application/json');}},
+    {label:'CSV',primary:true,run:function(){download(safeName()+'-outcomes.csv','index,outcome\n'+rows.map(function(x,i){return(i+1)+',"'+outcomeToText(x).replaceAll('"','""')+'"';}).join('\n'),'text/csv;charset=utf-8');}}
+  ]);}
+  function showNamedSaves(){var saves={};try{saves=JSON.parse(localStorage.getItem(SAVES_KEY)||'{}')||{};}catch(e){}var names=Object.keys(saves);var body=names.length?'<div class="constraint-list">'+names.map(function(n){return'<button class="template" data-load-save="'+escapeHtml(n)+'"><b>'+escapeHtml(n)+'</b><span>'+escapeHtml(saves[n].savedAt||'')+'</span></button>';}).join('')+'</div>':'<p>No named models saved in this browser.</p>';openDialog('Saved models',body,[{label:'Close'}]);document.querySelectorAll('[data-load-save]').forEach(function(b){b.addEventListener('click',function(){S=Object.assign(defaultState(),clone(saves[b.dataset.loadSave].state));closeDialog();markStale();});});}
+  function saveNamed(){var name=prompt('Name this saved model:',S.title);if(!name)return;var saves={};try{saves=JSON.parse(localStorage.getItem(SAVES_KEY)||'{}')||{};}catch(e){}saves[name]={savedAt:new Date().toISOString(),state:currentModel()};try{localStorage.setItem(SAVES_KEY,JSON.stringify(saves));toast('Named model saved');}catch(e){toast('Browser storage is unavailable');}}
+  function share(){var json=JSON.stringify(currentModel()),encoded=btoa(unescape(encodeURIComponent(json))).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,'');openDialog('Create local share URL','<div class="warning-block">The URL is not encrypted. Anyone who receives it can read every label, tag, constraint, and note encoded in it.</div><p>No model data is sent to JuraTools. The model is carried in the URL itself.</p>',[{label:'Cancel'},{label:'Copy share URL',primary:true,run:function(){var url=location.href.split('#')[0]+'#model='+encoded;navigator.clipboard.writeText(url).then(function(){toast('Share URL copied');});}}]);}
+  function loadHash(){if(!location.hash.startsWith('#model='))return;try{var raw=location.hash.slice(7).replaceAll('-','+').replaceAll('_','/');while(raw.length%4)raw+='=';var model=JSON.parse(decodeURIComponent(escape(atob(raw))));openDialog('Open shared model?','<p>This URL contains a combinatorics model titled <strong>'+escapeHtml(model.title||'Untitled')+'</strong>. Opening it replaces the current draft after confirmation.</p>',[{label:'Keep current'},{label:'Open model',primary:true,run:function(){S=Object.assign(defaultState(),model);history.replaceState(null,'',location.pathname+location.search);markStale();}}]);}catch(e){toast('This share URL could not be read');}}
+  function bind(){
+    methods.forEach(function(m){var o=document.createElement('option');o.value=m[0];o.textContent=m[1];$('methodSelect').appendChild(o);});
+    document.querySelectorAll('.mode-tab').forEach(function(b){b.addEventListener('click',function(){S.entryMode=b.dataset.entry;markStale();});});
+    ['goalSelect','orderSelect','repeatSelect','methodSelect','chooseCount','groupCount','minEach','maxEach','groupMode','notes','groupSizes','factorValues'].forEach(function(id){$(id).addEventListener('change',function(){pullStatic();markStale();});});
+    $('projectTitle').addEventListener('change',function(){S.title=this.value.trim()||'Untitled combinatorics model';saveState();paint();});
+    function updateMember(e,repaint){var rowEl=e.target.closest('.member-row');if(!rowEl)return;var m=S.memberRows.find(function(x){return x.id===rowEl.dataset.id;});if(e.target.matches('[data-field]')){var f=e.target.dataset.field;m[f]=f==='quantity'?Math.max(0,Number(e.target.value)||0):f==='tags'?e.target.value.split(',').map(function(x){return x.trim();}).filter(Boolean):e.target.value;if(repaint)markStale();else noteDynamicEdit();}}
+    $('memberRows').addEventListener('input',function(e){updateMember(e,false);});
+    $('memberRows').addEventListener('change',function(e){updateMember(e,true);});
+    $('memberRows').addEventListener('click',function(e){var rowEl=e.target.closest('.member-row');if(rowEl&&e.target.closest('[data-remove-member]')&&S.memberRows.length>1){S.memberRows=S.memberRows.filter(function(x){return x.id!==rowEl.dataset.id;});markStale();}});
+    function updateGroup(e,repaint){var rowEl=e.target.closest('.group-row');if(!rowEl)return;var g=S.groups.find(function(x){return x.id===rowEl.dataset.id;}),f=e.target.dataset.groupField;if(f){g[f]=f==='label'?e.target.value:e.target.value===''?null:Math.max(0,Number(e.target.value)||0);if(repaint)markStale();else noteDynamicEdit();}}
+    $('groupRows').addEventListener('input',function(e){updateGroup(e,false);});
+    $('groupRows').addEventListener('change',function(e){updateGroup(e,true);});
+    $('groupRows').addEventListener('click',function(e){var rowEl=e.target.closest('.group-row');if(rowEl&&e.target.closest('[data-remove-group]')&&S.groupCount>1){S.groups=S.groups.filter(function(x){return x.id!==rowEl.dataset.id;});S.groupCount=S.groups.length;markStale();}});
+    $('constraintList').addEventListener('change',function(e){var box=e.target.closest('.constraint');if(!box)return;var c=S.constraints.find(function(x){return x.id===box.dataset.id;}),f=e.target.dataset.constraintField;if(!f)return;if(f==='active')c.active=e.target.checked;else if(f==='members')c.members=Array.from(e.target.selectedOptions).map(function(x){return x.value;});else c[f]=e.target.value;markStale();});
+    $('constraintList').addEventListener('click',function(e){var box=e.target.closest('.constraint');if(box&&e.target.closest('[data-remove-constraint]')){S.constraints=S.constraints.filter(function(x){return x.id!==box.dataset.id;});markStale();}});
+    $('addMemberBtn').addEventListener('click',function(){S.memberRows.push(row(uid('m'),'Member type '+(S.memberRows.length+1),1,'distinct',[]));markStale();});
+    $('addGroupBtn').addEventListener('click',function(){S.groupCount++;S.groups.push(group(uid('g'),'Group '+String.fromCharCode(65+S.groups.length),0,null));markStale();});
+    $('addConstraintBtn').addEventListener('click',function(){S.constraints.push({id:uid('c'),type:'required',members:[],active:true});markStale();});
+    $('templateGrid').addEventListener('click',function(e){var b=e.target.closest('[data-template]');if(b)applyTemplate(Number(b.dataset.template));});
+    $('viewTabs').addEventListener('click',function(e){var b=e.target.closest('[data-view]');if(b){S.view=b.dataset.view;saveState();paint();}});
+    $('calculateBtn').addEventListener('click',calculate);$('generateBtn').addEventListener('click',confirmGeneration);$('pauseBtn').addEventListener('click',pauseGeneration);$('cancelBtn').addEventListener('click',cancelGeneration);
+    $('previousOutcomeBtn').addEventListener('click',function(){var len=(generated.length||preview.length);if(len){outcomeIndex=(outcomeIndex-1+len)%len;paintVisual();}});$('nextOutcomeBtn').addEventListener('click',function(){var len=(generated.length||preview.length);if(len){outcomeIndex=(outcomeIndex+1)%len;paintVisual();}});
+    $('copyResultBtn').addEventListener('click',function(){navigator.clipboard.writeText(resultText()).then(function(){toast('Calculation copied');});});$('exportModelBtn').addEventListener('click',function(){exportModel(false);});$('anonymizeBtn').addEventListener('click',function(){exportModel(true);});$('exportOutcomesBtn').addEventListener('click',exportOutcomes);$('printBtn').addEventListener('click',function(){window.print();});$('saveNamedBtn').addEventListener('click',saveNamed);
+    $('newBtn').addEventListener('click',function(){openDialog('Start a new model?','<p>Your current draft is saved locally. This replaces the working canvas with a fresh model.</p>',[{label:'Cancel'},{label:'Start new',primary:true,run:function(){S=defaultState();markStale();}}]);});$('openBtn').addEventListener('click',showNamedSaves);$('fileBtn').addEventListener('click',function(){$('fileInput').click();});$('csvBtn').addEventListener('click',function(){$('csvInput').click();});$('shareBtn').addEventListener('click',share);
+    $('pasteNamesBtn').addEventListener('click',function(){openDialog('Paste member names','<p>Enter one name per line. Each becomes one distinct member with quantity 1.</p><textarea id="pastedNames" class="cell-input" rows="10" style="width:100%" placeholder="Alpha Co.\nBeta Co.\nGamma Co."></textarea>',[{label:'Cancel'},{label:'Add names',primary:true,run:function(){var names=$('pastedNames').value.split(/\r?\n/).map(function(x){return x.trim();}).filter(Boolean);if(names.length)S.memberRows=names.map(function(name){return row(uid('m'),name,1,'distinct',[]);});markStale();}}]);});
+    $('fileInput').addEventListener('change',function(){var file=this.files[0];if(!file)return;file.text().then(function(text){try{var payload=JSON.parse(text),state=payload.state||payload;if(state.tool!=='combinatorics-workbench')throw new Error('Not a Combinatorics Workbench file.');openDialog('Open imported model?','<p><strong>'+escapeHtml(state.title||'Untitled')+'</strong> will replace the current draft after confirmation.</p>',[{label:'Cancel'},{label:'Open model',primary:true,run:function(){S=Object.assign(defaultState(),state);markStale();}}]);}catch(e){toast(e.message||'Could not read model');}});this.value='';});
+    $('csvInput').addEventListener('change',function(){var file=this.files[0];if(!file)return;file.text().then(function(text){var rows=parseCsv(text);if(!rows.length){toast('No member rows found');return;}openDialog('Import '+rows.length+' member rows?','<p>Fixed columns: <code>label, quantity, identity, tags</code>. Tags use semicolons. This replaces the current member rows.</p>',[{label:'Cancel'},{label:'Import rows',primary:true,run:function(){S.memberRows=rows;markStale();}}]);});this.value='';});
+    document.querySelectorAll('[data-mobile-pane]').forEach(function(b){b.addEventListener('click',function(){setMobilePane(b.dataset.mobilePane);});});bindTabKeys(document.querySelector('.mode-tabs'));bindTabKeys($('viewTabs'));bindTabKeys(document.querySelector('.mobile-tabs'));$('dialogBackdrop').addEventListener('click',function(e){if(e.target===this)closeDialog();});document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeDialog();return;}if(e.key==='Tab'&&$('dialogBackdrop').classList.contains('open')){var focusable=Array.from(document.querySelector('.dialog').querySelectorAll('button,input,select,textarea,[tabindex]:not([tabindex="-1"])')).filter(function(x){return !x.disabled&&!x.hidden;});if(!focusable.length){e.preventDefault();document.querySelector('.dialog').focus();return;}var first=focusable[0],last=focusable[focusable.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});
+  }
+  bind();if(shouldLiveModel())solveCurrent();paint();loadHash();
+})();
+  </script>
+</body>
+</html>
