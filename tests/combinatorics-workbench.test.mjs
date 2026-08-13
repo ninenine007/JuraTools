@@ -67,7 +67,7 @@ test('multiset, multinomial, stars and bars, and bounded allocations are exact',
   assert.equal(Core.solve(model('stars-bars', { n: 7, groupCount: 3, minEach: 1, maxEach: 3 })).count, 6n);
 });
 
-test('constrained combinations and permutations are counted by independent enumeration', () => {
+test('constrained combinations and permutations use canonical enumeration', () => {
   const rows = ['A', 'B', 'C', 'D'].map((label) => ({ id: label, label, quantity: 1, identity: 'distinct', tags: [] }));
   const required = Core.solve(model('combination', {
     n: 4,
@@ -76,7 +76,7 @@ test('constrained combinations and permutations are counted by independent enume
     constraints: [{ id: 'c1', type: 'required', members: ['A'], active: true }]
   }));
   assert.equal(required.count, 3n);
-  assert.equal(required.verification, 'independent-enumeration');
+  assert.equal(required.verification, 'canonical-enumeration');
 
   const nonAdjacent = Core.solve(model('permutation', {
     n: 4,
@@ -101,6 +101,23 @@ test('labeled group allocation respects fixed groups and capacities', () => {
   assert.equal(result.count, 3n);
 });
 
+test('distribution and multinomial allocation apply member constraints', () => {
+  const rows = ['A', 'B', 'C'].map((label) => ({ id: label, label, quantity: 1, identity: 'distinct', tags: [] }));
+  const distributed = Core.solve(model('distribution', {
+    memberRows: rows,
+    constraints: [{ id: 'c1', type: 'excluded', members: ['A'], active: true }]
+  }));
+  assert.equal(distributed.count, 0n, 'an allocated member cannot satisfy an exclusion rule');
+
+  const multinomial = model('multinomial', {
+    memberRows: rows,
+    groupSizes: [2, 1],
+    constraints: [{ id: 'c2', type: 'together', members: ['A', 'B'], active: true }]
+  });
+  assert.equal(Core.solve(multinomial).count, 1n);
+  assert.equal(Array.from(Core.enumerate(multinomial)).length, 1);
+});
+
 test('identity mode and unlabeled groups change the mathematical outcome', () => {
   const identicalRows = [
     { id: 'a', label: 'A', quantity: 2, identity: 'identical', tags: [] },
@@ -120,6 +137,35 @@ test('identity mode and unlabeled groups change the mathematical outcome', () =>
     ]
   }));
   assert.equal(unlabeled.count, 3n);
+});
+
+test('circular arrangements canonicalize rotations of identical quantities', () => {
+  const circularModel = model('circular', {
+    memberRows: [
+      { id: 'a', label: 'A', quantity: 2, identity: 'identical', tags: [] },
+      { id: 'b', label: 'B', quantity: 1, identity: 'identical', tags: [] }
+    ]
+  });
+  assert.equal(Core.solve(circularModel).count, 1n);
+  assert.equal(Array.from(Core.enumerate(circularModel)).length, 1);
+});
+
+test('addition and multiplication rules generate deterministic symbolic outcomes', () => {
+  const addition = model('addition', { factors: ['2', '3'], memberRows: [] });
+  assert.equal(Core.solve(addition).count, 5n);
+  assert.deepEqual(JSON.parse(JSON.stringify(Array.from(Core.enumerate(addition)))), [
+    ['Case 1', 'Outcome 1'], ['Case 1', 'Outcome 2'],
+    ['Case 2', 'Outcome 1'], ['Case 2', 'Outcome 2'], ['Case 2', 'Outcome 3']
+  ]);
+
+  const multiplication = model('multiplication', { factors: ['2', '2'], memberRows: [] });
+  assert.equal(Core.solve(multiplication).count, 4n);
+  assert.deepEqual(JSON.parse(JSON.stringify(Array.from(Core.enumerate(multiplication)))), [
+    ['Stage 1 choice 1', 'Stage 2 choice 1'],
+    ['Stage 1 choice 1', 'Stage 2 choice 2'],
+    ['Stage 1 choice 2', 'Stage 2 choice 1'],
+    ['Stage 1 choice 2', 'Stage 2 choice 2']
+  ]);
 });
 
 test('constraint meaning follows the selected combinatorial structure', () => {

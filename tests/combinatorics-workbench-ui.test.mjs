@@ -32,6 +32,10 @@ test('the Phase 1 operating controls are present and IDs are unique', () => {
   assert.match(html, /surface seed d348f6e5/);
   assert.match(html, /juratools_combinatorics_workbench_v1/);
   assert.match(html, /Runs entirely|processing stays|stays in this browser/i);
+  assert.match(html, /id="resetBtn"/);
+  assert.match(html, /Reference tool only — not legal advice/);
+  assert.match(html, /Streaming export is recommended/);
+  assert.match(html, /constraint\.tag=tagName/);
 
   const ids = [...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
   assert.equal(new Set(ids).size, ids.length, 'HTML IDs must be unique');

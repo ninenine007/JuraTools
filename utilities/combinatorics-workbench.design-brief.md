@@ -16,7 +16,7 @@ Let a user define abstract members and groups, choose or diagnose a combinatoria
 - Subsets and power sets
 - Circular permutations
 - Multinomial allocation
-- Distinct-member distribution to labeled groups
+- Distinct or identical-member distribution to labeled or unlabeled groups
 - Stars and bars with lower and upper bounds
 - Addition and multiplication rules
 
@@ -35,6 +35,43 @@ All work stays in the browser. Formula counts update live when cheap; constraine
 ## Layout and direction
 
 Three-zone analytical desk: model setup at left, a large output-only evidence field in the center, and mathematical result/working at right. On narrow screens the zones become tabs. Use the established JuraTools light workbench language with the math accent `#ea580c`, flat office-paper surfaces, compact native controls, tabular figures, and semantic status colors. The memorable moment is changing one structural assumption and watching the model summary, formula, exact count, and visualization change together.
+
+## Hosted implementation contract
+
+The workbench is one self-contained HTML page. CSS and JavaScript are inline; there are no runtime requests, external fonts, analytics, APIs, frameworks, packages, or build step. It must work from the hosted relative path `utilities/combinatorics-workbench.html` and when opened directly from disk. The pure calculation installer is a deliberate worker seam: its source is reused verbatim inside a Blob Web Worker, while all DOM behavior remains in the page's single UI IIFE.
+
+```text
+header.topbar
+  JuraTools / Utilities / Combinatorics Workbench / ← All
+  project title + local save state + commands + Calculate
+nav.mobile-tabs
+main.app
+  aside#paneSetup[data-pane="setup"]
+    entry tabs + members + allocation + constraints + templates
+  section#paneEvidence[data-pane="evidence"]
+    #viewTabs + #visualStage + generation controls
+  aside#paneResults[data-pane="results"]
+    #modelSummary + #resultContent + result actions + footer
+#dialogBackdrop > .dialog
+#toast
+hidden #fileInput + #csvInput
+```
+
+### Stable IDs and structural attributes
+
+| Contract | Purpose |
+| --- | --- |
+| `#projectTitle`, `#goalSelect`, `#orderSelect`, `#repeatSelect`, `#methodSelect` | Model identity and deterministic guided/direct method selection |
+| `#memberRows`, `#groupRows`, `#constraintList`, `#templateGrid` | Dynamic model collections |
+| `#chooseCount`, `#groupCount`, `#minEach`, `#maxEach`, `#groupSizes`, `#factorValues` | Exact numeric structure inputs |
+| `#calculateBtn`, `#generateBtn`, `#pauseBtn`, `#cancelBtn`, `#progressBar` | Calculation and unbounded worker-generation lifecycle |
+| `#visualStage`, `#sheetSummary`, `#sheetMethod`, `#modelSummary`, `#resultContent` | Synchronized output-only evidence and result surfaces |
+| `#copyResultBtn`, `#resetBtn`, `#exportModelBtn`, `#exportOutcomesBtn`, `#anonymizeBtn`, `#printBtn` | Stable result actions |
+| `[data-entry]`, `[data-view]`, `[data-mobile-pane]` | Accessible tab selection; paired with `role="tab"`, `aria-selected`, `aria-controls`, and roving `tabindex` |
+| `[data-field]`, `[data-group-field]`, `[data-constraint-field]` | Delegated input updates into the single serializable state object |
+| `[data-remove-member]`, `[data-remove-group]`, `[data-remove-constraint]`, `[data-template]` | Delegated row/template actions |
+
+The state class contract is `.active` for selected tabs, `.mobile-active` for the visible narrow-screen pane, `.stale` and `.exact` for result status, `.warn` for failed verification, `.open` for the modal backdrop, `.show` for toast visibility, and native `[hidden]`/`[disabled]` for availability. Number inputs retain native count semantics and tabular numerals. Every dynamically generated control has an accessible name. User-authored strings are escaped before entering `innerHTML`.
 
 ## Shipped visual system
 
