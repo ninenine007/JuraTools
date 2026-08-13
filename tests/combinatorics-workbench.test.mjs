@@ -109,7 +109,7 @@ test('unconstrained distribution uses only the selected group count', () => {
     groups: [
       { id: 'g1', label: 'Alpha', min: 0, max: null },
       { id: 'g2', label: 'Beta', min: 0, max: null },
-      { id: 'g3', label: 'Stale row', min: 0, max: null }
+      { id: 'g3', label: 'Stale row', min: 1, max: null }
     ]
   }));
   assert.equal(result.count, 8n);
