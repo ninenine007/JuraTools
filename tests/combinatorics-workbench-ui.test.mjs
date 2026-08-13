@@ -36,6 +36,8 @@ test('the Phase 1 operating controls are present and IDs are unique', () => {
   assert.match(html, /Reference tool only — not legal advice/);
   assert.match(html, /Streaming export is recommended/);
   assert.match(html, /constraint\.tag=tagName/);
+  assert.match(html, /anonymized-combinatorics-model/);
+  assert.match(html, /method==='distribution'.*method==='stars-bars'/s);
 
   const ids = [...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
   assert.equal(new Set(ids).size, ids.length, 'HTML IDs must be unique');

@@ -61,17 +61,30 @@ hidden #fileInput + #csvInput
 
 | Contract | Purpose |
 | --- | --- |
-| `#projectTitle`, `#goalSelect`, `#orderSelect`, `#repeatSelect`, `#methodSelect` | Model identity and deterministic guided/direct method selection |
-| `#memberRows`, `#groupRows`, `#constraintList`, `#templateGrid` | Dynamic model collections |
-| `#chooseCount`, `#groupCount`, `#minEach`, `#maxEach`, `#groupSizes`, `#factorValues` | Exact numeric structure inputs |
-| `#calculateBtn`, `#generateBtn`, `#pauseBtn`, `#cancelBtn`, `#progressBar` | Calculation and unbounded worker-generation lifecycle |
-| `#visualStage`, `#sheetSummary`, `#sheetMethod`, `#modelSummary`, `#resultContent` | Synchronized output-only evidence and result surfaces |
+| `#combinatorics-core` | Pure engine source and Blob-worker installation seam |
+| `#projectTitle`, `#saveState`, `#goalSelect`, `#orderSelect`, `#repeatSelect`, `#methodSelect`, `#guidedFields`, `#directFields`, `#entryGuidedTab`, `#entryDirectTab` | Model identity and deterministic guided/direct method selection |
+| `#membersTable`, `#memberRows`, `#groupRows`, `#constraintList`, `#constraintEmpty`, `#templateGrid` | Dynamic model collections and their empty state |
+| `#chooseCount`, `#groupCount`, `#minEach`, `#maxEach`, `#groupSizes`, `#factorValues`, `#groupMode`, `#notes` | Exact structure inputs and notes |
+| `#groupFields`, `#starsFields`, `#multinomialFields`, `#factorFields`, `#factorHint` | Method-dependent field regions |
+| `#addMemberBtn`, `#addGroupBtn`, `#addConstraintBtn`, `#pasteNamesBtn`, `#csvBtn`, `#pastedNames` | Collection-entry actions and the transient paste field |
+| `#newBtn`, `#openBtn`, `#fileBtn`, `#shareBtn`, `#fileInput`, `#csvInput`, `#saveNamedBtn` | Current-model, saved-model, import, and share lifecycle |
+| `#calculateBtn`, `#generateBtn`, `#pauseBtn`, `#cancelBtn`, `#progressBar`, `#generationNote` | Calculation and unbounded worker-generation lifecycle |
+| `#paneSetup`, `#paneEvidence`, `#paneResults`, `#mobileTabSetup`, `#mobileTabEvidence`, `#mobileTabResults` | Desktop panes and narrow-screen tab ownership |
+| `#viewTabs`, `#visualStage`, `#printSheet`, `#sheetTitle`, `#sheetSummary`, `#sheetMethod`, `#sheetFootLeft`, `#sheetFootRight` | Output-only evidence sheet and view selection |
+| `#previousOutcomeBtn`, `#nextOutcomeBtn` | Deterministic preview navigation |
+| `#modelSummary`, `#resultContent`, `#resultStatus` | Synchronized mathematical result surface |
 | `#copyResultBtn`, `#resetBtn`, `#exportModelBtn`, `#exportOutcomesBtn`, `#anonymizeBtn`, `#printBtn` | Stable result actions |
+| `#dialogBackdrop`, `#dialogTitle`, `#dialogBody`, `#dialogActions`, `#toast` | Modal confirmation and live feedback infrastructure |
 | `[data-entry]`, `[data-view]`, `[data-mobile-pane]` | Accessible tab selection; paired with `role="tab"`, `aria-selected`, `aria-controls`, and roving `tabindex` |
+| `[data-pane]`, `[data-load-save]` | Narrow-screen pane switching and transient named-save selection |
 | `[data-field]`, `[data-group-field]`, `[data-constraint-field]` | Delegated input updates into the single serializable state object |
 | `[data-remove-member]`, `[data-remove-group]`, `[data-remove-constraint]`, `[data-template]` | Delegated row/template actions |
 
 The state class contract is `.active` for selected tabs, `.mobile-active` for the visible narrow-screen pane, `.stale` and `.exact` for result status, `.warn` for failed verification, `.open` for the modal backdrop, `.show` for toast visibility, and native `[hidden]`/`[disabled]` for availability. Number inputs retain native count semantics and tabular numerals. Every dynamically generated control has an accessible name. User-authored strings are escaped before entering `innerHTML`.
+
+### Free to change
+
+Copy, spacing, templates, visual polish, method-registry internals, preview limits, and non-contract CSS class names may evolve without migration. Stable IDs and structural `data-*` attributes above, localStorage keys, JSON schema fields, deterministic enumeration order, exact count semantics, warning thresholds, the worker lifecycle, output-only evidence boundary, and the desktop/mobile pane model require an explicit contract update and corresponding tests before they change.
 
 ## Shipped visual system
 

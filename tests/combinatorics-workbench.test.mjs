@@ -101,6 +101,22 @@ test('labeled group allocation respects fixed groups and capacities', () => {
   assert.equal(result.count, 3n);
 });
 
+test('unconstrained distribution uses only the selected group count', () => {
+  const rows = ['A', 'B', 'C'].map((label) => ({ id: label, label, quantity: 1, identity: 'distinct', tags: [] }));
+  const result = Core.solve(model('distribution', {
+    memberRows: rows,
+    groupCount: 2,
+    groups: [
+      { id: 'g1', label: 'Alpha', min: 0, max: null },
+      { id: 'g2', label: 'Beta', min: 0, max: null },
+      { id: 'g3', label: 'Stale row', min: 0, max: null }
+    ]
+  }));
+  assert.equal(result.count, 8n);
+  assert.match(result.summary, /2 labeled groups/);
+  assert.ok(result.math.some((line) => line.includes('2^3 = 8')));
+});
+
 test('distribution and multinomial allocation apply member constraints', () => {
   const rows = ['A', 'B', 'C'].map((label) => ({ id: label, label, quantity: 1, identity: 'distinct', tags: [] }));
   const distributed = Core.solve(model('distribution', {
@@ -182,6 +198,12 @@ test('constraint meaning follows the selected combinatorial structure', () => {
     constraints: [{ id: 's', type: 'separated', members: ['A', 'B'], active: true }]
   }));
   assert.equal(circularSeparation.count, 2n, 'first and last positions are adjacent on a circle');
+
+  const circularBlock = Core.solve(model('circular', {
+    memberRows: rows,
+    constraints: [{ id: 'a', type: 'adjacent', members: ['A', 'B', 'C'], active: true }]
+  }));
+  assert.equal(circularBlock.count, 6n, 'a circular adjacency block may wrap across the first and last positions');
 
   assert.equal(Core.solve(model('combination', {
     memberRows: rows,
