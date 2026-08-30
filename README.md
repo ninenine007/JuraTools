@@ -22,3 +22,13 @@ Tools are grouped into collections, each with its own hub page:
 Standalone tools (`ccc-default-interest.html`, `intestate-succession.html`, `copywork.html`, `marginalia.html`) live at the root next to `index.html`.
 
 Old root-level tool URLs redirect to their new locations via `404.html` on GitHub Pages.
+
+## Working on this repo
+
+Conventions live in `HOUSE-STYLE.md` (how a tool is built), `PRODUCT.md` (what
+the product is for), and a `*.design-brief.md` beside each larger tool (its
+locked JS contract).
+
+If you are working with an AI assistant, point it at **`CLAUDE.md`** first — it
+maps those documents, gives the commands that actually verify a change, and
+records the traps that have already cost time.
