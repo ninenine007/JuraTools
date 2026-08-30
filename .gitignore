@@ -145,3 +145,10 @@ vite.config.ts.timestamp-*
 
 # local helper, not part of the site
 push.sh
+
+# Contract corpus — client material, never committed.
+# Code, lexicons and fixtures under tools/contract-corpus/ ARE tracked.
+data/
+*.jtcorpus.json
+*.jtcorpus.gz
+!tools/contract-corpus/fixtures/*.json
