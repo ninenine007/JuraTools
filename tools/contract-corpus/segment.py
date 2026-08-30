@@ -19,7 +19,16 @@ counted and reported by QC instead of vanishing unremarked.
 import re
 
 import nlp
-from docx_numbering import THAI_DIGITS, parse_label
+
+try:
+    # `parse_label` is pure text handling, but it lives in docx_numbering, which
+    # imports python-docx. So the segment stage needs python-docx installed even
+    # for an Azure-only corpus — say so plainly rather than raising ImportError.
+    from docx_numbering import THAI_DIGITS, parse_label
+except ImportError as exc:                          # pragma: no cover - env dependent
+    raise ImportError(
+        "segment.py reads clause labels through docx_numbering, which imports "
+        "python-docx.\n" + nlp.INSTALL_HINT) from exc
 
 # ── Clause numbers ───────────────────────────────────────────────────────────
 
@@ -67,36 +76,114 @@ ZONE_CUES = (
 )
 ZONE_ORDER = {"preamble": 0, "parties": 1, "definitions": 2,
               "body": 3, "signature": 4, "annex": 5}
-MARGINAL_KINDS = ("header", "footer", "footnote")
+# "toc" joins these: a generated table of contents is furniture that reproduces
+# every clause heading, so it must neither open a zone nor reach the frequency
+# tables. Kept and marked, never dropped (§1.4).
+MARGINAL_KINDS = ("header", "footer", "footnote", "toc")
 
-# `ลงชื่อ` also occurs inside operative prose ("ให้ลงชื่อในเอกสาร"). A signature
-# block is short, so only a short block is allowed to open the signature zone.
-SIGNATURE_MAX_CHARS = 200
+# A cue may open a zone only where the paragraph IS that thing, never where it
+# merely mentions one. Measured on eight real contracts: a party description
+# reading "บุคคลที่มีรายชื่อปรากฏในเอกสารแนบท้าย 1 (ในฐานะ …)" opened an annex zone
+# that then swallowed 181 clauses, because a zone runs until the next one opens.
+# Every cue word — ลงชื่อ, คำนิยาม, โดยที่, ระหว่าง — occurs mid-sentence in ordinary
+# clause prose, so the same discipline applies to all of them:
+#   the cue must open the paragraph, and the paragraph must be heading-like.
+HEADING_LIKE_CHARS = 60
+OPENERS = " \t\"'“‘([<•-—–\u00a0"
+
+# A numbered clause inside the definitions zone is a definition entry, not the
+# start of the operative body — unless it stops reading like one.
+DEFINITION_MARKS = ("หมายความว่า", "หมายถึง", "ให้หมายความรวมถึง", "means", "shall mean")
 
 # Safety valve: an open clause stops swallowing continuation paragraphs at this
 # length, so one runaway document cannot become one unreadable clause.
 MAX_CLAUSE_CHARS = 4000
 
 
-def cue_zone(text):
-    """First cue in stage order, or None."""
+def is_heading_like(block, text):
+    """A heading-styled paragraph, or a line short enough to be a section head.
+
+    Heading style is the primary signal — on the real files 88% of clauses carry
+    a heading — and the length test is the fallback for documents with no
+    heading styles at all, which also exist (§7).
+    """
+    return block.get("kind") == "heading" or len(text.strip()) <= HEADING_LIKE_CHARS
+
+
+# An annex heading NAMES an annex — "เอกสารแนบท้าย 1", "เอกสารแนบท้ายหมายเลข 1",
+# "ภาคผนวก ก". An operative clause merely talks about them:
+#   "เอกสารแนบท้ายสัญญานี้ ให้ถือเป็นส่วนหนึ่งของสัญญานี้ด้วย"  (SPA clause 12.9)
+# That sentence is 54 characters, so it passes the heading-like test and opened
+# an annex zone that then swallowed the rest of the agreement — measured on two
+# Luzerne contracts as 273 annex vs 28 body, and 199 vs 88. So for the annex cue
+# specifically, require an annex IDENTIFIER right after the cue: digits, Thai
+# digits, or a single Thai letter standing alone. "สัญญานี้" begins with a Thai
+# consonant but is followed by a vowel mark, so it is not an ordinal and is
+# correctly rejected.
+ANNEX_LABEL = re.compile(
+    r"^\s*(?:หมายเลข|ที่|ลำดับที่|เลขที่|no\.?|#)?\s*"
+    r"(?:[0-9\u0e50-\u0e59]+|[\u0e01-\u0e2e](?![\u0e01-\u0e4e]))",
+    re.I,
+)
+
+
+def opens_annex(head, cue):
+    """True only when the annex cue is followed by something naming an annex."""
+    return bool(ANNEX_LABEL.match(head[len(cue):]))
+
+
+def cue_zone(text, heading_like):
+    """First cue in stage order that OPENS a heading-like paragraph, or None."""
+    if not heading_like:
+        return None
+    head = text.lstrip(OPENERS)
     for zone, cues in ZONE_CUES:
         for cue in cues:
-            if cue in text:
-                if zone == "signature" and len(text) > SIGNATURE_MAX_CHARS:
-                    continue
-                return zone
+            if not head.startswith(cue):
+                continue
+            if zone == "annex" and not opens_annex(head, cue):
+                continue          # talks about annexes; does not start one
+            return zone
     return None
 
 
-def next_zone(current, block, numbered):
+def looks_like_definition(text):
+    return any(mark in text for mark in DEFINITION_MARKS)
+
+
+def holds_zone(current, text):
+    """True when a numbered paragraph is still part of the section it is in.
+
+    Parties and recitals are numbered too — the real files run parties `1.`–`3.`
+    and recitals `ก.`–`ง.` before the operative clauses restart at `1.` (§7) — so
+    "body once numbered clauses begin" cannot be taken literally or the front of
+    every contract becomes body. A paragraph carrying a cue for the zone we are
+    in, or an earlier one, holds where it is. This never *opens* a zone, so it
+    cannot resurrect the mid-sentence-mention bug.
+    """
+    order = ZONE_ORDER.get(current, ZONE_ORDER["definitions"])
+    if current == "definitions" and looks_like_definition(text):
+        return True
+    for zone, cues in ZONE_CUES:
+        if ZONE_ORDER[zone] > order:
+            continue
+        if any(cue in text for cue in cues):
+            return True
+    return False
+
+
+def next_zone(current, block, numbered, text):
     """-> the zone this block belongs to. Zones only move forward, except
-    between signature and annex, which real contracts interleave."""
+    between signature and annex, which real contracts interleave.
+
+    `text` is the paragraph with its clause number already taken off, so a cue
+    is tested against the words the drafter actually opened with.
+    """
     if block.get("kind") in MARGINAL_KINDS:
         return "unplaced"
-    candidate = cue_zone(block.get("text") or "")
-    if candidate is None and numbered:
-        candidate = "body"                          # body: default once numbers begin
+    candidate = cue_zone(text, is_heading_like(block, text))
+    if candidate is None and numbered and not holds_zone(current, text):
+        candidate = "body"                          # default once numbers begin
     if candidate is None:
         return current
     if current is None:
@@ -141,6 +228,7 @@ def segment(blocks):
     """
     clauses = []
     zone = None                                     # None until a rule fires
+    seen_zone = None                                # the zone of the block before
     open_clause = None
     heading = None                                  # current heading text
     heading_block = None                            # emitted if nothing used it
@@ -177,8 +265,17 @@ def segment(blocks):
             continue
 
         number, label, path, text = number_from_block(block)
-        zone = next_zone(zone, block, bool(number))
+        zone = next_zone(zone, block, bool(number), text)
         here = zone or "unplaced"
+
+        if here != seen_zone:
+            # A heading governs its own section only. Letting it run on would
+            # put "กฎหมายที่ใช้บังคับ" on the signature block and hand the
+            # clause-kind classifier a heading hit worth 3 for the wrong clause.
+            close()
+            flush_heading()
+            heading = None
+            seen_zone = here
 
         if kind == "heading":
             close()

@@ -19,8 +19,9 @@ import qc as qc_module
 
 PIPELINE_VERSION = "0.1.0"
 FREQ_LIMIT = 5000                                   # tokens per language in `freq`
-FREQ_SCOPE = ("excludes header/footer/footnote blocks and signature-zone "
-              "clauses, which repeat and would dominate every count")
+FREQ_SCOPE = ("excludes header/footer/footnote blocks, signature-zone clauses "
+              "and table rows (r), which repeat across matters and would "
+              "otherwise dominate every count")
 
 EN_STOPWORDS = [
     "the", "of", "and", "to", "in", "a", "or", "for", "is", "are", "be", "by",
@@ -46,8 +47,12 @@ EN_MONTHS = {name.lower(): i + 1 for i, name in enumerate(
      "September", "October", "November", "December"])}
 
 ISO_DATE = re.compile(r"\b(\d{4})-(\d{2})-(\d{2})\b")
-THAI_DATE = re.compile(r"([๐-๙0-9]{1,2})\s*(?:เดือน\s*)?([ก-ฮ][ก-ฮ\.]{1,11})\s*"
-                       r"(?:พ\.?ศ\.?\s*)?([๐-๙0-9]{4})")
+# Match the month names themselves: a Thai character class of consonants only
+# would miss มีนาคม, whose vowels sit outside it.
+THAI_DATE = re.compile(r"([๐-๙0-9]{1,2})\s*(?:เดือน\s*)?(" +
+                       "|".join(sorted((re.escape(m) for m in THAI_MONTHS),
+                                       key=len, reverse=True)) +
+                       r")\s*(?:พ\.?\s*ศ\.?\s*)?([๐-๙0-9]{4})")
 EN_DATE = re.compile(r"\b(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]+),?\s+(\d{4})\b")
 EN_DATE_MDY = re.compile(r"\b([A-Za-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})\b")
 
@@ -84,8 +89,13 @@ def find_date(text):
     return None
 
 
-PARTY_TH = re.compile(r"([^\s][^\n]{0,80}?)\s*ซึ่งต่อไปนี้(?:ใน(?:สัญญา|ข้อตกลง)นี้)?"
-                      r"(?:จะ)?เรียกว่า\s*[\"“']?\s*([^\"”'\n)]{1,40}?)\s*[\"”']?\s*[)\n,]")
+# "… ซึ่งต่อไปนี้เรียกว่า “ผู้ว่าจ้าง”" and its many variants — ซึ่งต่อไปในสัญญานี้
+# เรียกว่า, ซึ่งต่อไปนี้จะเรียกว่า, and so on. The defined term is quoted; the
+# unquoted form gets a second, stricter pattern.
+PARTY_TH = re.compile(r"([^\n]{0,90}?)\s*ซึ่งต่อไป[^\n]{0,24}?เรียกว่า\s*"
+                      r"[\"“‘']\s*([^\"”’'\n]{1,40}?)\s*[\"”’']")
+PARTY_TH_PLAIN = re.compile(r"([^\n]{0,90}?)\s*ซึ่งต่อไป[^\n]{0,24}?เรียกว่า\s*"
+                            r"([ก-๙A-Za-z]{2,30})")
 PARTY_EN = re.compile(r"([A-Z][^\n]{2,60}?)\s*\(\s*(?:the\s+)?[\"“']([^\"”']{2,40})[\"”']\s*\)")
 
 
@@ -93,7 +103,7 @@ def find_parties(text):
     """The document-level parties guess. Nothing more is extracted: the corpus
     is linguistic, not a deal database (DESIGN.md §5)."""
     parties, seen = [], set()
-    for pattern in (PARTY_TH, PARTY_EN):
+    for pattern in (PARTY_TH, PARTY_TH_PLAIN, PARTY_EN):
         for match in pattern.finditer(text):
             name = match.group(1).strip(" ,;:—-– ")
             role = match.group(2).strip()
@@ -122,16 +132,11 @@ def document_meta(doc, types):
     clauses = doc["clauses"]
     body = [c for c in clauses if not c.get("marginal")]
     title = None
-    for clause in body:
-        if clause.get("srcKind") == "heading":
-            title = (clause.get("h") or clause.get("t") or "").strip()
+    for clause in body:                             # the first clause with words
+        text = (clause.get("h") or clause.get("t") or "").strip()
+        if text:
+            title = text.split("\n")[0][:120]
             break
-    if not title:
-        for clause in body:
-            text = (clause.get("h") or clause.get("t") or "").strip()
-            if text:
-                title = text[:120]
-                break
     title = title or doc["id"]
 
     opening = "\n".join((c.get("h") or "") + "\n" + (c.get("t") or "")
@@ -159,12 +164,18 @@ def _language(text):
 
 def frequency(documents):
     """Corpus-wide token counts, per language, precomputed because it is the
-    expensive pass. Header, footer, footnote and signature clauses are left out:
-    they repeat on every page and would otherwise dominate every count (§3.1)."""
+    expensive pass.
+
+    Left out, so that the shipped table matches the browser's default wordlist:
+    headers, footers and footnotes (they repeat on every page); signature
+    clauses (pure names, §3.3); and table rows (`r`), which are structurally
+    identical across matters and would otherwise top every ranking with someone's
+    shareholding rather than with drafting language (§4.3)."""
     counts = {"th": {}, "en": {}}
     for doc in documents:
         for clause in doc["clauses"]:
-            if clause.get("marginal") or clause.get("z") == "signature":
+            if (clause.get("marginal") or clause.get("z") == "signature"
+                    or clause.get("srcKind") == "row"):
                 continue
             for token in clause.get("tokens") or []:
                 if not WORDLIKE.search(token):
@@ -201,6 +212,8 @@ def clause_record(clause, doc_index, count):
         record["g"] = clause["g"]
     if clause.get("q"):
         record["q"] = 1
+    if clause.get("srcKind") == "row":
+        record["r"] = 1                             # a table row, not prose (§4.3)
     return record
 
 

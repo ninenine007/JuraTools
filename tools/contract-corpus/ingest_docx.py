@@ -28,7 +28,7 @@ from docx_numbering import q
 
 INSTALL_HINT = (
     "    pip install pythainlp python-docx\n"
-    "Tested with python-docx 1.1.2 (see README.md)."
+    "Tested with python-docx 1.2.0 (see README.md)."
 )
 
 
@@ -55,6 +55,35 @@ def is_heading_style(style_name):
     """Any style whose name contains 'heading' — the real files use a custom
     `CenterHeading`, so `Heading 1`..`Heading 3` alone is not enough (§3.1)."""
     return bool(style_name and HEADING_STYLE.search(style_name))
+
+
+# A table of contents is generated furniture, not contract text. Three of the
+# supplied contracts carry one (TOCHeading + TOC1 x16/16/20), and each entry
+# reproduces a clause heading followed by its page number. Left in, a TOC does
+# two kinds of damage:
+#   - "เอกสารแนบท้าย 1. ตราสารโอนหุ้น 21" is heading-like and opens the annex zone
+#     at the FRONT of the document, so the whole operative agreement is
+#     misfiled as annex — measured: 196 annex vs 18 body clauses
+#   - every clause heading is duplicated, inflating frequency counts and
+#     manufacturing phantom recurring clauses in the clause library
+# Word marks them reliably, so detect them structurally rather than by guessing
+# at "line ending in a page number".
+TOC_STYLE = re.compile(r"^\s*toc", re.I)
+
+
+def is_toc_paragraph(el, style_name):
+    """True for a generated table-of-contents entry or its heading."""
+    if style_name and TOC_STYLE.search(style_name):
+        return True
+    for instr in el.iter(q("instrText")):
+        text = (instr.text or "").upper()
+        if " TOC " in text or text.strip().startswith("TOC") or "PAGEREF" in text:
+            return True
+    for fld in el.iter(q("fldSimple")):
+        instr = (fld.get(q("instr")) or "").upper()
+        if "TOC" in instr or "PAGEREF" in instr:
+            return True
+    return False
 
 
 def _style_name(el, document):
@@ -118,7 +147,10 @@ def _paragraph_block(el, document, walker, page):
     label, path = walker.label_for(el)
     style = _style_name(el, document)
     text = _text_of(el)
-    kind = "heading" if is_heading_style(style) else "para"
+    if is_toc_paragraph(el, style):
+        kind = "toc"
+    else:
+        kind = "heading" if is_heading_style(style) else "para"
     block = {"kind": kind, "text": text, "page": page, "conf": 1.0, "style": style}
     if label:
         block["num"] = {"nd": label, "p": path}
@@ -158,8 +190,13 @@ def _row_texts(tbl, document, walker, page):
 def _part_blocks(part, kind, page):
     """Header or footer part → blocks. These live outside the body, so they are
     not fed to the numbering walker."""
+    element = getattr(part, "_element", None)
+    if element is None:
+        element = getattr(part, "element", None)
+    if element is None:
+        return []
     blocks = []
-    for tag, el in _walk(part.element):
+    for tag, el in _walk(element):
         if tag == "p":
             text = _text_of(el)
             if text.strip():

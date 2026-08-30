@@ -11,13 +11,15 @@ qc over them, and checks the corpus against validate_corpus.py.
 
 No network, no fixtures on disk, nothing written outside a temporary directory.
 """
-import gzip
+import contextlib
+import io
 import json
 import os
 import shutil
 import sys
 import tempfile
 import unittest
+import warnings
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -92,7 +94,7 @@ def make_docx(path):
     _add_abstract(numbering, 901, [("thaiLetters", "%1.", 1)])              # recitals
     _add_abstract(numbering, 902, [("decimal", "%1.", 1),                   # operative
                                    ("decimal", "%1.%2.", 1),
-                                   ("decimal", "(%1)", 1)])
+                                   ("decimal", "(%3)", 1)])
     for num_id, abstract_id in ((900, 900), (901, 901), (902, 902)):
         _add_num(numbering, num_id, abstract_id)
 
@@ -108,6 +110,7 @@ def make_docx(path):
     document.add_paragraph("สัญญาจ้างทำของ", style="CenterHeading")
     document.add_paragraph(
         "สัญญาฉบับนี้ทำขึ้น ณ กรุงเทพมหานคร เมื่อวันที่ ๑๑ มีนาคม ๒๕๖๗")
+    document.add_paragraph("ระหว่าง")
     _number(document.add_paragraph(
         "บริษัท ก จำกัด สำนักงานตั้งอยู่เลขที่ ๑ ถนนสาทร ซึ่งต่อไปนี้เรียกว่า “ผู้ว่าจ้าง” ฝ่ายหนึ่ง"),
         900, 0)
@@ -164,7 +167,8 @@ def make_azure(path):
         ("สัญญาไม่เปิดเผยข้อมูล / Non-Disclosure Agreement", "title", 1, 0.99),
         ("สัญญาจ้างทำของ — ฉบับลงนาม", "pageHeader", 1, 0.99),
         ("สัญญาฉบับนี้ทำขึ้นที่กรุงเทพมหานคร เมื่อวันที่ ๒ พฤศจิกายน ๒๕๖๖", None, 1, 0.98),
-        ("ระหว่าง บริษัท ค จำกัด ซึ่งต่อไปนี้เรียกว่า “ผู้เปิดเผยข้อมูล” ฝ่ายหนึ่ง", None, 1, 0.97),
+        ("ระหว่าง", None, 1, 0.99),
+        ("บริษัท ค จำกัด ซึ่งต่อไปนี้เรียกว่า “ผู้เปิดเผยข้อมูล” ฝ่ายหนึ่ง", None, 1, 0.97),
         ("ข้อ ๑ คำนิยาม", "sectionHeading", 1, 0.99),
         ("๑.๑ “ข้อมูลอันเป็นความลับ” หมายความว่า ข้อมูลใด ๆ ที่ผู้เปิดเผยข้อมูลส่งมอบให้แก่ผู้รับข้อมูล",
          None, 1, 0.96),
@@ -200,7 +204,7 @@ def make_azure(path):
         offset += len(text) + 1                     # the "\n" between paragraphs
         return span
 
-    for text, role, page, confidence in items[:8]:
+    for text, role, page, confidence in items[:9]:
         span = emit(text, page, confidence)
         para = {"content": text, "spans": [span],
                 "boundingRegions": [{"pageNumber": page, "polygon": [0, 0, 1, 0, 1, 1, 0, 1]}]}
@@ -223,7 +227,7 @@ def make_azure(path):
              "spans": [{"offset": table_start, "length": offset - table_start}],
              "boundingRegions": [{"pageNumber": 1, "polygon": []}]}
 
-    for text, role, page, confidence in items[8:]:
+    for text, role, page, confidence in items[9:]:
         span = emit(text, page, confidence)
         para = {"content": text, "spans": [span],
                 "boundingRegions": [{"pageNumber": page, "polygon": []}]}
@@ -264,6 +268,7 @@ class PipelineTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
         cls.tmp = tempfile.mkdtemp(prefix="jtcorpus-test-")
         cls.raw = os.path.join(cls.tmp, "raw")
         cls.azure = os.path.join(cls.tmp, "azure")
@@ -368,6 +373,23 @@ class PipelineTest(unittest.TestCase):
         headings = [c for c in azure if c.get("srcKind") == "heading"]
         self.assertTrue(any("การรักษาความลับ" in (c.get("h") or "") for c in headings))
 
+    def test_docx_headers_and_footers_are_read(self):
+        """They repeat on every page, so they are marked and kept out of the
+        frequency table — but they are still in the corpus."""
+        kinds = {b["kind"] for b in self.blocks["2567-svc-014"]}
+        self.assertIn("header", kinds)
+        self.assertIn("footer", kinds)
+        marginal = [c for c in self.segmented["2567-svc-014"]["clauses"] if c.get("marginal")]
+        self.assertEqual(len(marginal), 2)
+        self.assertTrue(all(c["z"] == "unplaced" for c in marginal))
+
+    def test_a_heading_does_not_leak_past_its_zone(self):
+        """A section heading must not follow the text into the signature block,
+        where it would hand the kind classifier a heading hit worth 3."""
+        for clause in self.corpus["clauses"]:
+            if clause["z"] in ("signature", "annex"):
+                self.assertIsNone(clause["h"])
+
     def test_azure_cell_paragraphs_are_not_emitted_twice(self):
         texts = [c["t"] for c in self.segmented["2566-nda-002"]["clauses"]]
         self.assertEqual(sum(1 for t in texts if "แผนธุรกิจและงบการเงิน" in t), 1)
@@ -424,8 +446,42 @@ class PipelineTest(unittest.TestCase):
 
     def test_zones_are_assigned(self):
         zones = {c["z"] for c in self.corpus["clauses"]}
-        for expected in ("preamble", "parties", "body", "signature", "unplaced"):
+        for expected in ("preamble", "parties", "definitions", "body",
+                         "signature", "annex", "unplaced"):
             self.assertIn(expected, zones)
+
+    def test_a_mention_of_an_annex_does_not_open_the_annex_zone(self):
+        """Regression from the real contracts (§7): a cue mid-sentence in a long
+        paragraph used to open a zone that then swallowed everything after it."""
+        clauses = self.segmented["2567-svc-014"]["clauses"]
+        mention = next(i for i, c in enumerate(clauses)
+                       if "ในเอกสารแนบท้าย" in c["t"] and len(c["t"]) > 60)
+        self.assertNotEqual(clauses[mention]["z"], "annex")
+        after = clauses[mention + 1:]
+        self.assertTrue(any(c["z"] == "body" for c in after),
+                        "the clauses after it must still reach the body zone")
+        real_annex = [c for c in clauses if c["z"] == "annex"]
+        self.assertTrue(all(c["t"].startswith("เอกสารแนบท้าย") for c in real_annex))
+
+    def test_definitions_zone_survives_its_numbered_entries(self):
+        clauses = self.segmented["2567-svc-014"]["clauses"]
+        entry = next(c for c in clauses if "หมายความว่า" in c["t"])
+        self.assertEqual(entry["z"], "definitions")
+
+    def test_table_rows_are_flagged(self):
+        """`r` keeps someone's shareholding out of the house-standard views."""
+        rows = [c for c in self.corpus["clauses"] if c.get("r")]
+        self.assertTrue(rows)
+        self.assertTrue(all(" | " in c["t"] for c in rows))
+        for clause in self.corpus["clauses"]:
+            if " | " not in clause["t"]:
+                self.assertNotIn("r", clause)
+
+    def test_rows_stay_out_of_the_frequency_table(self):
+        th = dict(self.corpus["freq"]["th"])
+        row_only = "คู่มือ"                          # only ever in a table cell here
+        self.assertTrue(any(row_only in c["t"] for c in self.corpus["clauses"] if c.get("r")))
+        self.assertNotIn(row_only, th)
 
     def test_signature_clauses_are_indexed_not_deleted(self):
         signature = [c for c in self.corpus["clauses"] if c["z"] == "signature"]
@@ -499,9 +555,12 @@ class PipelineTest(unittest.TestCase):
         try:
             out = os.path.join(work, "corpus.jtcorpus.json")
             base = ["--in", self.raw, "--azure", self.azure, "--work", work, "--out", out]
+            printed = io.StringIO()
             for stage in pipeline.STAGES:
-                code = pipeline.main(["--stage", stage] + base)
+                with contextlib.redirect_stdout(printed):
+                    code = pipeline.main(["--stage", stage] + base)
                 self.assertEqual(code, 0, "stage %s exited %s" % (stage, code))
+            self.assertIn("manifest.csv", printed.getvalue())
             corpus = validate_corpus.load(out)       # uncompressed also loads (§4)
             self.assertEqual(validate_corpus.validate(corpus), [])
             self.assertEqual(corpus["stats"]["clauses"], self.corpus["stats"]["clauses"])
@@ -516,8 +575,8 @@ class PipelineTest(unittest.TestCase):
                      "import socket", "import http", "from http",
                      "httpx", "aiohttp", "urlopen", "DocumentIntelligence")
         for name in sorted(os.listdir(HERE)):
-            if not name.endswith(".py"):
-                continue
+            if not name.endswith(".py") or name == os.path.basename(__file__):
+                continue                            # this file holds the needles
             with open(os.path.join(HERE, name), encoding="utf-8") as handle:
                 source = handle.read()
             for needle in forbidden:

@@ -13,7 +13,7 @@ import re
 
 INSTALL_HINT = (
     "    pip install pythainlp python-docx\n"
-    "Tested with pythainlp 5.3.7 and python-docx 1.1.2 (see README.md)."
+    "Tested with pythainlp 5.3.7 and python-docx 1.2.0 (see README.md)."
 )
 
 
