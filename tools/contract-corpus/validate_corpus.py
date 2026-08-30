@@ -12,7 +12,7 @@ import gzip, json, sys
 
 ZONES = {"preamble", "parties", "definitions", "body", "signature", "annex", "unplaced"}
 LANGS = {"th", "en", "mixed"}
-CLAUSE_KEYS = {"d", "n", "nd", "p", "z", "k", "l", "h", "t", "b", "g", "u", "q", "a"}
+CLAUSE_KEYS = {"d", "n", "nd", "p", "z", "k", "l", "h", "t", "b", "g", "u", "q", "r", "a"}
 
 
 def load(path):

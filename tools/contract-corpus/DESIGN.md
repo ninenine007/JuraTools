@@ -355,6 +355,20 @@ Keys are terse because this array dominates the file size.
 | `g` | source page number |
 | `u` | corpus-wide count of this clause's normalized text (`dup`) |
 | `q` | `1` when the source block carried a QC flag, else absent |
+| `r` | `1` when the clause came from a **table row** rather than prose, else absent |
+
+**Why `r` exists.** Running the pipeline over eight real contracts, the
+most-recurring clauses in the whole corpus were not drafting language at all —
+they were shareholder table rows (`name | shares | %`), recurring across seven
+documents. Table rows are structurally identical across matters, so they
+dominate any frequency or recurrence ranking, and they are also the most
+name-dense content in the corpus.
+
+So the row/prose distinction must survive ingest. The clause library, wordlist
+and collocation views exclude `r` by default — visibly and reversibly, with the
+excluded count stated, per §1.4 — because a "house standard" list topped by
+someone's shareholding is useless. Concordance search still covers rows, since
+finding a figure in a table is a legitimate thing to want.
 
 **`b` encoding.** Space-separated **deltas** between token start offsets, as one
 string: `"0 2 5 6 3"` means tokens start at 0, 2, 7, 13, 16. The final token ends

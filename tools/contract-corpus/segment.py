@@ -19,14 +19,11 @@ counted and reported by QC instead of vanishing unremarked.
 import re
 
 import nlp
+from docx_numbering import THAI_DIGITS, parse_label
 
 # ── Clause numbers ───────────────────────────────────────────────────────────
 
 CLAUSE = re.compile(r"^\s*(?:ข้อ\s*)?([๐-๙0-9]+(?:[.ฯ][๐-๙0-9]+)*)\s*[.)]?\s+(?=\S)")
-
-THAI_DIGITS = "๐๑๒๓๔๕๖๗๘๙"
-THAI_LETTER_ORDER = "กขคงจฉชซฌญฎฏฐฑฒณดตถทธนบปผฝพฟภมยรลวศษสหฬอฮ"
-DECORATION = re.compile(r"^[\s(\[<“\"']+|[\s)\]>”\"'.]+$")
 
 
 def arabic(text):
@@ -34,52 +31,28 @@ def arabic(text):
     return "".join(str(THAI_DIGITS.index(ch)) if ch in THAI_DIGITS else ch for ch in text)
 
 
-def normalized_number(label):
-    """Word's label → `n`: dot-joined, Arabic digits, Thai letters kept as
-    letters ("1.2.1." → "1.2.1", "(ก)" → "ก", "๕.๒" → "5.2")."""
-    if not label:
-        return None
-    parts = [DECORATION.sub("", part) for part in re.split(r"[.ฯ]", label)]
-    parts = [arabic(part) for part in parts if part]
-    return ".".join(parts) or None
-
-
-def ordinal_path(number):
-    """`n` → `p`, the ordinal at each level. Thai letters become their position
-    in the alphabet, which is what sorts correctly (§4.3)."""
-    path = []
-    for part in (number or "").split("."):
-        if not part:
-            continue
-        if part.isdigit():
-            path.append(int(part))
-        elif part[0] in THAI_LETTER_ORDER:
-            path.append(THAI_LETTER_ORDER.index(part[0]) + 1)
-        elif part[0].isalpha() and part[0].lower() in "abcdefghijklmnopqrstuvwxyz":
-            path.append(ord(part[0].lower()) - 96)
-        else:
-            return []
-    return path
-
-
 def number_from_block(block):
     """-> (n, nd, p, text) — the block's clause number and its remaining text.
 
-    The walker's label wins; the regex is the fallback, and only then is a
+    `docx_numbering.parse_label` does the reading on both paths, so `n` and `p`
+    mean the same thing whichever ingester produced the block. It parses the
+    rendered label rather than counting levels, because drafters type the parent
+    number straight into lvlText (`5.%1.` at level 0 reads as 5.1, path [5,1]).
+
+    The walker's label wins; the text regex is the fallback, and only then is a
     literal prefix stripped out of the text.
     """
     text = block.get("text") or ""
     num = block.get("num")
     if num and num.get("nd"):
         label = num["nd"]
-        number = normalized_number(label)
-        path = num.get("p") or ordinal_path(number)
-        return number, label, list(path), text
+        number, parsed = parse_label(label)
+        return number, label, list(num.get("p") or parsed), text
     match = CLAUSE.match(text)
     if match and block.get("kind") in ("para", "heading"):
         label = match.group(1)
-        number = normalized_number(label)
-        return number, label, ordinal_path(number), text[match.end():]
+        number, path = parse_label(label)
+        return number, label, path, text[match.end():]
     return None, None, [], text
 
 

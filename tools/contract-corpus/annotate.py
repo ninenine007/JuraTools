@@ -26,6 +26,12 @@ THRESHOLD = 2
 
 DIGITS = re.compile(r"[0-9๐-๙]+")
 WHITESPACE = re.compile(r"\s+")
+# Template clauses differ only in what was filled in. Two share pledge
+# agreements drafted for different parties share 80% of their substantive
+# paragraphs once digits and bracketed blanks are normalised away (DESIGN.md
+# §7), so these three substitutions are what make `u` a real signal.
+BRACKETED = re.compile(r"[\[\uff3b][^\]\uff3d]{0,120}[\]\uff3d]")
+BLANKS = re.compile(r"[._\u2024\u2026\u00b7\-\u2013\u2014\uff0e]{3,}")
 
 
 # ── Lexicons ─────────────────────────────────────────────────────────────────
@@ -154,14 +160,16 @@ def classify(heading, text, kinds):
 # ── Dedup key (§3.4) ─────────────────────────────────────────────────────────
 
 def dedup_key(clause):
-    """Cleaned text with digits and whitespace collapsed.
+    """Cleaned text with digits, bracketed blanks and whitespace collapsed.
 
     A clause with no body text of its own — a section heading with its
     substance in numbered sub-clauses — is keyed on its heading, so identical
     headings count together and empty strings do not all pile into one bucket.
     """
     text = clause.get("t") or clause.get("h") or ""
-    text = DIGITS.sub("0", text)
+    text = BRACKETED.sub("[]", text)                # [ชื่อคู่สัญญา] → []
+    text = BLANKS.sub("…", text)                    # ................ → …
+    text = DIGITS.sub("0", text)                    # ๑๐๐,๐๐๐ → 0,0
     return WHITESPACE.sub(" ", text).strip()
 
 

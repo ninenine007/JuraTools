@@ -1,0 +1,2297 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f2f2f7">
+<title>Contract Concordance — Corpus Tools | JuraTools</title>
+<meta name="description" content="Search your own executed contracts as a linguistic corpus: keyword in context, clause library, collocations and a wordlist. Everything runs in your browser; nothing is uploaded.">
+<style>
+/* ── Tokens ─────────────────────────────────────────────── */
+:root {
+  --ink:#1c1c1e; --ink-2:#3c3c43; --muted:#6e6e73; --faint:#a1a1a6;
+  --line:rgba(0,0,0,0.08); --line-soft:rgba(0,0,0,0.05); --line-hard:rgba(0,0,0,0.16);
+  --accent:#92400e; --accent-dark:#7c3407; --accent-mid:#b45309;
+  --accent-light:#fdf6ec; --accent-border:#ead6b8; --accent-tint:rgba(146,64,14,0.10);
+  --green:#15803d; --green-light:#f0fdf4; --green-border:#bbf7d0;
+  --amber:#92400e; --amber-light:#fffbeb; --amber-border:#fde68a;
+  --rose:#be123c; --rose-light:#fff1f2; --rose-border:#fecdd3;
+  --info:#0369a1; --info-light:#f0f9ff; --info-border:#bae6fd;
+  --card-bg:rgba(255,255,255,0.82);
+  --radius:16px; --radius-sm:10px; --radius-xs:7px;
+  --shadow:0 1px 1px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06);
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","Segoe UI","Noto Sans Thai",sans-serif;
+  --thai:-apple-system,BlinkMacSystemFont,"SF Pro Text","Noto Sans Thai","Sarabun","Segoe UI",sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+}
+* { box-sizing:border-box; }
+[hidden] { display:none !important; }
+html, body { margin:0; height:100%; }
+body {
+  display:flex; flex-direction:column; overflow:hidden;
+  color:var(--ink); font:13px/1.45 var(--sans); -webkit-font-smoothing:antialiased;
+  background:#f2f2f7;
+  background-image:
+    radial-gradient(ellipse 1100px 700px at 8% 0%,    rgba(234,208,178,0.46) 0%, transparent 60%),
+    radial-gradient(ellipse  700px 700px at 96% 6%,   rgba(226,232,240,0.55) 0%, transparent 58%),
+    radial-gradient(ellipse  800px 600px at 0% 94%,   rgba(215,222,232,0.42) 0%, transparent 58%),
+    radial-gradient(ellipse  900px 520px at 100% 98%, rgba(240,219,196,0.40) 0%, transparent 58%);
+  background-attachment:fixed;
+}
+button, input, select, textarea { font:inherit; color:inherit; }
+button, select, input[type=checkbox], input[type=range] { cursor:pointer; }
+button:disabled, select:disabled, input:disabled { cursor:not-allowed; opacity:.5; }
+a { color:var(--accent); text-decoration:none; }
+h1, h2, h3, p { margin-top:0; }
+.muted { color:var(--muted); }
+.num, .tab-num { font-variant-numeric:tabular-nums; }
+:focus-visible { outline:3px solid rgba(146,64,14,0.28); outline-offset:2px; border-radius:4px; }
+::selection { background:#f6e3cb; color:#4a1f04; }
+* { scrollbar-width:thin; scrollbar-color:#c9c5bf transparent; }
+.th { font-family:var(--thai); }
+.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+
+/* ── Nav ────────────────────────────────────────────────── */
+.nav {
+  flex:0 0 auto; height:52px; display:flex; align-items:center; gap:11px; padding:0 20px;
+  background:rgba(242,242,247,0.82); backdrop-filter:blur(24px) saturate(200%);
+  -webkit-backdrop-filter:blur(24px) saturate(200%); border-bottom:1px solid var(--line); z-index:30;
+}
+.nav a { color:inherit; }
+.nav-brand { display:flex; align-items:center; gap:9px; flex-shrink:0; }
+.nav-icon {
+  width:30px; height:30px; border-radius:7px; display:grid; place-items:center; font-size:15px;
+  background:linear-gradient(145deg, #b45309, #78350f);
+  box-shadow:0 2px 6px rgba(146,64,14,0.38), inset 0 1px 0 rgba(255,255,255,0.22);
+}
+.nav-wordmark { font-size:15px; font-weight:700; letter-spacing:-0.4px; color:var(--accent-dark); }
+.nav-sep { color:#c7c7cc; }
+.nav-crumb { font-size:14px; font-weight:500; color:var(--muted); }
+.nav-crumb.current { color:var(--ink); font-weight:600; }
+.nav-back {
+  margin-left:auto; display:inline-flex; align-items:center; gap:5px; font-size:13px; font-weight:500;
+  color:var(--ink-2); background:rgba(0,0,0,0.055); border:1px solid rgba(0,0,0,0.1);
+  padding:6px 12px; border-radius:9px; transition:background .14s;
+}
+.nav-back:hover { background:rgba(0,0,0,0.09); }
+
+/* ── Header + corpus bar ────────────────────────────────── */
+header { flex:0 0 auto; padding:14px 20px 8px; display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
+header h1 {
+  font-size:23px; font-weight:800; letter-spacing:-0.7px; line-height:1.1; margin:0;
+  background:linear-gradient(135deg, #1c1c1e 0%, #92400e 62%, #b45309 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+}
+header .th-title { font-family:var(--thai); font-size:15px; font-weight:600; color:var(--accent-dark); }
+header .scope { font-size:12.5px; color:var(--muted); margin:0; flex:1 1 300px; min-width:220px; }
+
+#corpusBar {
+  flex:0 0 auto; margin:0 20px 10px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  padding:9px 14px; background:var(--card-bg); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+  border:1px solid rgba(255,255,255,0.9); border-radius:12px; box-shadow:var(--shadow);
+}
+#corpusName { font-weight:650; font-size:13px; display:flex; align-items:center; gap:7px; }
+#corpusName .dot { width:8px; height:8px; border-radius:50%; background:var(--faint); flex:0 0 auto; }
+#corpusName.loaded .dot { background:var(--green); }
+#corpusStats { font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; }
+#corpusStats b { color:var(--ink-2); font-weight:650; }
+.corpus-actions { margin-left:auto; display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
+#corpusPicker { max-width:210px; }
+
+/* ── Buttons & controls ─────────────────────────────────── */
+.btn {
+  display:inline-flex; align-items:center; gap:5px; background:#fff; border:1px solid var(--line);
+  border-radius:8px; padding:7px 13px; font-size:12.5px; font-weight:550; color:var(--ink-2);
+  transition:background .14s, border-color .14s, color .14s;
+}
+.btn:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
+.btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+.btn.primary:hover:not(:disabled) { background:var(--accent-dark); border-color:var(--accent-dark); color:#fff; }
+.btn.soft { background:var(--accent-light); border-color:var(--accent-border); color:var(--accent-dark); }
+.btn.danger:hover:not(:disabled) { border-color:var(--rose); color:var(--rose); background:var(--rose-light); }
+.btn.copied { background:var(--accent); border-color:var(--accent); color:#fff; }
+.btn.small { padding:4px 9px; font-size:11.5px; border-radius:7px; }
+input[type=text], input[type=number], input[type=search], select {
+  width:100%; padding:7px 9px; border:1px solid var(--line); border-radius:8px; background:#fff;
+  font-size:13px; color:var(--ink); outline:none; transition:border-color .15s, box-shadow .15s;
+}
+input[type=number] { font-variant-numeric:tabular-nums; }
+input:focus, select:focus, textarea:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(146,64,14,0.13); }
+select { appearance:none; -webkit-appearance:none; padding-right:26px;
+  background-image:linear-gradient(45deg,transparent 50%,#8a8a8e 50%),linear-gradient(135deg,#8a8a8e 50%,transparent 50%);
+  background-position:calc(100% - 14px) 52%, calc(100% - 9px) 52%; background-size:5px 5px,5px 5px; background-repeat:no-repeat; }
+label { display:block; font-size:11px; font-weight:600; color:var(--muted); margin-bottom:4px;
+  text-transform:uppercase; letter-spacing:0.04em; }
+.field { margin-bottom:11px; }
+.field:last-child { margin-bottom:0; }
+.field-row { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+.check-row { display:flex; align-items:center; gap:7px; font-size:12.5px; }
+.check-row label { margin:0; text-transform:none; letter-spacing:0; font-size:12.5px; font-weight:500; color:var(--ink-2); }
+input[type=checkbox] { width:15px; height:15px; accent-color:var(--accent); flex:0 0 auto; }
+input[type=range] { width:100%; accent-color:var(--accent); }
+
+/* ── Workbench shell ────────────────────────────────────── */
+main.app {
+  flex:1 1 auto; min-height:0; display:grid; gap:12px;
+  grid-template-columns:290px minmax(430px,1fr) 330px; padding:0 20px 10px;
+}
+.pane {
+  min-width:0; min-height:0; display:flex; flex-direction:column; overflow:hidden;
+  background:var(--card-bg); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+  border:1px solid rgba(255,255,255,0.9); border-radius:var(--radius); box-shadow:var(--shadow);
+}
+#paneResults { background:rgba(255,255,255,0.9); }
+.pane-head {
+  flex:0 0 auto; padding:11px 14px 9px; border-bottom:1px solid var(--line-soft);
+  display:flex; align-items:center; gap:8px;
+}
+.pane-head h2 { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--muted); margin:0; }
+.pane-scroll { flex:1 1 auto; min-height:0; overflow:auto; padding:12px 14px 16px; }
+.section { border-bottom:1px solid var(--line-soft); padding-bottom:12px; margin-bottom:12px; }
+.section:last-child { border-bottom:0; margin-bottom:0; padding-bottom:0; }
+.section-title { font-size:10.5px; font-weight:750; letter-spacing:0.07em; text-transform:uppercase;
+  color:var(--muted); margin:0 0 8px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+
+/* ── Filter pane ────────────────────────────────────────── */
+#subcorpusSummary { border:1px solid var(--accent-border); background:var(--accent-light); border-radius:var(--radius-sm);
+  padding:10px 11px; font-size:12px; line-height:1.55; color:#5c3208; }
+#subcorpusSummary .big { display:block; font-size:16px; font-weight:750; color:var(--accent-dark);
+  font-variant-numeric:tabular-nums; letter-spacing:-0.3px; margin-bottom:3px; }
+#subcorpusSummary ul { margin:6px 0 0; padding-left:16px; }
+#subcorpusSummary li { margin:1px 0; }
+#subcorpusSummary .none { color:#7a6a52; }
+.roadmap { margin-top:12px; border:1px dashed var(--line-hard); border-radius:var(--radius-sm); padding:9px 10px;
+  font-size:11px; line-height:1.55; color:var(--muted); }
+.roadmap b { color:var(--ink-2); }
+
+/* ── Mode tabs + query bar ──────────────────────────────── */
+#modeTabs { flex:0 0 auto; display:flex; gap:3px; padding:6px 8px 0; }
+#modeTabs button {
+  flex:1; border:0; background:transparent; border-radius:9px 9px 0 0; padding:9px 6px 8px;
+  font-size:12px; font-weight:650; color:var(--muted); border-bottom:2px solid transparent;
+}
+#modeTabs button:hover { color:var(--accent); }
+#modeTabs button.active { color:var(--accent); background:var(--accent-light); border-bottom-color:var(--accent); }
+#queryBar { flex:0 0 auto; padding:10px 12px; border-bottom:1px solid var(--line-soft);
+  display:grid; gap:8px; grid-template-columns:minmax(150px,2.1fr) 118px 132px minmax(120px,1.2fr) auto; align-items:end; }
+#queryBar .qf { min-width:0; }
+#queryBar label { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#queryInput { font-family:var(--thai); font-size:14px; }
+.width-row { display:flex; align-items:center; gap:7px; }
+.width-row output { font-size:12px; font-weight:650; color:var(--accent-dark); font-variant-numeric:tabular-nums; min-width:26px; text-align:right; }
+#runBtn { height:32px; }
+.opt-row { grid-column:1/-1; display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:-2px; }
+
+/* ── Result head ────────────────────────────────────────── */
+#resultHead { flex:0 0 auto; padding:9px 14px; border-bottom:1px solid var(--line-soft);
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:12px; }
+#resultHead .counts { display:flex; gap:12px; align-items:baseline; flex-wrap:wrap; }
+#resultHead .count-n { font-size:16px; font-weight:750; letter-spacing:-0.3px; font-variant-numeric:tabular-nums; }
+#resultHead .count-l { color:var(--muted); font-size:11.5px; }
+#resultHead .sub-line { flex:1 1 100%; color:var(--muted); font-size:11.5px; line-height:1.5; }
+.pill { border:1px solid var(--line); background:#fff; color:var(--muted); border-radius:999px;
+  padding:3px 9px; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; white-space:nowrap; }
+.pill.warn { color:var(--amber); background:var(--amber-light); border-color:var(--amber-border); }
+#resultHead.stale .pill.stale-pill { display:inline-block; }
+.pill.stale-pill { display:none; }
+.chips { display:flex; gap:5px; flex-wrap:wrap; }
+.chip { border:1px solid var(--line); border-radius:999px; background:#fff; padding:3px 10px; font-size:11px;
+  color:var(--muted); font-variant-numeric:tabular-nums; }
+.chip:hover { border-color:var(--accent); color:var(--accent); }
+.chip.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+.chip.removable::after { content:" ✕"; opacity:.65; }
+
+/* ── Result body ────────────────────────────────────────── */
+#resultBody { flex:1 1 auto; min-height:0; overflow:auto; }
+.tbl-wrap { width:100%; height:100%; overflow:auto; }
+#resultMore { flex:0 0 auto; padding:9px 14px; border-top:1px solid var(--line-soft);
+  display:flex; align-items:center; gap:10px; font-size:11.5px; color:var(--muted); }
+#resultMore .grow { margin-left:auto; }
+.empty { padding:34px 26px; text-align:center; color:var(--muted); max-width:560px; margin:0 auto; }
+.empty h3 { font-size:15px; color:var(--ink); margin:0 0 7px; }
+.empty p { font-size:12.5px; line-height:1.6; margin:0 0 9px; }
+.empty code { font-family:var(--mono); font-size:11.5px; background:rgba(0,0,0,0.05); padding:2px 5px; border-radius:4px; }
+
+/* ── KWIC ───────────────────────────────────────────────── */
+table.kwic { border-collapse:collapse; font-size:13.5px; width:100%; }
+table.kwic th {
+  position:sticky; top:0; z-index:2; background:#faf8f5; border-bottom:1px solid var(--line);
+  font-size:10px; font-weight:750; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted);
+  padding:7px 8px; text-align:left; white-space:nowrap;
+}
+table.kwic th[data-sort] { cursor:pointer; }
+table.kwic th[data-sort]:hover { color:var(--accent); }
+table.kwic th.sorted { color:var(--accent); }
+table.kwic th.sorted::after { content:" ▾"; }
+table.kwic td { padding:5px 8px; border-bottom:1px solid var(--line-soft); vertical-align:middle; }
+table.kwic tr:hover td { background:rgba(146,64,14,0.045); }
+table.kwic tr.sel td { background:var(--accent-light); }
+table.kwic tr.flagged td.k-ref::before { content:"⚑ "; color:var(--amber); }
+table.kwic tr.changed td.k-ref::after { content:" ✎"; color:var(--accent); }
+/* The three context columns. The node column keeps a fixed x-position across
+   every row: that vertical alignment is the analytical value of a concordance. */
+td.k-ref { width:1%; max-width:168px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums; }
+td.k-left, td.k-node, td.k-right { font-family:var(--thai); line-height:2.15; white-space:nowrap; }
+td.k-left { text-align:right; padding-right:0; }
+td.k-node { text-align:center; padding:5px 9px; }
+td.k-right { text-align:left; padding-left:0; }
+td.k-node mark { background:var(--accent-tint); color:var(--accent-dark); font-weight:650;
+  border-radius:4px; padding:1px 3px; box-shadow:inset 0 -1.5px 0 rgba(146,64,14,0.35); }
+.trunc { color:var(--faint); }
+
+/* ── Library ────────────────────────────────────────────── */
+#libraryList { padding:10px 12px; display:grid; gap:9px; }
+.lib-card { border:1px solid var(--line); border-radius:var(--radius-sm); background:#fff; padding:10px 12px; }
+.lib-card:hover { border-color:var(--accent-border); }
+.lib-card.sel { border-color:var(--accent); box-shadow:0 0 0 2px rgba(146,64,14,0.12); }
+.lib-card.pinned { background:var(--accent-light); }
+.lib-top { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; margin-bottom:5px; }
+.lib-h { font-weight:680; font-size:13px; font-family:var(--thai); flex:1 1 200px; min-width:0; }
+.lib-num { font-size:11.5px; color:var(--accent-dark); font-weight:700; font-family:var(--thai); }
+.lib-u { border:1px solid var(--accent-border); background:var(--accent-light); color:var(--accent-dark);
+  border-radius:999px; padding:2px 8px; font-size:10.5px; font-weight:750; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.lib-meta { font-size:11px; color:var(--muted); display:flex; gap:8px; flex-wrap:wrap; margin-bottom:5px; }
+.lib-text { font-family:var(--thai); font-size:12.5px; line-height:1.95; color:var(--ink-2); }
+.lib-card.changed .lib-num::after { content:" ✎"; color:var(--accent); }
+.lib-card.flagged .lib-meta::before { content:"⚑"; color:var(--amber); }
+
+/* ── Data tables (collocation / wordlist) ───────────────── */
+table.data { border-collapse:collapse; font-size:12.5px; width:100%; }
+table.data th { position:sticky; top:0; z-index:2; background:#faf8f5; border-bottom:1px solid var(--line);
+  font-size:10px; font-weight:750; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted);
+  padding:7px 9px; text-align:left; white-space:nowrap; }
+table.data th[data-sort] { cursor:pointer; }
+table.data th[data-sort]:hover, table.data th.sorted { color:var(--accent); }
+table.data th.sorted::after { content:" ▾"; }
+table.data td { padding:5px 9px; border-bottom:1px solid var(--line-soft); }
+table.data td.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+table.data tr:hover td { background:rgba(146,64,14,0.045); }
+table.data .w { font-family:var(--thai); font-size:13.5px; line-height:1.9; }
+table.data button.linkish { border:0; background:transparent; color:var(--accent-dark); font-weight:650;
+  padding:0; text-align:left; font-family:var(--thai); font-size:13.5px; line-height:1.9; }
+table.data button.linkish:hover { text-decoration:underline; }
+.stopword { color:var(--faint); }
+
+/* ── Compare view ───────────────────────────────────────── */
+#compareView { flex:0 0 auto; border-top:1px solid var(--line); background:#fbf9f6; padding:10px 12px; max-height:38%; overflow:auto; }
+#compareView .cmp-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+#compareView .cmp-col { border:1px solid var(--accent-border); border-radius:var(--radius-sm); background:#fff; padding:9px 10px; }
+#compareView .cmp-col h4 { margin:0 0 5px; font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--accent-dark); }
+#compareView .cmp-text { font-family:var(--thai); font-size:12.5px; line-height:1.95; }
+#compareView .cmp-head { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+#compareView .cmp-head strong { font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); }
+
+/* ── Detail pane ────────────────────────────────────────── */
+#detailClause .dc-text { font-family:var(--thai); font-size:13px; line-height:2.05; white-space:pre-wrap;
+  border:1px solid var(--line); border-radius:var(--radius-sm); background:#fff; padding:10px 11px; }
+#detailClause .dc-head { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; margin-bottom:7px; }
+#detailClause .dc-num { font-weight:750; color:var(--accent-dark); font-family:var(--thai); font-size:14px; }
+#detailClause .dc-h { font-weight:650; font-family:var(--thai); font-size:13px; }
+.kv { display:grid; grid-template-columns:auto 1fr; gap:3px 10px; font-size:12px; }
+.kv dt { color:var(--muted); white-space:nowrap; }
+.kv dd { margin:0; font-family:var(--thai); overflow-wrap:anywhere; }
+.qc-flags { display:flex; gap:5px; flex-wrap:wrap; margin-top:7px; }
+.flagbox { border:1px solid var(--amber-border); background:var(--amber-light); color:var(--amber);
+  border-radius:6px; padding:2px 7px; font-size:10.5px; font-weight:650; }
+.flagbox.ok { border-color:var(--green-border); background:var(--green-light); color:var(--green); }
+.detail-kind-row { display:flex; align-items:center; gap:7px; }
+.detail-kind-row select { flex:1 1 auto; }
+#detailKindReset {
+  flex:0 0 auto; width:30px; height:30px; display:grid; place-items:center; border-radius:8px;
+  border:1px solid transparent; background:transparent; color:var(--faint); font-size:14px;
+  cursor:default; opacity:.4; transition:opacity .14s, color .14s, background .14s;
+}
+.detail-kind-row.changed #detailKindReset { cursor:pointer; opacity:1; color:var(--accent); background:var(--accent-light); border-color:var(--accent-border); }
+.detail-kind-row.changed #detailKindReset:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
+.override-note { font-size:11px; color:var(--amber); background:var(--amber-light); border:1px solid var(--amber-border);
+  border-radius:6px; padding:6px 8px; margin-top:7px; line-height:1.5; }
+.nb-row { display:grid; gap:6px; }
+.nb { border:1px solid var(--line); border-radius:var(--radius-xs); background:#fff; padding:7px 9px; text-align:left; width:100%; }
+.nb:hover:not(:disabled) { border-color:var(--accent); }
+.nb .nb-l { font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); font-weight:700; }
+.nb .nb-t { font-family:var(--thai); font-size:12px; color:var(--ink-2); display:block; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap; margin-top:2px; }
+.pin-row { display:flex; gap:6px; }
+.pin-row .btn { flex:1; justify-content:center; }
+.pin-row .btn.pinned { background:var(--accent); border-color:var(--accent); color:#fff; }
+.callout { border-radius:8px; padding:9px 11px; font-size:11.5px; line-height:1.55;
+  background:var(--info-light); border:1px solid var(--info-border); color:var(--info); }
+.callout.amber { background:var(--amber-light); border-color:var(--amber-border); color:var(--amber); }
+.callout.rose { background:var(--rose-light); border-color:var(--rose-border); color:var(--rose); }
+
+/* ── Bottom bar ─────────────────────────────────────────── */
+.bottom { flex:0 0 auto; display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:0 20px 12px; }
+.actions-row { display:flex; gap:7px; flex-wrap:wrap; }
+footer { margin-left:auto; text-align:right; font-size:11px; color:var(--faint); line-height:1.55; }
+footer .cites { color:var(--muted); }
+
+/* ── Dialog & toast ─────────────────────────────────────── */
+#dialogBackdrop { position:fixed; inset:0; z-index:120; display:none; place-items:center; padding:20px;
+  background:rgba(40,32,24,0.42); backdrop-filter:blur(2px); }
+#dialogBackdrop.open { display:grid; }
+.dialog { width:min(560px,100%); max-height:min(720px,90vh); overflow:auto; background:#fff;
+  border-radius:16px; box-shadow:0 28px 80px rgba(40,26,10,0.28); }
+.dialog-head { padding:15px 18px 12px; border-bottom:1px solid var(--line); }
+.dialog-head h2 { margin:0; font-size:16px; }
+#dialogBody { padding:15px 18px; font-size:13px; line-height:1.6; }
+#dialogBody p { margin:0 0 10px; }
+#dialogBody p:last-child { margin-bottom:0; }
+#dialogBody ul { margin:0 0 10px; padding-left:20px; }
+#dialogActions { padding:12px 18px; display:flex; justify-content:flex-end; gap:7px; border-top:1px solid var(--line); flex-wrap:wrap; }
+#toast { position:fixed; left:50%; bottom:22px; transform:translate(-50%,18px); opacity:0; pointer-events:none;
+  z-index:140; color:#fff; background:#2b2019; border-radius:9px; padding:9px 14px; font-size:12px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.24); transition:opacity .18s, transform .18s; max-width:min(520px,92vw); }
+#toast.show { opacity:1; transform:translate(-50%,0); }
+.mobile-tabs { display:none; }
+
+/* ── Responsive ─────────────────────────────────────────── */
+@media (max-width:1180px) { main.app { grid-template-columns:255px minmax(360px,1fr) 292px; } }
+@media (max-width:1020px) {
+  #queryBar { grid-template-columns:minmax(140px,2fr) 110px 120px 1fr auto; }
+  .nav-crumb:not(.current) { display:none; } .nav-sep.hide-sm { display:none; }
+}
+@media (max-width:900px) {
+  body { overflow:auto; height:auto; min-height:100%; }
+  .nav { position:sticky; top:0; }
+  .mobile-tabs { display:grid; grid-template-columns:repeat(3,1fr); gap:0; position:sticky; top:52px; z-index:25;
+    margin:0 0 10px; background:rgba(242,242,247,0.92); backdrop-filter:blur(18px);
+    border-top:1px solid var(--line-soft); border-bottom:1px solid var(--line); }
+  .mobile-tabs button { border:0; background:transparent; padding:11px 8px; font-size:12.5px; font-weight:650;
+    color:var(--muted); border-bottom:2px solid transparent; }
+  .mobile-tabs button.active { color:var(--accent); border-bottom-color:var(--accent); background:var(--accent-light); }
+  main.app { display:block; padding:0 14px 12px; }
+  .pane { display:none; margin-bottom:12px; max-height:none; }
+  .pane.mobile-active { display:flex; }
+  #paneResults { min-height:70vh; }
+  .pane-scroll { overflow:visible; }
+  #resultBody { max-height:65vh; }
+  .bottom { padding:0 14px 16px; }
+  footer { margin-left:0; text-align:left; flex:1 1 100%; }
+}
+@media (max-width:560px) {
+  header { padding:12px 14px 6px; } header h1 { font-size:20px; }
+  #corpusBar { margin:0 14px 10px; }
+  .nav { padding:0 12px; } .nav-wordmark { display:none; }
+  #queryBar { grid-template-columns:1fr; }
+  .field-row, #compareView .cmp-grid { grid-template-columns:1fr; }
+  .corpus-actions { margin-left:0; flex:1 1 100%; }
+}
+@media (prefers-reduced-motion:reduce) { *,*::before,*::after { transition:none!important; animation:none!important; } }
+@media print {
+  body { overflow:visible; height:auto; display:block; background:#fff; }
+  .nav, .mobile-tabs, #paneFilter, #paneDetail, #queryBar, #modeTabs, .actions-row, #corpusBar, #toast, #dialogBackdrop { display:none!important; }
+  main.app { display:block; padding:0; }
+  .pane { display:block!important; border:0; box-shadow:none; background:#fff; overflow:visible; }
+  #resultBody, .tbl-wrap { overflow:visible; max-height:none; }
+  table.kwic td, table.data td { break-inside:avoid; }
+  footer { margin:12px 0 0; text-align:left; color:#444; }
+}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <a class="nav-brand" href="../index.html">
+    <div class="nav-icon" aria-hidden="true">📜</div>
+    <span class="nav-wordmark">JuraTools</span>
+  </a>
+  <span class="nav-sep hide-sm">/</span>
+  <a class="nav-crumb" href="index.html">Corpus Tools</a>
+  <span class="nav-sep hide-sm">/</span>
+  <span class="nav-crumb current" aria-current="page">Contract Concordance</span>
+  <a class="nav-back" href="index.html">← All</a>
+</nav>
+
+<header>
+  <h1>Contract Concordance</h1>
+  <div class="th-title">คลังข้อความสัญญา</div>
+  <p class="scope">Read your own executed contracts as a corpus — keyword in context, clause library, collocations and wordlist. Built offline by <code>tools/contract-corpus/</code>; searched entirely in this browser.</p>
+</header>
+
+<div id="corpusBar">
+  <span id="corpusName"><span class="dot" aria-hidden="true"></span><span class="cn-text">No corpus loaded</span></span>
+  <span id="corpusStats">Load a <code>.jtcorpus.gz</code> or <code>.corpus.json</code> file to begin.</span>
+  <div class="corpus-actions">
+    <label class="sr-only" for="corpusPicker">Active corpus</label>
+    <select id="corpusPicker" hidden aria-label="Active corpus"></select>
+    <button class="btn primary" id="loadBtn" type="button">Load corpus…</button>
+    <button class="btn" id="replaceBtn" type="button" hidden>Replace…</button>
+  </div>
+</div>
+
+<nav class="mobile-tabs" id="mobileTabs" aria-label="Workbench sections" role="tablist">
+  <button id="mobileTabFilter" class="" data-mobile-pane="filter" role="tab" aria-selected="false" aria-controls="paneFilter" tabindex="-1">Filter</button>
+  <button id="mobileTabResults" class="active" data-mobile-pane="results" role="tab" aria-selected="true" aria-controls="paneResults" tabindex="0">Results</button>
+  <button id="mobileTabDetail" class="" data-mobile-pane="detail" role="tab" aria-selected="false" aria-controls="paneDetail" tabindex="-1">Detail</button>
+</nav>
+
+<main class="app">
+
+  <aside id="paneFilter" class="pane" data-pane="filter" aria-label="Subcorpus filters" aria-labelledby="mobileTabFilter">
+    <div class="pane-head"><h2>Subcorpus</h2><span class="pill" id="filterPill">All modes</span></div>
+    <div class="pane-scroll">
+      <div class="section">
+        <div class="section-title">What is being searched</div>
+        <div id="subcorpusSummary" role="status" aria-live="polite">No corpus loaded.</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Filters</div>
+        <div class="field">
+          <label for="filterType">Contract type</label>
+          <select id="filterType"><option value="">All types</option></select>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="filterLang">Language</label>
+            <select id="filterLang">
+              <option value="">All</option>
+              <option value="th">Thai (th)</option>
+              <option value="en">English (en)</option>
+              <option value="mixed">Mixed</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="filterQc">QC flags</label>
+            <select id="filterQc">
+              <option value="">All documents</option>
+              <option value="clean">Exclude flagged</option>
+              <option value="only">Only flagged</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="filterZone">Zone</label>
+          <select id="filterZone">
+            <option value="-signature">All zones except signature (default)</option>
+            <option value="">All zones, including signature</option>
+          </select>
+          <div class="hint muted" style="font-size:11px;margin-top:4px;line-height:1.5">Signature clauses are names, not drafting. They stay indexed and the count excluded is always stated above.</div>
+        </div>
+        <div class="field">
+          <label for="filterKind">Clause kind</label>
+          <select id="filterKind">
+            <option value="">All kinds</option>
+            <option value="__none">Unclassified only</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="filterDup">Minimum repeat count (u ≥)</label>
+          <input type="number" id="filterDup" min="1" step="1" value="1" inputmode="numeric">
+          <div class="hint muted" style="font-size:11px;margin-top:4px;line-height:1.5">A clause's <code>u</code> is how many times that exact formulation occurs corpus-wide. Raise this to see only recurring boilerplate.</div>
+        </div>
+        <button class="btn small" id="clearFiltersBtn" type="button">Clear all filters</button>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Not in Phase 1</div>
+        <div class="roadmap">
+          <b>Roadmap, not implemented:</b> Thai↔English clause alignment and a parallel
+          concordance; a full-text document reader; cross-reference resolution
+          (<span class="th">ตามข้อ ๗</span> → clause 7); saved queries and named subcorpora;
+          n-gram and recurring-formula extraction.
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <section id="paneResults" class="pane mobile-active" data-pane="results" aria-label="Results" aria-labelledby="mobileTabResults">
+    <div id="modeTabs" role="tablist" aria-label="Result mode">
+      <button data-mode="concordance" class="active" role="tab" aria-selected="true" aria-controls="resultBody" tabindex="0" id="tabConcordance">Concordance</button>
+      <button data-mode="library" role="tab" aria-selected="false" aria-controls="resultBody" tabindex="-1" id="tabLibrary">Clause library</button>
+      <button data-mode="collocation" role="tab" aria-selected="false" aria-controls="resultBody" tabindex="-1" id="tabCollocation">Collocations</button>
+      <button data-mode="wordlist" role="tab" aria-selected="false" aria-controls="resultBody" tabindex="-1" id="tabWordlist">Wordlist</button>
+    </div>
+
+    <div id="queryBar">
+      <div class="qf">
+        <label for="queryInput" id="queryLabel">Query</label>
+        <input type="text" id="queryInput" list="queryHistory" placeholder="e.g. สัญญา, ผู้รับจ้าง, shall" autocomplete="off" spellcheck="false">
+        <datalist id="queryHistory"></datalist>
+      </div>
+      <div class="qf" id="queryModeField">
+        <label for="queryMode">Match</label>
+        <select id="queryMode">
+          <option value="substring">Substring</option>
+          <option value="word">Whole word</option>
+          <option value="regex">Regex</option>
+        </select>
+      </div>
+      <div class="qf" id="contextField">
+        <label for="contextWidth">Context (chars)</label>
+        <div class="width-row">
+          <input type="range" id="contextWidth" min="20" max="80" step="5" value="40">
+          <output id="contextWidthOut" for="contextWidth">40</output>
+        </div>
+      </div>
+      <div class="qf">
+        <label for="sortSelect">Sort</label>
+        <select id="sortSelect"></select>
+      </div>
+      <div class="qf"><button class="btn primary" id="runBtn" type="button">Run</button></div>
+      <div class="opt-row">
+        <span class="qf" id="windowField" hidden style="display:flex;align-items:center;gap:7px">
+          <label for="windowSize" style="margin:0">Window ±</label>
+          <input type="number" id="windowSize" min="1" max="10" step="1" value="5" style="width:62px">
+          <span class="muted" style="font-size:11px">tokens</span>
+        </span>
+        <span class="check-row" id="stopField" hidden>
+          <input type="checkbox" id="stopToggle" checked>
+          <label for="stopToggle">Hide stopwords (from the corpus <code>stop</code> lists)</label>
+        </span>
+        <span class="check-row" id="whitespaceField" hidden>
+          <input type="checkbox" id="punctToggle" checked>
+          <label for="punctToggle">Hide whitespace and punctuation tokens</label>
+        </span>
+      </div>
+    </div>
+
+    <div id="resultHead" role="status" aria-live="polite">
+      <div class="counts"><span class="count-n">—</span> <span class="count-l">no corpus loaded</span></div>
+      <span class="pill stale-pill warn">Filters changed — re-run</span>
+      <div class="sub-line"></div>
+    </div>
+
+    <div id="resultBody" class="tbl-wrap" tabindex="0"></div>
+
+    <div id="resultMore" hidden>
+      <span class="shown"></span>
+      <span class="grow"></span>
+      <button class="btn small" id="moreBtn" type="button">Show more</button>
+    </div>
+
+    <div id="compareView" hidden></div>
+  </section>
+
+  <aside id="paneDetail" class="pane" data-pane="detail" aria-label="Clause detail" aria-labelledby="mobileTabDetail">
+    <div class="pane-head"><h2>Clause detail</h2><span class="pill" id="detailPill">Nothing selected</span></div>
+    <div class="pane-scroll">
+      <div class="section" id="detailClause"><p class="muted" style="font-size:12px;margin:0">Select a row to read the full clause.</p></div>
+      <div class="section" id="detailDoc"></div>
+      <div class="section">
+        <div class="section-title">Clause kind — the pipeline's default, not its verdict</div>
+        <div class="detail-kind-row" id="detailKindRow">
+          <label class="sr-only" for="detailKind">Clause kind</label>
+          <select id="detailKind" disabled></select>
+          <button id="detailKindReset" type="button" aria-label="Reset clause kind to the pipeline's answer" title="Reset to the pipeline's answer">↻</button>
+        </div>
+        <div id="detailKindNote"></div>
+      </div>
+      <div class="section">
+        <div class="section-title">Compare</div>
+        <div class="pin-row">
+          <button class="btn" id="pinA" type="button" disabled>Pin as A</button>
+          <button class="btn" id="pinB" type="button" disabled>Pin as B</button>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">Neighbours in document order</div>
+        <div class="nb-row" id="detailNeighbours"></div>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<div class="bottom">
+  <div class="actions-row">
+    <button class="btn" id="copyBtn" type="button" disabled>Copy summary</button>
+    <button class="btn" id="exportBtn" type="button" disabled>Export…</button>
+    <button class="btn danger" id="resetBtn" type="button">Reset everything</button>
+  </div>
+  <footer>
+    <span class="cites">Corpus built locally from your own documents — nothing is uploaded.</span><br>
+    Reference tool only — not legal advice. Runs entirely in your browser.
+  </footer>
+</div>
+
+<input id="corpusInput" type="file" accept=".json,.gz,.jtcorpus,.jtcorpus.gz,application/json,application/gzip" hidden>
+
+<div id="dialogBackdrop" role="presentation">
+  <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialogTitle" tabindex="-1">
+    <div class="dialog-head"><h2 id="dialogTitle">Dialog</h2></div>
+    <div id="dialogBody"></div>
+    <div id="dialogActions"></div>
+  </section>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+<script id="corpus-core">
+/* ── Corpus core ─────────────────────────────────────────────
+   Pure engine: load, decode, index, search, sort, collocate.
+   No DOM, no storage, no network inside this block.
+   Corpus format: tools/contract-corpus/DESIGN.md §4 (frozen).
+   ──────────────────────────────────────────────────────────── */
+(function (global) {
+  'use strict';
+
+  var SEP = '\u0000';             // clause separator in the search buffer; never occurs in corpus text
+  var LANGS = { th:1, en:1, mixed:1 };
+  var ZONES = ['preamble','parties','definitions','body','signature','annex','unplaced'];
+
+  // ── Hashing ───────────────────────────────────────────────
+  // FNV-1a variants. No crypto.subtle: it needs a secure context and file:// is not
+  // guaranteed to be one, and this hash only has to identify a file, not resist attack.
+  function hashBytes(bytes) {
+    var h1 = 0x811c9dc5, h2 = 0x9e3779b9, i;
+    for (i = 0; i < bytes.length; i++) {
+      h1 = ((h1 ^ bytes[i]) * 16777619) >>> 0;
+      h2 = ((h2 + bytes[i]) * 2654435761) >>> 0;
+    }
+    return hex8(h1) + hex8(h2) + '-' + bytes.length.toString(16);
+  }
+  function shortHash(str) {
+    var h = 0x811c9dc5, i, c;
+    for (i = 0; i < str.length; i++) {
+      c = str.charCodeAt(i);
+      h = ((h ^ (c & 0xff)) * 16777619) >>> 0;
+      h = ((h ^ (c >>> 8)) * 16777619) >>> 0;
+    }
+    return hex8(h);
+  }
+  function hex8(n) { return ('0000000' + (n >>> 0).toString(16)).slice(-8); }
+
+  // ── Decode ────────────────────────────────────────────────
+  // DESIGN.md §4.3: `b` is space-separated DELTAS between token start offsets.
+  // "0 2 5 6 3" -> starts 0, 2, 7, 13, 16. Decoded once into a flat Uint32Array
+  // of buffer-absolute offsets; the browser never segments Thai itself.
+  function decodeB(b) {
+    if (!b) return new Uint32Array(0);
+    var parts = b.split(' '), out = new Uint32Array(parts.length), pos = 0, i;
+    for (i = 0; i < parts.length; i++) { pos += parseInt(parts[i], 10) || 0; out[i] = pos; }
+    return out;
+  }
+
+  // ── Index build ───────────────────────────────────────────
+  function build(corpus) {
+    var cls = corpus.clauses || [], n = cls.length, i, j, b, t;
+    var texts = new Array(n), clauseStart = new Uint32Array(n + 1), pos = 0, totalTok = 0;
+
+    for (i = 0; i < n; i++) {
+      t = cls[i].t == null ? '' : String(cls[i].t);
+      texts[i] = t;
+      clauseStart[i] = pos;
+      pos += t.length + 1;                       // +1 for the separator
+      b = cls[i].b;
+      if (b) { var c = 1; for (j = 0; j < b.length; j++) if (b.charCodeAt(j) === 32) c++; totalTok += c; }
+    }
+    clauseStart[n] = pos;                        // = buf.length + 1
+    var buf = texts.join(SEP);
+
+    var tokAll = new Uint32Array(totalTok), tokIdx = new Uint32Array(n + 1), k = 0;
+    var badTokens = [];
+    for (i = 0; i < n; i++) {
+      tokIdx[i] = k;
+      b = cls[i].b;
+      if (!b) { if (texts[i]) badTokens.push(i); continue; }
+      var base = clauseStart[i], p = 0, s = 0, digits = false, ok = true, ch, ci;
+      for (ci = 0; ci <= b.length; ci++) {
+        ch = ci < b.length ? b.charCodeAt(ci) : 32;
+        if (ch === 32) {
+          if (!digits) { ok = false; break; }
+          p += s; tokAll[k++] = base + p; s = 0; digits = false;
+        } else if (ch >= 48 && ch <= 57) { s = s * 10 + (ch - 48); digits = true; }
+        else { ok = false; break; }
+      }
+      if (ok && k > tokIdx[i]) {
+        // the load-bearing invariant, same as validate_corpus.py
+        if (tokAll[tokIdx[i]] !== base || tokAll[k - 1] >= base + texts[i].length) ok = false;
+      }
+      if (!ok) { k = tokIdx[i]; badTokens.push(i); }
+    }
+    tokIdx[n] = k;
+    if (k < totalTok) tokAll = new Uint32Array(tokAll.subarray(0, k));
+
+    // Lean clause records: `t` and `b` are dropped, both are recoverable from
+    // the buffer and the token array, and dropping them halves what IndexedDB stores.
+    var lean = new Array(n);
+    for (i = 0; i < n; i++) {
+      var c0 = cls[i];
+      lean[i] = {
+        d: c0.d | 0,
+        n: c0.n == null ? null : String(c0.n),
+        nd: c0.nd == null ? null : String(c0.nd),
+        p: Array.isArray(c0.p) ? c0.p.slice() : [],
+        z: c0.z == null ? 'unplaced' : String(c0.z),
+        k: c0.k == null ? null : String(c0.k),
+        l: c0.l == null ? 'mixed' : String(c0.l),
+        h: c0.h == null ? null : String(c0.h),
+        g: c0.g == null ? null : c0.g,
+        u: typeof c0.u === 'number' && c0.u >= 1 ? c0.u : 1,
+        q: c0.q ? 1 : 0
+      };
+    }
+
+    var meta = {
+      format: corpus.format, version: corpus.version, builtAt: corpus.builtAt,
+      builder: corpus.builder || {}, stats: corpus.stats || {},
+      types: corpus.types || {}, kinds: corpus.kinds || {},
+      zones: Array.isArray(corpus.zones) && corpus.zones.length ? corpus.zones : ZONES,
+      stop: corpus.stop || {}, freq: corpus.freq || {}, docs: corpus.docs || []
+    };
+
+    var ix = {
+      meta: meta, clauses: lean, buf: buf,
+      clauseStart: clauseStart, tokAll: tokAll, tokIdx: tokIdx,
+      warnings: warningsFor(meta, lean, k, badTokens)
+    };
+    finish(ix);
+    return ix;
+  }
+
+  function warningsFor(meta, lean, tokenCount, badTokens) {
+    var w = [], st = meta.stats || {};
+    if (st.docs != null && st.docs !== meta.docs.length)
+      w.push('stats.docs says ' + st.docs + ' but docs[] holds ' + meta.docs.length + '.');
+    if (st.clauses != null && st.clauses !== lean.length)
+      w.push('stats.clauses says ' + st.clauses + ' but clauses[] holds ' + lean.length + '.');
+    if (st.tokens != null && st.tokens !== tokenCount)
+      w.push('stats.tokens says ' + st.tokens + ' but ' + tokenCount + ' token boundaries decoded.');
+    if (badTokens.length)
+      w.push(badTokens.length + ' clause(s) have unusable token boundaries (`b`); their text is still searchable, '
+             + 'but whole-word matching, sorting by neighbour and collocation skip them. First: index ' + badTokens[0] + '.');
+    return w;
+  }
+
+  // Derived tables that both a fresh build and a rehydrated IndexedDB record need.
+  function finish(ix) {
+    var i, d, n = ix.clauses.length;
+    ix.docIndexOf = {};
+    for (i = 0; i < ix.meta.docs.length; i++) ix.docIndexOf[ix.meta.docs[i].id] = i;
+    // clause range per doc: docs[].c when present, else derived from clauses[].d
+    ix.docRange = ix.meta.docs.map(function () { return null; });
+    for (i = 0; i < n; i++) {
+      d = ix.clauses[i].d;
+      if (!ix.docRange[d]) ix.docRange[d] = [i, i + 1]; else ix.docRange[d][1] = i + 1;
+    }
+    for (i = 0; i < ix.docRange.length; i++) {
+      var dc = ix.meta.docs[i] && ix.meta.docs[i].c;
+      if (Array.isArray(dc) && dc.length === 2) ix.docRange[i] = [dc[0] | 0, dc[1] | 0];
+      else if (!ix.docRange[i]) ix.docRange[i] = [0, 0];
+    }
+    // Override keys. Brief: docId|n, falling back to docId| + short hash of t when n
+    // is null. `n` is NOT unique inside a document (bilingual streams, restarted
+    // numbering), so a colliding `n` also takes a hash of the text, and identical
+    // text in the same document takes its position too. Never an array index.
+    var byDocN = {};
+    for (i = 0; i < n; i++) {
+      var c = ix.clauses[i];
+      if (c.n == null) continue;
+      var kk = c.d + '|' + c.n;
+      byDocN[kk] = (byDocN[kk] || 0) + 1;
+    }
+    ix.overrideKey = new Array(n);
+    var used = {};
+    for (i = 0; i < n; i++) {
+      var cl = ix.clauses[i], doc = ix.meta.docs[cl.d] || {}, id = doc.id == null ? ('doc' + cl.d) : doc.id, key;
+      if (cl.n == null) key = id + '|#' + shortHash(text(ix, i));
+      else if (byDocN[cl.d + '|' + cl.n] === 1) key = id + '|' + cl.n;
+      else key = id + '|' + cl.n + '#' + shortHash(text(ix, i));
+      if (used[key]) key = key + '#' + (i - ix.docRange[cl.d][0]);
+      used[key] = 1;
+      ix.overrideKey[i] = key;
+    }
+    ix.tokenCount = ix.tokIdx[n];
+    return ix;
+  }
+
+  // ── Accessors ─────────────────────────────────────────────
+  function clauseEnd(ix, i) { return ix.clauseStart[i + 1] - 1; }
+  function text(ix, i) { return ix.buf.slice(ix.clauseStart[i], ix.clauseStart[i + 1] - 1); }
+  function tokenText(ix, i, j) {
+    var end = (j + 1 < ix.tokIdx[i + 1]) ? ix.tokAll[j + 1] : ix.clauseStart[i + 1] - 1;
+    return ix.buf.slice(ix.tokAll[j], end);
+  }
+  // first token index in clause i whose start is >= pos
+  function lowerBound(ix, i, pos) {
+    var lo = ix.tokIdx[i], hi = ix.tokIdx[i + 1], mid;
+    while (lo < hi) { mid = (lo + hi) >>> 1; if (ix.tokAll[mid] < pos) lo = mid + 1; else hi = mid; }
+    return lo;
+  }
+  // token index containing pos (greatest start <= pos), or -1
+  function tokenAt(ix, i, pos) {
+    var j = lowerBound(ix, i, pos);
+    if (j < ix.tokIdx[i + 1] && ix.tokAll[j] === pos) return j;
+    return j - 1 >= ix.tokIdx[i] ? j - 1 : -1;
+  }
+
+  // ── Subcorpus ─────────────────────────────────────────────
+  // One inclusion vector governs every mode, so a count in one mode always
+  // describes the same subcorpus as a count in another.
+  function subcorpus(ix, f) {
+    var n = ix.clauses.length, inc = new Uint8Array(n), i, c, doc;
+    var out = { included: inc, total: n, count: 0, excl: { signature: 0, zone: 0, type: 0, lang: 0, kind: 0, qc: 0, dup: 0 } };
+    var minU = Math.max(1, f.minU | 0);
+    for (i = 0; i < n; i++) {
+      c = ix.clauses[i];
+      doc = ix.meta.docs[c.d] || {};
+      if (f.zone === '-signature') { if (c.z === 'signature') { out.excl.signature++; continue; } }
+      else if (f.zone) { if (c.z !== f.zone) { out.excl.zone++; continue; } }
+      if (f.type && doc.type !== f.type) { out.excl.type++; continue; }
+      if (f.lang && c.l !== f.lang) { out.excl.lang++; continue; }
+      if (f.kind === '__none') { if (c.k != null) { out.excl.kind++; continue; } }
+      else if (f.kind) { if (c.k !== f.kind) { out.excl.kind++; continue; } }
+      if (f.qc === 'clean' && (c.q || flaggedDoc(doc))) { out.excl.qc++; continue; }
+      if (f.qc === 'only' && !(c.q || flaggedDoc(doc))) { out.excl.qc++; continue; }
+      if (c.u < minU) { out.excl.dup++; continue; }
+      inc[i] = 1; out.count++;
+    }
+    return out;
+  }
+  function flaggedDoc(doc) {
+    var q = doc && doc.qc;
+    if (!q) return false;
+    return (q.lowConfBlocks | 0) > 0 || (q.unplacedBlocks | 0) > 0;
+  }
+
+  // ── Search ────────────────────────────────────────────────
+  // No inverted index: every clause `t` lives in one buffer and we scan it with
+  // indexOf. Thai has no orthographic word boundaries, so substring search is the
+  // correct primitive; `b` supplies the token layer on top of the raw scan.
+  function search(ix, query, mode, sub, cap) {
+    var res = { hits: [], excludedHits: 0, capped: false, error: null, ms: 0 };
+    if (!query) return res;
+    cap = cap || 200000;
+    var t0 = (global.performance && global.performance.now) ? global.performance.now() : Date.now();
+    var n = ix.clauses.length, inc = sub.included, i;
+
+    if (mode === 'regex') {
+      var re;
+      try { re = new RegExp(query, 'g'); } catch (e) { res.error = e.message; return res; }
+      for (i = 0; i < n; i++) {
+        var t = text(ix, i), m, guard = 0;
+        re.lastIndex = 0;
+        while ((m = re.exec(t)) !== null) {
+          if (m[0].length === 0) { re.lastIndex++; if (++guard > t.length + 1) break; continue; }
+          if (inc[i]) {
+            if (res.hits.length < cap) res.hits.push({ p: ix.clauseStart[i] + m.index, l: m[0].length, i: i });
+            else res.capped = true;
+          } else res.excludedHits++;
+        }
+      }
+    } else {
+      var buf = ix.buf, ql = query.length, from = 0, ci = 0, p, step = Math.max(1, ql);
+      for (;;) {
+        p = buf.indexOf(query, from);
+        if (p < 0) break;
+        while (ci + 1 <= n && ix.clauseStart[ci + 1] - 1 <= p) ci++;
+        if (ci >= n) break;
+        var keep = true;
+        if (mode === 'word') keep = isWholeToken(ix, ci, p, p + ql);
+        if (keep) {
+          if (inc[ci]) {
+            if (res.hits.length < cap) res.hits.push({ p: p, l: ql, i: ci });
+            else res.capped = true;
+          } else res.excludedHits++;
+        }
+        from = p + step;
+      }
+    }
+    res.ms = ((global.performance && global.performance.now) ? global.performance.now() : Date.now()) - t0;
+    return res;
+  }
+
+  function isWholeToken(ix, ci, start, end) {
+    if (ix.tokIdx[ci + 1] === ix.tokIdx[ci]) return false;   // no token layer for this clause
+    var js = lowerBound(ix, ci, start);
+    if (!(js < ix.tokIdx[ci + 1] && ix.tokAll[js] === start)) return false;
+    if (end === ix.clauseStart[ci + 1] - 1) return true;
+    var je = lowerBound(ix, ci, end);
+    return je < ix.tokIdx[ci + 1] && ix.tokAll[je] === end;
+  }
+
+  // ── Sorting ───────────────────────────────────────────────
+  // 1L/2L/node/1R/2R come from the token layer `b`, collated with th-TH.
+  // A concordance without neighbour sorting is only a list of search results.
+  var collator = null;
+  function coll() {
+    if (!collator) {
+      try { collator = new Intl.Collator('th-TH', { numeric: true, sensitivity: 'variant' }); }
+      catch (e) { collator = { compare: function (a, b) { return a < b ? -1 : a > b ? 1 : 0; } }; }
+    }
+    return collator;
+  }
+  function neighbourToken(ix, hit, offset) {
+    var ci = hit.i;
+    if (ix.tokIdx[ci + 1] === ix.tokIdx[ci]) return '';
+    var j;
+    if (offset < 0) { j = tokenAt(ix, ci, hit.p); if (j < 0) return ''; j += offset; }
+    else { j = tokenAt(ix, ci, hit.p + hit.l - 1); if (j < 0) return ''; j += offset; }
+    if (j < ix.tokIdx[ci] || j >= ix.tokIdx[ci + 1]) return '';
+    return tokenText(ix, ci, j);
+  }
+  var SORT_KEYS = {
+    '1L': [-1, -2, -3], '2L': [-2, -1, -3], '1R': [1, 2, 3], '2R': [2, 1, 3]
+  };
+  function sortHits(ix, hits, sort) {
+    var c = coll(), i;
+    if (sort === 'doc' || !sort) {
+      hits.sort(function (a, b) { return a.i - b.i || a.p - b.p; });
+      return hits;
+    }
+    if (sort === 'node') {
+      for (i = 0; i < hits.length; i++) hits[i]._k = [ix.buf.slice(hits[i].p, hits[i].p + hits[i].l), neighbourToken(ix, hits[i], 1)];
+    } else {
+      var offs = SORT_KEYS[sort] || SORT_KEYS['1L'];
+      for (i = 0; i < hits.length; i++) {
+        var h = hits[i];
+        h._k = [neighbourToken(ix, h, offs[0]), neighbourToken(ix, h, offs[1]), neighbourToken(ix, h, offs[2])];
+      }
+    }
+    hits.sort(function (a, b) {
+      for (var j = 0; j < a._k.length; j++) {
+        var x = a._k[j], y = b._k[j];
+        if (x === y) continue;
+        if (x === '') return -1;
+        if (y === '') return 1;
+        var r = c.compare(x, y);
+        if (r) return r;
+      }
+      return a.i - b.i || a.p - b.p;
+    });
+    return hits;
+  }
+
+  // ── KWIC line ─────────────────────────────────────────────
+  // Context is measured in CHARACTERS: Thai gives no reliable word count. The
+  // truncation happens here in JS, never with a CSS direction trick, which would
+  // reorder Thai punctuation.
+  function isThaiCombining(cc) {
+    return cc === 0x0E31 || (cc >= 0x0E34 && cc <= 0x0E3A) || (cc >= 0x0E47 && cc <= 0x0E4E);
+  }
+  function kwic(ix, hit, width) {
+    var cs = ix.clauseStart[hit.i], ce = ix.clauseStart[hit.i + 1] - 1;
+    var ls = Math.max(cs, hit.p - width), re = Math.min(ce, hit.p + hit.l + width);
+    // do not start a context on an orphaned Thai vowel/tone mark or a low surrogate
+    while (ls > cs && ls < hit.p) {
+      var cc = ix.buf.charCodeAt(ls);
+      if (isThaiCombining(cc) || (cc >= 0xDC00 && cc <= 0xDFFF)) ls++; else break;
+    }
+    if (re > hit.p + hit.l) {
+      var cc2 = ix.buf.charCodeAt(re - 1);
+      if (cc2 >= 0xD800 && cc2 <= 0xDBFF) re--;
+    }
+    return {
+      left: ix.buf.slice(ls, hit.p), node: ix.buf.slice(hit.p, hit.p + hit.l), right: ix.buf.slice(hit.p + hit.l, re),
+      lTrunc: ls > cs, rTrunc: re < ce
+    };
+  }
+
+  // ── Token statistics over the subcorpus ───────────────────
+  function tokenStats(ix, sub) {
+    var map = new Map(), total = 0, i, j, w, r, d;
+    for (i = 0; i < ix.clauses.length; i++) {
+      if (!sub.included[i]) continue;
+      d = ix.clauses[i].d;
+      for (j = ix.tokIdx[i]; j < ix.tokIdx[i + 1]; j++) {
+        w = tokenText(ix, i, j);
+        total++;
+        r = map.get(w);
+        if (!r) { r = { c: 0, d: 0, last: -1 }; map.set(w, r); }
+        r.c++;
+        if (r.last !== d) { r.d++; r.last = d; }
+      }
+    }
+    return { map: map, total: total };
+  }
+
+  // ── Collocation ───────────────────────────────────────────
+  // Window is ±N tokens from the node, taken from `b`, never crossing a clause.
+  // MI = log2(O/E), t = (O-E)/sqrt(O), with E = f(node)·f(w)·span / N.
+  function collocates(ix, hits, win, stats) {
+    var counts = new Map(), i, j, h, ci, a, b, r, w;
+    for (i = 0; i < hits.length; i++) {
+      h = hits[i]; ci = h.i;
+      if (ix.tokIdx[ci + 1] === ix.tokIdx[ci]) continue;
+      a = tokenAt(ix, ci, h.p);
+      b = tokenAt(ix, ci, h.p + h.l - 1);
+      if (a < 0 || b < 0) continue;
+      var lo = Math.max(ix.tokIdx[ci], a - win), hi = Math.min(ix.tokIdx[ci + 1] - 1, b + win);
+      for (j = lo; j <= hi; j++) {
+        if (j >= a && j <= b) continue;
+        w = tokenText(ix, ci, j);
+        r = counts.get(w);
+        if (!r) { r = { o: 0, left: 0, right: 0 }; counts.set(w, r); }
+        r.o++;
+        if (j < a) r.left++; else r.right++;
+      }
+    }
+    var span = win * 2, N = stats.total || 1, fnode = hits.length, rows = [];
+    counts.forEach(function (r2, word) {
+      var fw = stats.map.has(word) ? stats.map.get(word).c : r2.o;
+      var e = (fnode * fw * span) / N;
+      rows.push({
+        w: word, o: r2.o, left: r2.left, right: r2.right, f: fw,
+        mi: e > 0 ? Math.log(r2.o / e) / Math.LN2 : 0,
+        t: r2.o > 0 ? (r2.o - e) / Math.sqrt(r2.o) : 0
+      });
+    });
+    return rows;
+  }
+  // Hits whose ±win token window contains `word` — what "run a concordance for
+  // node + collocate" means when the language has no word delimiter.
+  function hitsWithCollocate(ix, hits, win, word) {
+    var out = [], i, j, h, ci, a, b;
+    for (i = 0; i < hits.length; i++) {
+      h = hits[i]; ci = h.i;
+      if (ix.tokIdx[ci + 1] === ix.tokIdx[ci]) continue;
+      a = tokenAt(ix, ci, h.p); b = tokenAt(ix, ci, h.p + h.l - 1);
+      if (a < 0 || b < 0) continue;
+      var lo = Math.max(ix.tokIdx[ci], a - win), hi = Math.min(ix.tokIdx[ci + 1] - 1, b + win), found = false;
+      for (j = lo; j <= hi && !found; j++) { if (j >= a && j <= b) continue; if (tokenText(ix, ci, j) === word) found = true; }
+      if (found) out.push(h);
+    }
+    return out;
+  }
+
+  // ── Corpus file reading ───────────────────────────────────
+  // Gzip is sniffed from the magic bytes 1f 8b and inflated with the native
+  // DecompressionStream. Plain JSON is accepted too. No library, no network.
+  function readCorpusFile(file) {
+    return file.arrayBuffer().then(function (ab) {
+      var bytes = new Uint8Array(ab), hash = hashBytes(bytes);
+      if (bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b) {
+        if (typeof global.DecompressionStream !== 'function')
+          throw new Error('This file is gzipped and this browser has no DecompressionStream. Decompress it first, or load the plain .json corpus.');
+        var stream = new Blob([bytes]).stream().pipeThrough(new global.DecompressionStream('gzip'));
+        return new Response(stream).text().then(function (txt) { return { hash: hash, size: bytes.length, text: txt, gz: true }; });
+      }
+      return { hash: hash, size: bytes.length, text: new TextDecoder('utf-8').decode(bytes), gz: false };
+    }).then(function (r) {
+      var corpus;
+      try { corpus = JSON.parse(r.text); }
+      catch (e) { throw new Error('That file is not valid JSON: ' + e.message); }
+      if (!corpus || corpus.format !== 'juratools-contract-corpus')
+        throw new Error('Not a JuraTools contract corpus — the "format" key must read "juratools-contract-corpus".');
+      var ix = build(corpus);
+      if (corpus.version !== 1)
+        ix.warnings.unshift('This file declares version ' + JSON.stringify(corpus.version) + '; this tool reads version 1. It has been loaded anyway — check the results against the pipeline.');
+      ix.hash = r.hash; ix.size = r.size; ix.gz = r.gz;
+      return ix;
+    });
+  }
+
+  global.CorpusCore = {
+    SEP: SEP, build: build, finish: finish, decodeB: decodeB,
+    hashBytes: hashBytes, shortHash: shortHash,
+    text: text, clauseEnd: clauseEnd, tokenText: tokenText, tokenAt: tokenAt, lowerBound: lowerBound,
+    subcorpus: subcorpus, flaggedDoc: flaggedDoc,
+    search: search, sortHits: sortHits, kwic: kwic,
+    tokenStats: tokenStats, collocates: collocates, hitsWithCollocate: hitsWithCollocate,
+    readCorpusFile: readCorpusFile, collator: coll
+  };
+})(this);
+</script>
+<script>
+(function () {
+  'use strict';
+  var C = window.CorpusCore;
+  var KEY = 'contractCorpus_v1';
+  var DB_NAME = 'juratools-corpus', DB_STORE = 'corpora';
+  var PAGE = 100;
+
+  // ── State ───────────────────────────────────────────────
+  function defaultState() {
+    return {
+      v: 1,
+      activeHash: null,
+      mode: 'concordance',
+      query: '',
+      queryMode: 'substring',
+      contextWidth: 40,
+      sort: { concordance: '1L', library: 'u-desc', collocation: 'mi', wordlist: 'freq' },
+      filters: { type: '', lang: '', zone: '-signature', kind: '', qc: '', minU: 1 },
+      history: [],
+      overrides: {},
+      window: 5,
+      stop: { collocation: true, wordlist: false },
+      punct: true,
+      pins: [null, null]
+    };
+  }
+  var S = defaultState();
+  var ix = null;                 // active index (CorpusCore shape)
+  var sub = null;                // active subcorpus
+  var run = null;                // last run result for the active mode
+  var stats = null;              // memoized token stats {sig, data}
+  var shown = PAGE;
+  var selected = null;
+  var stale = false;
+  var collocFilter = null;       // {word, win} restricting the concordance
+  var cachedList = [];           // IndexedDB inventory
+  var dbState = 'unknown';       // 'ok' | 'unavailable'
+
+  // ── Small helpers ───────────────────────────────────────
+  function $(id) { return document.getElementById(id); }
+  function esc(v) {
+    return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function nf(n) { return (typeof n === 'number' && isFinite(n)) ? n.toLocaleString('en-US') : '—'; }
+  function plural(n, one, many) { return n === 1 ? one : (many || one + 's'); }
+  function bytes(n) {
+    if (!isFinite(n)) return '—';
+    var u = ['B', 'KB', 'MB', 'GB'], i = 0;
+    while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+    return (i ? n.toFixed(1) : n) + ' ' + u[i];
+  }
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return String(iso);
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+  function toast(msg) {
+    var el = $('toast');
+    el.textContent = msg; el.classList.add('show');
+    clearTimeout(toast.t); toast.t = setTimeout(function () { el.classList.remove('show'); }, 2600);
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+  function loadSaved() {
+    var st = null;
+    try { st = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { st = null; }
+    if (!st || typeof st !== 'object') return;
+    var d = defaultState();
+    S = Object.assign(d, st);
+    S.filters = Object.assign(d.filters, st.filters || {});
+    S.sort = Object.assign(d.sort, st.sort || {});
+    S.stop = Object.assign(d.stop, st.stop || {});
+    S.overrides = st.overrides && typeof st.overrides === 'object' ? st.overrides : {};
+    S.history = Array.isArray(st.history) ? st.history.slice(0, 20) : [];
+    S.pins = Array.isArray(st.pins) && st.pins.length === 2 ? st.pins : [null, null];
+  }
+
+  // ── Dialog ──────────────────────────────────────────────
+  var dialogPrev = null;
+  function openDialog(title, bodyHtml, actions) {
+    dialogPrev = document.activeElement;
+    $('dialogTitle').textContent = title;
+    $('dialogBody').innerHTML = bodyHtml;
+    var host = $('dialogActions');
+    host.innerHTML = '';
+    (actions || [{ label: 'Close' }]).forEach(function (a) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn' + (a.primary ? ' primary' : '') + (a.danger ? ' danger' : '');
+      b.textContent = a.label;
+      b.addEventListener('click', function () {
+        if (a.keepOpen) { if (a.run) a.run(); return; }
+        closeDialog();
+        if (a.run) a.run();
+      });
+      host.appendChild(b);
+    });
+    $('dialogBackdrop').classList.add('open');
+    var first = host.querySelector('.primary') || host.querySelector('button');
+    if (first) first.focus();
+  }
+  function closeDialog() {
+    $('dialogBackdrop').classList.remove('open');
+    if (dialogPrev && dialogPrev.focus) { try { dialogPrev.focus(); } catch (e) {} }
+    dialogPrev = null;
+  }
+
+  // ── IndexedDB ───────────────────────────────────────────
+  // The parsed corpus is far too big for localStorage, so it lives here: one
+  // record per file, keyed by a hash of the file's bytes. Loading a second corpus
+  // keeps the first; the picker chooses which is active.
+  function withDb(cb) {
+    var req;
+    try { req = indexedDB.open(DB_NAME, 1); }
+    catch (e) { dbState = 'unavailable'; cb(e); return; }
+    req.onupgradeneeded = function () {
+      var db = req.result;
+      if (!db.objectStoreNames.contains(DB_STORE)) db.createObjectStore(DB_STORE, { keyPath: 'hash' });
+    };
+    req.onsuccess = function () { dbState = 'ok'; cb(null, req.result); };
+    req.onerror = function () { dbState = 'unavailable'; cb(req.error || new Error('IndexedDB unavailable')); };
+    req.onblocked = function () { cb(new Error('IndexedDB is blocked by another tab')); };
+  }
+  function dbPut(rec, done) {
+    withDb(function (err, db) {
+      if (err) { done(err); return; }
+      try {
+        var tx = db.transaction(DB_STORE, 'readwrite');
+        tx.objectStore(DB_STORE).put(rec);
+        tx.oncomplete = function () { done(null); };
+        tx.onerror = function () { done(tx.error); };
+      } catch (e) { done(e); }
+    });
+  }
+  function dbAll(done) {
+    withDb(function (err, db) {
+      if (err) { done(err, []); return; }
+      try {
+        var tx = db.transaction(DB_STORE, 'readonly'), req = tx.objectStore(DB_STORE).getAll();
+        req.onsuccess = function () { done(null, req.result || []); };
+        req.onerror = function () { done(req.error, []); };
+      } catch (e) { done(e, []); }
+    });
+  }
+  function dbDelete(hash, done) {
+    withDb(function (err, db) {
+      if (err) { done(err); return; }
+      try {
+        var tx = db.transaction(DB_STORE, 'readwrite');
+        tx.objectStore(DB_STORE)['delete'](hash);
+        tx.oncomplete = function () { done(null); };
+        tx.onerror = function () { done(tx.error); };
+      } catch (e) { done(e); }
+    });
+  }
+  function toRecord(index, name) {
+    return {
+      hash: index.hash, name: name, size: index.size, gz: !!index.gz, savedAt: new Date().toISOString(),
+      meta: index.meta, clauses: index.clauses, buf: index.buf,
+      clauseStart: index.clauseStart, tokAll: index.tokAll, tokIdx: index.tokIdx,
+      warnings: index.warnings
+    };
+  }
+  function fromRecord(rec) {
+    var index = {
+      meta: rec.meta, clauses: rec.clauses, buf: rec.buf,
+      clauseStart: rec.clauseStart, tokAll: rec.tokAll, tokIdx: rec.tokIdx,
+      warnings: rec.warnings || [], hash: rec.hash, size: rec.size, gz: rec.gz, name: rec.name
+    };
+    C.finish(index);
+    return index;
+  }
+  function refreshCached(done) {
+    dbAll(function (err, rows) {
+      cachedList = (rows || []).map(function (r) {
+        return { hash: r.hash, name: r.name, size: r.size, savedAt: r.savedAt, docs: (r.meta && r.meta.stats && r.meta.stats.docs) || (r.meta && r.meta.docs ? r.meta.docs.length : 0) };
+      }).sort(function (a, b) { return String(b.savedAt).localeCompare(String(a.savedAt)); });
+      paintCorpusBar();
+      if (done) done(err);
+    });
+  }
+  function activateHash(hash, then) {
+    dbAll(function (err, rows) {
+      var rec = (rows || []).filter(function (r) { return r.hash === hash; })[0];
+      if (!rec) { if (then) then(new Error('That corpus is no longer cached in this browser.')); return; }
+      setIndex(fromRecord(rec));
+      if (then) then(null);
+    });
+  }
+
+  // ── Corpus lifecycle ────────────────────────────────────
+  function setIndex(index) {
+    ix = index;
+    S.activeHash = index.hash;
+    stats = null; run = null; selected = null; shown = PAGE; collocFilter = null;
+    populateFilterOptions();
+    recomputeSub();
+    save();
+    paintAll();
+    doRun(true);
+  }
+  function loadFile(file) {
+    var name = file.name || 'corpus';
+    toast('Reading ' + name + '…');
+    C.readCorpusFile(file).then(function (index) {
+      index.name = name;
+      var proceed = function () {
+        dbPut(toRecord(index, name), function (err) {
+          if (err) {
+            dbState = 'unavailable';
+            toast('Loaded, but this browser will not keep it: ' + (err.message || 'IndexedDB unavailable'));
+          }
+          refreshCached();
+          setIndex(index);
+          if (index.warnings && index.warnings.length) showWarnings(index, name);
+          else toast('Loaded ' + name);
+        });
+      };
+      if (ix && ix.hash !== index.hash) confirmReplace(index, name, proceed);
+      else proceed();
+    })['catch'](function (e) {
+      openDialog('That file could not be loaded',
+        '<p>' + esc(e.message || String(e)) + '</p>' +
+        '<p class="muted">Nothing has changed. The corpus already loaded, if any, is untouched.</p>', [{ label: 'Close', primary: true }]);
+    });
+  }
+  function confirmReplace(index, name, proceed) {
+    var keptCount = cachedList.filter(function (r) { return r.hash !== index.hash; }).length;
+    openDialog('Replace the active corpus?',
+      '<p><strong>' + esc(name) + '</strong> — ' + nf((index.meta.stats && index.meta.stats.docs) || index.meta.docs.length) +
+      ' documents, ' + nf(index.clauses.length) + ' clauses — will become the active corpus.</p>' +
+      '<p><strong>Replaced as active:</strong> ' + esc(ix.name || '(unnamed corpus)') + '. It is <em>not</em> deleted — it stays cached in this browser and the picker in the corpus bar switches back to it.</p>' +
+      '<p><strong>Kept:</strong> your filters, sort, context width, query history and every clause-kind override. Overrides are keyed by document id and clause number, so they re-attach to the same clauses in the new file.</p>' +
+      '<p class="muted">' + nf(keptCount + 1) + ' ' + plural(keptCount + 1, 'corpus', 'corpora') + ' will be cached after this.</p>',
+      [{ label: 'Cancel' }, { label: 'Replace active corpus', primary: true, run: proceed }]);
+  }
+  function showWarnings(index, name) {
+    openDialog('Loaded with ' + index.warnings.length + ' ' + plural(index.warnings.length, 'note'),
+      '<p><strong>' + esc(name) + '</strong> loaded. The file disagrees with itself in the following ' +
+      plural(index.warnings.length, 'place') + '. Nothing was dropped — this is a report, not a rejection.</p>' +
+      '<ul>' + index.warnings.map(function (w) { return '<li>' + esc(w) + '</li>'; }).join('') + '</ul>' +
+      '<p class="muted">Run <code>tools/contract-corpus/validate_corpus.py</code> against the file for the authoritative answer.</p>',
+      [{ label: 'Continue', primary: true }]);
+  }
+
+  // ── Filters ─────────────────────────────────────────────
+  function populateFilterOptions() {
+    var t = $('filterType'), k = $('filterKind'), z = $('filterZone');
+    t.innerHTML = '<option value="">All types</option>';
+    Object.keys(ix.meta.types || {}).forEach(function (slug) {
+      var d = ix.meta.types[slug] || {};
+      t.appendChild(opt(slug, (d.label || slug) + (d.labelTh ? ' · ' + d.labelTh : '')));
+    });
+    k.innerHTML = '<option value="">All kinds</option><option value="__none">Unclassified only</option>';
+    Object.keys(ix.meta.kinds || {}).forEach(function (slug) {
+      var d = ix.meta.kinds[slug] || {};
+      k.appendChild(opt(slug, (d.label || slug) + (d.labelTh ? ' · ' + d.labelTh : '')));
+    });
+    z.innerHTML = '<option value="-signature">All zones except signature (default)</option><option value="">All zones, including signature</option>';
+    (ix.meta.zones || []).forEach(function (zone) { z.appendChild(opt(zone, 'Only ' + zone)); });
+    syncFilterInputs();
+  }
+  function opt(v, label) { var o = document.createElement('option'); o.value = v; o.textContent = label; return o; }
+  function syncFilterInputs() {
+    $('filterType').value = S.filters.type;
+    $('filterLang').value = S.filters.lang;
+    $('filterZone').value = S.filters.zone;
+    $('filterKind').value = S.filters.kind;
+    $('filterQc').value = S.filters.qc;
+    $('filterDup').value = S.filters.minU;
+  }
+  function pullFilters() {
+    S.filters.type = $('filterType').value;
+    S.filters.lang = $('filterLang').value;
+    S.filters.zone = $('filterZone').value;
+    S.filters.kind = $('filterKind').value;
+    S.filters.qc = $('filterQc').value;
+    S.filters.minU = Math.max(1, parseInt($('filterDup').value, 10) || 1);
+  }
+  function filterSig() { return JSON.stringify(S.filters); }
+  function recomputeSub() {
+    if (!ix) { sub = null; return; }
+    sub = C.subcorpus(ix, S.filters);
+    stats = null;
+  }
+  function getStats() {
+    var sig = filterSig();
+    if (!stats || stats.sig !== sig) stats = { sig: sig, data: C.tokenStats(ix, sub) };
+    return stats.data;
+  }
+  function markStale() { stale = true; $('resultHead').classList.add('stale'); }
+
+  // ── Stopwords ───────────────────────────────────────────
+  var stopCache = null;
+  function stopSet() {
+    if (stopCache && stopCache.ix === ix) return stopCache.set;
+    var set = new Set(), st = (ix && ix.meta.stop) || {};
+    ['th', 'en'].forEach(function (l) {
+      (st[l] || []).forEach(function (w) { set.add(String(w)); set.add(String(w).toLowerCase()); });
+    });
+    stopCache = { ix: ix, set: set };
+    return set;
+  }
+  function isStop(w) { var s = stopSet(); return s.has(w) || s.has(w.toLowerCase()); }
+  function isPunctOnly(w) { return !/[\p{L}\p{N}]/u.test(w); }
+  function scriptOf(w) { return /[\u0E00-\u0E7F]/.test(w) ? 'th' : (/[A-Za-z]/.test(w) ? 'en' : 'other'); }
+
+  // ── Clause helpers ──────────────────────────────────────
+  function docOf(i) { return ix.meta.docs[ix.clauses[i].d] || {}; }
+  function clauseText(i) { return C.text(ix, i); }
+  function kindOf(i) {
+    var key = ix.overrideKey[i];
+    if (Object.prototype.hasOwnProperty.call(S.overrides, key)) return S.overrides[key];
+    return ix.clauses[i].k;
+  }
+  function isOverridden(i) { return Object.prototype.hasOwnProperty.call(S.overrides, ix.overrideKey[i]); }
+  function kindLabel(slug) {
+    if (slug == null) return 'Unclassified';
+    var d = (ix.meta.kinds || {})[slug];
+    return d ? (d.label || slug) : slug;
+  }
+  function typeLabel(slug) {
+    var d = (ix.meta.types || {})[slug];
+    return d ? (d.label || slug) : (slug || '—');
+  }
+  function clauseRef(i) {
+    var c = ix.clauses[i], doc = docOf(i);
+    // render `nd` (exactly what Word displays); `n` is for grouping, `p` for sorting
+    return (doc.id || 'doc ' + c.d) + (c.nd ? ' · ' + c.nd : (c.n ? ' · ' + c.n : ''));
+  }
+  function comparePath(a, b) {
+    var pa = ix.clauses[a].p || [], pb = ix.clauses[b].p || [], i;
+    for (i = 0; i < Math.max(pa.length, pb.length); i++) {
+      var x = pa[i], y = pb[i];
+      if (x == null) return -1;
+      if (y == null) return 1;
+      if (x !== y) return x - y;
+    }
+    return a - b;
+  }
+
+  // ── Painting: shell ─────────────────────────────────────
+  function paintAll() {
+    paintCorpusBar();
+    paintSubcorpus();
+    paintDetail();
+    paintCompare();
+    var on = !!ix;
+    ['queryInput', 'queryMode', 'contextWidth', 'sortSelect', 'runBtn', 'filterType', 'filterLang',
+     'filterZone', 'filterKind', 'filterQc', 'filterDup', 'copyBtn', 'exportBtn', 'windowSize',
+     'stopToggle', 'punctToggle', 'clearFiltersBtn'].forEach(function (id) { $(id).disabled = !on; });
+  }
+  function paintCorpusBar() {
+    var name = $('corpusName'), st = $('corpusStats'), pick = $('corpusPicker');
+    if (!ix) {
+      name.classList.remove('loaded');
+      name.querySelector('.cn-text').textContent = 'No corpus loaded';
+      st.innerHTML = 'Load a <code>.jtcorpus.gz</code> or <code>.corpus.json</code> file to begin.';
+      $('replaceBtn').hidden = true;
+      $('loadBtn').hidden = false;
+    } else {
+      name.classList.add('loaded');
+      name.querySelector('.cn-text').textContent = ix.name || 'corpus';
+      var s = ix.meta.stats || {};
+      st.innerHTML = '<b>' + nf(ix.meta.docs.length) + '</b> docs · <b>' + nf(ix.clauses.length) + '</b> clauses · <b>' +
+        nf(ix.tokenCount) + '</b> tokens · ' + bytes(ix.size) + (ix.gz ? ' gzip' : '') +
+        ' · built ' + esc(fmtDate(ix.meta.builtAt)) +
+        (ix.meta.builder && ix.meta.builder.tokenizer ? ' · ' + esc(ix.meta.builder.tokenizer) : '') +
+        (dbState === 'unavailable' ? ' · <span style="color:#92400e">not cached (browser storage unavailable)</span>' : '');
+      $('replaceBtn').hidden = false;
+      $('loadBtn').hidden = true;
+    }
+    if (cachedList.length > 1) {
+      pick.hidden = false;
+      pick.innerHTML = '';
+      cachedList.forEach(function (r) {
+        pick.appendChild(opt(r.hash, (r.name || 'corpus') + ' · ' + nf(r.docs) + ' docs · ' + bytes(r.size)));
+      });
+      if (S.activeHash) pick.value = S.activeHash;
+    } else pick.hidden = true;
+  }
+  function paintSubcorpus() {
+    var host = $('subcorpusSummary');
+    if (!ix) { host.textContent = 'No corpus loaded.'; return; }
+    var e = sub.excl, lines = [];
+    lines.push(['Signature zone', e.signature, S.filters.zone === '-signature']);
+    lines.push(['Other zones', e.zone, !!S.filters.zone && S.filters.zone !== '-signature']);
+    lines.push(['Contract type', e.type, !!S.filters.type]);
+    lines.push(['Language', e.lang, !!S.filters.lang]);
+    lines.push(['Clause kind', e.kind, !!S.filters.kind]);
+    lines.push(['QC flags', e.qc, !!S.filters.qc]);
+    lines.push(['Repeat count below ' + S.filters.minU, e.dup, S.filters.minU > 1]);
+    var active = lines.filter(function (l) { return l[1] > 0; });
+    var out = '<span class="big">' + nf(sub.count) + ' of ' + nf(sub.total) + ' clauses</span>' +
+      'Every mode below counts over exactly these clauses.';
+    if (active.length) {
+      out += '<ul>' + active.map(function (l) {
+        return '<li>' + esc(l[0]) + ' — <strong>' + nf(l[1]) + '</strong> ' + plural(l[1], 'clause') + ' excluded</li>';
+      }).join('') + '</ul>';
+    } else out += '<ul><li class="none">Nothing is excluded. Every clause in the file is in scope.</li></ul>';
+    host.innerHTML = out;
+  }
+
+  // ── Sort options per mode ───────────────────────────────
+  var SORTS = {
+    concordance: [['1L', '1 left'], ['2L', '2 left'], ['node', 'Node'], ['1R', '1 right'], ['2R', '2 right'], ['doc', 'Document order']],
+    library: [['u-desc', 'Repeats (u) — most first'], ['u-asc', 'Repeats (u) — fewest first'], ['kind', 'Clause kind'], ['doc', 'Document order'], ['len', 'Length']],
+    collocation: [['mi', 'MI'], ['t', 't-score'], ['freq', 'Co-occurrences'], ['word', 'Alphabetical']],
+    wordlist: [['freq', 'Frequency'], ['docs', 'Document spread'], ['word', 'Alphabetical']]
+  };
+  function paintQueryBar() {
+    var m = S.mode, sel = $('sortSelect');
+    sel.innerHTML = '';
+    SORTS[m].forEach(function (p) { sel.appendChild(opt(p[0], p[1])); });
+    sel.value = S.sort[m] || SORTS[m][0][0];
+    $('queryLabel').textContent = m === 'wordlist' ? 'Filter words' : m === 'library' ? 'Filter clause text' : 'Query';
+    $('queryModeField').hidden = (m === 'wordlist' || m === 'library');
+    $('contextField').hidden = (m !== 'concordance');
+    $('windowField').hidden = (m !== 'collocation');
+    $('windowField').style.display = (m === 'collocation') ? 'flex' : 'none';
+    $('stopField').hidden = !(m === 'collocation' || m === 'wordlist');
+    $('whitespaceField').hidden = !(m === 'collocation' || m === 'wordlist');
+    $('stopToggle').checked = !!S.stop[m];
+    $('punctToggle').checked = !!S.punct;
+    $('runBtn').textContent = m === 'concordance' ? 'Run' : m === 'library' ? 'List clauses' : m === 'collocation' ? 'Compute' : 'List words';
+    document.querySelectorAll('#modeTabs [data-mode]').forEach(function (b) {
+      var on = b.dataset.mode === m;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-selected', String(on));
+      b.tabIndex = on ? 0 : -1;
+    });
+  }
+
+  // ── Run ─────────────────────────────────────────────────
+  function pushHistory(q) {
+    if (!q) return;
+    S.history = [q].concat(S.history.filter(function (x) { return x !== q; })).slice(0, 12);
+    var dl = $('queryHistory');
+    dl.innerHTML = S.history.map(function (h) { return '<option value="' + esc(h) + '"></option>'; }).join('');
+  }
+  function doRun(silent) {
+    if (!ix) { paintResults(); return; }
+    S.query = $('queryInput').value;
+    S.queryMode = $('queryMode').value;
+    S.contextWidth = parseInt($('contextWidth').value, 10) || 40;
+    S.window = Math.min(10, Math.max(1, parseInt($('windowSize').value, 10) || 5));
+    S.sort[S.mode] = $('sortSelect').value;
+    S.stop[S.mode] = $('stopToggle').checked;
+    S.punct = $('punctToggle').checked;
+    shown = PAGE;
+    stale = false;
+    $('resultHead').classList.remove('stale');
+    if (!silent) pushHistory(S.query.trim());
+    var m = S.mode;
+    if (m === 'concordance' || m === 'collocation') {
+      var q = S.query.trim();
+      run = q ? C.search(ix, q, S.queryMode, sub) : { hits: [], excludedHits: 0, capped: false, error: null, ms: 0, empty: true };
+      if (run.error) { paintResults(); save(); return; }
+      if (m === 'concordance') {
+        if (collocFilter) run.hits = C.hitsWithCollocate(ix, run.hits, collocFilter.win, collocFilter.word);
+        C.sortHits(ix, run.hits, S.sort.concordance);
+      }
+    } else if (m === 'library') {
+      run = { rows: libraryRows() };
+    } else {
+      run = { rows: wordRows() };
+    }
+    save();
+    paintResults();
+  }
+
+  function libraryRows() {
+    var out = [], i, q = S.query.trim();
+    for (i = 0; i < ix.clauses.length; i++) {
+      if (!sub.included[i]) continue;
+      if (q && clauseText(i).indexOf(q) < 0 && String(ix.clauses[i].h || '').indexOf(q) < 0) continue;
+      out.push(i);
+    }
+    var s = S.sort.library;
+    if (s === 'u-desc') out.sort(function (a, b) { return ix.clauses[b].u - ix.clauses[a].u || comparePath(a, b); });
+    else if (s === 'u-asc') out.sort(function (a, b) { return ix.clauses[a].u - ix.clauses[b].u || comparePath(a, b); });
+    else if (s === 'kind') out.sort(function (a, b) {
+      var ka = kindLabel(kindOf(a)), kb = kindLabel(kindOf(b));
+      return ka < kb ? -1 : ka > kb ? 1 : (ix.clauses[b].u - ix.clauses[a].u || comparePath(a, b));
+    });
+    else if (s === 'len') out.sort(function (a, b) { return clauseText(b).length - clauseText(a).length; });
+    else out.sort(function (a, b) { return ix.clauses[a].d - ix.clauses[b].d || comparePath(a, b); });
+    return out;
+  }
+  function wordRows() {
+    var st = getStats(), q = S.query.trim().toLowerCase(), rows = [];
+    var corpusFreq = {}, lang = S.filters.lang;
+    ['th', 'en'].forEach(function (l) {
+      ((ix.meta.freq || {})[l] || []).forEach(function (pair) { if (Array.isArray(pair)) corpusFreq[pair[0]] = pair[1]; });
+    });
+    st.map.forEach(function (r, w) {
+      if (S.stop.wordlist && isStop(w)) return;
+      if (S.punct && isPunctOnly(w)) return;
+      var sc = scriptOf(w);
+      if (lang === 'th' && sc !== 'th') return;
+      if (lang === 'en' && sc !== 'en') return;
+      if (q && w.toLowerCase().indexOf(q) < 0) return;
+      rows.push({ w: w, c: r.c, d: r.d, sc: sc, cf: Object.prototype.hasOwnProperty.call(corpusFreq, w) ? corpusFreq[w] : null });
+    });
+    sortRows(rows, S.sort.wordlist);
+    return rows;
+  }
+  function sortRows(rows, s) {
+    var col = C.collator();
+    if (s === 'word') rows.sort(function (a, b) { return col.compare(a.w, b.w); });
+    else if (s === 'docs') rows.sort(function (a, b) { return b.d - a.d || b.c - a.c; });
+    else if (s === 'mi') rows.sort(function (a, b) { return b.mi - a.mi || b.o - a.o; });
+    else if (s === 't') rows.sort(function (a, b) { return b.t - a.t || b.o - a.o; });
+    else rows.sort(function (a, b) { return (b.c != null ? b.c : b.o) - (a.c != null ? a.c : a.o); });
+    return rows;
+  }
+
+  // ── Painting: result head + body ────────────────────────
+  function paintResults() {
+    paintQueryBar();
+    var head = $('resultHead'), body = $('resultBody'), more = $('resultMore');
+    if (!ix) {
+      head.innerHTML = '<div class="counts"><span class="count-n">—</span> <span class="count-l">no corpus loaded</span></div>';
+      body.innerHTML = emptyStateHtml();
+      more.hidden = true;
+      return;
+    }
+    if (run && run.error) {
+      head.innerHTML = countsHtml('—', 'invalid pattern') + stalePill();
+      body.innerHTML = '<div class="empty"><h3>That regular expression will not compile</h3><p class="callout rose" style="text-align:left">' + esc(run.error) + '</p></div>';
+      more.hidden = true;
+      return;
+    }
+    if (S.mode === 'concordance') paintKwic();
+    else if (S.mode === 'library') paintLibrary();
+    else if (S.mode === 'collocation') paintColloc();
+    else paintWordlist();
+  }
+  function stalePill() { return '<span class="pill stale-pill warn">Filters changed — re-run</span>'; }
+  function countsHtml(n, label, extra) {
+    return '<div class="counts"><span class="count-n">' + n + '</span> <span class="count-l">' + label + '</span>' + (extra || '') + '</div>';
+  }
+  function subLine(text) { return '<div class="sub-line">' + text + '</div>'; }
+  function subcorpusSentence() {
+    return 'Over ' + nf(sub.count) + ' of ' + nf(sub.total) + ' clauses' +
+      (sub.excl.signature ? ' · ' + nf(sub.excl.signature) + ' signature ' + plural(sub.excl.signature, 'clause') + ' excluded' : '') +
+      (sub.count < sub.total && (sub.total - sub.count - sub.excl.signature) > 0
+        ? ' · ' + nf(sub.total - sub.count - sub.excl.signature) + ' excluded by other filters' : '');
+  }
+  function emptyStateHtml() {
+    return '<div class="empty"><h3>No corpus loaded</h3>' +
+      '<p>This tool reads a corpus file built offline by <code>tools/contract-corpus/</code>. ' +
+      'It makes no network request of any kind, so it cannot fetch one for you — choose the file from disk.</p>' +
+      '<p>A small valid sample ships in the repository at <code>tools/contract-corpus/fixtures/sample.corpus.json</code>.</p>' +
+      '<p><button class="btn primary" type="button" data-act="load">Load corpus…</button></p></div>';
+  }
+
+  function docCountOf(hits) {
+    var s = new Set(), i;
+    for (i = 0; i < hits.length; i++) s.add(ix.clauses[hits[i].i].d);
+    return s.size;
+  }
+  function typeBreakdown(hits) {
+    var m = {}, i, t;
+    for (i = 0; i < hits.length; i++) { t = docOf(hits[i].i).type || '—'; m[t] = (m[t] || 0) + 1; }
+    return Object.keys(m).sort(function (a, b) { return m[b] - m[a]; }).map(function (t) { return [t, m[t]]; });
+  }
+
+  function paintKwic() {
+    var head = $('resultHead'), body = $('resultBody'), more = $('resultMore');
+    var q = S.query.trim();
+    if (!q) {
+      head.innerHTML = countsHtml('—', 'no query') + stalePill() + subLine(subcorpusSentence());
+      body.innerHTML = '<div class="empty"><h3>Type a query</h3><p>Substring is the default and is the right primitive for Thai, which has no orthographic word boundaries. Whole word gates the match on the token boundaries the pipeline computed. Regex is there for the awkward cases.</p><p class="muted">Try <span class="th">สัญญา</span>, <span class="th">ผู้รับจ้าง</span> or <code>shall</code>.</p></div>';
+      more.hidden = true;
+      return;
+    }
+    var hits = run.hits, ndocs = docCountOf(hits), types = typeBreakdown(hits);
+    var chips = types.map(function (t) {
+      return '<button class="chip' + (S.filters.type === t[0] ? ' active' : '') + '" data-filter="type:' + esc(t[0]) + '">' +
+        esc(typeLabel(t[0])) + ' ' + nf(t[1]) + '</button>';
+    }).join('');
+    head.innerHTML =
+      countsHtml(nf(hits.length), plural(hits.length, 'hit')) +
+      countsHtml(nf(ndocs), plural(ndocs, 'document')) +
+      stalePill() +
+      (collocFilter ? '<button class="chip active removable" data-act="clearColloc">within ±' + collocFilter.win + ' of ' + esc(collocFilter.word) + '</button>' : '') +
+      '<div class="chips">' + chips + '</div>' +
+      subLine(subcorpusSentence() +
+        (run.excludedHits ? ' · <strong>' + nf(run.excludedHits) + '</strong> further ' + plural(run.excludedHits, 'hit') + ' fall in excluded clauses and are not listed' : '') +
+        (run.capped ? ' · <strong>capped at ' + nf(hits.length) + ' hits</strong>' : '') +
+        ' · scanned in ' + Math.max(1, Math.round(run.ms)) + ' ms');
+    if (!hits.length) {
+      body.innerHTML = '<div class="empty"><h3>No hits in this subcorpus</h3><p>' +
+        (run.excludedHits ? nf(run.excludedHits) + ' ' + plural(run.excludedHits, 'hit') + ' exist in clauses the filters exclude — widen the filters on the left to see them.' :
+          'The string does not occur in any clause of this corpus.') + '</p></div>';
+      more.hidden = true;
+      return;
+    }
+    var w = S.contextWidth, rows = [], i, lim = Math.min(shown, hits.length);
+    for (i = 0; i < lim; i++) {
+      var h = hits[i], k = C.kwic(ix, h, w), ci = h.i, c = ix.clauses[ci];
+      rows.push('<tr data-clause="' + ci + '" data-hit="' + i + '" class="' +
+        (selected === ci ? 'sel ' : '') + (c.q || C.flaggedDoc(docOf(ci)) ? 'flagged ' : '') + (isOverridden(ci) ? 'changed' : '') + '">' +
+        '<td class="k-ref" title="' + esc(clauseRef(ci) + ' · ' + c.z + ' · ' + kindLabel(kindOf(ci))) + '">' + esc(clauseRef(ci)) + '</td>' +
+        '<td class="k-left">' + (k.lTrunc ? '<span class="trunc">…</span>' : '') + esc(k.left) + '</td>' +
+        '<td class="k-node"><mark>' + esc(k.node) + '</mark></td>' +
+        '<td class="k-right">' + esc(k.right) + (k.rTrunc ? '<span class="trunc">…</span>' : '') + '</td>' +
+        '</tr>');
+    }
+    var sortNow = S.sort.concordance;
+    body.innerHTML = '<table class="kwic"><thead><tr>' +
+      '<th>Reference</th>' +
+      '<th data-sort="1L" class="' + (sortNow === '1L' ? 'sorted' : '') + '" style="text-align:right">Left context — sort 1L</th>' +
+      '<th data-sort="node" class="' + (sortNow === 'node' ? 'sorted' : '') + '" style="text-align:center">Node</th>' +
+      '<th data-sort="1R" class="' + (sortNow === '1R' ? 'sorted' : '') + '">Right context — sort 1R</th>' +
+      '</tr></thead><tbody>' + rows.join('') + '</tbody></table>';
+    paintMore(hits.length, lim, 'hits');
+  }
+
+  function paintLibrary() {
+    var head = $('resultHead'), body = $('resultBody');
+    var rows = run.rows, kinds = {}, i;
+    for (i = 0; i < rows.length; i++) { var kk = kindLabel(kindOf(rows[i])); kinds[kk] = (kinds[kk] || 0) + 1; }
+    var ndocs = new Set(rows.map(function (r) { return ix.clauses[r].d; })).size;
+    head.innerHTML = countsHtml(nf(rows.length), plural(rows.length, 'clause')) +
+      countsHtml(nf(ndocs), plural(ndocs, 'document')) + stalePill() +
+      '<div class="chips">' + Object.keys(kinds).sort(function (a, b) { return kinds[b] - kinds[a]; }).slice(0, 6)
+        .map(function (k2) { return '<span class="chip">' + esc(k2) + ' ' + nf(kinds[k2]) + '</span>'; }).join('') + '</div>' +
+      subLine(subcorpusSentence() + ' · sorted so the formulation that recurs most sits first — that is the house standard, and the one-offs below it are the departures.');
+    if (!rows.length) {
+      body.innerHTML = '<div class="empty"><h3>No clauses match</h3><p>Pick a clause kind on the left, or widen the filters.</p></div>';
+      $('resultMore').hidden = true;
+      return;
+    }
+    var lim = Math.min(shown, rows.length), out = [];
+    for (i = 0; i < lim; i++) {
+      var idx = rows[i], c = ix.clauses[idx], doc = docOf(idx), t = clauseText(idx);
+      var lead = c.h ? esc(c.h) : esc(t.slice(0, 90)) + (t.length > 90 ? '…' : '');
+      out.push('<div class="lib-card' + (selected === idx ? ' sel' : '') + (S.pins.indexOf(ix.overrideKey[idx]) >= 0 ? ' pinned' : '') +
+        (isOverridden(idx) ? ' changed' : '') + (c.q || C.flaggedDoc(doc) ? ' flagged' : '') + '" data-clause="' + idx + '" tabindex="0" role="button">' +
+        '<div class="lib-top">' +
+        (c.nd || c.n ? '<span class="lib-num">' + esc(c.nd || c.n) + '</span>' : '') +
+        '<span class="lib-h">' + lead + '</span>' +
+        '<span class="lib-u" title="corpus-wide count of this exact formulation">×' + nf(c.u) + '</span></div>' +
+        '<div class="lib-meta"><span>' + esc(doc.id || '') + '</span><span>' + esc(typeLabel(doc.type)) + '</span><span>' +
+        esc(kindLabel(kindOf(idx))) + '</span><span>' + esc(c.z) + '</span><span>' + esc(c.l) + '</span>' +
+        (c.g != null ? '<span>p.' + esc(c.g) + '</span>' : '') + '</div>' +
+        '<div class="lib-text">' + esc(t.slice(0, 420)) + (t.length > 420 ? '<span class="trunc">… (' + nf(t.length) + ' chars — open in the detail pane)</span>' : '') + '</div>' +
+        '</div>');
+    }
+    body.innerHTML = '<div id="libraryList">' + out.join('') + '</div>';
+    paintMore(rows.length, lim, 'clauses');
+  }
+
+  function paintColloc() {
+    var head = $('resultHead'), body = $('resultBody');
+    var q = S.query.trim();
+    if (!q) {
+      head.innerHTML = countsHtml('—', 'no query') + stalePill() + subLine(subcorpusSentence());
+      body.innerHTML = '<div class="empty"><h3>Type a query</h3><p>Collocation reports what habitually surrounds a word within ±' + S.window + ' tokens, using the token boundaries the pipeline computed. Raw co-occurrence, MI and t-score are shown side by side because they disagree usefully: MI favours rare specific partners, t-score favours frequent reliable ones.</p></div>';
+      $('resultMore').hidden = true;
+      return;
+    }
+    var st = getStats();
+    var rows = C.collocates(ix, run.hits, S.window, st).filter(function (r) {
+      if (S.stop.collocation && isStop(r.w)) return false;
+      if (S.punct && isPunctOnly(r.w)) return false;
+      return true;
+    });
+    sortRows(rows, S.sort.collocation);
+    head.innerHTML = countsHtml(nf(run.hits.length), plural(run.hits.length, 'node occurrence')) +
+      countsHtml(nf(rows.length), 'distinct collocates') + stalePill() +
+      subLine(subcorpusSentence() + ' · window ±' + S.window + ' tokens · N = ' + nf(st.total) +
+        ' tokens in subcorpus · MI = log₂(O/E), t = (O−E)/√O, E = f(node)·f(w)·' + (S.window * 2) + '/N' +
+        (S.stop.collocation ? ' · stopwords hidden' : ' · stopwords shown'));
+    if (!rows.length) {
+      body.innerHTML = '<div class="empty"><h3>Nothing to report</h3><p>' + (run.hits.length ? 'Every neighbouring token was filtered out. Turn off the stopword or punctuation filter above.' : 'The query has no occurrences in this subcorpus.') + '</p></div>';
+      $('resultMore').hidden = true;
+      return;
+    }
+    var lim = Math.min(shown, rows.length), out = [], i, s = S.sort.collocation;
+    for (i = 0; i < lim; i++) {
+      var r = rows[i];
+      out.push('<tr><td class="w"><button class="linkish" type="button" data-collocate="' + esc(r.w) + '">' + esc(r.w) + '</button></td>' +
+        '<td class="num">' + nf(r.o) + '</td><td class="num">' + nf(r.left) + '</td><td class="num">' + nf(r.right) + '</td>' +
+        '<td class="num">' + nf(r.f) + '</td><td class="num">' + r.mi.toFixed(2) + '</td><td class="num">' + r.t.toFixed(2) + '</td></tr>');
+    }
+    body.innerHTML = '<table class="data"><thead><tr>' +
+      '<th data-sort="word" class="' + (s === 'word' ? 'sorted' : '') + '">Collocate</th>' +
+      '<th data-sort="freq" class="num ' + (s === 'freq' ? 'sorted' : '') + '" style="text-align:right">O</th>' +
+      '<th class="num" style="text-align:right">Left</th><th class="num" style="text-align:right">Right</th>' +
+      '<th class="num" style="text-align:right">f(w)</th>' +
+      '<th data-sort="mi" class="num ' + (s === 'mi' ? 'sorted' : '') + '" style="text-align:right">MI</th>' +
+      '<th data-sort="t" class="num ' + (s === 't' ? 'sorted' : '') + '" style="text-align:right">t</th>' +
+      '</tr></thead><tbody>' + out.join('') + '</tbody></table>';
+    paintMore(rows.length, lim, 'collocates');
+  }
+
+  function paintWordlist() {
+    var head = $('resultHead'), body = $('resultBody'), rows = run.rows, st = getStats(), i;
+    head.innerHTML = countsHtml(nf(rows.length), 'distinct ' + plural(rows.length, 'word')) +
+      countsHtml(nf(st.total), 'running tokens') + stalePill() +
+      subLine(subcorpusSentence() + ' · counts are computed over this subcorpus; the <em>corpus</em> column is the pipeline\'s precomputed <code>freq</code> table over the whole file, shown for comparison' +
+        (S.stop.wordlist ? ' · stopwords hidden' : '') + (S.punct ? ' · whitespace and punctuation hidden' : ''));
+    if (!rows.length) {
+      body.innerHTML = '<div class="empty"><h3>No words match</h3><p>Clear the filter above, or turn off the stopword filter.</p></div>';
+      $('resultMore').hidden = true;
+      return;
+    }
+    var lim = Math.min(shown, rows.length), out = [], s = S.sort.wordlist;
+    for (i = 0; i < lim; i++) {
+      var r = rows[i];
+      out.push('<tr><td class="w"><button class="linkish' + (isStop(r.w) ? ' stopword' : '') + '" type="button" data-word="' + esc(r.w) + '">' +
+        esc(r.w === ' ' ? '␠' : r.w) + '</button></td>' +
+        '<td>' + esc(r.sc) + '</td><td class="num">' + nf(r.c) + '</td><td class="num">' + nf(r.d) + '</td>' +
+        '<td class="num">' + (r.cf == null ? '<span class="muted">—</span>' : nf(r.cf)) + '</td></tr>');
+    }
+    body.innerHTML = '<table class="data"><thead><tr>' +
+      '<th data-sort="word" class="' + (s === 'word' ? 'sorted' : '') + '">Word</th><th>Script</th>' +
+      '<th data-sort="freq" class="num ' + (s === 'freq' ? 'sorted' : '') + '" style="text-align:right">Subcorpus</th>' +
+      '<th data-sort="docs" class="num ' + (s === 'docs' ? 'sorted' : '') + '" style="text-align:right">Docs</th>' +
+      '<th class="num" style="text-align:right">Corpus (freq)</th>' +
+      '</tr></thead><tbody>' + out.join('') + '</tbody></table>';
+    paintMore(rows.length, lim, 'words');
+  }
+
+  function paintMore(total, lim, noun) {
+    var more = $('resultMore');
+    more.hidden = false;
+    more.querySelector('.shown').textContent = 'Showing ' + nf(lim) + ' of ' + nf(total) + ' ' + noun + '.';
+    $('moreBtn').hidden = lim >= total;
+    $('moreBtn').textContent = 'Show ' + nf(Math.min(PAGE, total - lim)) + ' more';
+  }
+
+  // ── Detail pane ─────────────────────────────────────────
+  function select(i) {
+    selected = i;
+    paintDetail();
+    paintResults();
+    if (window.innerWidth <= 900) setMobilePane('detail');
+  }
+  function paintDetail() {
+    var pill = $('detailPill'), host = $('detailClause'), dhost = $('detailDoc'),
+        krow = $('detailKindRow'), ksel = $('detailKind'), nb = $('detailNeighbours');
+    if (!ix || selected == null || !ix.clauses[selected]) {
+      pill.textContent = 'Nothing selected';
+      host.innerHTML = '<p class="muted" style="font-size:12px;margin:0">Select a row to read the full clause.</p>';
+      dhost.innerHTML = '';
+      ksel.disabled = true; ksel.innerHTML = '';
+      krow.classList.remove('changed');
+      $('detailKindNote').innerHTML = '';
+      nb.innerHTML = '<p class="muted" style="font-size:12px;margin:0">—</p>';
+      $('pinA').disabled = true; $('pinB').disabled = true;
+      return;
+    }
+    var i = selected, c = ix.clauses[i], doc = docOf(i), t = clauseText(i);
+    pill.textContent = c.z + (c.l ? ' · ' + c.l : '');
+    host.innerHTML = '<div class="section-title">Clause</div><div class="dc-head">' +
+      (c.nd || c.n ? '<span class="dc-num th">' + esc(c.nd || c.n) + '</span>' : '') +
+      (c.h ? '<span class="dc-h">' + esc(c.h) + '</span>' : '') +
+      '<span class="lib-u">×' + nf(c.u) + '</span></div>' +
+      '<div class="dc-text">' + esc(t) + '</div>' +
+      '<p class="muted" style="font-size:11px;margin:6px 0 0">' + nf(t.length) + ' characters · ' +
+      nf(ix.tokIdx[i + 1] - ix.tokIdx[i]) + ' tokens' + (c.g != null ? ' · page ' + esc(c.g) : '') +
+      (c.n ? ' · groups as <code>' + esc(c.n) + '</code>' : '') +
+      (c.p && c.p.length ? ' · sorts at [' + esc(c.p.join(', ')) + ']' : '') + '</p>';
+
+    var qc = doc.qc || {}, flags = [];
+    if (c.q) flags.push(['QC-flagged clause', false]);
+    if ((qc.lowConfBlocks | 0) > 0) flags.push([qc.lowConfBlocks + ' low-confidence blocks', false]);
+    if ((qc.unplacedBlocks | 0) > 0) flags.push([qc.unplacedBlocks + ' unplaced blocks', false]);
+    if (!flags.length) flags.push(['No QC flags on this document', true]);
+    dhost.innerHTML = '<div class="section-title">Document</div><dl class="kv">' +
+      row('Id', doc.id) + row('Title', doc.title) + row('Type', typeLabel(doc.type)) +
+      row('Language', doc.lang) + row('Date', fmtDate(doc.date)) +
+      row('Parties', (doc.parties || []).map(function (p) { return (p.role ? p.role + ': ' : '') + p.name; }).join(' · ') || '—') +
+      row('Source', (doc.src || {}).file) + row('Method', (doc.src || {}).method) +
+      row('Thai ratio', qc.thaiRatio == null ? '—' : qc.thaiRatio) +
+      row('OOV rate', qc.oovRate == null ? '—' : qc.oovRate) +
+      row('Mean conf.', qc.meanConf == null ? '—' : qc.meanConf) +
+      '</dl><div class="qc-flags">' + flags.map(function (f) {
+        return '<span class="flagbox' + (f[1] ? ' ok' : '') + '">' + esc(f[0]) + '</span>';
+      }).join('') + '</div>';
+
+    ksel.disabled = false;
+    ksel.innerHTML = '';
+    ksel.appendChild(opt('__none', 'Unclassified'));
+    Object.keys(ix.meta.kinds || {}).forEach(function (slug) {
+      var d = ix.meta.kinds[slug] || {};
+      ksel.appendChild(opt(slug, (d.label || slug) + (d.labelTh ? ' · ' + d.labelTh : '')));
+    });
+    var cur = kindOf(i);
+    ksel.value = cur == null ? '__none' : cur;
+    var over = isOverridden(i);
+    krow.classList.toggle('changed', over);
+    var key = ix.overrideKey[i];
+    var sameKey = [];
+    if (over) { for (var j = 0; j < ix.clauses.length; j++) if (j !== i && ix.overrideKey[j] === key) sameKey.push(j); }
+    $('detailKindNote').innerHTML =
+      '<p class="muted" style="font-size:11px;margin:7px 0 0;line-height:1.55">Pipeline answer: <strong>' +
+      esc(kindLabel(c.k)) + '</strong>. Override key <code>' + esc(key) + '</code> — derived from the document id and clause number, never from an array position, so it survives rebuilding the corpus.</p>' +
+      (over ? '<div class="override-note">Overridden by hand to <strong>' + esc(kindLabel(cur)) + '</strong>. ↻ puts the pipeline\'s answer back.' +
+        (sameKey.length ? ' This key also matches ' + nf(sameKey.length) + ' other ' + plural(sameKey.length, 'clause') + ' in the same document, which the override therefore also covers.' : '') + '</div>' : '');
+
+    var rng = ix.docRange[c.d] || [0, 0];
+    var prev = i - 1 >= rng[0] ? i - 1 : null, next = i + 1 < rng[1] ? i + 1 : null;
+    nb.innerHTML = nbBtn('Previous in document', prev) + nbBtn('Next in document', next);
+
+    $('pinA').disabled = false; $('pinB').disabled = false;
+    $('pinA').classList.toggle('pinned', S.pins[0] === key);
+    $('pinB').classList.toggle('pinned', S.pins[1] === key);
+    $('pinA').textContent = S.pins[0] === key ? 'Pinned as A' : 'Pin as A';
+    $('pinB').textContent = S.pins[1] === key ? 'Pinned as B' : 'Pin as B';
+  }
+  function row(k, v) { return '<dt>' + esc(k) + '</dt><dd>' + esc(v == null || v === '' ? '—' : v) + '</dd>'; }
+  function nbBtn(label, i) {
+    if (i == null) return '<button class="nb" type="button" disabled><span class="nb-l">' + esc(label) + '</span><span class="nb-t">— none in this document —</span></button>';
+    var c = ix.clauses[i], t = clauseText(i);
+    return '<button class="nb" type="button" data-goto="' + i + '"><span class="nb-l">' + esc(label) +
+      (c.nd ? ' · ' + esc(c.nd) : '') + '</span><span class="nb-t">' + esc(c.h || t.slice(0, 70)) + '</span></button>';
+  }
+  function clauseByKey(key) {
+    if (!ix || !key) return null;
+    for (var i = 0; i < ix.clauses.length; i++) if (ix.overrideKey[i] === key) return i;
+    return null;
+  }
+  function paintCompare() {
+    var host = $('compareView');
+    if (!ix || (S.pins[0] == null && S.pins[1] == null)) { host.hidden = true; host.innerHTML = ''; return; }
+    host.hidden = false;
+    var cells = [0, 1].map(function (slot) {
+      var i = clauseByKey(S.pins[slot]);
+      var label = slot === 0 ? 'A' : 'B';
+      if (i == null) return '<div class="cmp-col"><h4>' + label + ' — not pinned</h4><p class="muted" style="font-size:11.5px;margin:0">Select a clause and press “Pin as ' + label + '”.</p></div>';
+      var c = ix.clauses[i], doc = docOf(i);
+      return '<div class="cmp-col"><h4>' + label + ' · ' + esc(doc.id || '') + (c.nd ? ' · ' + esc(c.nd) : '') +
+        ' · ×' + nf(c.u) + ' · ' + esc(kindLabel(kindOf(i))) + '</h4>' +
+        '<div class="cmp-text">' + esc(clauseText(i)) + '</div></div>';
+    });
+    host.innerHTML = '<div class="cmp-head"><strong>Side by side</strong>' +
+      '<button class="btn small" type="button" data-act="unpin">Clear both pins</button></div>' +
+      '<div class="cmp-grid">' + cells.join('') + '</div>';
+  }
+
+  // ── Export ──────────────────────────────────────────────
+  // Pseudonymization is an EXPORT transform only. DESIGN.md §1.5: the corpus in
+  // the browser and on disk stays faithful.
+  function pseudonymizer() {
+    var perDoc = {};
+    function mapFor(docId) {
+      if (!perDoc[docId]) perDoc[docId] = { m: {}, n: { COMPANY: 0, PERSON: 0, ID: 0, PHONE: 0, EMAIL: 0 } };
+      return perDoc[docId];
+    }
+    function tag(docId, type, value) {
+      var st = mapFor(docId), k = type + '|' + value;
+      if (!st.m[k]) { st.n[type]++; st.m[k] = '«' + type + '_' + st.n[type] + '»'; }
+      return st.m[k];
+    }
+    return function (text, docId) {
+      if (text == null) return text;
+      var out = String(text), doc = ix.meta.docs[ix.docIndexOf[docId]] || {};
+      (doc.parties || []).forEach(function (p) {
+        var name = String(p.name || '').trim();
+        if (name.length < 3) return;
+        var type = /บริษัท|จำกัด|ห้างหุ้น|Co\.|Ltd|Limited|Company|Corp/i.test(name) ? 'COMPANY' : 'PERSON';
+        out = out.split(name).join(tag(docId, type, name));
+      });
+      out = out.replace(/[\w.+-]+@[\w-]+\.[\w.]{2,}/g, function (m) { return tag(docId, 'EMAIL', m); });
+      out = out.replace(/\b\d[\d\s-]{11,17}\d\b/g, function (m) {
+        var digits = m.replace(/\D/g, '');
+        if (digits.length === 13) return tag(docId, 'ID', digits);
+        return m;
+      });
+      out = out.replace(/(?:\+66[\s-]?|\b0)\d[\d\s-]{7,10}\d\b/g, function (m) { return tag(docId, 'PHONE', m.replace(/\D/g, '')); });
+      return out;
+    };
+  }
+  function currentRowsForExport(pseudo) {
+    var P = pseudo ? pseudonymizer() : function (x) { return x; };
+    var m = S.mode, i;
+    if (m === 'concordance') {
+      var out = [['document', 'clause', 'page', 'zone', 'kind', 'kindSource', 'u', 'left', 'node', 'right']];
+      for (i = 0; i < run.hits.length; i++) {
+        var h = run.hits[i], c = ix.clauses[h.i], doc = docOf(h.i), k = C.kwic(ix, h, S.contextWidth);
+        out.push([doc.id, c.nd || c.n || '', c.g == null ? '' : c.g, c.z, kindLabel(kindOf(h.i)),
+          isOverridden(h.i) ? 'manual' : 'pipeline', c.u,
+          P(k.left, doc.id), P(k.node, doc.id), P(k.right, doc.id)]);
+      }
+      return out;
+    }
+    if (m === 'library') {
+      var out2 = [['document', 'clause', 'page', 'zone', 'kind', 'kindSource', 'u', 'lang', 'heading', 'text']];
+      for (i = 0; i < run.rows.length; i++) {
+        var idx = run.rows[i], c2 = ix.clauses[idx], d2 = docOf(idx);
+        out2.push([d2.id, c2.nd || c2.n || '', c2.g == null ? '' : c2.g, c2.z, kindLabel(kindOf(idx)),
+          isOverridden(idx) ? 'manual' : 'pipeline', c2.u, c2.l, P(c2.h || '', d2.id), P(clauseText(idx), d2.id)]);
+      }
+      return out2;
+    }
+    if (m === 'collocation') {
+      var st = getStats();
+      var rows = C.collocates(ix, run.hits, S.window, st).filter(function (r) {
+        return !(S.stop.collocation && isStop(r.w)) && !(S.punct && isPunctOnly(r.w));
+      });
+      sortRows(rows, S.sort.collocation);
+      var out3 = [['collocate', 'cooccurrences', 'left', 'right', 'freqInSubcorpus', 'MI', 'tScore']];
+      rows.forEach(function (r) { out3.push([r.w, r.o, r.left, r.right, r.f, r.mi.toFixed(4), r.t.toFixed(4)]); });
+      return out3;
+    }
+    var out4 = [['word', 'script', 'subcorpusCount', 'documents', 'corpusFreq']];
+    run.rows.forEach(function (r) { out4.push([r.w, r.sc, r.c, r.d, r.cf == null ? '' : r.cf]); });
+    return out4;
+  }
+  function toCsv(rows) {
+    return '﻿' + rows.map(function (r) {
+      return r.map(function (v) {
+        var s = v == null ? '' : String(v);
+        return /[",\n\r]/.test(s) ? '"' + s.split('"').join('""') + '"' : s;
+      }).join(',');
+    }).join('\r\n');
+  }
+  function toTxt(rows) {
+    return rows.slice(1).map(function (r) { return r.join('\t'); }).join('\n');
+  }
+  function toJson(rows) {
+    var head = rows[0];
+    return JSON.stringify({
+      tool: 'contract-concordance', version: 1, savedAt: new Date().toISOString(),
+      corpus: { name: ix.name, hash: ix.hash, builtAt: ix.meta.builtAt, docs: ix.meta.docs.length, clauses: ix.clauses.length },
+      mode: S.mode, query: S.query, queryMode: S.queryMode, sort: S.sort[S.mode],
+      filters: S.filters, subcorpus: { included: sub.count, total: sub.total, excluded: sub.excl },
+      rows: rows.slice(1).map(function (r) { var o = {}; head.forEach(function (h, i) { o[h] = r[i]; }); return o; })
+    }, null, 2);
+  }
+  function download(name, text, mime) {
+    var blob = new Blob([text], { type: (mime || 'text/plain') + ';charset=utf-8' });
+    var url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+  }
+  function openExport() {
+    if (!ix || !run) { toast('Run a query first'); return; }
+    openDialog('Export the current view',
+      '<p>The <strong>' + esc(S.mode) + '</strong> view exports exactly what is on screen — the same subcorpus, the same sort, every row, not only the page shown.</p>' +
+      '<div class="field"><label for="exportFormat">Format</label><select id="exportFormat">' +
+      '<option value="csv">CSV — spreadsheet, UTF-8 with BOM</option><option value="json">JSON — rows plus the query and filters that produced them</option>' +
+      '<option value="txt">TXT — tab separated</option></select></div>' +
+      '<div class="check-row" style="margin-top:12px"><input type="checkbox" id="exportPseudonymize"><label for="exportPseudonymize"><strong>Pseudonymize on export</strong></label></div>' +
+      '<p class="muted" style="font-size:11.5px;margin-top:8px">Off by default. When on, party names taken from <code>docs[].parties</code>, 13-digit Thai ID and tax numbers, phone numbers and email addresses are replaced with typed placeholders — <code>«COMPANY_1»</code>, <code>«ID_1»</code> — consistently within a document, so cross-references still line up.</p>' +
+      '<div class="callout amber" style="margin-top:10px">It transforms the exported copy only. The corpus in this browser and the file on your disk are untouched and still hold the real names. This toggle is a convenience, <strong>not</strong> a substitute for reading what you are about to send.</div>',
+      [{ label: 'Cancel' }, {
+        label: 'Export', primary: true, keepOpen: true, run: function () {
+          var fmt = $('exportFormat').value, pseudo = $('exportPseudonymize').checked;
+          var rows = currentRowsForExport(pseudo);
+          var base = 'concordance-' + S.mode + (pseudo ? '-pseudonymized' : '') + '-' + new Date().toISOString().slice(0, 10);
+          if (fmt === 'csv') download(base + '.csv', toCsv(rows), 'text/csv');
+          else if (fmt === 'json') download(base + '.json', toJson(rows), 'application/json');
+          else download(base + '.txt', toTxt(rows), 'text/plain');
+          closeDialog();
+          toast('Exported ' + nf(rows.length - 1) + ' rows' + (pseudo ? ', pseudonymized' : ''));
+        }
+      }]);
+  }
+  function summaryText() {
+    if (!ix) return 'Contract Concordance — no corpus loaded.';
+    var L = [];
+    L.push('Contract Concordance — ' + S.mode);
+    L.push('Corpus: ' + (ix.name || '(unnamed)') + ' — ' + ix.meta.docs.length + ' documents, ' + ix.clauses.length + ' clauses, ' + ix.tokenCount + ' tokens, built ' + fmtDate(ix.meta.builtAt));
+    L.push('Subcorpus: ' + sub.count + ' of ' + sub.total + ' clauses' + (sub.excl.signature ? ' (' + sub.excl.signature + ' signature clauses excluded)' : ''));
+    L.push('Filters: type=' + (S.filters.type || 'all') + ', lang=' + (S.filters.lang || 'all') + ', zone=' + (S.filters.zone === '-signature' ? 'all except signature' : (S.filters.zone || 'all')) + ', kind=' + (S.filters.kind || 'all') + ', qc=' + (S.filters.qc || 'all') + ', u>=' + S.filters.minU);
+    if (S.mode === 'concordance' || S.mode === 'collocation') L.push('Query: ' + JSON.stringify(S.query) + ' (' + S.queryMode + ')');
+    L.push('');
+    var rows = currentRowsForExport(false), i;
+    for (i = 0; i < Math.min(rows.length, 201); i++) L.push(rows[i].join('\t'));
+    if (rows.length > 201) L.push('… ' + (rows.length - 201) + ' further rows — use Export for the whole view.');
+    L.push('');
+    L.push('Reference tool only — not legal advice. Built from local documents; nothing was uploaded.');
+    return L.join('\n');
+  }
+
+  // ── Reset ───────────────────────────────────────────────
+  function confirmReset() {
+    openDialog('Reset everything?',
+      '<p>This clears, in this browser:</p><ul>' +
+      '<li>the query, filters, sort, context width and query history;</li>' +
+      '<li><strong>' + nf(Object.keys(S.overrides).length) + '</strong> clause-kind ' + plural(Object.keys(S.overrides).length, 'override') + ';</li>' +
+      '<li>the pinned clauses.</li></ul>' +
+      '<p><strong>Kept:</strong> the ' + nf(cachedList.length) + ' cached ' + plural(cachedList.length, 'corpus', 'corpora') +
+      '. Your corpus files on disk are never touched by this tool.</p>',
+      [{ label: 'Cancel' },
+       { label: 'Also delete cached corpora', danger: true, run: function () { resetAll(true); } },
+       { label: 'Reset settings only', primary: true, run: function () { resetAll(false); } }]);
+  }
+  function resetAll(dropCorpora) {
+    try { localStorage.removeItem(KEY); } catch (e) {}
+    S = defaultState();
+    if (dropCorpora) {
+      var list = cachedList.slice(), left = list.length;
+      if (!left) finishReset(true);
+      list.forEach(function (r) { dbDelete(r.hash, function () { if (--left <= 0) finishReset(true); }); });
+    } else finishReset(false);
+  }
+  function finishReset(dropped) {
+    if (dropped) { ix = null; sub = null; run = null; selected = null; }
+    stats = null; collocFilter = null; shown = PAGE;
+    syncFilterInputs();
+    $('queryInput').value = ''; $('queryMode').value = 'substring';
+    $('contextWidth').value = 40; $('contextWidthOut').value = '40';
+    $('windowSize').value = 5;
+    refreshCached(function () {
+      if (ix) { recomputeSub(); doRun(true); }
+      paintAll(); paintResults();
+      toast(dropped ? 'Everything reset; cached corpora deleted' : 'Settings reset; corpora kept');
+    });
+  }
+
+  // ── Narrow-screen panes ─────────────────────────────────
+  function setMobilePane(name) {
+    document.querySelectorAll('[data-pane]').forEach(function (el) { el.classList.toggle('mobile-active', el.dataset.pane === name); });
+    document.querySelectorAll('[data-mobile-pane]').forEach(function (el) {
+      var on = el.dataset.mobilePane === name;
+      el.classList.toggle('active', on);
+      el.setAttribute('aria-selected', String(on));
+      el.tabIndex = on ? 0 : -1;
+    });
+  }
+  function bindTabKeys(host) {
+    host.addEventListener('keydown', function (e) {
+      if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].indexOf(e.key) < 0) return;
+      var tabs = Array.prototype.slice.call(host.querySelectorAll('[role="tab"]'));
+      if (!tabs.length) return;
+      var cur = tabs.indexOf(document.activeElement);
+      var next = e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 :
+        (cur + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+      e.preventDefault(); tabs[next].focus(); tabs[next].click();
+    });
+  }
+
+  // ── Binding ─────────────────────────────────────────────
+  function bind() {
+    $('loadBtn').addEventListener('click', function () { $('corpusInput').click(); });
+    $('replaceBtn').addEventListener('click', function () { $('corpusInput').click(); });
+    $('corpusInput').addEventListener('change', function () {
+      var f = this.files && this.files[0];
+      this.value = '';
+      if (f) loadFile(f);
+    });
+    $('corpusPicker').addEventListener('change', function () {
+      var h = this.value;
+      activateHash(h, function (err) {
+        if (err) { toast(err.message); return; }
+        toast('Switched corpus');
+      });
+    });
+
+    ['filterType', 'filterLang', 'filterZone', 'filterKind', 'filterQc'].forEach(function (id) {
+      $(id).addEventListener('change', function () { pullFilters(); recomputeSub(); save(); paintSubcorpus(); markStale(); paintResults(); });
+    });
+    $('filterDup').addEventListener('change', function () { pullFilters(); recomputeSub(); save(); paintSubcorpus(); markStale(); paintResults(); });
+    $('clearFiltersBtn').addEventListener('click', function () {
+      S.filters = defaultState().filters;
+      syncFilterInputs(); recomputeSub(); save(); paintSubcorpus(); markStale(); paintResults();
+    });
+
+    $('modeTabs').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-mode]');
+      if (!b) return;
+      S.mode = b.dataset.mode;
+      selected = selected; collocFilter = S.mode === 'concordance' ? collocFilter : null;
+      shown = PAGE; save(); paintQueryBar(); doRun(true);
+    });
+    bindTabKeys($('modeTabs'));
+    bindTabKeys($('mobileTabs'));
+    document.querySelectorAll('[data-mobile-pane]').forEach(function (b) {
+      b.addEventListener('click', function () { setMobilePane(b.dataset.mobilePane); });
+    });
+
+    $('runBtn').addEventListener('click', function () { doRun(false); });
+    $('queryInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') doRun(false); });
+    $('queryMode').addEventListener('change', function () { markStale(); });
+    $('sortSelect').addEventListener('change', function () { S.sort[S.mode] = this.value; save(); doRun(true); });
+    $('contextWidth').addEventListener('input', function () {
+      $('contextWidthOut').value = this.value;
+      S.contextWidth = parseInt(this.value, 10) || 40;
+      if (S.mode === 'concordance' && run && run.hits) { save(); paintResults(); }
+    });
+    $('windowSize').addEventListener('change', function () { markStale(); });
+    $('stopToggle').addEventListener('change', function () { S.stop[S.mode] = this.checked; save(); doRun(true); });
+    $('punctToggle').addEventListener('change', function () { S.punct = this.checked; save(); doRun(true); });
+    $('moreBtn').addEventListener('click', function () { shown += PAGE; paintResults(); });
+
+    $('resultBody').addEventListener('click', function (e) {
+      var el = e.target;
+      var act = el.closest('[data-act]');
+      if (act) {
+        if (act.dataset.act === 'load') $('corpusInput').click();
+        return;
+      }
+      var w = el.closest('[data-word]');
+      if (w) { $('queryInput').value = w.dataset.word; S.mode = 'concordance'; collocFilter = null; paintQueryBar(); doRun(false); return; }
+      var co = el.closest('[data-collocate]');
+      if (co) {
+        collocFilter = { word: co.dataset.collocate, win: S.window };
+        S.mode = 'concordance'; paintQueryBar(); doRun(true);
+        toast('Concordance of ' + S.query.trim() + ' where ' + co.dataset.collocate + ' is within ±' + collocFilter.win + ' tokens');
+        return;
+      }
+      var th = el.closest('th[data-sort]');
+      if (th) { S.sort[S.mode] = th.dataset.sort; $('sortSelect').value = th.dataset.sort; save(); doRun(true); return; }
+      var rowEl = el.closest('[data-clause]');
+      if (rowEl) select(parseInt(rowEl.dataset.clause, 10));
+    });
+    $('resultBody').addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      var rowEl = e.target.closest && e.target.closest('[data-clause]');
+      if (rowEl) { e.preventDefault(); select(parseInt(rowEl.dataset.clause, 10)); }
+    });
+    $('resultHead').addEventListener('click', function (e) {
+      var f = e.target.closest('[data-filter]');
+      if (f) {
+        var parts = f.dataset.filter.split(':');
+        if (parts[0] === 'type') { S.filters.type = (S.filters.type === parts[1] ? '' : parts[1]); syncFilterInputs(); recomputeSub(); save(); paintSubcorpus(); doRun(true); }
+        return;
+      }
+      var a = e.target.closest('[data-act="clearColloc"]');
+      if (a) { collocFilter = null; doRun(true); }
+    });
+
+    $('detailKind').addEventListener('change', function () {
+      if (selected == null) return;
+      var key = ix.overrideKey[selected], v = this.value === '__none' ? null : this.value;
+      var auto = ix.clauses[selected].k;
+      if (v === auto) delete S.overrides[key]; else S.overrides[key] = v;
+      save(); paintDetail(); paintResults(); paintCompare();
+    });
+    $('detailKindReset').addEventListener('click', function () {
+      if (selected == null || !isOverridden(selected)) return;   // gated by .changed
+      delete S.overrides[ix.overrideKey[selected]];
+      save(); paintDetail(); paintResults(); paintCompare();
+      toast('Reset to the pipeline\'s answer');
+    });
+    $('detailNeighbours').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-goto]');
+      if (b) select(parseInt(b.dataset.goto, 10));
+    });
+    [['pinA', 0], ['pinB', 1]].forEach(function (p) {
+      $(p[0]).addEventListener('click', function () {
+        if (selected == null) return;
+        var key = ix.overrideKey[selected];
+        S.pins[p[1]] = S.pins[p[1]] === key ? null : key;
+        save(); paintDetail(); paintCompare(); paintResults();
+      });
+    });
+    $('compareView').addEventListener('click', function (e) {
+      if (e.target.closest('[data-act="unpin"]')) { S.pins = [null, null]; save(); paintDetail(); paintCompare(); paintResults(); }
+    });
+
+    $('copyBtn').addEventListener('click', function () {
+      var btn = this, txt = summaryText();
+      var done = function () { btn.classList.add('copied'); setTimeout(function () { btn.classList.remove('copied'); }, 1300); toast('Summary copied'); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, function () { fallbackCopy(txt, done); });
+      else fallbackCopy(txt, done);
+    });
+    $('exportBtn').addEventListener('click', openExport);
+    $('resetBtn').addEventListener('click', confirmReset);
+
+    $('dialogBackdrop').addEventListener('click', function (e) { if (e.target === this) closeDialog(); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && $('dialogBackdrop').classList.contains('open')) { closeDialog(); return; }
+      if (e.key === 'Tab' && $('dialogBackdrop').classList.contains('open')) {
+        var f = Array.prototype.slice.call(document.querySelector('.dialog').querySelectorAll('button,input,select,textarea,[tabindex]:not([tabindex="-1"])'))
+          .filter(function (x) { return !x.disabled && !x.hidden; });
+        if (!f.length) return;
+        if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f[f.length - 1].focus(); }
+        else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
+      }
+    });
+  }
+  function fallbackCopy(txt, done) {
+    var ta = document.createElement('textarea');
+    ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { toast('Copy failed — select the text manually'); }
+    document.body.removeChild(ta);
+  }
+
+  // ── Init ────────────────────────────────────────────────
+  loadSaved();
+  syncFilterInputs();
+  $('queryInput').value = S.query || '';
+  $('queryMode').value = S.queryMode || 'substring';
+  $('contextWidth').value = S.contextWidth || 40;
+  $('contextWidthOut').value = String(S.contextWidth || 40);
+  $('windowSize').value = S.window || 5;
+  $('queryHistory').innerHTML = (S.history || []).map(function (h) { return '<option value="' + esc(h) + '"></option>'; }).join('');
+  bind();
+  paintQueryBar();
+  paintAll();
+  paintResults();
+  refreshCached(function () {
+    if (S.activeHash && cachedList.some(function (r) { return r.hash === S.activeHash; })) {
+      activateHash(S.activeHash, function (err) { if (err) { S.activeHash = null; save(); paintAll(); paintResults(); } });
+    } else if (dbState === 'unavailable') {
+      paintCorpusBar();
+    }
+  });
+})();
+</script>
+</body>
+</html>

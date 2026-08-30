@@ -79,9 +79,21 @@ One filter pane governs all four modes, so a count in one mode always describes
 the same subcorpus as a count in another: contract type, language (`th`/`en`/
 `mixed`), zone, clause kind, QC-flagged documents, and a minimum-`u` threshold.
 
-`zone:"signature"` is **excluded by default** — those clauses are names with no
-drafting value — but the exclusion is a visible, reversible filter and the
-excluded count is always stated. Nothing is silently omitted.
+Two exclusions are **on by default**, both visible, reversible filters with the
+excluded count always stated. Nothing is silently omitted (`HOUSE-STYLE.md` §1.5).
+
+- `zone:"signature"` — names with no drafting value.
+- `r:1`, table rows. Measured on eight real contracts: the most-recurring
+  clauses in the entire corpus were shareholder table rows (`name | shares | %`)
+  recurring across seven documents. Rows are structurally identical across
+  matters, so they swamp any recurrence or frequency ranking, and they are the
+  most name-dense content there is. A clause library topped by someone's
+  shareholding is useless.
+
+Both exclusions apply to the **clause library, wordlist and collocation** views.
+**Concordance search still covers rows** — finding a figure inside a table is a
+legitimate thing to want — so the row filter is per-view, not global. Mark row
+hits visibly in the KWIC table.
 
 ## Auto with override
 

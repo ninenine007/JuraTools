@@ -45,7 +45,7 @@ def encode(text, lang):
 CL, NTOK = [], 0
 
 
-def clause(d, n, nd, p, z, k, l, h, text, g, u, q=False):
+def clause(d, n, nd, p, z, k, l, h, text, g, u, q=False, r=False):
     global NTOK
     b, count = encode(text, l)
     NTOK += count
@@ -53,6 +53,8 @@ def clause(d, n, nd, p, z, k, l, h, text, g, u, q=False):
            "h": h, "t": text, "b": b, "g": g, "u": u}
     if q:
         rec["q"] = 1
+    if r:
+        rec["r"] = 1
     CL.append(rec)
 
 
@@ -79,6 +81,11 @@ clause(0, "9.1", "๙.๑", [9, 1], "body", "force_majeure", "th", "เหตุ
 # Parenthesised label nested under 9.1 — display `nd` "(1)", group on `n`, sort on `p`.
 clause(0, "9.1.1", "(1)", [9, 1, 1], "body", "force_majeure", "th", None,
        "เหตุสุดวิสัย หมายความรวมถึง อุทกภัย ไฟไหม้ และการนัดหยุดงาน", 8, 4)
+
+# A table row. Structurally identical across matters, so it recurs heavily and
+# would top any recurrence ranking — which is exactly why `r` marks it.
+clause(0, None, None, [], "annex", None, "th", None,
+       "รายชื่อผู้ถือหุ้น | จำนวนหุ้น | สัดส่วนการถือหุ้น", 12, 7, r=True)
 
 clause(0, None, None, [], "signature", None, "th", None,
        "ลงชื่อ ..................... ผู้ว่าจ้าง", 14, 1)
