@@ -31,6 +31,8 @@ Observed in the supplied contracts, so all of it is exercised:
     operative clauses back to 1.) through separate numIds and startOverride
 """
 
+import re
+
 from docx.document import Document as _Doc  # noqa: F401  (typing only)
 
 NS = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
@@ -127,6 +129,83 @@ def paragraph_numbering(p):
     return nid.get(q("val")), (int(ilvl.get(q("val"))) if ilvl is not None else 0)
 
 
+# ── Label parsing ────────────────────────────────────────────────────
+# Real drafters rarely use a clean multilevel list. Measured in one supplied
+# contract: 37 separate abstract numbering definitions, many with the parent
+# number typed as a literal into lvlText —
+#     'ข้อ %1.'   '5.%1.'   '3.%2.'   '(4.%1)'   'ลำดับที่ %1:'
+# For lvlText '5.%1.' at ilvl0 the counter depth is 1 but the reader sees
+# "5.1.", whose logical path is [5, 1]. So the ordinal path is derived by
+# PARSING THE RENDERED LABEL, which is what a reader actually sees, and the
+# counters are only the fallback.
+
+_ROMAN_VALUES = {"i": 1, "v": 5, "x": 10, "l": 50, "c": 100, "d": 500, "m": 1000}
+# Literal words drafters put inside lvlText; stripped before parsing components.
+LABEL_NOISE = ("ข้อ", "ลำดับที่", "หมวด", "ส่วนที่", "Article", "Section", "Clause")
+_COMPONENT = re.compile(
+    r"[0-9]+"                    # 5
+    r"|[\u0e50-\u0e59]+"         # ๕
+    r"|[\u0e01-\u0e2e]"          # ก  (single Thai consonant used as a letter ordinal)
+    r"|[A-Za-z]+"                # a, iv, IV
+)
+
+
+def _roman_to_int(text):
+    total, prev = 0, 0
+    for ch in reversed(text.lower()):
+        v = _ROMAN_VALUES.get(ch)
+        if v is None:
+            return None
+        total = total - v if v < prev else total + v
+        prev = max(prev, v)
+    return total or None
+
+
+def component_ordinal(tok):
+    """One label component -> its ordinal, or None if it is not one."""
+    if tok.isdigit():
+        return int(tok)
+    if all("\u0e50" <= c <= "\u0e59" for c in tok):
+        return int("".join(str(THAI_DIGITS.index(c)) for c in tok))
+    if len(tok) == 1 and tok in THAI_LETTER_ORDER:
+        return THAI_LETTER_ORDER.index(tok) + 1
+    if tok.isalpha() and tok.isascii():
+        if len(tok) == 1:
+            return ord(tok.lower()) - 96
+        return _roman_to_int(tok)
+    return None
+
+
+def parse_label(label):
+    """Rendered label -> (normalized number, ordinal path).
+
+        "ข้อ 1."   -> ("1",     [1])
+        "5.1."     -> ("5.1",   [5, 1])
+        "(4.2)"    -> ("4.2",   [4, 2])
+        "1.2.1."   -> ("1.2.1", [1, 2, 1])
+        "(ก)"      -> ("ก",     [1])
+        "๕.๒"      -> ("5.2",   [5, 2])
+        "ลำดับที่ 3:" -> ("3",   [3])
+    """
+    if not label:
+        return None, []
+    cleaned = label
+    for word in LABEL_NOISE:
+        cleaned = cleaned.replace(word, " ")
+    parts, path = [], []
+    for m in _COMPONENT.finditer(cleaned):
+        tok = m.group(0)
+        ordinal = component_ordinal(tok)
+        if ordinal is None:
+            continue
+        path.append(ordinal)
+        # Thai letters keep their letter in `n`; everything else normalises to Arabic
+        parts.append(tok if (len(tok) == 1 and tok in THAI_LETTER_ORDER) else str(ordinal))
+    if not path:
+        return None, []
+    return ".".join(parts), path
+
+
 class NumberingWalker:
     """Stateful counter. Feed it paragraphs in document order, once each.
 
@@ -173,7 +252,11 @@ class NumberingWalker:
             path.append(ordinal)
             fmt = levels.get(i, levels[ilvl])["fmt"]
             label = label.replace("%%%d" % (i + 1), format_number(ordinal, fmt))
-        return label.strip(), path
+        label = label.strip()
+        # Prefer the path a reader would infer from the rendered label; fall back
+        # to the counter path only when the label yields nothing parseable.
+        _, parsed = parse_label(label)
+        return label, (parsed or path)
 
 
 if __name__ == "__main__":

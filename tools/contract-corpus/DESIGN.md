@@ -168,7 +168,24 @@ This is why `h` is worth having: headings genuinely exist and carry the clause's
 subject, which makes the §3.4 clause-kind classifier's heading rule (score 3)
 the strong signal rather than a hopeful one.
 
-Numbering formats seen in the five supplied files: `1.`, `1.1.`, `1.2.1.`,
+**The ordinal path is parsed from the rendered label, not from the counters.**
+Real drafters rarely build a clean multilevel list. One supplied contract
+carries **37 separate abstract numbering definitions**, many with the parent
+number typed as a literal into `lvlText`:
+
+    'ข้อ %1.'    '5.%1.'    '3.%2.'    '(4.%1)'    'ลำดับที่ %1:'
+
+For `lvlText` `'5.%1.'` at ilvl 0 the counter depth is 1, but the reader sees
+`5.1.`, whose logical path is `[5, 1]`. `docx_numbering.parse_label` therefore
+derives `n` and `p` from the label a reader actually sees, falling back to the
+counters only when the label yields nothing parseable. It strips literal words
+(`ข้อ`, `ลำดับที่`, `หมวด`, `Article`…) and maps Arabic digits, Thai digits,
+Thai letters, Latin letters and roman numerals to ordinals.
+
+Verified across all eight supplied contracts: **630 numbered paragraphs, zero
+label/path mismatches.**
+
+Numbering formats seen in the supplied files: `1.`, `1.1.`, `1.2.1.`,
 `(1)`, `(2)`, `(ก)`, `(ข)`, `ก.`–`ง.` — parenthesised and Thai-letter `lvlText`
 patterns included. All are produced by the walker; none appear in the text.
 
@@ -238,7 +255,11 @@ auto-with-override rule (`HOUSE-STYLE.md` §5). The pipeline's answer is a
 default, never a verdict.
 
 **Dedup.** Contracts are template-heavy; the same boilerplate will appear
-hundreds of times. Hash each clause's cleaned text after collapsing digits and
+hundreds of times. Measured on the supplied set: two share pledge agreements
+for different parties share **80%** of their substantive paragraphs after
+normalising digits and bracketed blanks, and across only eight contracts 132
+distinct paragraphs already recur in two or more documents. At 100–500
+contracts this signal will be overwhelming — which is the whole point. Hash each clause's cleaned text after collapsing digits and
 whitespace, and store the corpus-wide count as `dup`. **Duplicates are kept, not
 removed** — the count is the signal. A clause appearing 87 times *is* the house
 standard, and that is precisely what the user wants to see.
@@ -401,6 +422,15 @@ paragraphs are themselves auto-numbered and serve as clause titles; parenthesise
 and Thai-letter level formats `(1)`, `(ก)` are in use; nesting reaches three
 levels; and a stray tab-indented literal `2.` confirms the text regex still earns
 its place as a DOCX fallback, not merely on the Azure path.
+
+A third batch added the decisive numbering case: literal parent numbers and
+literal words inside `lvlText` (`ข้อ %1.`, `5.%1.`, `ลำดับที่ %1:`) across 37
+numbering definitions in a single document, which is why `p` is now parsed from
+the rendered label. It also supplied the recurrence evidence in §3.4: 80%
+paragraph overlap between two pledge agreements drafted for different parties.
+One document in this batch has no heading styles at all — only `List Paragraph`
+and `Normal` — so `h` must be genuinely optional and the clause library must
+read well with it null.
 
 Those documents are client material. They were read for structure only, are not
 in this repository, and must not be committed.
