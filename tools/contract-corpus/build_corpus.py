@@ -214,6 +214,14 @@ def clause_record(clause, doc_index, count):
         record["q"] = 1
     if clause.get("srcKind") == "row":
         record["r"] = 1                             # a table row, not prose (§4.3)
+    if clause.get("marginal"):
+        # Page furniture: a running header, a footer, a page number, a table of
+        # contents entry. Kept and searchable (§1.4 drops nothing) but marked,
+        # because a bare "26" from a page footer recurs across every matter and
+        # would otherwise top the clause library's recurrence ranking — measured
+        # on 13 real contracts, the library's first four entries were page
+        # numbers at x20 before this flag existed.
+        record["m"] = 1
     return record
 
 

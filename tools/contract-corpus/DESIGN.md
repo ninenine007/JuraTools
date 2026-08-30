@@ -356,6 +356,7 @@ Keys are terse because this array dominates the file size.
 | `u` | corpus-wide count of this clause's normalized text (`dup`) |
 | `q` | `1` when the source block carried a QC flag, else absent |
 | `r` | `1` when the clause came from a **table row** rather than prose, else absent |
+| `m` | `1` when the clause is **page furniture** — running header, footer, page number, table-of-contents entry. Searchable, but excluded by default from the recurrence, frequency and collocation views, else absent |
 
 **Why `r` exists.** Running the pipeline over eight real contracts, the
 most-recurring clauses in the whole corpus were not drafting language at all —

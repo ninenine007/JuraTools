@@ -227,6 +227,9 @@ table.kwic td { padding:5px 8px; border-bottom:1px solid var(--line-soft); verti
 table.kwic tr:hover td { background:rgba(146,64,14,0.045); }
 table.kwic tr.sel td { background:var(--accent-light); }
 table.kwic tr.flagged td.k-ref::before { content:"⚑ "; color:var(--amber); }
+table.kwic tr.rowhit td { background:rgba(146,64,14,0.035); }
+.rowmark { color:var(--accent); font-size:11px; }
+.lib-card.rowhit { border-style:dashed; }
 table.kwic tr.changed td.k-ref::after { content:" ✎"; color:var(--accent); }
 /* The three context columns. The node column keeps a fixed x-position across
    every row: that vertical alignment is the analytical value of a concordance. */
@@ -339,7 +342,7 @@ footer .cites { color:var(--muted); }
 #dialogBody p:last-child { margin-bottom:0; }
 #dialogBody ul { margin:0 0 10px; padding-left:20px; }
 #dialogActions { padding:12px 18px; display:flex; justify-content:flex-end; gap:7px; border-top:1px solid var(--line); flex-wrap:wrap; }
-#toast { position:fixed; left:50%; bottom:22px; transform:translate(-50%,18px); opacity:0; pointer-events:none;
+#toast { position:fixed; left:50%; bottom:74px; transform:translate(-50%,18px); opacity:0; pointer-events:none;
   z-index:140; color:#fff; background:#2b2019; border-radius:9px; padding:9px 14px; font-size:12px;
   box-shadow:0 10px 30px rgba(0,0,0,0.24); transition:opacity .18s, transform .18s; max-width:min(520px,92vw); }
 #toast.show { opacity:1; transform:translate(-50%,0); }
@@ -428,7 +431,7 @@ footer .cites { color:var(--muted); }
 <main class="app">
 
   <aside id="paneFilter" class="pane" data-pane="filter" aria-label="Subcorpus filters" aria-labelledby="mobileTabFilter">
-    <div class="pane-head"><h2>Subcorpus</h2><span class="pill" id="filterPill">All modes</span></div>
+    <div class="pane-head"><h2>Subcorpus</h2><span class="pill" id="filterPill">Shared</span></div>
     <div class="pane-scroll">
       <div class="section">
         <div class="section-title">What is being searched</div>
@@ -467,6 +470,14 @@ footer .cites { color:var(--muted); }
             <option value="">All zones, including signature</option>
           </select>
           <div class="hint muted" style="font-size:11px;margin-top:4px;line-height:1.5">Signature clauses are names, not drafting. They stay indexed and the count excluded is always stated above.</div>
+        </div>
+        <div class="field">
+          <label for="filterRows">Table rows</label>
+          <select id="filterRows">
+            <option value="-r">Exclude rows from library, wordlist, collocations (default)</option>
+            <option value="">Include table rows in every view</option>
+          </select>
+          <div class="hint muted" style="font-size:11px;margin-top:4px;line-height:1.5">A clause carrying <code>r</code> came from a table row, not from prose. Rows repeat identically across matters and would otherwise top every recurrence ranking with somebody's shareholding. <strong>Concordance search always covers rows</strong> — rows there are marked ▦.</div>
         </div>
         <div class="field">
           <label for="filterKind">Clause kind</label>
@@ -716,7 +727,9 @@ footer .cites { color:var(--muted); }
         h: c0.h == null ? null : String(c0.h),
         g: c0.g == null ? null : c0.g,
         u: typeof c0.u === 'number' && c0.u >= 1 ? c0.u : 1,
-        q: c0.q ? 1 : 0
+        q: c0.q ? 1 : 0,
+        r: c0.r ? 1 : 0,
+        m: c0.m ? 1 : 0
       };
     }
 
@@ -817,8 +830,9 @@ footer .cites { color:var(--muted); }
   // One inclusion vector governs every mode, so a count in one mode always
   // describes the same subcorpus as a count in another.
   function subcorpus(ix, f) {
-    var n = ix.clauses.length, inc = new Uint8Array(n), i, c, doc;
-    var out = { included: inc, total: n, count: 0, excl: { signature: 0, zone: 0, type: 0, lang: 0, kind: 0, qc: 0, dup: 0 } };
+    var n = ix.clauses.length, inc = new Uint8Array(n), pro = new Uint8Array(n), i, c, doc;
+    var out = { included: inc, prose: pro, total: n, count: 0, proseCount: 0, rowsInSub: 0, marginalInSub: 0,
+                excl: { signature: 0, zone: 0, type: 0, lang: 0, kind: 0, qc: 0, dup: 0, rows: 0 , marginal: 0} };
     var minU = Math.max(1, f.minU | 0);
     for (i = 0; i < n; i++) {
       c = ix.clauses[i];
@@ -833,6 +847,19 @@ footer .cites { color:var(--muted); }
       if (f.qc === 'only' && !(c.q || flaggedDoc(doc))) { out.excl.qc++; continue; }
       if (c.u < minU) { out.excl.dup++; continue; }
       inc[i] = 1; out.count++;
+      if (c.r) out.rowsInSub++;
+      if (c.m) out.marginalInSub++;
+      // `m` marks page furniture — a running header, a footer, a bare page number,
+      // a table-of-contents entry. It repeats across every matter, so on a real
+      // 13-contract corpus the library's top four entries were page numbers at
+      // x20. Always out of the prose views; still searchable in concordance.
+      if (c.m) { out.excl.marginal++; continue; }
+      // `r` marks a clause lifted from a table row. Rows are structurally identical
+      // across matters, so they swamp any recurrence or frequency ranking — excluded
+      // by default from the library, wordlist and collocation views, but NOT from
+      // concordance search, where finding a figure inside a table is legitimate.
+      if (f.rows === '-r' && c.r) { out.excl.rows++; continue; }
+      pro[i] = 1; out.proseCount++;
     }
     return out;
   }
@@ -1098,7 +1125,7 @@ footer .cites { color:var(--muted); }
       queryMode: 'substring',
       contextWidth: 40,
       sort: { concordance: '1L', library: 'u-desc', collocation: 'mi', wordlist: 'freq' },
-      filters: { type: '', lang: '', zone: '-signature', kind: '', qc: '', minU: 1 },
+      filters: { type: '', lang: '', zone: '-signature', rows: '-r', kind: '', qc: '', minU: 1 },
       history: [],
       overrides: {},
       window: 5,
@@ -1350,6 +1377,7 @@ footer .cites { color:var(--muted); }
     $('filterType').value = S.filters.type;
     $('filterLang').value = S.filters.lang;
     $('filterZone').value = S.filters.zone;
+    $('filterRows').value = S.filters.rows;
     $('filterKind').value = S.filters.kind;
     $('filterQc').value = S.filters.qc;
     $('filterDup').value = S.filters.minU;
@@ -1358,6 +1386,7 @@ footer .cites { color:var(--muted); }
     S.filters.type = $('filterType').value;
     S.filters.lang = $('filterLang').value;
     S.filters.zone = $('filterZone').value;
+    S.filters.rows = $('filterRows').value;
     S.filters.kind = $('filterKind').value;
     S.filters.qc = $('filterQc').value;
     S.filters.minU = Math.max(1, parseInt($('filterDup').value, 10) || 1);
@@ -1368,9 +1397,17 @@ footer .cites { color:var(--muted); }
     sub = C.subcorpus(ix, S.filters);
     stats = null;
   }
+  // The shared filters govern all four modes. The row exclusion is the one
+  // per-view filter: concordance searches rows, the three linguistic views do not.
+  function proseMode(m) { return m !== 'concordance'; }
+  function modeSub(m) {
+    return proseMode(m || S.mode)
+      ? { included: sub.prose, count: sub.proseCount }
+      : { included: sub.included, count: sub.count };
+  }
   function getStats() {
-    var sig = filterSig();
-    if (!stats || stats.sig !== sig) stats = { sig: sig, data: C.tokenStats(ix, sub) };
+    var sig = filterSig() + '|' + proseMode(S.mode);
+    if (!stats || stats.sig !== sig) stats = { sig: sig, data: C.tokenStats(ix, modeSub()) };
     return stats.data;
   }
   function markStale() { stale = true; $('resultHead').classList.add('stale'); }
@@ -1432,7 +1469,7 @@ footer .cites { color:var(--muted); }
     paintCompare();
     var on = !!ix;
     ['queryInput', 'queryMode', 'contextWidth', 'sortSelect', 'runBtn', 'filterType', 'filterLang',
-     'filterZone', 'filterKind', 'filterQc', 'filterDup', 'copyBtn', 'exportBtn', 'windowSize',
+     'filterZone', 'filterRows', 'filterKind', 'filterQc', 'filterDup', 'copyBtn', 'exportBtn', 'windowSize',
      'stopToggle', 'punctToggle', 'clearFiltersBtn'].forEach(function (id) { $(id).disabled = !on; });
   }
   function paintCorpusBar() {
@@ -1477,7 +1514,12 @@ footer .cites { color:var(--muted); }
     lines.push(['Repeat count below ' + S.filters.minU, e.dup, S.filters.minU > 1]);
     var active = lines.filter(function (l) { return l[1] > 0; });
     var out = '<span class="big">' + nf(sub.count) + ' of ' + nf(sub.total) + ' clauses</span>' +
-      'Every mode below counts over exactly these clauses.';
+      'Concordance searches all ' + nf(sub.count) + '. The clause library, wordlist and collocations use ' +
+      nf(sub.proseCount) + ' of them — ' +
+      (sub.excl.marginal ? '<strong>' + nf(sub.excl.marginal) + '</strong> page header/footer ' + plural(sub.excl.marginal, 'line') + ' set aside. ' : '') +
+      (sub.excl.rows ? '<strong>' + nf(sub.excl.rows) + '</strong> table ' + plural(sub.excl.rows, 'row') + ' set aside'
+                     : 'no table rows are set aside') +
+      (S.filters.rows === '-r' ? '' : ' (row exclusion is off)') + '.';
     if (active.length) {
       out += '<ul>' + active.map(function (l) {
         return '<li>' + esc(l[0]) + ' — <strong>' + nf(l[1]) + '</strong> ' + plural(l[1], 'clause') + ' excluded</li>';
@@ -1539,7 +1581,7 @@ footer .cites { color:var(--muted); }
     var m = S.mode;
     if (m === 'concordance' || m === 'collocation') {
       var q = S.query.trim();
-      run = q ? C.search(ix, q, S.queryMode, sub) : { hits: [], excludedHits: 0, capped: false, error: null, ms: 0, empty: true };
+      run = q ? C.search(ix, q, S.queryMode, modeSub()) : { hits: [], excludedHits: 0, capped: false, error: null, ms: 0, empty: true };
       if (run.error) { paintResults(); save(); return; }
       if (m === 'concordance') {
         if (collocFilter) run.hits = C.hitsWithCollocate(ix, run.hits, collocFilter.win, collocFilter.word);
@@ -1555,9 +1597,9 @@ footer .cites { color:var(--muted); }
   }
 
   function libraryRows() {
-    var out = [], i, q = S.query.trim();
+    var out = [], i, q = S.query.trim(), inc = modeSub('library').included;
     for (i = 0; i < ix.clauses.length; i++) {
-      if (!sub.included[i]) continue;
+      if (!inc[i]) continue;
       if (q && clauseText(i).indexOf(q) < 0 && String(ix.clauses[i].h || '').indexOf(q) < 0) continue;
       out.push(i);
     }
@@ -1627,7 +1669,11 @@ footer .cites { color:var(--muted); }
   }
   function subLine(text) { return '<div class="sub-line">' + text + '</div>'; }
   function subcorpusSentence() {
-    return 'Over ' + nf(sub.count) + ' of ' + nf(sub.total) + ' clauses' +
+    var ms = modeSub();
+    return 'Over ' + nf(ms.count) + ' of ' + nf(sub.total) + ' clauses' +
+      (sub.excl.marginal ? ' · ' + nf(sub.excl.marginal) + ' page header/footer ' + plural(sub.excl.marginal, 'line') + ' excluded' : '') +
+      (proseMode(S.mode) && sub.excl.rows ? ' · ' + nf(sub.excl.rows) + ' table ' + plural(sub.excl.rows, 'row') + ' excluded from this view' : '') +
+      (!proseMode(S.mode) && sub.rowsInSub ? ' · includes ' + nf(sub.rowsInSub) + ' table ' + plural(sub.rowsInSub, 'row') + ' (marked ▦)' : '') +
       (sub.excl.signature ? ' · ' + nf(sub.excl.signature) + ' signature ' + plural(sub.excl.signature, 'clause') + ' excluded' : '') +
       (sub.count < sub.total && (sub.total - sub.count - sub.excl.signature) > 0
         ? ' · ' + nf(sub.total - sub.count - sub.excl.signature) + ' excluded by other filters' : '');
@@ -1686,15 +1732,17 @@ footer .cites { color:var(--muted); }
     for (i = 0; i < lim; i++) {
       var h = hits[i], k = C.kwic(ix, h, w), ci = h.i, c = ix.clauses[ci];
       rows.push('<tr data-clause="' + ci + '" data-hit="' + i + '" class="' +
-        (selected === ci ? 'sel ' : '') + (c.q || C.flaggedDoc(docOf(ci)) ? 'flagged ' : '') + (isOverridden(ci) ? 'changed' : '') + '">' +
-        '<td class="k-ref" title="' + esc(clauseRef(ci) + ' · ' + c.z + ' · ' + kindLabel(kindOf(ci))) + '">' + esc(clauseRef(ci)) + '</td>' +
+        (selected === ci ? 'sel ' : '') + (c.q || C.flaggedDoc(docOf(ci)) ? 'flagged ' : '') +
+        (c.r ? 'rowhit ' : '') + (isOverridden(ci) ? 'changed' : '') + '">' +
+        '<td class="k-ref" title="' + esc(clauseRef(ci) + ' · ' + c.z + ' · ' + kindLabel(kindOf(ci)) + (c.r ? ' · from a table row' : '')) + '">' +
+        (c.r ? '<span class="rowmark" title="from a table row">▦</span> ' : '') + esc(clauseRef(ci)) + '</td>' +
         '<td class="k-left">' + (k.lTrunc ? '<span class="trunc">…</span>' : '') + esc(k.left) + '</td>' +
         '<td class="k-node"><mark>' + esc(k.node) + '</mark></td>' +
         '<td class="k-right">' + esc(k.right) + (k.rTrunc ? '<span class="trunc">…</span>' : '') + '</td>' +
         '</tr>');
     }
     var sortNow = S.sort.concordance;
-    body.innerHTML = '<table class="kwic"><thead><tr>' +
+    body.innerHTML = '<table class="kwic" id="kwicTable"><thead><tr>' +
       '<th>Reference</th>' +
       '<th data-sort="1L" class="' + (sortNow === '1L' ? 'sorted' : '') + '" style="text-align:right">Left context — sort 1L</th>' +
       '<th data-sort="node" class="' + (sortNow === 'node' ? 'sorted' : '') + '" style="text-align:center">Node</th>' +
@@ -1771,11 +1819,12 @@ footer .cites { color:var(--muted); }
         '<td class="num">' + nf(r.o) + '</td><td class="num">' + nf(r.left) + '</td><td class="num">' + nf(r.right) + '</td>' +
         '<td class="num">' + nf(r.f) + '</td><td class="num">' + r.mi.toFixed(2) + '</td><td class="num">' + r.t.toFixed(2) + '</td></tr>');
     }
-    body.innerHTML = '<table class="data"><thead><tr>' +
+    body.innerHTML = '<table class="data" id="collocTable"><thead><tr>' +
       '<th data-sort="word" class="' + (s === 'word' ? 'sorted' : '') + '">Collocate</th>' +
-      '<th data-sort="freq" class="num ' + (s === 'freq' ? 'sorted' : '') + '" style="text-align:right">O</th>' +
-      '<th class="num" style="text-align:right">Left</th><th class="num" style="text-align:right">Right</th>' +
-      '<th class="num" style="text-align:right">f(w)</th>' +
+      '<th data-sort="freq" class="num ' + (s === 'freq' ? 'sorted' : '') + '" style="text-align:right" title="observed co-occurrences inside the window">O</th>' +
+      '<th class="num" style="text-align:right" title="co-occurrences to the left of the node">Left</th>' +
+      '<th class="num" style="text-align:right" title="co-occurrences to the right of the node">Right</th>' +
+      '<th class="num" style="text-align:right" title="frequency of this word across the whole subcorpus">f(w)</th>' +
       '<th data-sort="mi" class="num ' + (s === 'mi' ? 'sorted' : '') + '" style="text-align:right">MI</th>' +
       '<th data-sort="t" class="num ' + (s === 't' ? 'sorted' : '') + '" style="text-align:right">t</th>' +
       '</tr></thead><tbody>' + out.join('') + '</tbody></table>';
@@ -1801,7 +1850,7 @@ footer .cites { color:var(--muted); }
         '<td>' + esc(r.sc) + '</td><td class="num">' + nf(r.c) + '</td><td class="num">' + nf(r.d) + '</td>' +
         '<td class="num">' + (r.cf == null ? '<span class="muted">—</span>' : nf(r.cf)) + '</td></tr>');
     }
-    body.innerHTML = '<table class="data"><thead><tr>' +
+    body.innerHTML = '<table class="data" id="wordTable"><thead><tr>' +
       '<th data-sort="word" class="' + (s === 'word' ? 'sorted' : '') + '">Word</th><th>Script</th>' +
       '<th data-sort="freq" class="num ' + (s === 'freq' ? 'sorted' : '') + '" style="text-align:right">Subcorpus</th>' +
       '<th data-sort="docs" class="num ' + (s === 'docs' ? 'sorted' : '') + '" style="text-align:right">Docs</th>' +
@@ -1849,7 +1898,8 @@ footer .cites { color:var(--muted); }
       '<p class="muted" style="font-size:11px;margin:6px 0 0">' + nf(t.length) + ' characters · ' +
       nf(ix.tokIdx[i + 1] - ix.tokIdx[i]) + ' tokens' + (c.g != null ? ' · page ' + esc(c.g) : '') +
       (c.n ? ' · groups as <code>' + esc(c.n) + '</code>' : '') +
-      (c.p && c.p.length ? ' · sorts at [' + esc(c.p.join(', ')) + ']' : '') + '</p>';
+      (c.p && c.p.length ? ' · sorts at [' + esc(c.p.join(', ')) + ']' : '') +
+      (c.r ? ' · <strong>from a table row</strong>, so it is outside the library, wordlist and collocation views by default' : '') + '</p>';
 
     var qc = doc.qc || {}, flags = [];
     if (c.q) flags.push(['QC-flagged clause', false]);
@@ -1957,7 +2007,7 @@ footer .cites { color:var(--muted); }
         if (digits.length === 13) return tag(docId, 'ID', digits);
         return m;
       });
-      out = out.replace(/(?:\+66[\s-]?|\b0)\d[\d\s-]{7,10}\d\b/g, function (m) { return tag(docId, 'PHONE', m.replace(/\D/g, '')); });
+      out = out.replace(/(?:\+66[\s-]?|\b0)\d[\d\s-]{5,10}\d\b/g, function (m) { return tag(docId, 'PHONE', m.replace(/\D/g, '')); });
       return out;
     };
   }
@@ -2053,8 +2103,12 @@ footer .cites { color:var(--muted); }
     var L = [];
     L.push('Contract Concordance — ' + S.mode);
     L.push('Corpus: ' + (ix.name || '(unnamed)') + ' — ' + ix.meta.docs.length + ' documents, ' + ix.clauses.length + ' clauses, ' + ix.tokenCount + ' tokens, built ' + fmtDate(ix.meta.builtAt));
-    L.push('Subcorpus: ' + sub.count + ' of ' + sub.total + ' clauses' + (sub.excl.signature ? ' (' + sub.excl.signature + ' signature clauses excluded)' : ''));
-    L.push('Filters: type=' + (S.filters.type || 'all') + ', lang=' + (S.filters.lang || 'all') + ', zone=' + (S.filters.zone === '-signature' ? 'all except signature' : (S.filters.zone || 'all')) + ', kind=' + (S.filters.kind || 'all') + ', qc=' + (S.filters.qc || 'all') + ', u>=' + S.filters.minU);
+    L.push('Subcorpus: ' + modeSub().count + ' of ' + sub.total + ' clauses' +
+      (sub.excl.signature ? '; ' + sub.excl.signature + ' signature ' + plural(sub.excl.signature, 'clause') + ' excluded' : '') +
+      (sub.excl.marginal ? '; ' + sub.excl.marginal + ' page header/footer ' + plural(sub.excl.marginal, 'line') + ' excluded' : '') +
+      (proseMode(S.mode) && sub.excl.rows ? '; ' + sub.excl.rows + ' table ' + plural(sub.excl.rows, 'row') + ' excluded from this view' : '') +
+      (!proseMode(S.mode) && sub.rowsInSub ? '; includes ' + sub.rowsInSub + ' table ' + plural(sub.rowsInSub, 'row') : ''));
+    L.push('Filters: type=' + (S.filters.type || 'all') + ', lang=' + (S.filters.lang || 'all') + ', zone=' + (S.filters.zone === '-signature' ? 'all except signature' : (S.filters.zone || 'all')) + ', tableRows=' + (S.filters.rows === '-r' ? 'excluded from library/wordlist/collocations' : 'included everywhere') + ', kind=' + (S.filters.kind || 'all') + ', qc=' + (S.filters.qc || 'all') + ', u>=' + S.filters.minU);
     if (S.mode === 'concordance' || S.mode === 'collocation') L.push('Query: ' + JSON.stringify(S.query) + ' (' + S.queryMode + ')');
     L.push('');
     var rows = currentRowsForExport(false), i;
@@ -2140,7 +2194,7 @@ footer .cites { color:var(--muted); }
       });
     });
 
-    ['filterType', 'filterLang', 'filterZone', 'filterKind', 'filterQc'].forEach(function (id) {
+    ['filterType', 'filterLang', 'filterZone', 'filterRows', 'filterKind', 'filterQc'].forEach(function (id) {
       $(id).addEventListener('change', function () { pullFilters(); recomputeSub(); save(); paintSubcorpus(); markStale(); paintResults(); });
     });
     $('filterDup').addEventListener('change', function () { pullFilters(); recomputeSub(); save(); paintSubcorpus(); markStale(); paintResults(); });
@@ -2153,7 +2207,7 @@ footer .cites { color:var(--muted); }
       var b = e.target.closest('[data-mode]');
       if (!b) return;
       S.mode = b.dataset.mode;
-      selected = selected; collocFilter = S.mode === 'concordance' ? collocFilter : null;
+      collocFilter = S.mode === 'concordance' ? collocFilter : null;
       shown = PAGE; save(); paintQueryBar(); doRun(true);
     });
     bindTabKeys($('modeTabs'));

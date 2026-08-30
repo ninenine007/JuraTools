@@ -45,7 +45,7 @@ def encode(text, lang):
 CL, NTOK = [], 0
 
 
-def clause(d, n, nd, p, z, k, l, h, text, g, u, q=False, r=False):
+def clause(d, n, nd, p, z, k, l, h, text, g, u, q=False, r=False, m=False):
     global NTOK
     b, count = encode(text, l)
     NTOK += count
@@ -55,6 +55,8 @@ def clause(d, n, nd, p, z, k, l, h, text, g, u, q=False, r=False):
         rec["q"] = 1
     if r:
         rec["r"] = 1
+    if m:
+        rec["m"] = 1
     CL.append(rec)
 
 
@@ -102,6 +104,12 @@ clause(1, "3.1", "3.1", [3, 1], "body", "confidentiality", "en", "Confidentialit
 clause(1, "8.1", "8.1", [8, 1], "body", "governing_law", "en", "Governing Law",
        "This Agreement shall be governed by and construed in accordance with "
        "the laws of Thailand.", 6, 18)
+
+# Page furniture. A bare page number recurs across every matter, so before the
+# `m` flag existed these topped the clause library's recurrence ranking on a real
+# 13-contract corpus. Kept and searchable, but out of the prose views.
+clause(1, None, None, [], "unplaced", None, "th", None,
+       "\u0e2b\u0e19\u0e49\u0e32 2 \u0e02\u0e2d\u0e07 9", 2, 20, m=True)
 
 # Segmenter could not place this one. Kept and flagged — never dropped (§1.4).
 clause(1, None, None, [], "unplaced", None, "mixed", None,
