@@ -201,13 +201,17 @@ the corpus format itself (which is owned by `tools/contract-corpus/DESIGN.md`).
 
 ## Visual direction
 
-The **Corpus Tools** collection is new and takes **deep indigo `#4338ca`** as
-its accent — distinct from corporate violet `#7c3aed` and utilities teal
-`#0d9488`. Use variant **A, glass/pastel** (`HOUSE-STYLE.md` §3): `#f2f2f7`
-ground with corner radial washes, `rgba(255,255,255,0.82)` cards with
-`backdrop-filter: blur(16px)`, 16–18px radii, and the clipped-gradient H1.
-Indigo carries the wordmark, active tabs, focus ring and primary button, and
-nothing else.
+The **Corpus Tools** collection is new and takes **sepia `#92400e`** as its
+accent — the archive. The eight existing accents are all taken: legal `#2979ff`,
+corporate `#7c3aed`, utilities `#0d9488`, math `#ea580c`, script `#16a34a`, tax
+`#e11d48`, labour `#0891b2` and finance `#4f46e5`. Sepia is the one that reads
+as paper and record rather than as a near-duplicate of finance indigo or math
+orange. Use variant **A, glass/pastel** (`HOUSE-STYLE.md` §3): `#f2f2f7` ground
+with corner radial washes, `rgba(255,255,255,0.82)` cards with
+`backdrop-filter: blur(16px)`, 16–18px radii, and the clipped-gradient H1. Sepia
+carries the wordmark, active tabs, focus ring and primary button, and nothing
+else — the KWIC node highlight is the one other place it may appear, because
+that is the tool's single most important mark.
 
 **The concordance line is the subject.** The KWIC surface is the reason the tool
 exists; the filter and detail panes support it and must not become equal card

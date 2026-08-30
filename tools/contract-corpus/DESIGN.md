@@ -82,10 +82,20 @@ Both ingesters emit the same **block** shape, in document order:
 
 **`.docx`** — walk `document.element.body` in order so tables stay in place;
 `python-docx`'s `.paragraphs` silently drops every table and contracts are full
-of them. Emit table rows as `kind:"row"` with cells joined by ` | `. Read
-headers/footers from each section separately and mark them `header`/`footer` —
-they repeat on every page and would otherwise dominate every frequency count.
-Style name is a heading signal: `Heading 1`..`Heading 3` → `kind:"heading"`.
+of them (the supplied execution copies carry 12 tables each). Emit table rows as
+`kind:"row"` with cells joined by ` | `. Read headers/footers from each section
+separately and mark them `header`/`footer` — they repeat on every page and would
+otherwise dominate every frequency count.
+
+**Clause numbers are not in the text.** Use `docx_numbering.NumberingWalker`,
+which is written and tested against the supplied contracts. See §3.3 — this is
+the single most important correction in this document.
+
+Heading detection cannot rely on `Heading 1`..`Heading 3`: the real files use a
+custom `CenterHeading` style. Treat any style whose name contains `heading`
+case-insensitively as a heading, and note that `List Paragraph` carries 80% of
+all paragraphs, so style name alone is nearly no signal — the `w:numPr` level
+is.
 
 **Azure Document Intelligence** — consume saved `prebuilt-layout` JSON. Azure
 already labels `paragraphs[].role` as `title`, `sectionHeading`, `pageHeader`,
@@ -105,10 +115,13 @@ as a spot-check (§3.5).
 Order matters; each step assumes the previous one ran.
 
 1. `\xa0` → space; strip control characters except `\n`.
-2. **Harvest ZWSP** (`​`) before removing it. Word documents typed by Thai
-   lawyers carry zero-width spaces at intended word boundaries — these are free
-   human-labelled segmentation points. Record their offsets per block, feed them
-   to `lexicon/legal-terms.txt` candidate generation, then strip them from text.
+2. **Harvest ZWSP** (`​`) before removing it, opportunistically. Where a
+   Word document carries zero-width spaces at intended word boundaries they are
+   free human-labelled segmentation points: record their offsets, feed them to
+   `lexicon/legal-terms.txt` candidate generation, then strip them.
+   Measured reality: the three supplied contracts contain **zero** ZWSP. Treat
+   this as a bonus when present, never as a pillar of the design, and seed the
+   legal dictionary by hand instead.
 3. `pythainlp.util.normalize()` — repairs `ํา`→`ำ`, duplicated and misordered
    tone marks, repeated vowels.
 4. **Line-join.** Join a line to the next when it ends in a Thai character and
@@ -124,14 +137,45 @@ cleaned one reaches the corpus.
 
 ### 3.3 Segment
 
-**Clause numbers.**
+**Clause numbers — the two ingest paths need different strategies.**
+
+*DOCX.* The number is auto-numbering held in `numbering.xml`; the paragraph text
+does not contain it. Reconstruct with `docx_numbering.NumberingWalker`. Measured
+on the three supplied execution copies: 12, 166 and 88 auto-numbered paragraphs
+respectively, and **0** paragraphs whose literal text matched a clause regex. A
+regex-only implementation numbers nothing on real files.
+
+*Azure / PDF.* The number was rendered onto the page, so Azure returns it as
+ordinary text and the regex below is correct:
 
 ```python
 CLAUSE = re.compile(r"^\s*(?:ข้อ\s*)?([๐-๙0-9]+(?:[.ฯ][๐-๙0-9]+)*)\s*[.)]?\s+(?=\S)")
 ```
 
-Captured as written (`nDisplay`) and as a normalized numeric path (`path`), so
-`ข้อ ๕.๒` and `5.2` sort and group together.
+Do not unify the two paths. Each is right for its source and wrong for the other.
+
+**Clause assembly (DOCX).** In the real files a `Heading 1` paragraph is both
+the clause number and the clause title — 15 of 17 and 19 of 21 heading
+paragraphs are auto-numbered. So:
+
+- a numbered paragraph whose style name contains `heading` **opens a clause**;
+  its text becomes `h` and its reconstructed label becomes `n`/`nd`/`p`
+- numbered `List Paragraph`s at deeper levels become their own clause records,
+  nested by `p`
+- unnumbered paragraphs attach to the open clause as body text
+
+This is why `h` is worth having: headings genuinely exist and carry the clause's
+subject, which makes the §3.4 clause-kind classifier's heading rule (score 3)
+the strong signal rather than a hopeful one.
+
+Numbering formats seen in the five supplied files: `1.`, `1.1.`, `1.2.1.`,
+`(1)`, `(2)`, `(ก)`, `(ข)`, `ก.`–`ง.` — parenthesised and Thai-letter `lvlText`
+patterns included. All are produced by the walker; none appear in the text.
+
+Real documents also number **recitals with Thai letters** (`ก.` `ข.` `ค.` `ง.`,
+numFmt `thaiLetters`) and **restart numbering mid-document** — parties `1.`–`3.`,
+recitals `ก.`–`ง.`, then operative clauses back to `1.` under a different numId.
+Both are handled by the walker and both must survive into §4.3.
 
 **Zones**, by cue phrase, in document order — a zone runs until the next zone
 opens:
@@ -278,9 +322,9 @@ Keys are terse because this array dominates the file size.
 | key | meaning |
 |---|---|
 | `d` | index into `docs[]` |
-| `n` | normalized clause number, Arabic, dot-joined — `"5.2"`, or `null` |
-| `nd` | clause number exactly as written — `"๕.๒"` |
-| `p` | numeric path for sort and nesting — `[5,2]` |
+| `n` | normalized clause number, dot-joined — `"5.2"`; Thai-letter levels keep the letter, `"ก"`; `null` when unnumbered |
+| `nd` | clause number exactly as Word displays it — `"๕.๒"`, `"1.2.1."`, `"ก."` |
+| `p` | **ordinal** at each level, always integers — `[5,2]`, and `ก.` → `[1]`. This is the sort key: Thai letters sort correctly as ordinals and would not as text. |
 | `z` | zone (§3.3) |
 | `k` | clause kind slug, or `null` |
 | `l` | language: `th` \| `en` \| `mixed` |
@@ -342,3 +386,21 @@ Three tracks run independently against §4, which is why §4 is frozen first and
 
 A and B must both validate against `fixtures/sample.corpus.json`. If they
 disagree about the format, the fixture is right and §4 is the arbiter.
+
+## 7. Validated against real documents
+
+§3.1, §3.3 and §4.3 were revised after running the three execution-version Thai
+contracts the user supplied through `docx_numbering.py` and a structural probe.
+Findings that changed the design: clause numbers live in `numbering.xml` and not
+in the text; recitals use Thai-letter numbering; numbering restarts mid-document;
+custom heading styles (`CenterHeading`) exist and `List Paragraph` dominates; the
+files carry no ZWSP at all; and they are 97–100% Thai despite English filenames.
+
+A second batch (a share pledge agreement and an EBT agreement) added: `Heading 1`
+paragraphs are themselves auto-numbered and serve as clause titles; parenthesised
+and Thai-letter level formats `(1)`, `(ก)` are in use; nesting reaches three
+levels; and a stray tab-indented literal `2.` confirms the text regex still earns
+its place as a DOCX fallback, not merely on the Azure path.
+
+Those documents are client material. They were read for structure only, are not
+in this repository, and must not be committed.
