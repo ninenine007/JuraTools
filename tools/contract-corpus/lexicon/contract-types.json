@@ -1,0 +1,116 @@
+{
+  "_readme": [
+    "Contract-type cue lexicon (DESIGN.md §4.1 `types`). Scored over the document",
+    "title plus its first blocks; the highest-scoring type wins, and a document",
+    "that matches nothing is typed `other`. Edit freely.",
+    "A cue in `title` scores 3, a cue in the opening text scores 1 (capped at 3)."
+  ],
+  "service": {
+    "label": "Service agreement",
+    "labelTh": "สัญญาจ้างทำของ",
+    "title": ["สัญญาจ้างทำของ", "สัญญาจ้างบริการ", "สัญญาให้บริการ", "service agreement", "services agreement"],
+    "cues": ["ผู้ว่าจ้าง", "ผู้รับจ้าง", "ขอบเขตของงาน", "ส่งมอบงาน"]
+  },
+  "employment": {
+    "label": "Employment agreement",
+    "labelTh": "สัญญาจ้างแรงงาน",
+    "title": ["สัญญาจ้างแรงงาน", "สัญญาจ้างพนักงาน", "employment agreement", "employment contract"],
+    "cues": ["นายจ้าง", "ลูกจ้าง", "ค่าจ้างรายเดือน", "วันลา"]
+  },
+  "nda": {
+    "label": "Non-disclosure agreement",
+    "labelTh": "สัญญาไม่เปิดเผยข้อมูล",
+    "title": ["สัญญาไม่เปิดเผยข้อมูล", "สัญญารักษาความลับ", "non-disclosure agreement", "confidentiality agreement"],
+    "cues": ["ผู้เปิดเผยข้อมูล", "ผู้รับข้อมูล", "ข้อมูลอันเป็นความลับ", "disclosing party", "receiving party"]
+  },
+  "lease": {
+    "label": "Lease agreement",
+    "labelTh": "สัญญาเช่า",
+    "title": ["สัญญาเช่า", "สัญญาเช่าอาคาร", "สัญญาเช่าที่ดิน", "lease agreement", "tenancy agreement"],
+    "cues": ["ผู้ให้เช่า", "ผู้เช่า", "ค่าเช่า", "เงินประกันการเช่า"]
+  },
+  "sale": {
+    "label": "Sale and purchase agreement",
+    "labelTh": "สัญญาซื้อขาย",
+    "title": ["สัญญาซื้อขาย", "สัญญาจะซื้อจะขาย", "sale and purchase agreement", "purchase agreement"],
+    "cues": ["ผู้ซื้อ", "ผู้ขาย", "ราคาซื้อขาย", "ส่งมอบทรัพย์สิน"]
+  },
+  "share_purchase": {
+    "label": "Share purchase agreement",
+    "labelTh": "สัญญาซื้อขายหุ้น",
+    "title": ["สัญญาซื้อขายหุ้น", "share purchase agreement", "share sale agreement"],
+    "cues": ["หุ้นสามัญ", "ผู้ถือหุ้น", "โอนหุ้น", "ราคาต่อหุ้น"]
+  },
+  "share_pledge": {
+    "label": "Share pledge agreement",
+    "labelTh": "สัญญาจำนำหุ้น",
+    "title": ["สัญญาจำนำหุ้น", "share pledge agreement", "pledge agreement"],
+    "cues": ["ผู้จำนำ", "ผู้รับจำนำ", "ทรัพย์สินที่จำนำ", "บังคับจำนำ"]
+  },
+  "loan": {
+    "label": "Loan agreement",
+    "labelTh": "สัญญากู้ยืมเงิน",
+    "title": ["สัญญากู้ยืมเงิน", "สัญญาเงินกู้", "loan agreement", "facility agreement"],
+    "cues": ["ผู้ให้กู้", "ผู้กู้", "ดอกเบี้ยในอัตราร้อยละ", "ชำระคืนเงินต้น"]
+  },
+  "guarantee": {
+    "label": "Guarantee",
+    "labelTh": "สัญญาค้ำประกัน",
+    "title": ["สัญญาค้ำประกัน", "หนังสือค้ำประกัน", "guarantee agreement", "deed of guarantee"],
+    "cues": ["ผู้ค้ำประกัน", "เจ้าหนี้", "ลูกหนี้ชั้นต้น", "รับผิดอย่างลูกหนี้ร่วม"]
+  },
+  "mortgage": {
+    "label": "Mortgage agreement",
+    "labelTh": "สัญญาจำนอง",
+    "title": ["สัญญาจำนอง", "mortgage agreement"],
+    "cues": ["ผู้จำนอง", "ผู้รับจำนอง", "โฉนดที่ดิน", "บังคับจำนอง"]
+  },
+  "construction": {
+    "label": "Construction contract",
+    "labelTh": "สัญญาจ้างก่อสร้าง",
+    "title": ["สัญญาจ้างก่อสร้าง", "สัญญาจ้างเหมาก่อสร้าง", "construction contract"],
+    "cues": ["ผู้รับเหมา", "งวดงาน", "แบบรูปรายการ", "ผู้ควบคุมงาน"]
+  },
+  "consulting": {
+    "label": "Consulting agreement",
+    "labelTh": "สัญญาที่ปรึกษา",
+    "title": ["สัญญาจ้างที่ปรึกษา", "สัญญาที่ปรึกษา", "consulting agreement", "consultancy agreement"],
+    "cues": ["ที่ปรึกษา", "ขอบเขตการให้คำปรึกษา", "รายงานผลการศึกษา"]
+  },
+  "distribution": {
+    "label": "Distribution / agency agreement",
+    "labelTh": "สัญญาตัวแทนจำหน่าย",
+    "title": ["สัญญาตัวแทนจำหน่าย", "สัญญาแต่งตั้งตัวแทน", "distribution agreement", "agency agreement"],
+    "cues": ["ตัวแทนจำหน่าย", "เขตพื้นที่จำหน่าย", "ยอดสั่งซื้อขั้นต่ำ"]
+  },
+  "licence": {
+    "label": "Licence agreement",
+    "labelTh": "สัญญาอนุญาตให้ใช้สิทธิ",
+    "title": ["สัญญาอนุญาตให้ใช้สิทธิ", "สัญญาอนุญาตให้ใช้เครื่องหมายการค้า", "licence agreement", "license agreement"],
+    "cues": ["ผู้อนุญาต", "ผู้รับอนุญาต", "ค่าสิทธิ", "royalty"]
+  },
+  "jv": {
+    "label": "Joint venture / shareholders agreement",
+    "labelTh": "สัญญาร่วมทุน",
+    "title": ["สัญญาร่วมทุน", "สัญญาระหว่างผู้ถือหุ้น", "joint venture agreement", "shareholders agreement"],
+    "cues": ["ผู้ร่วมทุน", "สัดส่วนการถือหุ้น", "คณะกรรมการบริษัท"]
+  },
+  "settlement": {
+    "label": "Settlement agreement",
+    "labelTh": "สัญญาประนีประนอมยอมความ",
+    "title": ["สัญญาประนีประนอมยอมความ", "บันทึกข้อตกลงยุติข้อพิพาท", "settlement agreement"],
+    "cues": ["ยุติข้อพิพาท", "ไม่ติดใจเรียกร้อง", "ถอนฟ้อง"]
+  },
+  "mou": {
+    "label": "Memorandum of understanding",
+    "labelTh": "บันทึกข้อตกลง",
+    "title": ["บันทึกข้อตกลง", "บันทึกความเข้าใจ", "memorandum of understanding", "memorandum of agreement"],
+    "cues": ["ความร่วมมือ", "ไม่มีผลผูกพันทางกฎหมาย"]
+  },
+  "other": {
+    "label": "Other / unclassified",
+    "labelTh": "อื่น ๆ",
+    "title": [],
+    "cues": []
+  }
+}

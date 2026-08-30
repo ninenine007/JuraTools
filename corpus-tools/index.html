@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Corpus Tools — JuraTools</title>
+  <meta name="description" content="Search your own executed contracts as a linguistic corpus — concordance, clause library, and collocations, entirely in the browser. By Kornrawee Chanchom." />
+  <style>
+    /* ── Reset & Tokens ───────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", "Noto Sans Thai", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      color: #1c1c1e;
+      min-height: 100vh;
+      background: #f2f2f7;
+      background-image:
+        radial-gradient(ellipse 1100px 700px at 10% 0%,   rgba(232,205,176,0.42) 0%, transparent 60%),
+        radial-gradient(ellipse  700px 700px at 95% 10%,  rgba(245,230,216,0.55) 0%, transparent 55%),
+        radial-gradient(ellipse  800px 600px at 0%  90%,  rgba(214,211,205,0.35) 0%, transparent 55%),
+        radial-gradient(ellipse  900px 500px at 100% 95%, rgba(251,220,192,0.30) 0%, transparent 55%);
+    }
+    a { color: inherit; text-decoration: none; }
+
+    /* ── Sticky Nav ───────────────────────────────── */
+    .nav {
+      position: sticky; top: 0; z-index: 200;
+      height: 52px;
+      display: flex; align-items: center; gap: 12px;
+      padding: 0 24px;
+      background: rgba(242,242,247,0.82);
+      backdrop-filter: blur(24px) saturate(200%);
+      -webkit-backdrop-filter: blur(24px) saturate(200%);
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+    }
+    .nav-brand { display: flex; align-items: center; gap: 9px; flex-shrink: 0; user-select: none; }
+    .nav-icon {
+      width: 30px; height: 30px; border-radius: 7px; flex-shrink: 0;
+      background: linear-gradient(145deg, #2979ff, #1565c0);
+      display: grid; place-items: center; font-size: 15px;
+      box-shadow: 0 2px 6px rgba(41,121,255,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    .nav-wordmark { font-size: 15px; font-weight: 700; letter-spacing: -0.4px; color: #1c1c1e; }
+    .nav-sep { color: #c7c7cc; font-size: 15px; }
+    .nav-current { font-size: 15px; font-weight: 600; color: #6e6e73; }
+    .nav-back {
+      margin-left: auto;
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 13px; font-weight: 500; color: #3c3c43;
+      background: rgba(0,0,0,0.055); border: 1px solid rgba(0,0,0,0.1);
+      padding: 6px 12px; border-radius: 9px;
+      transition: background .14s;
+    }
+    .nav-back:hover { background: rgba(0,0,0,0.09); }
+
+    /* ── Hero ─────────────────────────────────────── */
+    .hero { padding: 56px 24px 28px; text-align: center; max-width: 680px; margin: 0 auto; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(146,64,14,0.1); border: 1px solid rgba(146,64,14,0.22);
+      border-radius: 999px; padding: 4px 12px;
+      font-size: 12px; font-weight: 600; color: #7c360b;
+      margin-bottom: 18px;
+    }
+    .hero-dot { width: 6px; height: 6px; border-radius: 50%; background: #92400e; animation: pulse 2.5s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.55;transform:scale(.8)} }
+    .hero h1 {
+      font-size: clamp(34px, 5vw, 48px);
+      font-weight: 800; letter-spacing: -1.5px; line-height: 1.08;
+      background: linear-gradient(135deg, #1c1c1e 0%, #92400e 55%, #b45309 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      margin-bottom: 12px;
+    }
+    .hero p { font-size: 16px; color: #6e6e73; line-height: 1.55; max-width: 500px; margin: 0 auto 18px; }
+    .hero-meta { display: flex; justify-content: center; align-items: center; gap: 14px; font-size: 13px; color: #aeaeb2; flex-wrap: wrap; }
+    .hero-meta span { display: flex; align-items: center; gap: 5px; }
+
+    /* ── Content ──────────────────────────────────── */
+    .content { max-width: 920px; margin: 0 auto; padding: 16px 24px 64px; }
+    .grid { display: grid; gap: 14px; grid-template-columns: repeat(2, 1fr); }
+    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: rgba(255,255,255,0.82);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.9);
+      border-radius: 18px; padding: 22px;
+      display: flex; flex-direction: column; gap: 10px;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.07);
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+    .card.live:hover { transform: translateY(-2px); box-shadow: 0 1px 1px rgba(0,0,0,0.04), 0 10px 32px rgba(0,0,0,0.11), 0 6px 24px rgba(146,64,14,0.13); }
+    .card.soon { opacity: .72; }
+
+    .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+    .card-icon {
+      width: 48px; height: 48px; border-radius: 12px; flex-shrink: 0;
+      display: grid; place-items: center; font-size: 24px;
+      background: linear-gradient(145deg, #f5e6d8, #e8cdb0);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.7);
+    }
+    .card.soon .card-icon { background: linear-gradient(145deg, #ececf0, #e0e0e5); filter: grayscale(.3); }
+    .card-badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .badge-live { background: rgba(52,199,89,0.13);  color: #1a7a35; border: 1px solid rgba(52,199,89,.22); }
+    .badge-soon { background: rgba(142,142,147,0.14); color: #6e6e73; border: 1px solid rgba(142,142,147,.25); }
+    .badge-script { background: rgba(146,64,14,0.11); color: #7c360b; border: 1px solid rgba(146,64,14,.24); }
+    .card-sub { font-size: 12px; color: #aeaeb2; font-weight: 500; letter-spacing: .1px; text-transform: uppercase; margin-top: 2px; }
+    .card-title { font-size: 16px; font-weight: 700; letter-spacing: -.3px; line-height: 1.25; color: #1c1c1e; margin-top: -2px; }
+    .card-th { font-size: 12.5px; color: #8e8e93; font-weight: 500; margin-top: -6px; line-height: 1.5; }
+    .card-desc { font-size: 13px; color: #6e6e73; line-height: 1.6; flex: 1; }
+
+    .card-actions { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 6px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.06); }
+    .btn { display: inline-flex; align-items: center; gap: 4px; padding: 8px 16px; border-radius: 9px; font-size: 13px; font-weight: 500; font-family: inherit; cursor: pointer; border: none; transition: all .14s; white-space: nowrap; }
+    .btn-open { background: #92400e; color: #fff; box-shadow: 0 1px 4px rgba(146,64,14,.38), inset 0 1px 0 rgba(255,255,255,.18); }
+    .btn-open:hover { background: #7c360b; box-shadow: 0 3px 10px rgba(146,64,14,.45); }
+    .btn-source { background: rgba(0,0,0,0.055); color: #3c3c43; border: 1px solid rgba(0,0,0,0.1); }
+    .btn-source:hover { background: rgba(0,0,0,0.09); }
+
+    /* ── How it works ─────────────────────────────── */
+    .steps {
+      margin-top: 28px;
+      background: rgba(255,255,255,0.7);
+      border: 1px solid rgba(255,255,255,0.9);
+      border-radius: 18px; padding: 22px 24px;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.055);
+    }
+    .steps h2 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #8e8e93; margin-bottom: 14px; }
+    .steps ol { list-style: none; counter-reset: s; display: grid; gap: 12px; }
+    .steps li { counter-increment: s; display: grid; grid-template-columns: 26px 1fr; gap: 11px; align-items: start; font-size: 13px; color: #3c3c43; line-height: 1.6; }
+    .steps li::before {
+      content: counter(s);
+      width: 22px; height: 22px; border-radius: 7px;
+      background: rgba(146,64,14,0.1); border: 1px solid rgba(146,64,14,0.2);
+      color: #7c360b; font-size: 11.5px; font-weight: 700;
+      display: grid; place-items: center; margin-top: 1px;
+    }
+    .steps code { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace; font-size: 12px; background: rgba(0,0,0,0.05); padding: 1.5px 5px; border-radius: 5px; }
+    /* The build command is longer than the column; give it its own scrolling
+       block rather than letting it wrap one character per line. */
+    .steps code.cmd {
+      display: block; margin-top: 8px;
+      grid-column: 2;   /* .steps li is a 26px + 1fr grid; stay in the text column */
+      white-space: pre; overflow-x: auto;
+      padding: 9px 11px; border-radius: 7px;
+      background: rgba(146,64,14,0.06); border: 1px solid rgba(146,64,14,0.14);
+      color: #7c360b;
+    }
+    .privacy {
+      margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(0,0,0,0.06);
+      font-size: 12.5px; color: #6e6e73; line-height: 1.6;
+    }
+    .privacy strong { color: #7c360b; }
+
+    .footer { text-align: center; margin-top: 40px; font-size: 12px; color: #c7c7cc; }
+  </style>
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav class="nav">
+    <a class="nav-brand" href="../index.html">
+      <div class="nav-icon">⚖️</div>
+      <span class="nav-wordmark">JuraTools</span>
+    </a>
+    <span class="nav-sep">/</span>
+    <span class="nav-current">Corpus Tools</span>
+    <a class="nav-back" href="../index.html">← All tools</a>
+  </nav>
+
+  <!-- ── Hero ── -->
+  <div class="hero">
+    <div class="hero-badge">
+      <span class="hero-dot"></span> Runs entirely in your browser
+    </div>
+    <h1>Corpus Tools</h1>
+    <p>Read your own executed contracts as a corpus — every occurrence of a phrase in context, every clause of a kind side by side, and the drafting standard your files already contain.</p>
+    <div class="hero-meta">
+      <span>📚 Corpus linguistics</span>
+      <span style="color:#d1d1d6">·</span>
+      <span>🔒 No data sent anywhere</span>
+    </div>
+  </div>
+
+  <!-- ── Tool Grid ── -->
+  <div class="content">
+    <div class="grid">
+
+      <!-- Contract Concordance -->
+      <article class="card live">
+        <div class="card-head">
+          <div class="card-icon">🔍</div>
+          <span class="card-badge badge-live">Live</span>
+        </div>
+        <div class="card-sub">Corpus search</div>
+        <h3 class="card-title">Contract Concordance</h3>
+        <p class="card-th">คลังข้อความสัญญา — สืบค้นถ้อยคำในบริบท</p>
+        <p class="card-desc">Search a corpus built from your own contracts. <strong>KWIC concordance</strong> centres every hit in its context and sorts by the words around it; the <strong>clause library</strong> ranks every termination or indemnity clause by how often that exact formulation recurs, so the house standard rises to the top; <strong>collocations</strong> show what habitually surrounds a term. Thai word segmentation is precomputed by PyThaiNLP, so Thai and English are searched with equal precision.</p>
+        <div class="card-actions">
+          <a class="btn btn-open" href="contract-concordance.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/corpus-tools/contract-concordance.html" target="_blank" rel="noopener">Source</a>
+        </div>
+      </article>
+
+      <!-- Corpus Builder -->
+      <article class="card live">
+        <div class="card-head">
+          <div class="card-icon">⚙️</div>
+          <span class="card-badge badge-script">Local script</span>
+        </div>
+        <div class="card-sub">Corpus preparation</div>
+        <h3 class="card-title">Contract Corpus Builder</h3>
+        <p class="card-th">เครื่องมือสร้างคลังข้อความจากสัญญา</p>
+        <p class="card-desc">A Python pipeline that turns a folder of <code>.docx</code> contracts and Azure Document Intelligence output into the corpus file the Concordance reads. Normalises Thai text, joins OCR line wraps, segments clauses and zones, tokenises with PyThaiNLP over a legal dictionary, and reports per-document quality. It runs on your machine and calls nothing.</p>
+        <div class="card-actions">
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/tree/main/tools/contract-corpus" target="_blank" rel="noopener">Source &amp; README</a>
+        </div>
+      </article>
+
+    </div>
+
+    <!-- ── How it works ── -->
+    <div class="steps">
+      <h2>How the two fit together</h2>
+      <ol>
+        <li>Put your contracts in a folder. For scanned PDFs, run them through Azure Document Intelligence yourself and save the JSON beside them — the pipeline reads that output and never calls any service.</li>
+        <li>Run the builder, then read the QC report it prints — documents it could not place are flagged, never dropped.
+          <code class="cmd">python build.py --stage all --in data/raw --out data/corpus.jtcorpus.gz</code>
+        </li>
+        <li>Open the Concordance and load that corpus file. It is parsed once and kept in your browser.</li>
+        <li>Search, sort by neighbouring words, and read the clause library. Export a selection when you want it, with optional pseudonymisation of names and ID numbers.</li>
+      </ol>
+      <p class="privacy">
+        <strong>Your contracts stay on your machine.</strong> The builder runs locally and makes no network request. The Concordance holds the corpus in your browser only — there is no server, no upload, and no analytics. Corpus files are client material and are excluded from this repository.
+      </p>
+    </div>
+
+    <div class="footer">
+      © 2026 Kornrawee Chanchom &nbsp;—&nbsp; JuraTools · Corpus Tools
+    </div>
+  </div>
+
+</body>
+</html>

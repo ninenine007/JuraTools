@@ -147,6 +147,7 @@
     .card[data-cat="tax"]       { --glow: 0 6px 24px rgba(225,29,72,0.14);  }
     .card[data-cat="labour"]    { --glow: 0 6px 24px rgba(8,145,178,0.14);  }
     .card[data-cat="finance"]   { --glow: 0 6px 24px rgba(79,70,229,0.14);  }
+    .card[data-cat="corpus"]    { --glow: 0 6px 24px rgba(146,64,14,0.14); }
 
     .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
     .card-icon {
@@ -162,6 +163,7 @@
     .card[data-cat="tax"]       .card-icon { background: linear-gradient(145deg, #ffe4e6, #fecdd3); }
     .card[data-cat="labour"]    .card-icon { background: linear-gradient(145deg, #cffafe, #a5f3fc); }
     .card[data-cat="finance"]   .card-icon { background: linear-gradient(145deg, #e0e7ff, #c7d2fe); }
+    .card[data-cat="corpus"]    .card-icon { background: linear-gradient(145deg, #f5e6d8, #e8cdb0); }
 
     .card-badge {
       display: inline-flex; align-items: center;
@@ -384,6 +386,21 @@
           </div>
         </article>
 
+        <article class="card" data-cat="corpus" data-tags="corpus tools collection hub contract concordance kwic key word in context clause library collocation wordlist frequency corpus linguistics precedent bank drafting from examples house style pythainlp thai word segmentation tokenizer azure document intelligence ocr docx contract search full text search คลังข้อความ คลังคำ สัญญา สืบค้นสัญญา ตัวอย่างสัญญา แบบสัญญา ค้นหาถ้อยคำ บริบท ข้อสัญญา คำศัพท์กฎหมาย ความถี่คำ ตัดคำภาษาไทย แม่แบบสัญญา ร่างสัญญา">
+          <div class="card-head">
+            <div class="card-icon">📚</div>
+            <span class="card-badge badge-new">New</span>
+          </div>
+          <div class="card-sub">Collection</div>
+          <h3 class="card-title">Corpus Tools</h3>
+          <p class="card-desc">Read your own executed contracts as a corpus — the <strong>Contract Concordance</strong> (คลังข้อความสัญญา) centres every hit in its context and sorts by the words around it, ranks every clause of a kind by how often that exact formulation recurs so the house standard rises to the top, and reports what habitually surrounds a term. Fed by a local <strong>Corpus Builder</strong> that reads .docx and Azure Document Intelligence output, reconstructs Word clause numbering, and segments Thai with PyThaiNLP. Your contracts never leave the machine.</p>
+          <div class="card-actions">
+            <a class="btn btn-open" href="corpus-tools/">Open →</a>
+            <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/tree/main/corpus-tools" target="_blank" rel="noopener">Source</a>
+            <button class="btn btn-copy" data-copy="corpus-tools/">Copy link</button>
+          </div>
+        </article>
+
         <article class="card" data-cat="text" data-tags="utilities collection hub combinatorics workbench permutation combination stars bars counting grouping allocation visualize การเรียงสับเปลี่ยน การจัดหมู่ ดาวและขีด การนับ การแจกแจง thai text line formatter linebreak baht text amount thai words สองแสนห้าหมื่น text sanitizer strip formatting subtitle paragraph converter srt vtt pro-rata allocation largest remainder rounding lab simulator percentage calculator เฉลี่ย ปัดเศษ">
           <div class="card-head">
             <div class="card-icon">🧰</div>
@@ -495,6 +512,10 @@
       <div class="section-head-line"></div>
     </div>
     <div class="changelog">
+      <div class="cl-item">
+        <span class="cl-date">Aug 2026</span>
+        <span class="cl-text">Added <strong>Corpus Tools</strong> — a new collection for reading your own executed contracts as a corpus, launching with the <strong>Contract Concordance</strong> (คลังข้อความสัญญา): KWIC search that centres every occurrence in its context and sorts by the neighbouring words, a clause library that ranks every termination or indemnity clause by how often that exact wording recurs so the house standard surfaces first, collocations, and corpus frequency. A local Python <strong>Corpus Builder</strong> prepares the file from .docx and Azure Document Intelligence output — reconstructing Word auto-numbering, which real contracts keep in <code>numbering.xml</code> rather than in the text, and segmenting Thai once with PyThaiNLP so the browser never has to. Corpus files are client material and stay out of the repository.</span>
+      </div>
       <div class="cl-item">
         <span class="cl-date">Aug 2026</span>
         <span class="cl-text">Added the <strong>Combinatorics Workbench</strong> to <strong>Utilities</strong> — model, count, visualize, and deterministically generate permutations, combinations, circular and multiset arrangements, multinomial and group allocations, stars and bars, and addition or multiplication rules. Exact BigInt results, practical constraints, editable templates, CSV/JSON import, local saves, share URLs, anonymized export, print reports, and explicit warnings before large generation all run entirely in the browser.</span>

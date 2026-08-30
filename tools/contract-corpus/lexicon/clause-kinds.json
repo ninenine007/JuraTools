@@ -1,0 +1,111 @@
+{
+  "_readme": [
+    "Clause-kind cue lexicon (DESIGN.md §3.4). Edit freely — it is a plain JSON",
+    "file and the pipeline's answer is a default, never a verdict.",
+    "head: cues that identify the kind on their own (heading hit = 3, text hit = 2).",
+    "body: supporting cues, 1 each, capped at 3. Highest score wins; ties and",
+    "scores below 2 yield k = null. English cues match case-insensitively."
+  ],
+  "termination": {
+    "label": "Termination",
+    "labelTh": "การบอกเลิกสัญญา",
+    "head": ["บอกเลิกสัญญา", "เลิกสัญญา", "สิ้นสุดสัญญา", "การสิ้นสุดของสัญญา", "termination", "term and termination"],
+    "body": ["บอกกล่าวล่วงหน้า", "ผิดนัด", "ผิดสัญญา", "เลิกกัน", "terminate", "with immediate effect"]
+  },
+  "force_majeure": {
+    "label": "Force majeure",
+    "labelTh": "เหตุสุดวิสัย",
+    "head": ["เหตุสุดวิสัย", "force majeure"],
+    "body": ["ภัยธรรมชาติ", "สงคราม", "จลาจล", "โรคระบาด", "นอกเหนือการควบคุม", "พ้นวิสัย", "beyond the reasonable control", "act of god"]
+  },
+  "confidentiality": {
+    "label": "Confidentiality",
+    "labelTh": "การรักษาความลับ",
+    "head": ["การรักษาความลับ", "รักษาความลับ", "ข้อมูลอันเป็นความลับ", "confidentiality", "non-disclosure"],
+    "body": ["เปิดเผยข้อมูล", "ห้ามเปิดเผย", "ความลับทางการค้า", "confidential information", "shall not disclose"]
+  },
+  "indemnity": {
+    "label": "Indemnity",
+    "labelTh": "การชดใช้ค่าเสียหาย",
+    "head": ["การชดใช้ค่าเสียหาย", "ชดใช้ค่าเสียหาย", "การชดเชยความเสียหาย", "indemnity", "indemnification"],
+    "body": ["ชดใช้", "ค่าสินไหมทดแทน", "ปกป้องให้พ้นจาก", "ข้อเรียกร้องของบุคคลภายนอก", "indemnify", "hold harmless"]
+  },
+  "limitation_of_liability": {
+    "label": "Limitation of liability",
+    "labelTh": "ข้อจำกัดความรับผิด",
+    "head": ["ข้อจำกัดความรับผิด", "จำกัดความรับผิด", "limitation of liability", "limitation on liability"],
+    "body": ["ความเสียหายทางอ้อม", "ไม่ต้องรับผิด", "ไม่รับผิดชอบต่อ", "ไม่เกินจำนวน", "consequential", "aggregate liability", "in no event"]
+  },
+  "governing_law": {
+    "label": "Governing law",
+    "labelTh": "กฎหมายที่ใช้บังคับ",
+    "head": ["กฎหมายที่ใช้บังคับ", "บังคับตามกฎหมายไทย", "governing law", "applicable law"],
+    "body": ["กฎหมายแห่งราชอาณาจักรไทย", "ประมวลกฎหมายแพ่งและพาณิชย์", "laws of thailand", "governed by", "construed in accordance"]
+  },
+  "dispute_resolution": {
+    "label": "Dispute resolution",
+    "labelTh": "การระงับข้อพิพาท",
+    "head": ["การระงับข้อพิพาท", "ข้อพิพาท", "อนุญาโตตุลาการ", "dispute resolution", "arbitration"],
+    "body": ["เขตอำนาจศาล", "ศาลแพ่ง", "ไกล่เกลี่ย", "เจรจา", "jurisdiction", "arbitral tribunal"]
+  },
+  "payment": {
+    "label": "Payment",
+    "labelTh": "การชำระเงิน",
+    "head": ["การชำระเงิน", "การชำระค่าจ้าง", "ค่าตอบแทน", "สินจ้าง", "payment", "fees and payment"],
+    "body": ["งวดที่", "ใบแจ้งหนี้", "ภาษีมูลค่าเพิ่ม", "ภาษีหัก ณ ที่จ่าย", "โอนเงินเข้าบัญชี", "invoice", "shall pay"]
+  },
+  "warranty": {
+    "label": "Warranty",
+    "labelTh": "การรับประกันและคำรับรอง",
+    "head": ["การรับประกัน", "รับประกันผลงาน", "คำรับรอง", "warranty", "warranties", "representations and warranties"],
+    "body": ["รับรองและรับประกันว่า", "ระยะเวลารับประกัน", "ชำรุดบกพร่อง", "แก้ไขความชำรุด", "warrants", "represents"]
+  },
+  "assignment": {
+    "label": "Assignment",
+    "labelTh": "การโอนสิทธิและหน้าที่",
+    "head": ["การโอนสิทธิ", "โอนสิทธิและหน้าที่", "โอนสิทธิเรียกร้อง", "assignment"],
+    "body": ["ความยินยอมเป็นหนังสือ", "ห้ามโอน", "ช่วงงาน", "assign", "sub-contract", "novation"]
+  },
+  "notices": {
+    "label": "Notices",
+    "labelTh": "การบอกกล่าว",
+    "head": ["การบอกกล่าว", "คำบอกกล่าว", "หนังสือบอกกล่าว", "การส่งคำบอกกล่าว", "notices"],
+    "body": ["ไปรษณีย์ลงทะเบียนตอบรับ", "ตามที่อยู่ที่ระบุไว้", "จดหมายอิเล็กทรอนิกส์", "ถือว่าได้รับแล้ว", "registered mail", "deemed received"]
+  },
+  "penalty": {
+    "label": "Penalty / liquidated damages",
+    "labelTh": "ค่าปรับ เบี้ยปรับ",
+    "head": ["ค่าปรับ", "เบี้ยปรับ", "ค่าเสียหายที่กำหนดไว้ล่วงหน้า", "penalty", "liquidated damages"],
+    "body": ["ปรับเป็นรายวัน", "อัตราร้อยละ", "ส่งมอบงานล่าช้า", "ของมูลค่างาน", "per day of delay"]
+  },
+  "intellectual_property": {
+    "label": "Intellectual property",
+    "labelTh": "ทรัพย์สินทางปัญญา",
+    "head": ["ทรัพย์สินทางปัญญา", "ลิขสิทธิ์", "เครื่องหมายการค้า", "intellectual property"],
+    "body": ["สิทธิบัตร", "งานอันมีลิขสิทธิ์", "อนุญาตให้ใช้สิทธิ", "ตกเป็นของผู้ว่าจ้าง", "copyright", "licence to use", "license to use"]
+  },
+  "personal_data": {
+    "label": "Personal data",
+    "labelTh": "ข้อมูลส่วนบุคคล",
+    "head": ["ข้อมูลส่วนบุคคล", "การคุ้มครองข้อมูลส่วนบุคคล", "personal data", "data protection"],
+    "body": ["เจ้าของข้อมูลส่วนบุคคล", "ผู้ควบคุมข้อมูลส่วนบุคคล", "ผู้ประมวลผลข้อมูลส่วนบุคคล", "ความยินยอม", "pdpa", "data controller", "data processor"]
+  },
+  "entire_agreement": {
+    "label": "Entire agreement",
+    "labelTh": "ข้อตกลงทั้งหมด",
+    "head": ["ข้อตกลงทั้งหมด", "สัญญาฉบับนี้เป็นข้อตกลงทั้งหมด", "entire agreement"],
+    "body": ["ยกเลิกข้อตกลงเดิม", "แทนที่ข้อตกลงและความเข้าใจ", "ข้อตกลงอื่นใดที่ขัดแย้ง", "supersedes", "prior agreements"]
+  },
+  "severability": {
+    "label": "Severability",
+    "labelTh": "ความเป็นโมฆะบางส่วน",
+    "head": ["ความเป็นโมฆะบางส่วน", "การแยกส่วนของสัญญา", "severability"],
+    "body": ["ตกเป็นโมฆะ", "ไม่กระทบต่อความสมบูรณ์", "ใช้บังคับไม่ได้", "invalid", "unenforceable"]
+  },
+  "amendment": {
+    "label": "Amendment",
+    "labelTh": "การแก้ไขเปลี่ยนแปลงสัญญา",
+    "head": ["การแก้ไขเปลี่ยนแปลงสัญญา", "การแก้ไขสัญญา", "amendment", "variation"],
+    "body": ["ทำเป็นหนังสือ", "ลงนามโดยคู่สัญญาทั้งสองฝ่าย", "แก้ไขเพิ่มเติม", "in writing signed by"]
+  }
+}

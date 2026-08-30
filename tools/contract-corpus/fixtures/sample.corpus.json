@@ -1,0 +1,414 @@
+{
+ "format": "juratools-contract-corpus",
+ "version": 1,
+ "builtAt": "2026-08-30T09:14:02Z",
+ "builder": {
+  "pipeline": "0.1.0-fixture",
+  "pythainlp": "5.3.7",
+  "tokenizer": "newmm"
+ },
+ "stats": {
+  "docs": 2,
+  "clauses": 13,
+  "tokens": 223,
+  "byLang": {
+   "th": 10,
+   "en": 2,
+   "mixed": 1
+  }
+ },
+ "types": {
+  "service": {
+   "label": "Service agreement",
+   "labelTh": "สัญญาจ้างทำของ"
+  },
+  "nda": {
+   "label": "Non-disclosure agreement",
+   "labelTh": "สัญญาไม่เปิดเผยข้อมูล"
+  }
+ },
+ "kinds": {
+  "termination": {
+   "label": "Termination",
+   "labelTh": "การบอกเลิกสัญญา"
+  },
+  "penalty": {
+   "label": "Penalty / liquidated damages",
+   "labelTh": "ค่าปรับ เบี้ยปรับ"
+  },
+  "force_majeure": {
+   "label": "Force majeure",
+   "labelTh": "เหตุสุดวิสัย"
+  },
+  "confidentiality": {
+   "label": "Confidentiality",
+   "labelTh": "การรักษาความลับ"
+  },
+  "governing_law": {
+   "label": "Governing law",
+   "labelTh": "กฎหมายที่ใช้บังคับ"
+  }
+ },
+ "zones": [
+  "preamble",
+  "parties",
+  "definitions",
+  "body",
+  "signature",
+  "annex",
+  "unplaced"
+ ],
+ "stop": {
+  "th": [
+   "และ",
+   "หรือ",
+   "ของ",
+   "ที่",
+   "ใน",
+   "เป็น",
+   "ให้",
+   "ได้",
+   "จะ",
+   "ไม่",
+   "ต่อ",
+   "ตาม",
+   "นั้น",
+   "นี้",
+   " "
+  ],
+  "en": [
+   "the",
+   "of",
+   "and",
+   "to",
+   "in",
+   "it",
+   "by",
+   "be",
+   "this",
+   "any",
+   "with",
+   "shall",
+   "not",
+   " ",
+   "."
+  ]
+ },
+ "freq": {
+  "th": [
+   [
+    "สัญญา",
+    5
+   ],
+   [
+    "ผู้รับจ้าง",
+    4
+   ],
+   [
+    "ผู้ว่าจ้าง",
+    4
+   ],
+   [
+    "ความลับ",
+    2
+   ],
+   [
+    "งาน",
+    4
+   ],
+   [
+    "เหตุสุดวิสัย",
+    3
+   ]
+  ],
+  "en": [
+   [
+    "shall",
+    3
+   ],
+   [
+    "Party",
+    2
+   ],
+   [
+    "Confidential",
+    1
+   ]
+  ]
+ },
+ "docs": [
+  {
+   "id": "2567-svc-014",
+   "title": "สัญญาจ้างทำของ",
+   "type": "service",
+   "lang": "th",
+   "date": "2024-03-11",
+   "parties": [
+    {
+     "role": "ผู้ว่าจ้าง",
+     "name": "บริษัท ก จำกัด"
+    },
+    {
+     "role": "ผู้รับจ้าง",
+     "name": "บริษัท ข จำกัด"
+    }
+   ],
+   "src": {
+    "file": "raw/2567-svc-014.pdf",
+    "method": "azure-di:prebuilt-layout",
+    "pages": 14
+   },
+   "qc": {
+    "thaiRatio": 0.94,
+    "oovRate": 0.061,
+    "meanConf": 0.987,
+    "lowConfBlocks": 0,
+    "unplacedBlocks": 0
+   },
+   "c": [
+    0,
+    8
+   ]
+  },
+  {
+   "id": "2566-nda-002",
+   "title": "Non-Disclosure Agreement / สัญญาไม่เปิดเผยข้อมูล",
+   "type": "nda",
+   "lang": "mixed",
+   "date": "2023-11-02",
+   "parties": [
+    {
+     "role": "Disclosing Party",
+     "name": "บริษัท ค จำกัด"
+    }
+   ],
+   "src": {
+    "file": "raw/2566-nda-002.docx",
+    "method": "docx",
+    "pages": 9
+   },
+   "qc": {
+    "thaiRatio": 0.52,
+    "oovRate": 0.044,
+    "meanConf": 1.0,
+    "lowConfBlocks": 0,
+    "unplacedBlocks": 1
+   },
+   "c": [
+    8,
+    13
+   ]
+  }
+ ],
+ "clauses": [
+  {
+   "d": 0,
+   "n": null,
+   "nd": null,
+   "p": [],
+   "z": "preamble",
+   "k": null,
+   "l": "th",
+   "h": null,
+   "t": "สัญญาฉบับนี้ทำขึ้น ณ กรุงเทพมหานคร เมื่อวันที่ ๑๑ มีนาคม ๒๕๖๗",
+   "b": "0 5 4 3 2 4 1 1 1 13 1 5 6 1 2 1 6 1",
+   "g": 1,
+   "u": 3
+  },
+  {
+   "d": 0,
+   "n": "ก",
+   "nd": "ก.",
+   "p": [
+    1
+   ],
+   "z": "preamble",
+   "k": null,
+   "l": "th",
+   "h": null,
+   "t": "โดยที่ผู้ว่าจ้างประสงค์จะว่าจ้างให้ผู้รับจ้างดำเนินงานตามที่กำหนดในสัญญาฉบับนี้",
+   "b": "0 6 10 7 2 7 3 10 9 6 5 2 5 4",
+   "g": 1,
+   "u": 2
+  },
+  {
+   "d": 0,
+   "n": "5.2",
+   "nd": "๕.๒",
+   "p": [
+    5,
+    2
+   ],
+   "z": "body",
+   "k": "termination",
+   "l": "th",
+   "h": "การบอกเลิกสัญญา",
+   "t": "ในกรณีที่ผู้รับจ้างผิดนัดไม่ส่งมอบงานภายในกำหนด ผู้ว่าจ้างมีสิทธิบอกเลิกสัญญาได้ทันที โดยไม่ต้องบอกกล่าวล่วงหน้า",
+   "b": "0 9 10 6 3 6 3 5 5 1 10 2 5 7 5 3 5 1 3 7 8",
+   "g": 3,
+   "u": 12
+  },
+  {
+   "d": 0,
+   "n": "5.3",
+   "nd": "๕.๓",
+   "p": [
+    5,
+    3
+   ],
+   "z": "body",
+   "k": "penalty",
+   "l": "th",
+   "h": "ค่าปรับ",
+   "t": "หากผู้รับจ้างส่งมอบงานล่าช้า ผู้รับจ้างยอมให้ผู้ว่าจ้างปรับเป็นรายวันในอัตราร้อยละ ๐.๑ ของมูลค่างานที่ยังไม่แล้วเสร็จ",
+   "b": "0 3 10 6 3 6 1 10 6 10 4 4 6 2 11 1 3 1 3 6 3 3 3 3",
+   "g": 3,
+   "u": 7
+  },
+  {
+   "d": 0,
+   "n": "9.1",
+   "nd": "๙.๑",
+   "p": [
+    9,
+    1
+   ],
+   "z": "body",
+   "k": "force_majeure",
+   "l": "th",
+   "h": "เหตุสุดวิสัย",
+   "t": "คู่สัญญาฝ่ายใดไม่อาจปฏิบัติตามสัญญาได้เพราะเหตุสุดวิสัย ให้ฝ่ายนั้นพ้นจากความรับผิด",
+   "b": "0 8 4 2 3 3 10 5 3 5 12 1 3 4 4 3 3 4",
+   "g": 8,
+   "u": 21
+  },
+  {
+   "d": 0,
+   "n": "9.1.1",
+   "nd": "(1)",
+   "p": [
+    9,
+    1,
+    1
+   ],
+   "z": "body",
+   "k": "force_majeure",
+   "l": "th",
+   "h": null,
+   "t": "เหตุสุดวิสัย หมายความรวมถึง อุทกภัย ไฟไหม้ และการนัดหยุดงาน",
+   "b": "0 12 1 8 6 1 7 1 6 1 3",
+   "g": 8,
+   "u": 4
+  },
+  {
+   "d": 0,
+   "n": null,
+   "nd": null,
+   "p": [],
+   "z": "annex",
+   "k": null,
+   "l": "th",
+   "h": null,
+   "t": "รายชื่อผู้ถือหุ้น | จำนวนหุ้น | สัดส่วนการถือหุ้น",
+   "b": "0 7 10 1 1 1 5 4 1 1 1 7 3",
+   "g": 12,
+   "u": 7,
+   "r": 1
+  },
+  {
+   "d": 0,
+   "n": null,
+   "nd": null,
+   "p": [],
+   "z": "signature",
+   "k": null,
+   "l": "th",
+   "h": null,
+   "t": "ลงชื่อ ..................... ผู้ว่าจ้าง",
+   "b": "0 6 1 21 1",
+   "g": 14,
+   "u": 1
+  },
+  {
+   "d": 1,
+   "n": "3.1",
+   "nd": "3.1",
+   "p": [
+    3,
+    1
+   ],
+   "z": "body",
+   "k": "confidentiality",
+   "l": "th",
+   "h": "การรักษาความลับ",
+   "t": "ผู้รับข้อมูลตกลงเก็บรักษาข้อมูลอันเป็นความลับไว้เป็นความลับ และจะไม่เปิดเผยต่อบุคคลภายนอก",
+   "b": "0 6 6 4 9 6 3 11 3 11 1 3 2 3 7 3",
+   "g": 2,
+   "u": 5
+  },
+  {
+   "d": 1,
+   "n": "3.1",
+   "nd": "3.1",
+   "p": [
+    3,
+    1
+   ],
+   "z": "body",
+   "k": "confidentiality",
+   "l": "en",
+   "h": "Confidentiality",
+   "t": "The Receiving Party shall keep the Confidential Information confidential and shall not disclose it to any third party.",
+   "b": "0 3 1 9 1 5 1 5 1 4 1 3 1 12 1 11 1 12 1 3 1 5 1 3 1 8 1 2 1 2 1 3 1 5 1 5",
+   "g": 2,
+   "u": 5
+  },
+  {
+   "d": 1,
+   "n": "8.1",
+   "nd": "8.1",
+   "p": [
+    8,
+    1
+   ],
+   "z": "body",
+   "k": "governing_law",
+   "l": "en",
+   "h": "Governing Law",
+   "t": "This Agreement shall be governed by and construed in accordance with the laws of Thailand.",
+   "b": "0 4 1 9 1 5 1 2 1 8 1 2 1 3 1 9 1 2 1 10 1 4 1 3 1 4 1 2 1 8",
+   "g": 6,
+   "u": 18
+  },
+  {
+   "d": 1,
+   "n": null,
+   "nd": null,
+   "p": [],
+   "z": "unplaced",
+   "k": null,
+   "l": "th",
+   "h": null,
+   "t": "หน้า 2 ของ 9",
+   "b": "0 4 1 1 1 3 1",
+   "g": 2,
+   "u": 20,
+   "m": 1
+  },
+  {
+   "d": 1,
+   "n": null,
+   "nd": null,
+   "p": [],
+   "z": "unplaced",
+   "k": null,
+   "l": "mixed",
+   "h": null,
+   "t": "Annex A / เอกสารแนบท้าย ก",
+   "b": "0 5 1 1 1 1 1 6 7 1",
+   "g": 9,
+   "u": 1,
+   "q": 1
+  }
+ ]
+}
