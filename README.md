@@ -15,8 +15,9 @@ Tools are grouped into collections, each with its own hub page:
 | `tax-tools/` | Thai Tax Tools — personal income tax, land sale tax comparison, stamp duty, withholding tax |
 | `labour-tools/` | Thai Labour Law Tools — termination payment suite on shared `labour-core.js`/`.css` |
 | `finance-tools/` | Finance Tools — time value of money (PV, FV, NPV, PMT) on an interactive cash-flow timeline |
+| `corpus-tools/` | Corpus Tools — Contract Concordance (KWIC, clause library, collocations, wordlist) over a corpus built locally from your own contracts |
 | `utilities/` | Utilities — Thai line formatting, baht text, text sanitizer, subtitle converter, pro-rata allocation, rounding lab, percentages |
-| `tools/` | Local scripts (e.g. `srv-to-paragraphs`) |
+| `tools/` | Local scripts — `srv-to-paragraphs`, and `contract-corpus` (the Python pipeline that builds the corpus file for Corpus Tools) |
 
 Standalone tools (`ccc-default-interest.html`, `intestate-succession.html`, `copywork.html`, `marginalia.html`) live at the root next to `index.html`.
 
