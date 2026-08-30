@@ -136,6 +136,16 @@
       display: grid; place-items: center; margin-top: 1px;
     }
     .steps code { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace; font-size: 12px; background: rgba(0,0,0,0.05); padding: 1.5px 5px; border-radius: 5px; }
+    /* The build command is longer than the column; give it its own scrolling
+       block rather than letting it wrap one character per line. */
+    .steps code.cmd {
+      display: block; margin-top: 8px;
+      grid-column: 2;   /* .steps li is a 26px + 1fr grid; stay in the text column */
+      white-space: pre; overflow-x: auto;
+      padding: 9px 11px; border-radius: 7px;
+      background: rgba(146,64,14,0.06); border: 1px solid rgba(146,64,14,0.14);
+      color: #7c360b;
+    }
     .privacy {
       margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(0,0,0,0.06);
       font-size: 12.5px; color: #6e6e73; line-height: 1.6;
@@ -214,7 +224,9 @@
       <h2>How the two fit together</h2>
       <ol>
         <li>Put your contracts in a folder. For scanned PDFs, run them through Azure Document Intelligence yourself and save the JSON beside them — the pipeline reads that output and never calls any service.</li>
-        <li>Run the builder: <code>python build.py --stage all --in data/raw --out data/corpus.jtcorpus.gz</code>. Read the QC report it prints; documents it could not place are flagged, never dropped.</li>
+        <li>Run the builder, then read the QC report it prints — documents it could not place are flagged, never dropped.
+          <code class="cmd">python build.py --stage all --in data/raw --out data/corpus.jtcorpus.gz</code>
+        </li>
         <li>Open the Concordance and load that corpus file. It is parsed once and kept in your browser.</li>
         <li>Search, sort by neighbouring words, and read the clause library. Export a selection when you want it, with optional pseudonymisation of names and ID numbers.</li>
       </ol>
