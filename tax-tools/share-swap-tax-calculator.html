@@ -264,6 +264,20 @@
     .pill-info  { background: var(--info-light); color: var(--info); border: 1px solid var(--info-border); }
     .pill-grey  { background: rgba(0,0,0,0.05); color: var(--muted); border: 1px solid var(--line); }
 
+    .ladder-pair { margin-top: 14px; border-left: 3px solid rgba(225,29,72,0.28); padding-left: 12px; }
+    .ladder-pair .diagram { margin-top: 8px; }
+    .ladder-head {
+      display: flex; align-items: center; gap: 8px; margin-top: 14px;
+      font-size: 12.5px; font-weight: 600; color: var(--ink-2);
+    }
+    .ladder-head:first-child { margin-top: 2px; }
+    .ladder-n {
+      display: inline-grid; place-items: center; width: 19px; height: 19px; border-radius: 6px;
+      background: rgba(15,23,42,0.07); color: var(--ink); font-size: 11px; font-weight: 700; flex-shrink: 0;
+    }
+    .ladder-head .sub { color: var(--muted); font-weight: 400; }
+    .pair-note { font-size: 12px; color: var(--muted); line-height: 1.55; margin: 10px 0 0; }
+
     .diagram {
       margin-top: 14px; border: 1px solid rgba(15,23,42,0.07); border-radius: 14px;
       background: linear-gradient(180deg, #ffffff 0%, #fbfbfd 100%);
@@ -1447,16 +1461,28 @@
     });
     if (r.two && r.two.hasShares && r.two.priceGiven) {
       var o = r.two;
-      var cap2 = 'The same transaction from the other side: ' + esc(String(leg.transferee || 'the transferee').trim()) +
+      var nameA = String(leg.transferor || 'Transferor').trim(), nameB = String(leg.transferee || 'Transferee').trim();
+      var cap2 = 'The same transaction from the other side: ' + esc(nameB) +
         ' parts with its own shares' + (leg.cTarget ? ' in ' + esc(String(leg.cTarget).trim()) : '') +
         ' and receives ' + esc(fmt(o.proceeds)) + ' of value back. ' +
         (o.priceTest === 'exposed' ? 'It is this side that is short of its own book value, and ม.65 ทวิ (4) is run against it.' : 'Its own price stands against its own book value.');
-      out += ladderBlock({
-        key: 'b' + r.id, giver: String(leg.transferee || 'Transferee').trim(), taker: String(leg.transferor || 'Transferor').trim(),
-        shares: o.shares, costPer: o.costPer, parPer: o.parPer, bvPer: o.bvGiven ? o.bvPer : NaN, pricePer: o.pricePer,
-        gain: o.gain, uplift: o.uplift, exposed: o.priceTest === 'exposed' || o.priceTest === 'causeAsserted',
-        caption: cap2
-      });
+      function head(n, who, shares, gain, exposed) {
+        return '<div class="ladder-head"><span class="ladder-n">' + n + '</span>' +
+          esc(who) + ' gives ' + fmtInt(shares) + ' shares ' +
+          '<span class="sub">— ' + (gain < 0 ? 'loss ' : 'gain ') + fmt(Math.abs(gain)) +
+          (exposed ? ' · exposed to ม.65 ทวิ (4)' : '') + '</span></div>';
+      }
+      out = '<div class="ladder-pair">' +
+        head(1, nameA, r.shares, r.gain, r.priceTest === 'exposed') + out +
+        head(2, nameB, o.shares, o.gain, o.priceTest === 'exposed') +
+        ladderBlock({
+          key: 'b' + r.id, giver: nameB, taker: nameA,
+          shares: o.shares, costPer: o.costPer, parPer: o.parPer, bvPer: o.bvGiven ? o.bvPer : NaN, pricePer: o.pricePer,
+          gain: o.gain, uplift: o.uplift, exposed: o.priceTest === 'exposed' || o.priceTest === 'causeAsserted',
+          caption: cap2
+        }) +
+        '<p class="pair-note">Two pictures because there are two transfers. Each side gives up shares of its own, so each has a price of its own to justify — which is why an exchange can be caught by ม.65 ทวิ (4) on a side that a cash sale would never expose.</p>' +
+      '</div>';
     }
     return out;
   }

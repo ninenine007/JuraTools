@@ -154,8 +154,10 @@ collapsed step looks, whether the rules panels are `details` or tabs.
   however you like, but keep the area meaning the money, keep the vector, and
   keep the two company lines at the edges — that is the lawyer's own whiteboard.
 - **Two ladders mean two disposals.** When both sides are computed they are
-  drawn as a mirrored pair, giver always on the left. That pairing is the point
-  being made; do not merge them into one picture.
+  drawn as a mirrored pair inside `.ladder-pair`, each under a numbered
+  `.ladder-head` naming who gives what and what it costs them, giver always on
+  the left. That pairing is the point being made: do not merge them into one
+  picture, and do not let the two drift apart on the page.
 - **The timeline is lanes, not a list.** One lane per company, arrows drawn from
   the transferor's lane to the transferee's at the date, bands for accounting
   periods. It answers "when", which is the half of this problem a table hides.
