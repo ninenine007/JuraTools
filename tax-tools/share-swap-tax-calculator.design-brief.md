@@ -19,8 +19,13 @@ shares, the step is two disposals and the tool computes both. Each side's gain
 is the value it receives less its own cost, and s.65 bis (4) is run against each
 side's own price: cash for shares can only be tested against the seller, but
 shares for shares gives the officer a transfer on each side to test. Where the
-consideration is newly issued shares the second side is capital and bears no
-tax, which the tool says instead of computing it.
+consideration is newly issued shares — a capital increase given in exchange —
+the second side is capital rather than income, and the tool shows that as its
+own table: value received, registered value of the new shares, the premium (or
+the shortfall, if the issue would be below par, which company law does not
+allow), the issue price a share, and no tax. The charge is not removed by that,
+only moved: the transferor holds the new shares at the exchange value, not at
+par, and that is what is deducted when they are sold on.
 
 The reason it is a chain rather than a calculator is that the interesting Thai
 positions are about timing, not arithmetic. Acquiring below market value is not
@@ -48,9 +53,10 @@ nav.nav                                  breadcrumb, 52px
           .sub-head "The other side…"    only when consideration = existing shares: its shares, par,
                                          cost, book value, value received, residence, purpose, cause
           details.panel                  cause, purpose, cost method, s.5 สัตตรส conditions
-          .leg-res                       working table · per-share table · .diagram (ladder, one per side) ·
-                                         treatment table · .callout findings ·
-                                         "And what it does to <transferee>" table + its findings
+          .leg-res                       working table · per-share table · .diagram (ladder, one per side,
+                                         paired inside .ladder-pair) · treatment table · .callout findings ·
+                                         "And what it does to <transferee>" — the issuer's capital table
+                                         for a capital increase, or the other side's disposal + its findings
   .card  (3) When each tax event falls    #timelineHost — .diagram (lane timeline) + period table
   .card  (4) Result                       #resultTable · .result-boxes · #findingsHost
   .card  What the engine applies          six details.panel rules panels
