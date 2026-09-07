@@ -12,7 +12,7 @@ Tools are grouped into collections, each with its own hub page:
 |---|---|
 | `date-time-tools/` | Date & Time Tools for Legal — GM notices (CCC s.1175), CCC time & deadline counting (§§193/2–193/8, incl. working days), chronology & intervals, recurring deadlines, clear days |
 | `corporate-tools/` | Corporate Tools for Legal — shareholder voting, share certificates, share register book, share transfer instrument, incorporation wizard, dividends & legal reserve, CorpDesk share register workbench, instrument checklists |
-| `tax-tools/` | Thai Tax Tools — personal income tax, land sale tax comparison, stamp duty, withholding tax |
+| `tax-tools/` | Thai Tax Tools — personal income tax, share transfer & swap tax (CIT/WHT on moving shares between companies), land sale tax comparison, stamp duty, withholding tax |
 | `labour-tools/` | Thai Labour Law Tools — termination payment suite on shared `labour-core.js`/`.css` |
 | `finance-tools/` | Finance Tools — time value of money (PV, FV, NPV, PMT) on an interactive cash-flow timeline |
 | `corpus-tools/` | Corpus Tools — Contract Concordance (KWIC, clause library, collocations, wordlist) over a corpus built locally from your own contracts |
