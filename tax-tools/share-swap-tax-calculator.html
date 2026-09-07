@@ -1,0 +1,2021 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Share Transfer &amp; Swap Tax — Thai Tax Tools | JuraTools</title>
+  <meta name="description" content="Thai corporate income tax and withholding tax on transferring or swapping shares between companies — gain, the s.65 bis (4) market-price test against book value, the s.5 sattaras exemption, and when each tax event falls. By Kornrawee Chanchom." />
+  <style>
+    :root {
+      --ink: #1c1c1e; --ink-2: #3c3c43; --muted: #6e6e73; --faint: #aeaeb2;
+      --line: rgba(0,0,0,0.08); --line-soft: rgba(0,0,0,0.05);
+      --rose: #e11d48; --rose-dark: #c81740; --rose-light: #fff1f2; --rose-border: #fecdd3;
+      --green: #15803d; --green-light: #f0fdf4; --green-border: #bbf7d0;
+      --amber: #a16207; --amber-light: #fffbeb; --amber-border: #fde68a;
+      --info: #0369a1; --info-light: #f0f9ff; --info-border: #bae6fd;
+      --violet: #6d28d9; --violet-light: #f5f3ff; --violet-border: #ddd6fe;
+      --card-bg: rgba(255,255,255,0.82);
+      --radius: 16px; --radius-sm: 10px;
+      --shadow: 0 1px 1px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06);
+      --maxw: 980px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0; color: var(--ink); line-height: 1.45;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", "Noto Sans Thai", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      background: #f2f2f7;
+      background-image:
+        radial-gradient(ellipse 1100px 700px at 10% 0%,   rgba(255,205,210,0.4)   0%, transparent 60%),
+        radial-gradient(ellipse  700px 700px at 95% 8%,   rgba(255,224,178,0.35)  0%, transparent 55%),
+        radial-gradient(ellipse  800px 600px at 0%  92%,  rgba(194,221,255,0.3)   0%, transparent 55%),
+        radial-gradient(ellipse  900px 500px at 100% 96%, rgba(218,205,255,0.28)  0%, transparent 55%);
+    }
+    button, input, select, textarea { font: inherit; }
+    a { color: var(--rose); }
+    h1, h2, h3, p { margin-top: 0; }
+    .muted { color: var(--muted); }
+    .th { font-family: "Noto Sans Thai", -apple-system, BlinkMacSystemFont, sans-serif; }
+
+    /* ── Sticky breadcrumb nav ────────────────────── */
+    .nav {
+      position: sticky; top: 0; z-index: 200; height: 52px;
+      display: flex; align-items: center; gap: 11px; padding: 0 22px;
+      background: rgba(242,242,247,0.82);
+      backdrop-filter: blur(24px) saturate(200%);
+      -webkit-backdrop-filter: blur(24px) saturate(200%);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav a { text-decoration: none; color: inherit; }
+    .nav-brand { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+    .nav-icon {
+      width: 30px; height: 30px; border-radius: 7px;
+      background: linear-gradient(145deg, #2979ff, #1565c0);
+      display: grid; place-items: center; font-size: 15px;
+      box-shadow: 0 2px 6px rgba(41,121,255,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    .nav-wordmark { font-size: 15px; font-weight: 700; letter-spacing: -0.4px; color: var(--ink); }
+    .nav-sep { color: #c7c7cc; font-size: 14px; }
+    .nav-crumb { font-size: 14px; font-weight: 500; color: var(--muted); }
+    .nav-crumb.current { color: var(--ink); font-weight: 600; }
+    .nav-back {
+      margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+      font-size: 13px; font-weight: 500; color: var(--ink-2);
+      background: rgba(0,0,0,0.055); border: 1px solid rgba(0,0,0,0.1);
+      padding: 6px 12px; border-radius: 9px; transition: background .14s;
+    }
+    .nav-back:hover { background: rgba(0,0,0,0.09); }
+    @media (max-width: 700px) { .nav-crumb:not(.current), .nav-sep.hide-sm { display: none; } }
+    @media (max-width: 430px) { .nav-wordmark { display: none; } }
+
+    /* ── Summary bar ──────────────────────────────── */
+    .summary-bar {
+      position: sticky; top: 52px; z-index: 190;
+      background: rgba(255,255,255,0.78);
+      backdrop-filter: blur(18px) saturate(180%);
+      -webkit-backdrop-filter: blur(18px) saturate(180%);
+      border-bottom: 1px solid var(--line);
+    }
+    .summary-inner {
+      width: min(var(--maxw), calc(100% - 32px)); margin: 0 auto;
+      display: flex; gap: 22px; flex-wrap: wrap; padding: 9px 0;
+      font-size: 12.5px; align-items: baseline;
+    }
+    .sum-item { display: flex; gap: 7px; align-items: baseline; }
+    .sum-label { color: var(--muted); }
+    .sum-value { font-weight: 700; font-variant-numeric: tabular-nums; }
+    .sum-value.rose { color: var(--rose-dark); }
+    .sum-value.green { color: var(--green); }
+
+    /* ── Hero ─────────────────────────────────────── */
+    .hero { width: min(var(--maxw), calc(100% - 32px)); margin: 0 auto; padding: 30px 0 8px; }
+    .hero h1 {
+      font-size: clamp(26px, 3.6vw, 34px); font-weight: 800; letter-spacing: -1px; line-height: 1.12;
+      background: linear-gradient(135deg, #1c1c1e 0%, #e11d48 60%, #ea580c 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      margin-bottom: 4px;
+    }
+    .hero .th-title { font-size: 14.5px; color: var(--ink-2); font-weight: 500; margin-bottom: 8px; }
+    .hero .sub { font-size: 14px; color: var(--muted); line-height: 1.55; max-width: 760px; }
+
+    /* ── Cards & fields ───────────────────────────── */
+    .wrap { width: min(var(--maxw), calc(100% - 32px)); margin: 16px auto 40px; }
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.9);
+      border-radius: var(--radius); padding: 22px;
+      box-shadow: var(--shadow); margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 13px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.05em; color: var(--muted); margin-bottom: 14px;
+      display: flex; align-items: center; gap: 9px;
+    }
+    .step-n {
+      display: inline-grid; place-items: center; width: 21px; height: 21px; border-radius: 7px;
+      background: linear-gradient(145deg, #f43f5e, #be123c); color: #fff;
+      font-size: 12px; font-weight: 700; letter-spacing: 0; flex-shrink: 0;
+      box-shadow: 0 1px 3px rgba(225,29,72,0.35), inset 0 1px 0 rgba(255,255,255,0.22);
+    }
+    label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 5px; }
+    .hint { font-size: 12px; color: var(--muted); font-weight: 400; }
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .field-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    @media (max-width: 620px) { .field-row, .field-row-3 { grid-template-columns: 1fr; } }
+    input[type="number"], input[type="text"], input[type="date"], select, textarea {
+      width: 100%; padding: 9px 11px;
+      border: 1px solid var(--line); border-radius: 8px;
+      font-size: 15px; background: #fff; color: var(--ink);
+      outline: none; transition: border-color .15s, box-shadow .15s;
+      font-variant-numeric: tabular-nums;
+    }
+    textarea { font-size: 13.5px; resize: vertical; min-height: 54px; }
+    input:focus, select:focus, textarea:focus { border-color: var(--rose); box-shadow: 0 0 0 3px rgba(225,29,72,0.12); }
+    .field-note { font-size: 12px; color: var(--muted); line-height: 1.5; margin-top: 5px; }
+
+    .mode-toggle { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: #fff; }
+    .mode-btn {
+      flex: 1; padding: 10px 8px; text-align: center; font-size: 13px; font-weight: 600;
+      cursor: pointer; background: transparent; border: none; color: var(--muted);
+      transition: background 0.15s, color 0.15s; line-height: 1.35;
+    }
+    .mode-btn .th { display: block; font-size: 11px; font-weight: 500; opacity: .75; }
+    .mode-btn.active { background: linear-gradient(145deg, #f43f5e, #c81740); color: #fff; }
+    @media (max-width: 620px) { .mode-toggle { flex-direction: column; } }
+
+    .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .chip {
+      border: 1px solid var(--line); border-radius: 999px; background: #fff;
+      padding: 5px 12px; font-size: 12px; cursor: pointer; color: var(--muted);
+      transition: all 0.14s;
+    }
+    .chip:hover { border-color: var(--rose); color: var(--rose); }
+    .chip.active { background: var(--rose); color: #fff; border-color: var(--rose); }
+
+    .check-row { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; margin-bottom: 9px; }
+    .check-row:last-child { margin-bottom: 0; }
+    .check-row input[type="checkbox"] { width: auto; margin-top: 3px; flex-shrink: 0; }
+    .check-row label { margin-bottom: 0; font-weight: 400; line-height: 1.5; }
+    .radio-row { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; margin-top: 6px; }
+    .radio-row label { display: flex; align-items: center; gap: 6px; font-weight: 400; margin: 0; }
+
+    /* ── Legs ─────────────────────────────────────── */
+    .leg {
+      border: 1px solid rgba(15,23,42,0.08); border-radius: 13px;
+      background: rgba(255,255,255,0.62); margin-bottom: 14px; overflow: hidden;
+      box-shadow: 0 1px 2px rgba(15,23,42,0.03);
+    }
+    .leg-head {
+      display: flex; align-items: center; gap: 10px; padding: 11px 14px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.7) 100%);
+      border-bottom: 1px solid var(--line);
+    }
+    .leg-tag {
+      display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding: 0 7px;
+      border-radius: 8px; background: linear-gradient(145deg, #334155, #0f172a);
+      color: #fff; font-size: 12px; font-weight: 700;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.18);
+    }
+    .leg-name { font-size: 14px; font-weight: 600; flex: 1; min-width: 0; }
+    .leg-name span { color: var(--muted); font-weight: 400; }
+    .leg-body { padding: 16px 14px; }
+    .leg-actions { display: flex; gap: 5px; }
+    .icon-btn {
+      border: 1px solid var(--line); background: #fff; border-radius: 7px; cursor: pointer;
+      width: 28px; height: 28px; display: grid; place-items: center; color: var(--muted);
+      font-size: 13px; transition: all .14s; padding: 0;
+    }
+    .icon-btn:hover { border-color: var(--rose); color: var(--rose); }
+    .icon-btn[disabled] { opacity: .35; cursor: not-allowed; }
+    .icon-btn.danger:hover { border-color: var(--rose); color: var(--rose); background: var(--rose-light); }
+
+    .sub-head {
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+      color: var(--faint); margin: 18px 0 9px; padding-bottom: 5px; border-bottom: 1px solid var(--line-soft);
+    }
+    .sub-head:first-child { margin-top: 0; }
+
+    details.panel { border: 1px solid var(--line); border-radius: var(--radius-sm); background: rgba(255,255,255,0.55); margin-top: 14px; }
+    details.panel > summary {
+      cursor: pointer; padding: 10px 14px; font-size: 12.5px; font-weight: 600; color: var(--ink-2);
+      list-style: none; display: flex; align-items: center; gap: 8px;
+    }
+    details.panel > summary::-webkit-details-marker { display: none; }
+    details.panel > summary::before { content: "▸"; color: var(--faint); transition: transform .15s; display: inline-block; }
+    details.panel[open] > summary::before { transform: rotate(90deg); }
+    details.panel .panel-body { padding: 0 14px 14px; font-size: 13px; line-height: 1.6; color: var(--ink-2); }
+    details.panel .panel-body p { margin: 0 0 10px; }
+    details.panel .panel-body p:last-child { margin-bottom: 0; }
+
+    /* ── Results ──────────────────────────────────── */
+    table.data { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-top: 4px; }
+    table.data th {
+      text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .05em;
+      color: var(--muted); font-weight: 600; padding: 6px 10px; border-bottom: 1px solid var(--line);
+    }
+    table.data th.num { text-align: right; }
+    table.data td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+    table.data td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    table.data tr.total td { font-weight: 700; border-top: 2px solid var(--ink); border-bottom: none; }
+    table.data tr.muted td { color: var(--muted); }
+    table.data tr.hl td { color: var(--rose-dark); font-weight: 600; }
+    table.data td .cite { display: block; font-size: 11.5px; color: var(--faint); margin-top: 2px; }
+    .tbl-wrap { overflow-x: auto; }
+
+    .result-boxes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+    @media (max-width: 720px) { .result-boxes { grid-template-columns: 1fr; } }
+    .amount-box {
+      border: 1px solid var(--rose-border); border-radius: 13px; padding: 14px 15px;
+      background: linear-gradient(160deg, #fff5f6 0%, #fff1f2 100%);
+      box-shadow: 0 1px 2px rgba(15,23,42,0.03);
+    }
+    .amount-box.green { border-color: var(--green-border); background: linear-gradient(160deg, #f4fdf7 0%, #f0fdf4 100%); }
+    .amount-box.info { border-color: var(--info-border); background: linear-gradient(160deg, #f5fbff 0%, #f0f9ff 100%); }
+    .amount-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+    .amount-value { font-size: 23px; font-weight: 700; color: var(--rose-dark); margin-top: 2px; font-variant-numeric: tabular-nums; }
+    .amount-box.green .amount-value { color: var(--green); }
+    .amount-box.info .amount-value { color: var(--info); }
+    .amount-sub { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+
+    .callout {
+      border-radius: 10px; padding: 11px 14px 11px 15px; font-size: 12.5px; line-height: 1.6;
+      background: var(--info-light); border: 1px solid var(--info-border); color: var(--info);
+      border-left-width: 4px; margin-top: 10px;
+    }
+    .callout strong { font-weight: 700; }
+    .callout .cite { display: block; margin-top: 4px; font-size: 11.5px; opacity: .85; }
+    .callout-amber { background: var(--amber-light); border-color: var(--amber-border); color: var(--amber); }
+    .callout-green { background: var(--green-light); border-color: var(--green-border); color: var(--green); }
+    .callout-red { background: var(--rose-light); border-color: var(--rose-border); color: var(--rose-dark); }
+    .callout-violet { background: var(--violet-light); border-color: var(--violet-border); color: var(--violet); }
+
+    .pill {
+      display: inline-flex; align-items: center; gap: 5px; border-radius: 999px;
+      padding: 3px 10px; font-size: 11.5px; font-weight: 600; white-space: nowrap;
+    }
+    .pill-green { background: var(--green-light); color: var(--green); border: 1px solid var(--green-border); }
+    .pill-amber { background: var(--amber-light); color: var(--amber); border: 1px solid var(--amber-border); }
+    .pill-red   { background: var(--rose-light); color: var(--rose-dark); border: 1px solid var(--rose-border); }
+    .pill-info  { background: var(--info-light); color: var(--info); border: 1px solid var(--info-border); }
+    .pill-grey  { background: rgba(0,0,0,0.05); color: var(--muted); border: 1px solid var(--line); }
+
+    .ladder-pair { margin-top: 14px; border-left: 3px solid rgba(225,29,72,0.28); padding-left: 12px; }
+    .ladder-pair .diagram { margin-top: 8px; }
+    .ladder-head {
+      display: flex; align-items: center; gap: 8px; margin-top: 14px;
+      font-size: 12.5px; font-weight: 600; color: var(--ink-2);
+    }
+    .ladder-head:first-child { margin-top: 2px; }
+    .ladder-n {
+      display: inline-grid; place-items: center; width: 19px; height: 19px; border-radius: 6px;
+      background: rgba(15,23,42,0.07); color: var(--ink); font-size: 11px; font-weight: 700; flex-shrink: 0;
+    }
+    .ladder-head .sub { color: var(--muted); font-weight: 400; }
+    .pair-note { font-size: 12px; color: var(--muted); line-height: 1.55; margin: 10px 0 0; }
+
+    .diagram {
+      margin-top: 14px; border: 1px solid rgba(15,23,42,0.07); border-radius: 14px;
+      background: linear-gradient(180deg, #ffffff 0%, #fbfbfd 100%);
+      padding: 10px 10px 4px; overflow-x: auto;
+      box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 8px 22px -12px rgba(15,23,42,0.16);
+    }
+    .diagram svg { display: block; min-width: 520px; }
+    .diagram-cap { font-size: 11.5px; color: var(--muted); padding: 6px 6px 8px; line-height: 1.55; max-width: 74ch; }
+
+    .actions-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #fff; border: 1px solid var(--line); border-radius: 8px;
+      padding: 8px 15px; font-size: 13px; font-weight: 500;
+      cursor: pointer; color: var(--ink-2); transition: background 0.14s, border-color 0.14s, color .14s;
+    }
+    .btn:hover { border-color: var(--rose); color: var(--rose); }
+    .btn.copied { background: var(--rose); border-color: var(--rose); color: #fff; }
+    .btn-primary { background: var(--rose); border-color: var(--rose); color: #fff; }
+    .btn-primary:hover { background: var(--rose-dark); border-color: var(--rose-dark); color: #fff; }
+    .btn-small { padding: 6px 11px; font-size: 12px; }
+
+    .empty { text-align: center; color: var(--muted); font-size: 13px; padding: 22px 10px; }
+
+    footer {
+      width: min(var(--maxw), calc(100% - 32px)); margin: 24px auto 32px;
+      font-size: 12px; color: var(--faint); text-align: center; line-height: 1.7;
+    }
+    footer .cites { color: var(--muted); }
+
+    @media print {
+      body { background: #fff; }
+      .nav, .summary-bar, .actions-row, .btn, .chips, .mode-toggle, .icon-btn, .leg-actions { display: none !important; }
+      .card, .leg { box-shadow: none; border: 1px solid #ddd; background: #fff; break-inside: avoid; }
+      details.panel { display: none; }
+      .wrap, .hero, footer { width: 100%; }
+    }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-brand" href="../index.html">
+    <div class="nav-icon">⚖️</div>
+    <span class="nav-wordmark">JuraTools</span>
+  </a>
+  <span class="nav-sep">/</span>
+  <a class="nav-crumb" href="index.html">Thai Tax Tools</a>
+  <span class="nav-sep hide-sm">/</span>
+  <span class="nav-crumb current">Share Transfer &amp; Swap Tax</span>
+  <a class="nav-back" href="index.html">← All tax tools</a>
+</nav>
+
+<div class="summary-bar">
+  <div class="summary-inner">
+    <div class="sum-item"><span class="sum-label">Steps</span><span class="sum-value" id="sbSteps">0</span></div>
+    <div class="sum-item"><span class="sum-label">Gain recognised</span><span class="sum-value green" id="sbGain">—</span></div>
+    <div class="sum-item"><span class="sum-label">CIT</span><span class="sum-value rose" id="sbCit">—</span></div>
+    <div class="sum-item"><span class="sum-label">WHT s.70</span><span class="sum-value rose" id="sbWht">—</span></div>
+    <div class="sum-item"><span class="sum-label">s.65 bis (4) exposure</span><span class="sum-value" id="sbExp">—</span></div>
+  </div>
+</div>
+
+<div class="hero">
+  <h1>Share Transfer &amp; Swap Tax</h1>
+  <div class="th-title th">ภาษีเงินได้นิติบุคคลและภาษีหัก ณ ที่จ่าย จากการโอนหุ้นและการแลกหุ้นระหว่างบริษัท</div>
+  <p class="sub">Model a share sale, a share-for-share swap, an entire business transfer or an amalgamation as a chain of steps between companies. For each step the tool computes the gain or loss, tests the transfer price against book value under s.65 bis (4), applies the s.5 sattaras exemption where it fits, and places every tax event in the accounting period it actually falls in — including the ones that are only deferred to a later disposal.</p>
+</div>
+
+<div class="wrap">
+
+  <div class="card">
+    <div class="card-title"><span class="step-n">1</span> Rates, periods and rounding</div>
+    <div class="field-row-3">
+      <div class="field">
+        <label for="citRate">Corporate income tax rate (%) <span class="hint">— s.65</span></label>
+        <input type="number" id="citRate" min="0" max="60" step="0.01" value="20" />
+        <div class="field-note">20% is the ordinary rate. Edit for an SME rate, a BOI rate or a rate that has changed.</div>
+      </div>
+      <div class="field">
+        <label for="whtRate">Withholding rate on a foreign transferor (%) <span class="hint">— s.70</span></label>
+        <input type="number" id="whtRate" min="0" max="60" step="0.01" value="15" />
+        <div class="field-note">15% on the benefit over cost paid to a foreign company not carrying on business in Thailand.</div>
+      </div>
+      <div class="field">
+        <label for="fyEnd">Accounting period ends <span class="hint">— รอบระยะเวลาบัญชี</span></label>
+        <select id="fyEnd">
+          <option value="12-31" selected>31 December</option>
+          <option value="03-31">31 March</option>
+          <option value="06-30">30 June</option>
+          <option value="09-30">30 September</option>
+          <option value="01-31">31 January</option>
+          <option value="02-28">28/29 February</option>
+          <option value="04-30">30 April</option>
+          <option value="05-31">31 May</option>
+          <option value="07-31">31 July</option>
+          <option value="08-31">31 August</option>
+          <option value="10-31">31 October</option>
+          <option value="11-30">30 November</option>
+        </select>
+        <div class="field-note">The default for every step. Each step can override it.</div>
+      </div>
+    </div>
+    <div class="field-row" style="margin-top:4px">
+      <div class="field">
+        <label for="decimals">Decimal places</label>
+        <select id="decimals">
+          <option value="0">0</option>
+          <option value="1">1</option>
+          <option value="2" selected>2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="rounding">Rounding method</label>
+        <select id="rounding">
+          <option value="normal">Normal (round half up)</option>
+          <option value="floor">Floor (always round down)</option>
+          <option value="ceil">Ceiling (always round up)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="step-n">2</span> The steps of the transaction</div>
+    <p class="field-note" style="margin:-6px 0 14px">Each step is one movement of shares from one holder to another — A sells to B, then B swaps into C. A later step can take its cost base from an earlier one, which is how a gain deferred at acquisition surfaces on the onward disposal.</p>
+    <div id="legHost"></div>
+    <div class="actions-row" style="justify-content:flex-start; margin-top:14px">
+      <button class="btn btn-primary btn-small" id="addLegBtn">+ Add a step</button>
+      <button class="btn btn-small" id="exampleBtn">Load example</button>
+    </div>
+  </div>
+
+  <div class="card" id="timelineCard">
+    <div class="card-title"><span class="step-n">3</span> When each tax event falls</div>
+    <div id="timelineHost"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="step-n">4</span> Result</div>
+    <div class="tbl-wrap"><table class="data" id="resultTable"></table></div>
+    <div class="result-boxes">
+      <div class="amount-box green">
+        <div class="amount-label">Gain recognised</div>
+        <div class="amount-value" id="gainValue">—</div>
+        <div class="amount-sub" id="gainSub">Across every step that is a tax event.</div>
+      </div>
+      <div class="amount-box">
+        <div class="amount-label">Corporate income tax</div>
+        <div class="amount-value" id="citValue">—</div>
+        <div class="amount-sub" id="citSub">On the taxable gain, at the rate above.</div>
+      </div>
+      <div class="amount-box info">
+        <div class="amount-label">Withholding tax (s.70)</div>
+        <div class="amount-value" id="whtValue">—</div>
+        <div class="amount-sub" id="whtSub">Payable by the Thai payer on a foreign transferor's benefit.</div>
+      </div>
+    </div>
+    <div id="findingsHost"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">What the engine applies</div>
+    <details class="panel">
+      <summary>Gain, loss and the accounting period — ss.65, 65 ter</summary>
+      <div class="panel-body">
+        <p><strong>Gain on a transfer.</strong> Sale price less the cost of acquiring the shares is income from or by reason of the business, brought into net profit for the accounting period in which the transfer falls, on the accrual basis — s.65. Where the shares are paid for with shares rather than cash, the price is the total value used in the exchange. <span class="muted">Ruling กค 0706/7148, 25 Aug 2548.</span></p>
+        <p><strong>Cost.</strong> The price paid for shares bought as an investment is the cost of that asset. Where the shares were themselves acquired in an earlier exchange, the value used in that exchange is the cost. Expenses incurred specifically and directly in acquiring the holding — a feasibility study for the project actually invested in, for instance — are capitalised into cost as expenditure of a capital nature under s.65 ter (5). <span class="muted">Rulings กค 0702/10436, 21 Dec 2552; กค 0706/7430, 2 Sep 2548.</span></p>
+        <p><strong>Loss.</strong> A loss on shares acquired to earn a benefit for the business is a deductible loss of the period in which the sale falls, and is not caught by s.65 ter (12) or (13). Shares bought with no such purpose — bought so that the loss on selling them can be deducted — are caught by s.65 ter (13). <span class="muted">Rulings กค 0706/5694, 8 Jun 2550; กค 0706/11580, 19 Nov 2550; กค 0706/7526, 26 Jul 2550.</span></p>
+        <p><strong>Movements in value without a disposal.</strong> Writing the holding up does not create income — s.65 bis (3). Writing it down is not deductible — s.65 ter (17) — and a loss from the investee's capital reduction becomes deductible only when the shares are actually sold. <span class="muted">Rulings กค 0706/1925, 7 Mar 2549; กค 0811/02504, 19 Mar 2542; กค 0811/12651, 16 Dec 2542.</span></p>
+        <p><strong>Cost method.</strong> Where the securities sold can be identified and their true cost computed, that actual cost must be used and averaging is not available. Where they cannot — scripless holdings bought in several lots — average cost, FIFO or LIFO may be chosen, and the method chosen must then be used consistently for all securities. <span class="muted">Rulings กค 0811/01147, 29 Jan 2541; กค 0702/8322, 7 Nov 2557.</span></p>
+      </div>
+    </details>
+    <details class="panel">
+      <summary>The transfer price — s.65 bis (4)</summary>
+      <div class="panel-body">
+        <p>Where a company transfers an asset for a consideration below market value without reasonable cause, the assessment officer may substitute the market value at the date of transfer — s.65 bis (4).</p>
+        <p><strong>Book value is the accepted safe harbour for unlisted shares.</strong> A price not below net asset value — total assets in the audited balance sheet for the preceding accounting period less all liabilities, divided by the registered shares — is a price with reasonable cause. <span class="muted">Rulings กค 0811/04265, 7 May 2542; กค 0706(กม.08)/843, 7 Jul 2549; Supreme Court judgment 2722/2530.</span></p>
+        <p><strong>A mirrored holding-company restructuring is reasonable cause.</strong> Where shareholders transfer their shares to a holding company and receive shares in it in the same number, at the same price and in the same proportions as they held before, the price has reasonable cause. On the later disposal of those new shares, sale price less original cost comes back into net profit under s.65. <span class="muted">Ruling กค 0706/7148, 25 Aug 2548.</span></p>
+        <p><strong>Acquiring below market value is not income at acquisition.</strong> The buyer has no income from or by reason of the business at the time of the transfer, and neither cost nor market value is brought into tax then. The exposure moves to the onward sale, where the officer may substitute the market value at the date of that transfer. <span class="muted">Ruling กค 0811/04265, 7 May 2542.</span></p>
+      </div>
+    </details>
+    <details class="panel">
+      <summary>Shares issued as the consideration — the issuer's side</summary>
+      <div class="panel-body">
+        <p>A company that issues new shares and is paid for them with shares of another company receives capital, not income from or by reason of its business. It is not brought into net profit and it is not a VAT receipt. The excess over the registered value of the new shares — share premium — is capital in the same way, so the issuer bears no tax whether it issues at par or above it.</p>
+        <p>The qualification is deliberate: if new shares are issued in a manner not permitted by law, or the premium is set above what is real, or the issue is a disguise — for a grant, a subsidy or other assistance — the excess beyond what is real may be treated as income of both the issuer and the subscriber. <span class="muted">Ruling กค 0702/3214, 12 Jun 2551.</span></p>
+      </div>
+    </details>
+    <details class="panel">
+      <summary>Entire business transfer, amalgamation, and the s.5 sattaras exemption</summary>
+      <div class="panel-body">
+        <p><strong>The shareholder's benefit.</strong> What a corporate shareholder receives when companies amalgamate, take over from one another or wind up, valued above its capital, is assessable income under s.40(4)(ฉ). In an entire business transfer this is what the shareholder receives on the transferor's liquidation — often the very shares the transferee issued — where that is worth more than what the shareholder put in.</p>
+        <p><strong>The exemption.</strong> Section 5 sattaras of the Royal Decree issued under the Revenue Code on exemptions (No. 10) B.E. 2500, as amended by Royal Decree (No. 542) B.E. 2555, exempts a corporate shareholder on that benefit where shares are transferred in exchange for shares in the new amalgamated company or in the company taking the entire business — but only for the excess over capital, and only where the share transfer is made <em>in the same accounting period</em> as the amalgamation or the entire business transfer, on the conditions set by the Director-General's Notification (No. 3). The transferor company must register its dissolution and be liquidated in the accounting period of the transfer. Fail those, and the benefit is taxable.</p>
+        <p><strong>An uplift in value is not yet income.</strong> Where shares held in the amalgamating companies come out of the amalgamation worth more — in book or market terms — than the shares given up, that uplift is s.40(4)(ฉ) income but the shareholder is taxed only on realised income: nothing is due until those shares are sold. <span class="muted">Rulings กค 0706(กม.01)/978, 20 Oct 2548; กค 0706/9960, 28 Nov 2548; and for the liquidation route, กค 0702/10398, 21 Dec 2552.</span></p>
+        <p><strong>Retained earnings carried into the new company</strong> are not paid to the old shareholders, so no one is taxed and nothing is withheld. A dividend paid out of those retained earnings <em>before</em> the amalgamation is s.40(4)(ข) income and is withheld on in the ordinary way.</p>
+      </div>
+    </details>
+    <details class="panel">
+      <summary>Withholding — s.70</summary>
+      <div class="panel-body">
+        <p>A corporate transferor is not withheld on for the benefit it makes over cost on a share swap, the way an individual would be. The exception is a foreign company not carrying on business in Thailand: the benefit over what it invested is assessable income under s.40(4)(ช), and the Thai payer must withhold under s.70 — including where it pays by issuing new shares rather than in cash.</p>
+        <p>Where a double tax agreement gives the right to tax capital gains to the state of residence, there is nothing to withhold. <span class="muted">Ruling กค 0702(กม)/8852, 10 Oct 2556 — Singapore transferor, article 13 of the treaty, no withholding by the Thai issuer.</span></p>
+      </div>
+    </details>
+    <details class="panel">
+      <summary>What this tool does not model</summary>
+      <div class="panel-body">
+        <p>Individual shareholders (this is the corporate side only; the individual exemption under Ministerial Regulation No. 126 cl. 2(50) is noted but not computed) · stamp duty on the transfer instrument, which the <a href="thai-stamp-duty-calculator.html">Stamp Duty Calculator</a> handles · VAT and specific business tax · the transferee's own trading position in the shares · loss carry-forward across periods, group relief or BOI positions · the transfer pricing regime in ss.71 bis and 71 ter for related parties, which sits alongside s.65 bis (4) and is not applied here · the Director-General's Notification (No. 3) conditions beyond same-period transfer, dissolution and liquidation, which are shown as a checklist for you to satisfy yourself on.</p>
+      </div>
+    </details>
+  </div>
+
+  <div class="actions-row">
+    <button class="btn" id="copyBtn">Copy summary</button>
+    <button class="btn" id="exportBtn">Export JSON</button>
+    <button class="btn" id="importBtn">Import JSON</button>
+    <button class="btn" onclick="window.print()">Print</button>
+    <button class="btn" id="resetBtn">Reset everything</button>
+    <input type="file" id="importFile" accept="application/json,.json" style="display:none" />
+  </div>
+
+</div>
+
+<footer>
+  <span class="cites">Revenue Code ss.40(4)(ข), 40(4)(ฉ), 40(4)(ช), 65, 65 bis (3), 65 bis (4), 65 ter (5), 65 ter (12), 65 ter (13), 65 ter (17), 70 · Royal Decree (No. 10) B.E. 2500 s.5 sattaras, as amended by Royal Decree (No. 542) B.E. 2555 · Director-General's Notification on amalgamation and entire business transfer (No. 3) · Supreme Court judgment 2722/2530</span><br>
+  Reference tool only, not tax advice. Runs entirely in your browser — nothing is sent anywhere.
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  var KEY = 'shareSwapTax_v1';
+
+  /* ── State ──────────────────────────────────────── */
+  var S = {
+    citRate: 20,
+    whtRate: 15,
+    fyEnd: '12-31',
+    dp: 2,
+    rounding: 'normal',
+    legs: []
+  };
+
+  var seq = 0;
+  function uid() { seq += 1; return 'L' + Date.now().toString(36) + seq.toString(36); }
+
+  function newLeg() {
+    return {
+      id: uid(), label: '', date: '', fyEnd: '',
+      category: 'sale',
+      transferor: '', transferee: '', target: '',
+      transferorType: 'thai', treatyCG: false,
+      shares: '',
+      costMode: 'perShare', costPerShare: '', costTotal: '',
+      costFromLeg: '', costFromPct: '100', costExtra: '', costMethod: 'identified',
+      par: '',
+      bvMode: 'perShare', bvPerShare: '', netAssets: '', registeredShares: '',
+      priceMode: 'perShare', pricePerShare: '', priceTotal: '',
+      consideration: 'cash', newShares: '', newSharesPar: '',
+      /* the other side of an exchange of existing shares — it is a disposal too */
+      otherSide: true, cTarget: '', cShares: '', cPar: '', cCostPerShare: '', cBvPerShare: '',
+      cValue: '', transfereeType: 'thai', cTreaty: false, cInvestmentPurpose: true, cCauseNote: '',
+      mirror: false, causeNote: '',
+      investmentPurpose: true, treasuryPublic: false,
+      exSamePeriod: false, exDissolved: false, exDG: false, exDisposed: false
+    };
+  }
+
+  /* ── Numbers ────────────────────────────────────── */
+  function parseAmt(v) {
+    if (v === null || v === undefined) return NaN;
+    var s = String(v).replace(/[,\s]/g, '');
+    if (s === '') return NaN;
+    return parseFloat(s);
+  }
+  function num(v) { var n = parseAmt(v); return isFinite(n) ? n : 0; }
+  function has(v) { return isFinite(parseAmt(v)); }
+
+  function roundAmt(n) {
+    if (!isFinite(n)) return 0;
+    var dp = S.dp, mode = S.rounding;
+    var f = Math.pow(10, dp), x = n * f;
+    var nearest = Math.round(x);
+    if (Math.abs(x - nearest) < 1e-6) x = nearest;
+    else x = mode === 'floor' ? Math.floor(x) : mode === 'ceil' ? Math.ceil(x) : Math.round(x);
+    return x / f;
+  }
+  function fmt(n) {
+    if (!isFinite(n)) return '—';
+    var v = roundAmt(n);
+    return v.toLocaleString('en-US', { minimumFractionDigits: S.dp, maximumFractionDigits: S.dp });
+  }
+  function fmtInt(n) {
+    if (!isFinite(n)) return '—';
+    return Math.round(n).toLocaleString('en-US');
+  }
+  function fmtShort(n) {
+    if (!isFinite(n)) return '—';
+    var v = roundAmt(n);
+    return v.toLocaleString('en-US', { maximumFractionDigits: S.dp });
+  }
+  function esc(s) {
+    return String(s === null || s === undefined ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function liveFormat(el) {
+    var raw = el.value;
+    var caret = el.selectionStart == null ? raw.length : el.selectionStart;
+    var anchorsBefore = raw.slice(0, caret).replace(/[^0-9.]/g, '').length;
+    var neg = /^\s*-/.test(raw);
+    var clean = raw.replace(/[^0-9.]/g, '');
+    var firstDot = clean.indexOf('.');
+    var intp = firstDot >= 0 ? clean.slice(0, firstDot) : clean;
+    var frac = firstDot >= 0 ? clean.slice(firstDot + 1).replace(/\./g, '') : null;
+    var out = (neg ? '-' : '') + intp.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+            + (frac !== null ? '.' + frac : '');
+    if (out === raw) return;
+    el.value = out;
+    if (document.activeElement === el && el.setSelectionRange) {
+      var pos = 0, seen = 0;
+      while (pos < out.length && seen < anchorsBefore) {
+        if (/[0-9.]/.test(out[pos])) seen++;
+        pos++;
+      }
+      el.setSelectionRange(pos, pos);
+    }
+  }
+
+  /* ── Accounting periods ─────────────────────────── */
+  var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function daysInMonth(y, m) { return new Date(y, m + 1, 0).getDate(); }
+  function fmtDate(d) {
+    if (!d) return '—';
+    return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+  }
+  function parseDate(s) {
+    if (!s) return null;
+    var p = String(s).split('-');
+    if (p.length !== 3) return null;
+    var d = new Date(+p[0], +p[1] - 1, +p[2]);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  function periodOf(dateStr, fyEnd) {
+    var d = parseDate(dateStr);
+    if (!d) return null;
+    var mm = +String(fyEnd).split('-')[0], dd = +String(fyEnd).split('-')[1];
+    var y = d.getFullYear();
+    var end = new Date(y, mm - 1, Math.min(dd, daysInMonth(y, mm - 1)));
+    if (end < d) { y += 1; end = new Date(y, mm - 1, Math.min(dd, daysInMonth(y, mm - 1))); }
+    var start = new Date(end.getTime());
+    start.setFullYear(start.getFullYear() - 1);
+    start.setDate(start.getDate() + 1);
+    return { start: start, end: end, label: fmtDate(start) + ' – ' + fmtDate(end) };
+  }
+  function legFy(leg) { return leg.fyEnd || S.fyEnd; }
+
+  /* ── The engine ─────────────────────────────────── */
+  var CATS = {
+    sale:         { name: 'Sale or share-for-share swap', th: 'ขายหุ้น / แลกหุ้นเพื่อให้ได้มาซึ่งหุ้น' },
+    ebt:          { name: 'Entire business transfer',     th: 'โอนกิจการทั้งหมด' },
+    amalgamation: { name: 'Amalgamation',                 th: 'ควบบริษัท' }
+  };
+  var TTYPES = {
+    thai:        'Thai juristic person',
+    foreignNoPE: 'Foreign company, no business in Thailand',
+    foreignPE:   'Foreign company carrying on business in Thailand'
+  };
+
+  function computeLeg(leg, idx, computed) {
+    var r = {
+      id: leg.id, idx: idx, leg: leg, findings: [],
+      shares: num(leg.shares)
+    };
+    r.hasShares = r.shares > 0;
+
+    /* consideration received by the transferor */
+    if (leg.priceMode === 'total') {
+      r.proceeds = num(leg.priceTotal);
+      r.pricePer = r.hasShares ? r.proceeds / r.shares : NaN;
+    } else {
+      r.pricePer = num(leg.pricePerShare);
+      r.proceeds = r.pricePer * r.shares;
+    }
+    r.priceGiven = leg.priceMode === 'total' ? has(leg.priceTotal) : has(leg.pricePerShare);
+
+    /* cost of the shares being transferred */
+    r.carriedFrom = null;
+    if (leg.costMode === 'fromLeg' && leg.costFromLeg) {
+      var src = null;
+      for (var i = 0; i < computed.length; i++) if (computed[i].id === leg.costFromLeg) src = computed[i];
+      if (src) {
+        var pct = has(leg.costFromPct) ? num(leg.costFromPct) : 100;
+        r.costBase = src.proceeds * pct / 100;
+        r.carriedFrom = { idx: src.idx, pct: pct, value: src.proceeds };
+      } else {
+        r.costBase = 0;
+      }
+    } else if (leg.costMode === 'total') {
+      r.costBase = num(leg.costTotal);
+    } else {
+      r.costBase = num(leg.costPerShare) * r.shares;
+    }
+    r.costExtra = num(leg.costExtra);
+    r.cost = r.costBase + r.costExtra;
+    r.costPer = r.hasShares ? r.cost / r.shares : NaN;
+
+    /* book value */
+    if (leg.bvMode === 'netAssets') {
+      var regd = num(leg.registeredShares);
+      r.bvPer = regd > 0 ? num(leg.netAssets) / regd : NaN;
+      r.bvGiven = has(leg.netAssets) && regd > 0;
+    } else {
+      r.bvPer = num(leg.bvPerShare);
+      r.bvGiven = has(leg.bvPerShare);
+    }
+    r.bvTotal = r.bvGiven ? r.bvPer * r.shares : NaN;
+    r.parPer = has(leg.par) ? num(leg.par) : NaN;
+    r.parTotal = isFinite(r.parPer) ? r.parPer * r.shares : NaN;
+
+    r.gain = r.proceeds - r.cost;
+    r.isLoss = r.gain < 0;
+
+    /* period */
+    r.period = periodOf(leg.date, legFy(leg));
+
+    /* the price test — s.65 bis (4) */
+    r.priceTest = 'unknown';
+    if (r.bvGiven && r.priceGiven && r.hasShares) {
+      if (r.pricePer >= r.bvPer - 1e-9) r.priceTest = 'atOrAboveBook';
+      else if (leg.mirror) r.priceTest = 'mirror';
+      else if (String(leg.causeNote || '').trim() !== '') r.priceTest = 'causeAsserted';
+      else r.priceTest = 'exposed';
+    }
+    r.uplift = (r.bvGiven && r.priceGiven && r.pricePer < r.bvPer) ? (r.bvTotal - r.proceeds) : 0;
+    r.deemedGain = r.bvGiven ? r.bvTotal - r.cost : NaN;
+
+    /* exemption checklist for EBT / amalgamation */
+    r.exemptionRelevant = (leg.category === 'ebt' || leg.category === 'amalgamation');
+    r.exemptionMet = r.exemptionRelevant && leg.exSamePeriod && leg.exDissolved && leg.exDG;
+
+    /* what happens, and when */
+    var rate = num(S.citRate) / 100;
+    r.status = 'taxable';          // taxable | exempt | deferred | notIncome
+    r.taxableAmount = 0;
+    r.deferredAmount = 0;
+    r.cit = 0;
+    r.citIsSaving = false;
+
+    if (leg.treasuryPublic) {
+      r.status = 'notIncome';
+    } else if (r.exemptionRelevant && r.exemptionMet) {
+      r.status = 'exempt';
+      r.deferredAmount = 0;
+    } else if (leg.category === 'amalgamation' && !leg.exDisposed) {
+      r.status = 'deferred';
+      r.deferredAmount = r.gain > 0 ? r.gain : 0;
+    } else {
+      r.status = 'taxable';
+    }
+
+    if (r.status === 'taxable') {
+      if (r.gain > 0) {
+        r.taxableAmount = r.gain;
+        r.cit = r.gain * rate;
+      } else if (r.gain < 0) {
+        if (leg.investmentPurpose) {
+          r.taxableAmount = r.gain;
+          r.cit = r.gain * rate;
+          r.citIsSaving = true;
+        } else {
+          r.taxableAmount = 0;
+          r.cit = 0;
+        }
+      }
+    }
+
+    /* the s.65 bis (4) exposure, in tax */
+    r.exposureTax = 0;
+    if (r.priceTest === 'exposed' && r.status === 'taxable') r.exposureTax = r.uplift * rate;
+    else if (r.priceTest === 'exposed') r.exposureTax = 0;
+
+    /* withholding — s.70 */
+    r.wht = 0; r.whtNote = '';
+    var benefit = r.gain > 0 ? r.gain : 0;
+    if (leg.transferorType === 'foreignNoPE' && benefit > 0) {
+      if (r.status === 'exempt') { r.whtNote = 'exemptRemoves'; }
+      else if (leg.treatyCG) { r.whtNote = 'treaty'; }
+      else { r.wht = benefit * num(S.whtRate) / 100; r.whtNote = 'due'; }
+    } else if (leg.transferorType === 'thai' && benefit > 0) {
+      r.whtNote = 'none';
+    } else if (leg.transferorType === 'foreignPE' && benefit > 0) {
+      r.whtNote = 'pe';
+    }
+
+    /* the other side of the exchange — handing over existing shares is a disposal too */
+    r.two = null;
+    if (leg.consideration === 'ownShares' && leg.otherSide) {
+      var o = {};
+      o.shares = num(leg.cShares);
+      o.hasShares = o.shares > 0;
+      o.costPer = num(leg.cCostPerShare);
+      o.cost = o.costPer * o.shares;
+      o.parPer = has(leg.cPar) ? num(leg.cPar) : NaN;
+      o.bvGiven = has(leg.cBvPerShare);
+      o.bvPer = o.bvGiven ? num(leg.cBvPerShare) : NaN;
+      o.bvTotal = o.bvGiven ? o.bvPer * o.shares : NaN;
+      /* what this side receives is the value placed on the shares coming the other way */
+      o.valueAuto = !has(leg.cValue);
+      o.proceeds = o.valueAuto ? (r.bvGiven ? r.bvTotal : r.cost) : num(leg.cValue);
+      o.pricePer = o.hasShares ? o.proceeds / o.shares : NaN;
+      o.gain = o.proceeds - o.cost;
+      o.priceGiven = o.hasShares && isFinite(o.proceeds);
+
+      o.priceTest = 'unknown';
+      if (o.bvGiven && o.priceGiven) {
+        if (o.pricePer >= o.bvPer - 1e-9) o.priceTest = 'atOrAboveBook';
+        else if (String(leg.cCauseNote || '').trim() !== '') o.priceTest = 'causeAsserted';
+        else o.priceTest = 'exposed';
+      }
+      o.uplift = (o.bvGiven && o.priceGiven && o.pricePer < o.bvPer) ? (o.bvTotal - o.proceeds) : 0;
+      o.deemedGain = o.bvGiven ? o.bvTotal - o.cost : NaN;
+
+      o.status = 'taxable';
+      o.taxableAmount = 0; o.cit = 0; o.citIsSaving = false;
+      if (o.gain > 0) { o.taxableAmount = o.gain; o.cit = o.gain * rate; }
+      else if (o.gain < 0 && leg.cInvestmentPurpose) { o.taxableAmount = o.gain; o.cit = o.gain * rate; o.citIsSaving = true; }
+
+      o.wht = 0; o.whtNote = '';
+      if (leg.transfereeType === 'foreignNoPE' && o.gain > 0) {
+        if (leg.cTreaty) o.whtNote = 'treaty';
+        else { o.wht = o.gain * num(S.whtRate) / 100; o.whtNote = 'due'; }
+      } else if (leg.transfereeType === 'thai' && o.gain > 0) o.whtNote = 'none';
+      else if (leg.transfereeType === 'foreignPE' && o.gain > 0) o.whtNote = 'pe';
+
+      o.carriedBase = o.proceeds;
+      o.findings = buildOtherFindings(leg, r, o);
+      r.two = o;
+    }
+
+    /* cost base handed to whoever now holds the shares */
+    r.carriedBase = r.proceeds;
+
+    r.findings = buildFindings(leg, r);
+    return r;
+  }
+
+  function F(tone, title, text, cite) { return { tone: tone, title: title, text: text, cite: cite || '' }; }
+
+  function buildFindings(leg, r) {
+    var out = [];
+    var per = r.period ? r.period.label : 'the accounting period of the transfer';
+
+    if (leg.treasuryPublic) {
+      out.push(F('info', 'Treasury shares — proceeds are capital, not income',
+        'A public company reselling its own repurchased shares booked in equity receives capital, not income from or by reason of its business, so nothing goes into net profit under s.65.',
+        'Ruling กค 0706/9342, 10 Nov 2548'));
+      return out;
+    }
+
+    if (leg.category === 'sale') {
+      if (r.gain > 0) {
+        out.push(F('red', 'Gain of ' + fmt(r.gain) + ' is income of ' + per,
+          'Sale price ' + fmt(r.proceeds) + ' less cost ' + fmt(r.cost) + '. Brought into net profit for the accounting period in which the transfer falls, on the accrual basis, whether or not the price has been received. Where the price is paid in shares, the price is the total value used in the exchange.',
+          'Revenue Code s.65; ruling กค 0706/7148, 25 Aug 2548'));
+      } else if (r.gain < 0) {
+        if (leg.investmentPurpose) {
+          out.push(F('green', 'Loss of ' + fmt(-r.gain) + ' is deductible in ' + per,
+            'The shares were acquired to earn a benefit for the business, so the loss on selling them is a loss of the business, deductible in the period in which it arises and not prohibited by s.65 ter (12) or (13).',
+            'Rulings กค 0706/5694, 8 Jun 2550; กค 0706/11580, 19 Nov 2550'));
+        } else {
+          out.push(F('amber', 'Loss of ' + fmt(-r.gain) + ' is not deductible',
+            'Shares not acquired to earn a benefit for the business — acquired so that the loss on selling them could be deducted — are not an expense for the purpose of the business or for profit. The loss is prohibited by s.65 ter (13).',
+            'Ruling กค 0706/5694, 8 Jun 2550'));
+        }
+      }
+    } else {
+      var lbl = leg.category === 'ebt' ? 'entire business transfer' : 'amalgamation';
+      out.push(F('info', 'Benefit over capital is s.40(4)(ฉ) income',
+        'What a corporate shareholder receives on the ' + lbl + ', valued above its capital — here ' + fmt(r.gain > 0 ? r.gain : 0) + ' — is assessable income under s.40(4)(ฉ) as a benefit from companies amalgamating, taking over from one another or winding up.',
+        'Revenue Code s.40(4)(ฉ); ruling กค 0702/10398, 21 Dec 2552'));
+      if (r.exemptionMet) {
+        out.push(F('green', 'Exempt under s.5 sattaras',
+          'The shares were transferred in exchange for shares in the new amalgamated company or the company taking the entire business, in the same accounting period as the ' + lbl + ', with the transferor registering its dissolution and being liquidated in that period, on the Director-General’s conditions. The excess over capital is exempt from corporate income tax.',
+          'Royal Decree (No. 10) B.E. 2500 s.5 sattaras, as amended by Royal Decree (No. 542) B.E. 2555; DG Notification (No. 3)'));
+      } else if (r.exemptionRelevant) {
+        var missing = [];
+        if (!leg.exSamePeriod) missing.push('the share transfer in the same accounting period as the ' + lbl);
+        if (!leg.exDissolved) missing.push('dissolution registered and liquidation completed in that period');
+        if (!leg.exDG) missing.push('the Director-General’s Notification (No. 3) conditions');
+        out.push(F('amber', 'The s.5 sattaras exemption is not established',
+          'Still outstanding: ' + missing.join('; ') + '. Until all of them hold, the benefit over capital is not exempt and falls to be taxed in ' + per + '.',
+          'Royal Decree (No. 10) B.E. 2500 s.5 sattaras; DG Notification (No. 3)'));
+      }
+      if (leg.category === 'amalgamation' && !leg.exDisposed && !r.exemptionMet && r.gain > 0) {
+        out.push(F('violet', 'Uplift of ' + fmt(r.gain) + ' is not yet taxed — nothing has been realised',
+          'Shares coming out of an amalgamation worth more than the shares given up are s.40(4)(ฉ) income, but a shareholder is taxed on realised income. Nothing is due until these shares are sold; add that sale as a further step and the gain surfaces there.',
+          'Rulings กค 0706(กม.01)/978, 20 Oct 2548; กค 0706/9960, 28 Nov 2548'));
+      }
+    }
+
+    /* the price test */
+    if (r.priceTest === 'atOrAboveBook') {
+      out.push(F('green', 'Transfer price has reasonable cause',
+        'At ' + fmtShort(r.pricePer) + ' a share the price is not below book value of ' + fmtShort(r.bvPer) + ' — net assets in the audited balance sheet for the preceding period divided by the registered shares. The Revenue Department and the Supreme Court accept that as a reasonable basis for unlisted shares, so s.65 bis (4) is not engaged.',
+        'Rulings กค 0811/04265, 7 May 2542; กค 0706(กม.08)/843, 7 Jul 2549; Supreme Court judgment 2722/2530'));
+    } else if (r.priceTest === 'mirror') {
+      out.push(F('green', 'Below book value, but a mirrored restructuring',
+        'The shareholders receive shares in the holding company in the same number, at the same price and in the same proportions as they held before. That is reasonable cause under s.65 bis (4). On a later disposal of the new shares, sale price less the original cost comes back into net profit under s.65 — which is why the cost base carried below matters.',
+        'Ruling กค 0706/7148, 25 Aug 2548'));
+    } else if (r.priceTest === 'causeAsserted') {
+      out.push(F('amber', 'Below book value on a stated cause — test it',
+        'The price of ' + fmtShort(r.pricePer) + ' a share is below book value of ' + fmtShort(r.bvPer) + '. The cause recorded is: “' + esc(String(leg.causeNote).trim()) + '”. That is for the officer to accept; if it is not accepted, the market value at the date of transfer may be substituted, adding ' + fmt(r.uplift) + ' to the proceeds and about ' + fmt(r.uplift * num(S.citRate) / 100) + ' in tax.',
+        'Revenue Code s.65 bis (4)'));
+    } else if (r.priceTest === 'exposed' && r.status === 'taxable') {
+      out.push(F('red', 'Below book value without reasonable cause — s.65 bis (4) exposure',
+        'The price of ' + fmtShort(r.pricePer) + ' a share is below book value of ' + fmtShort(r.bvPer) + ' with nothing recorded to justify it. The assessment officer may substitute the market value at the date of transfer: proceeds would become ' + fmt(r.bvTotal) + ', the gain ' + fmt(r.deemedGain) + ', and the additional tax about ' + fmt(r.uplift * num(S.citRate) / 100) + '. Either price at book value or record the cause.',
+        'Revenue Code s.65 bis (4); Supreme Court judgment 2722/2530'));
+    } else if (r.priceTest === 'exposed') {
+      out.push(F('amber', 'Below book value by ' + fmt(r.uplift) + ', with nothing recorded to justify it',
+        'Nothing is taxable on this step as it stands, so there is no assessment for s.65 bis (4) to bite on now. The point is the value carried forward: a price below book value is the pattern an officer looks at, and the same test runs again on the step that does realise the gain.',
+        'Revenue Code s.65 bis (4)'));
+    } else if (!r.bvGiven && r.priceGiven) {
+      out.push(F('amber', 'No book value entered — the price is untested',
+        'Without net assets or a book value a share, the tool cannot run the s.65 bis (4) test that decides whether this price is defensible. Enter the last audited balance sheet figures.',
+        'Revenue Code s.65 bis (4)'));
+    }
+
+    if (isFinite(r.parPer) && r.priceGiven && r.pricePer < r.parPer) {
+      out.push(F('info', 'Price is below par value',
+        'Par of ' + fmtShort(r.parPer) + ' a share does not itself limit a transfer between holders — par matters when shares are issued, not when they change hands — but a price below par and below book value is the pattern an officer looks at first.',
+        'Revenue Code s.65 bis (4); CCC s.1105'));
+    }
+
+    /* the consideration */
+    if (leg.consideration === 'newShares') {
+      var prem = 0, ns = num(leg.newShares), nsPar = num(leg.newSharesPar);
+      if (ns > 0) prem = r.proceeds - ns * nsPar;
+      out.push(F('info', 'The issuer bears no tax on the shares it issues',
+        'Receiving shares of another company as payment for its own new shares is capital of the issuer, not income from or by reason of its business: not in net profit, not a VAT receipt.' +
+        (ns > 0 ? ' Premium here is ' + fmt(prem) + ' over the registered value of ' + fmt(ns * nsPar) + ', and premium is capital in the same way.' : '') +
+        ' The qualification: an issue made in a manner not permitted by law, a premium set above what is real, or an issue disguising a grant or subsidy may be treated as income of both issuer and subscriber.',
+        'Ruling กค 0702/3214, 12 Jun 2551'));
+    }
+
+    /* the acquirer's position */
+    if (r.priceTest === 'exposed' || r.priceTest === 'causeAsserted' || r.priceTest === 'mirror') {
+      out.push(F('violet', 'The acquirer has no income now — the charge moves to the onward sale',
+        'Acquiring shares below market value is not income from or by reason of the business at the time of transfer; neither cost nor market value is brought in then. Cost base carried forward is ' + fmt(r.carriedBase) + '. On the onward sale that base is deducted, and the officer may again substitute market value at the date of that transfer.',
+        'Ruling กค 0811/04265, 7 May 2542'));
+    }
+
+    /* withholding */
+    if (r.whtNote === 'due') {
+      out.push(F('red', 'Withhold ' + fmt(r.wht) + ' under s.70',
+        'The transferor is a foreign company not carrying on business in Thailand and its benefit over what it invested is assessable income under s.40(4)(ช). The Thai payer must withhold at ' + fmtShort(num(S.whtRate)) + '% and remit — and it must do so even where it pays by issuing new shares rather than in cash. File P.N.D. 54 by the 7th of the following month.',
+        'Revenue Code s.70; ruling กค 0702(กม)/8852, 10 Oct 2556'));
+    } else if (r.whtNote === 'treaty') {
+      out.push(F('green', 'No withholding — the treaty gives capital gains to the residence state',
+        'The benefit is s.40(4)(ช) income and s.70 would otherwise apply at ' + fmtShort(num(S.whtRate)) + '%, but where the double tax agreement allocates the taxing right over capital gains to the state in which the transferor is resident, the Thai payer has nothing to withhold or remit. Keep the residence certificate on file.',
+        'Ruling กค 0702(กม)/8852, 10 Oct 2556 (Singapore, article 13)'));
+    } else if (r.whtNote === 'none') {
+      out.push(F('info', 'Nothing to withhold from a Thai corporate transferor',
+        'A juristic person is not withheld on for the benefit it makes over cost on a share transfer, unlike an individual. The gain is taxed through its own net profit.',
+        'Revenue Code ss.65, 70'));
+    } else if (r.whtNote === 'pe') {
+      out.push(F('info', 'A foreign company with a business in Thailand is taxed on net profit',
+        'Because the transferor carries on business in Thailand, the benefit falls into its Thai net profit under s.66 and s.65 rather than being withheld on under s.70.',
+        'Revenue Code ss.65, 66, 70'));
+    }
+
+    /* cost method */
+    if (leg.costMethod !== 'identified') {
+      out.push(F('amber', 'Cost taken on a ' + (leg.costMethod === 'average' ? 'weighted average' : leg.costMethod.toUpperCase()) + ' basis',
+        'Averaging is only open where the securities sold cannot be identified and their true cost cannot be computed — scripless holdings bought in several lots. Where they can be identified, actual cost must be used. Once a method is chosen it must be used consistently for every security thereafter.',
+        'Rulings กค 0811/01147, 29 Jan 2541; กค 0702/8322, 7 Nov 2557'));
+    }
+    if (r.costExtra > 0) {
+      out.push(F('info', 'Acquisition costs of ' + fmt(r.costExtra) + ' capitalised',
+        'Expenses incurred specifically and directly in taking the holding are recorded as part of its cost, being expenditure of a capital nature. Where such a project is abandoned before any investment is made, the expense becomes deductible in the period of abandonment, because there is no longer an asset to carry it.',
+        'Revenue Code s.65 ter (5); ruling กค 0706/7430, 2 Sep 2548'));
+    }
+    if (!leg.date) {
+      out.push(F('amber', 'No date on this step',
+        'Without a date the tool cannot say which accounting period this event falls in, and cannot test the same-period condition that the s.5 sattaras exemption turns on.', ''));
+    }
+    return out;
+  }
+
+  function buildOtherFindings(leg, r, o) {
+    var out = [];
+    var per = r.period ? r.period.label : 'the accounting period of the transfer';
+    var who = String(leg.transferee || 'The transferee').trim();
+    out.push(F('info', 'An exchange of existing shares is two disposals, not one',
+      who + ' hands over shares it already holds, so it disposes of an asset in the same transaction and computes its own gain: the value of what it receives less its own cost. Pay cash for shares and s.65 bis (4) can only be run against the seller; exchange shares for shares and each side has a transfer of its own to justify.',
+      'Revenue Code ss.65, 65 bis (4)'));
+    if (o.gain > 0) {
+      out.push(F('red', 'Gain of ' + fmt(o.gain) + ' on this side, income of ' + per,
+        'Value received ' + fmt(o.proceeds) + (o.valueAuto ? ' (taken from the other side’s book value, because no exchange value was entered)' : '') + ' less cost ' + fmt(o.cost) + '.',
+        'Revenue Code s.65'));
+    } else if (o.gain < 0) {
+      if (leg.cInvestmentPurpose) {
+        out.push(F('green', 'Loss of ' + fmt(-o.gain) + ' on this side is deductible in ' + per,
+          'The shares handed over were held to earn a benefit for the business, so the loss on parting with them is a loss of the business and is not caught by s.65 ter (12) or (13).',
+          'Rulings กค 0706/5694, 8 Jun 2550; กค 0706/11580, 19 Nov 2550'));
+      } else {
+        out.push(F('amber', 'Loss of ' + fmt(-o.gain) + ' on this side is not deductible',
+          'Shares not held to earn a benefit for the business fall foul of s.65 ter (13), so this loss does not reduce net profit.',
+          'Ruling กค 0706/5694, 8 Jun 2550'));
+      }
+    }
+    if (o.priceTest === 'exposed') {
+      out.push(F('red', 'This side is the one exposed to s.65 bis (4)',
+        'It parts with shares worth ' + fmt(o.bvTotal) + ' at book value and receives ' + fmt(o.proceeds) + ' — ' + fmt(o.uplift) + ' less — with nothing recorded to justify it. The officer may substitute market value at the date of transfer, making the gain ' + fmt(o.deemedGain) + ' and adding about ' + fmt(o.uplift * num(S.citRate) / 100) + ' in tax on this side alone.',
+        'Revenue Code s.65 bis (4); Supreme Court judgment 2722/2530'));
+    } else if (o.priceTest === 'causeAsserted') {
+      out.push(F('amber', 'Below book value on this side, on a stated cause',
+        'Value received ' + fmt(o.proceeds) + ' against book value ' + fmt(o.bvTotal) + '. Recorded cause: “' + esc(String(leg.cCauseNote).trim()) + '”. If it is not accepted, ' + fmt(o.uplift) + ' comes back into the consideration.',
+        'Revenue Code s.65 bis (4)'));
+    } else if (o.priceTest === 'atOrAboveBook') {
+      out.push(F('green', 'This side is priced at or above its own book value',
+        'It receives ' + fmtShort(o.pricePer) + ' for each share it gives up, against book value of ' + fmtShort(o.bvPer) + '. Reasonable cause under s.65 bis (4) on the accepted unlisted-share basis.',
+        'Rulings กค 0811/04265, 7 May 2542; กค 0706(กม.08)/843, 7 Jul 2549'));
+    }
+    if (o.whtNote === 'due') {
+      out.push(F('red', 'Withhold ' + fmt(o.wht) + ' on this side under s.70',
+        who + ' is a foreign company not carrying on business in Thailand, so the benefit over what it invested is s.40(4)(ช) income and the Thai payer withholds at ' + fmtShort(num(S.whtRate)) + '%.',
+        'Revenue Code s.70; ruling กค 0702(กม)/8852, 10 Oct 2556'));
+    } else if (o.whtNote === 'treaty') {
+      out.push(F('green', 'No withholding on this side — the treaty gives capital gains to the residence state',
+        'Keep the residence certificate on file.',
+        'Ruling กค 0702(กม)/8852, 10 Oct 2556'));
+    }
+    out.push(F('violet', 'Cost base each side takes forward',
+      String(leg.transferor || 'The transferor').trim() + ' now holds the shares it received at a cost of ' + fmt(r.carriedBase !== undefined ? r.carriedBase : r.proceeds) + ', and ' + who + ' holds what it received at ' + fmt(o.carriedBase) + '. Sell either on for cash and it is that figure, not the original par or book value, that is deducted.',
+      'Revenue Code s.65; ruling กค 0706/7148, 25 Aug 2548'));
+    return out;
+  }
+
+  function computeAll() {
+    var out = [];
+    for (var i = 0; i < S.legs.length; i++) out.push(computeLeg(S.legs[i], i + 1, out));
+    return out;
+  }
+
+  /* ── Rendering: the steps ───────────────────────── */
+  function opt(val, cur, label) {
+    return '<option value="' + esc(val) + '"' + (String(cur) === String(val) ? ' selected' : '') + '>' + esc(label) + '</option>';
+  }
+  function money(leg, key, val, ph) {
+    return '<input type="text" inputmode="decimal" class="amt" data-id="' + leg.id + '" data-k="' + key + '" value="' + esc(val) + '" placeholder="' + esc(ph || '') + '" />';
+  }
+  function plain(leg, key, val, ph, type) {
+    return '<input type="' + (type || 'text') + '" data-id="' + leg.id + '" data-k="' + key + '" value="' + esc(val) + '" placeholder="' + esc(ph || '') + '" />';
+  }
+  function check(leg, key, val, label) {
+    var id = 'c_' + leg.id + '_' + key;
+    return '<div class="check-row"><input type="checkbox" id="' + id + '" data-id="' + leg.id + '" data-k="' + key + '"' + (val ? ' checked' : '') + ' />' +
+           '<label for="' + id + '">' + label + '</label></div>';
+  }
+
+  function legTitle(leg, r) {
+    var a = String(leg.transferor || '').trim() || 'Transferor';
+    var b = String(leg.transferee || '').trim() || 'Transferee';
+    var t = String(leg.target || '').trim();
+    return esc(a) + ' → ' + esc(b) + (t ? ' <span>· shares in ' + esc(t) + '</span>' : '');
+  }
+
+  function statusPill(r) {
+    if (r.status === 'notIncome') return '<span class="pill pill-grey">Not income</span>';
+    if (r.status === 'exempt') return '<span class="pill pill-green">Exempt</span>';
+    if (r.status === 'deferred') return '<span class="pill pill-info">Deferred</span>';
+    if (r.gain > 0) return '<span class="pill pill-red">Taxable now</span>';
+    if (r.gain < 0) return '<span class="pill pill-' + (r.leg.investmentPurpose ? 'green' : 'amber') + '">' + (r.leg.investmentPurpose ? 'Deductible loss' : 'Loss disallowed') + '</span>';
+    return '<span class="pill pill-grey">No gain</span>';
+  }
+
+  function renderLegs(computed) {
+    var host = document.getElementById('legHost');
+    if (!S.legs.length) {
+      host.innerHTML = '<div class="empty">No steps yet. Add the first movement of shares — who transfers what, to whom, for how much.</div>';
+      return;
+    }
+    var html = '';
+    for (var i = 0; i < S.legs.length; i++) {
+      var leg = S.legs[i], r = computed[i];
+      html += '<div class="leg">';
+      html += '<div class="leg-head">' +
+        '<span class="leg-tag">' + (i + 1) + '</span>' +
+        '<span class="leg-name" data-name="' + leg.id + '">' + legTitle(leg, r) + '</span>' +
+        '<span data-pill="' + leg.id + '">' + statusPill(r) + '</span>' +
+        '<span class="leg-actions">' +
+          '<button class="icon-btn" data-act="up" data-id="' + leg.id + '"' + (i === 0 ? ' disabled' : '') + ' title="Move up">↑</button>' +
+          '<button class="icon-btn" data-act="down" data-id="' + leg.id + '"' + (i === S.legs.length - 1 ? ' disabled' : '') + ' title="Move down">↓</button>' +
+          '<button class="icon-btn" data-act="dup" data-id="' + leg.id + '" title="Duplicate">⧉</button>' +
+          '<button class="icon-btn danger" data-act="del" data-id="' + leg.id + '" title="Delete this step">✕</button>' +
+        '</span>' +
+      '</div>';
+
+      html += '<div class="leg-body">';
+
+      /* what kind of step */
+      html += '<div class="mode-toggle" style="margin-bottom:16px">';
+      ['sale', 'ebt', 'amalgamation'].forEach(function (c) {
+        html += '<button class="mode-btn' + (leg.category === c ? ' active' : '') + '" data-cat="' + c + '" data-id="' + leg.id + '">' +
+          CATS[c].name + '<span class="th">' + CATS[c].th + '</span></button>';
+      });
+      html += '</div>';
+
+      /* parties */
+      html += '<div class="sub-head">The parties</div>';
+      html += '<div class="field-row-3">' +
+        '<div class="field"><label>Transferor <span class="hint">— ผู้โอน</span></label>' + plain(leg, 'transferor', leg.transferor, 'A Co., Ltd.') + '</div>' +
+        '<div class="field"><label>Transferee <span class="hint">— ผู้รับโอน</span></label>' + plain(leg, 'transferee', leg.transferee, 'B Co., Ltd.') + '</div>' +
+        '<div class="field"><label>Shares in <span class="hint">— บริษัทเป้าหมาย</span></label>' + plain(leg, 'target', leg.target, 'Target Co., Ltd.') + '</div>' +
+      '</div>';
+      html += '<div class="field-row-3">' +
+        '<div class="field"><label>The transferor is</label><select data-id="' + leg.id + '" data-k="transferorType">' +
+          opt('thai', leg.transferorType, TTYPES.thai) +
+          opt('foreignNoPE', leg.transferorType, TTYPES.foreignNoPE) +
+          opt('foreignPE', leg.transferorType, TTYPES.foreignPE) +
+        '</select></div>' +
+        '<div class="field"><label>Date of transfer</label>' + plain(leg, 'date', leg.date, '', 'date') + '</div>' +
+        '<div class="field"><label>Accounting period ends</label><select data-id="' + leg.id + '" data-k="fyEnd">' +
+          opt('', leg.fyEnd, 'Same as the default') +
+          opt('12-31', leg.fyEnd, '31 December') + opt('03-31', leg.fyEnd, '31 March') +
+          opt('06-30', leg.fyEnd, '30 June') + opt('09-30', leg.fyEnd, '30 September') +
+        '</select></div>' +
+      '</div>';
+      if (leg.transferorType === 'foreignNoPE') {
+        html += check(leg, 'treatyCG', leg.treatyCG, 'A <strong>double tax agreement gives the taxing right over capital gains to the transferor’s state of residence</strong> — nothing to withhold under s.70.');
+      }
+
+      /* the shares */
+      html += '<div class="sub-head">The shares and the price</div>';
+      html += '<div class="field-row-3">' +
+        '<div class="field"><label>Shares transferred <span class="hint">— จำนวนหุ้น</span></label>' + money(leg, 'shares', leg.shares, 'e.g. 100,000') + '</div>' +
+        '<div class="field"><label>Par value a share <span class="hint">— มูลค่าที่ตราไว้</span></label>' + money(leg, 'par', leg.par, 'e.g. 100') + '</div>' +
+        '<div class="field"><label>Transfer price <span class="hint">— ราคาโอน</span></label>' +
+          '<div class="radio-row" style="margin:0 0 6px">' +
+            '<label><input type="radio" name="pm_' + leg.id + '" data-id="' + leg.id + '" data-k="priceMode" value="perShare"' + (leg.priceMode === 'perShare' ? ' checked' : '') + ' /> a share</label>' +
+            '<label><input type="radio" name="pm_' + leg.id + '" data-id="' + leg.id + '" data-k="priceMode" value="total"' + (leg.priceMode === 'total' ? ' checked' : '') + ' /> in total</label>' +
+          '</div>' +
+          (leg.priceMode === 'total' ? money(leg, 'priceTotal', leg.priceTotal, 'total consideration') : money(leg, 'pricePerShare', leg.pricePerShare, 'price a share')) +
+        '</div>' +
+      '</div>';
+
+      /* cost */
+      html += '<div class="field-row">' +
+        '<div class="field"><label>Cost of acquiring these shares <span class="hint">— ต้นทุน</span></label>' +
+          '<select data-id="' + leg.id + '" data-k="costMode" style="margin-bottom:8px">' +
+            opt('perShare', leg.costMode, 'A price a share') +
+            opt('total', leg.costMode, 'A total figure') +
+            opt('fromLeg', leg.costMode, 'Carry the value used in an earlier step') +
+          '</select>' +
+          (leg.costMode === 'fromLeg'
+            ? (function () {
+                var sel = '<select data-id="' + leg.id + '" data-k="costFromLeg">' + opt('', leg.costFromLeg, 'Choose a step…');
+                for (var j = 0; j < i; j++) {
+                  sel += opt(S.legs[j].id, leg.costFromLeg, 'Step ' + (j + 1) + ' — ' +
+                    (String(S.legs[j].transferor || 'transferor').trim() + ' → ' + String(S.legs[j].transferee || 'transferee').trim()));
+                }
+                sel += '</select>';
+                if (i === 0) sel = '<div class="field-note">There is no earlier step to carry from yet.</div>';
+                return sel + '<div class="field" style="margin-top:8px"><label>Portion of that holding now transferred (%)</label>' + money(leg, 'costFromPct', leg.costFromPct, '100') + '</div>';
+              })()
+            : (leg.costMode === 'total' ? money(leg, 'costTotal', leg.costTotal, 'total cost') : money(leg, 'costPerShare', leg.costPerShare, 'cost a share'))) +
+        '</div>' +
+        '<div class="field"><label>Book value <span class="hint">— มูลค่าตามบัญชี, last audited balance sheet</span></label>' +
+          '<select data-id="' + leg.id + '" data-k="bvMode" style="margin-bottom:8px">' +
+            opt('perShare', leg.bvMode, 'A book value a share') +
+            opt('netAssets', leg.bvMode, 'Net assets ÷ registered shares') +
+          '</select>' +
+          (leg.bvMode === 'netAssets'
+            ? '<div class="field-row">' +
+                '<div>' + money(leg, 'netAssets', leg.netAssets, 'assets less liabilities') + '<div class="field-note">Net assets</div></div>' +
+                '<div>' + money(leg, 'registeredShares', leg.registeredShares, 'registered shares') + '<div class="field-note">Registered shares</div></div>' +
+              '</div>'
+            : money(leg, 'bvPerShare', leg.bvPerShare, 'book value a share')) +
+        '</div>' +
+      '</div>';
+
+      /* consideration */
+      html += '<div class="field-row">' +
+        '<div class="field"><label>Paid with <span class="hint">— ค่าตอบแทน</span></label>' +
+          '<select data-id="' + leg.id + '" data-k="consideration">' +
+            opt('cash', leg.consideration, 'Cash') +
+            opt('newShares', leg.consideration, 'Newly issued shares of the transferee (share swap)') +
+            opt('ownShares', leg.consideration, 'Shares the transferee already holds') +
+          '</select>' +
+        '</div>' +
+        (leg.consideration === 'newShares'
+          ? '<div class="field"><label>New shares issued in exchange</label><div class="field-row">' +
+              '<div>' + money(leg, 'newShares', leg.newShares, 'number') + '<div class="field-note">Shares issued</div></div>' +
+              '<div>' + money(leg, 'newSharesPar', leg.newSharesPar, 'par a share') + '<div class="field-note">Their par value</div></div>' +
+            '</div></div>'
+          : '<div class="field"></div>') +
+      '</div>';
+
+      /* the other side — only an exchange of existing shares makes it a second disposal */
+      if (leg.consideration === 'ownShares') {
+        html += '<div class="sub-head">The other side of the exchange <span class="pill pill-info" style="margin-left:6px">two disposals</span></div>';
+        html += '<p class="field-note" style="margin:-4px 0 12px">' + esc(String(leg.transferee || 'The transferee').trim()) +
+          ' parts with shares it already holds, so it makes a transfer of its own. Pay in cash and s.65 bis (4) is run against one side; exchange existing shares and each side has its own price to justify.</p>';
+        html += check(leg, 'otherSide', leg.otherSide, 'Compute this side too.');
+        if (leg.otherSide) {
+          html += '<div class="field-row-3">' +
+            '<div class="field"><label>Shares it hands over <span class="hint">— in</span></label>' + money(leg, 'cShares', leg.cShares, 'e.g. 15,000') + '</div>' +
+            '<div class="field"><label>Which company</label>' + plain(leg, 'cTarget', leg.cTarget, 'D Co., Ltd.') + '</div>' +
+            '<div class="field"><label>Par value a share</label>' + money(leg, 'cPar', leg.cPar, 'e.g. 100') + '</div>' +
+          '</div>';
+          html += '<div class="field-row-3">' +
+            '<div class="field"><label>Its cost a share <span class="hint">— ต้นทุน</span></label>' + money(leg, 'cCostPerShare', leg.cCostPerShare, 'e.g. 100') + '</div>' +
+            '<div class="field"><label>Book value a share <span class="hint">— มูลค่าตามบัญชี</span></label>' + money(leg, 'cBvPerShare', leg.cBvPerShare, 'e.g. 200') + '</div>' +
+            '<div class="field"><label>Value it receives <span class="hint">— of the shares coming back</span></label>' + money(leg, 'cValue', leg.cValue, 'blank = the other side at book value') + '</div>' +
+          '</div>';
+          html += '<div class="field-row">' +
+            '<div class="field"><label>The transferee is</label><select data-id="' + leg.id + '" data-k="transfereeType">' +
+              opt('thai', leg.transfereeType, TTYPES.thai) +
+              opt('foreignNoPE', leg.transfereeType, TTYPES.foreignNoPE) +
+              opt('foreignPE', leg.transfereeType, TTYPES.foreignPE) +
+            '</select></div>' +
+            '<div class="field"><label>Any reason its price is below book value</label>' +
+              '<textarea data-id="' + leg.id + '" data-k="cCauseNote" placeholder="the cause recorded for this side">' + esc(leg.cCauseNote) + '</textarea></div>' +
+          '</div>';
+          html += check(leg, 'cInvestmentPurpose', leg.cInvestmentPurpose, 'The shares it hands over were <strong>held to earn a benefit for its business</strong> — decides whether a loss on this side is deductible. <span class="muted">s.65 ตรี (13).</span>');
+          if (leg.transfereeType === 'foreignNoPE') {
+            html += check(leg, 'cTreaty', leg.cTreaty, 'A <strong>treaty gives capital gains to its state of residence</strong> — nothing to withhold on this side.');
+          }
+        }
+      }
+
+      /* the qualifiers */
+      html += '<details class="panel"><summary>Cause, purpose and the exemption conditions</summary><div class="panel-body">';
+      html += check(leg, 'mirror', leg.mirror, 'The transferee issues shares in the <strong>same number, at the same price and in the same proportions</strong> as the holding given up — a mirrored holding-company restructuring. <span class="muted">Reasonable cause under s.65 bis (4): ruling กค 0706/7148.</span>');
+      html += '<div class="field" style="margin-top:6px"><label>Any other reason the price is below book value</label>' +
+        '<textarea data-id="' + leg.id + '" data-k="causeNote" placeholder="e.g. a negotiated arm’s-length price with an unrelated buyer, restrictions on the shares, a valuation report">' + esc(leg.causeNote) + '</textarea>' +
+        '<div class="field-note">Recorded on the file and shown in the summary. It does not make the price safe — it is what the officer will be asked to accept.</div></div>';
+      html += check(leg, 'investmentPurpose', leg.investmentPurpose, 'The shares were <strong>acquired to earn a benefit for the business</strong> — a subsidiary run for the company, dividends, or dealing for profit. <span class="muted">Decides whether a loss is deductible: s.65 ter (13).</span>');
+      html += check(leg, 'treasuryPublic', leg.treasuryPublic, 'These are a <strong>public company’s own repurchased shares</strong> booked in equity, being resold. <span class="muted">Proceeds are capital, not income: ruling กค 0706/9342.</span>');
+      html += '<div class="field" style="margin-top:10px"><label>Cost method</label><select data-id="' + leg.id + '" data-k="costMethod">' +
+        opt('identified', leg.costMethod, 'Actual identified cost — the shares can be identified') +
+        opt('average', leg.costMethod, 'Weighted average') +
+        opt('fifo', leg.costMethod, 'FIFO') +
+        opt('lifo', leg.costMethod, 'LIFO') +
+      '</select></div>';
+      html += '<div class="field"><label>Costs of acquisition capitalised into cost <span class="hint">— s.65 ter (5)</span></label>' + money(leg, 'costExtra', leg.costExtra, 'e.g. advisory fees on this holding') + '</div>';
+      if (leg.category === 'ebt' || leg.category === 'amalgamation') {
+        html += '<div class="sub-head" style="margin-top:16px">The s.5 sattaras conditions</div>';
+        html += check(leg, 'exSamePeriod', leg.exSamePeriod, 'The share transfer is made <strong>in the same accounting period</strong> as the ' + (leg.category === 'ebt' ? 'entire business transfer' : 'amalgamation') + '.');
+        html += check(leg, 'exDissolved', leg.exDissolved, 'The transferor company <strong>registers its dissolution and is liquidated in that accounting period</strong>.');
+        html += check(leg, 'exDG', leg.exDG, 'The conditions in the <strong>Director-General’s Notification (No. 3)</strong> are satisfied.');
+        if (leg.category === 'amalgamation') {
+          html += check(leg, 'exDisposed', leg.exDisposed, 'The shares received in the new company <strong>have since been disposed of</strong> — the uplift is realised. <span class="muted">Leave unticked while they are still held.</span>');
+        }
+      }
+      html += '</div></details>';
+
+      /* per-step result */
+      html += '<div class="leg-res" data-res="' + leg.id + '">' + renderLegResult(leg, r) + '</div>';
+
+      html += '</div></div>';
+    }
+    host.innerHTML = html;
+  }
+
+  function findingHtml(f) {
+    var cls = { red: 'callout-red', amber: 'callout-amber', green: 'callout-green', violet: 'callout-violet', info: '' }[f.tone] || '';
+    return '<div class="callout ' + cls + '"><strong>' + f.title + '</strong><br>' + f.text +
+      (f.cite ? '<span class="cite">' + esc(f.cite) + '</span>' : '') + '</div>';
+  }
+
+  function renderLegResult(leg, r) {
+    var h = '<div class="sub-head" style="margin-top:18px">What this step does</div>';
+
+    h += '<div class="tbl-wrap"><table class="data">';
+    h += '<tr><td>Consideration <span class="cite">' + (leg.consideration === 'cash' ? 'cash' : leg.consideration === 'newShares' ? 'value of the new shares issued' : 'value of the shares handed over') + '</span></td><td class="num">' + fmt(r.proceeds) + '</td></tr>';
+    var costLabel = 'Cost of the shares';
+    if (r.carriedFrom) costLabel += ' <span class="cite">carried from step ' + r.carriedFrom.idx + ' — ' + fmt(r.carriedFrom.value) + (r.carriedFrom.pct !== 100 ? ' × ' + fmtShort(r.carriedFrom.pct) + '%' : '') + '</span>';
+    h += '<tr class="muted"><td>' + costLabel + '</td><td class="num">(' + fmt(r.costBase) + ')</td></tr>';
+    if (r.costExtra) h += '<tr class="muted"><td>Acquisition costs capitalised <span class="cite">s.65 ter (5)</span></td><td class="num">(' + fmt(r.costExtra) + ')</td></tr>';
+    h += '<tr class="total"><td>' + (r.gain < 0 ? 'Loss on the transfer' : 'Gain on the transfer') + '</td><td class="num">' + fmt(Math.abs(r.gain)) + '</td></tr>';
+    h += '</table></div>';
+
+    h += '<div class="tbl-wrap" style="margin-top:12px"><table class="data">';
+    h += '<tr><th>Per share</th><th class="num">Cost</th><th class="num">Par</th><th class="num">Book value</th><th class="num">Price</th></tr>';
+    h += '<tr><td class="muted">' + (r.hasShares ? fmtInt(r.shares) + ' shares' : '—') + '</td>' +
+      '<td class="num">' + (r.hasShares ? fmtShort(r.costPer) : '—') + '</td>' +
+      '<td class="num">' + (isFinite(r.parPer) ? fmtShort(r.parPer) : '—') + '</td>' +
+      '<td class="num">' + (r.bvGiven ? fmtShort(r.bvPer) : '—') + '</td>' +
+      '<td class="num">' + (r.priceGiven && r.hasShares ? fmtShort(r.pricePer) : '—') + '</td></tr>';
+    h += '</table></div>';
+
+    h += ladderSvg(leg, r);
+
+    h += '<div class="tbl-wrap" style="margin-top:12px"><table class="data">';
+    h += '<tr><td>Accounting period</td><td class="num">' + (r.period ? esc(r.period.label) : '—') + '</td></tr>';
+    h += '<tr><td>Treatment</td><td class="num">' +
+      (r.status === 'notIncome' ? 'Not income — capital'
+       : r.status === 'exempt' ? 'Exempt — s.5 sattaras'
+       : r.status === 'deferred' ? 'Deferred until the shares are sold'
+       : r.gain > 0 ? 'Taxable in this period'
+       : r.gain < 0 ? (leg.investmentPurpose ? 'Deductible loss in this period' : 'Loss disallowed — s.65 ter (13)')
+       : 'No gain or loss') + '</td></tr>';
+    if (r.status === 'taxable' && r.gain !== 0 && !(r.gain < 0 && !leg.investmentPurpose)) {
+      h += '<tr class="hl"><td>Corporate income tax at ' + fmtShort(num(S.citRate)) + '%' + (r.citIsSaving ? ' <span class="cite">reduction in tax through the loss</span>' : '') + '</td><td class="num">' + fmt(Math.abs(r.cit)) + (r.citIsSaving ? ' saved' : '') + '</td></tr>';
+    }
+    if (r.wht > 0) h += '<tr class="hl"><td>Withholding at ' + fmtShort(num(S.whtRate)) + '% <span class="cite">s.70 — payable by the Thai payer</span></td><td class="num">' + fmt(r.wht) + '</td></tr>';
+    if (r.priceTest === 'exposed' && r.status === 'taxable') h += '<tr class="hl"><td>If market value is substituted <span class="cite">s.65 bis (4) — additional tax</span></td><td class="num">' + fmt(r.uplift * num(S.citRate) / 100) + '</td></tr>';
+    h += '<tr class="muted"><td>Cost base carried to whoever now holds the shares</td><td class="num">' + fmt(r.carriedBase) + '</td></tr>';
+    h += '</table></div>';
+
+    for (var i = 0; i < r.findings.length; i++) h += findingHtml(r.findings[i]);
+
+    if (r.two && r.two.hasShares) {
+      var o = r.two;
+      var oName = esc(String(leg.transferee || 'The transferee').trim());
+      h += '<div class="sub-head" style="margin-top:20px">And what it does to ' + oName + '</div>';
+      h += '<div class="tbl-wrap"><table class="data">';
+      h += '<tr><td>Value it receives <span class="cite">' + (o.valueAuto ? 'not entered — taken as the other side’s shares at book value' : 'as entered') + '</span></td><td class="num">' + fmt(o.proceeds) + '</td></tr>';
+      h += '<tr class="muted"><td>Cost of the shares it hands over <span class="cite">' + fmtInt(o.shares) + ' shares' + (leg.cTarget ? ' in ' + esc(String(leg.cTarget).trim()) : '') + ' at ' + fmtShort(o.costPer) + '</span></td><td class="num">(' + fmt(o.cost) + ')</td></tr>';
+      h += '<tr class="total"><td>' + (o.gain < 0 ? 'Loss on this side' : 'Gain on this side') + '</td><td class="num">' + fmt(Math.abs(o.gain)) + '</td></tr>';
+      if (o.cit !== 0) h += '<tr class="hl"><td>Corporate income tax at ' + fmtShort(num(S.citRate)) + '%' + (o.citIsSaving ? ' <span class="cite">reduction in tax through the loss</span>' : '') + '</td><td class="num">' + fmt(Math.abs(o.cit)) + (o.citIsSaving ? ' saved' : '') + '</td></tr>';
+      if (o.wht > 0) h += '<tr class="hl"><td>Withholding at ' + fmtShort(num(S.whtRate)) + '% <span class="cite">s.70</span></td><td class="num">' + fmt(o.wht) + '</td></tr>';
+      if (o.priceTest === 'exposed') h += '<tr class="hl"><td>If market value is substituted on this side <span class="cite">ม.65 ทวิ (4) — additional tax</span></td><td class="num">' + fmt(o.uplift * num(S.citRate) / 100) + '</td></tr>';
+      h += '<tr class="muted"><td>Cost base it takes forward</td><td class="num">' + fmt(o.carriedBase) + '</td></tr>';
+      h += '</table></div>';
+      for (var j = 0; j < o.findings.length; j++) h += findingHtml(o.findings[j]);
+    }
+    return h;
+  }
+
+  /* ── The price ladder ───────────────────────────── */
+  var LC = {
+    ink: '#0f172a', muted: '#64748b', faint: '#94a3b8',
+    cost: '#475569', par: '#be123c', bv: '#047857', price: '#4338ca',
+    warn: '#b45309', warnLine: '#f59e0b',
+    gain0: '#6ee7b7', gain1: '#059669', gainInk: '#065f46',
+    loss0: '#fda4af', loss1: '#e11d48', lossInk: '#9f1239'
+  };
+
+  function chip(x, y, text, colour, anchor) {
+    var w = Math.max(34, text.length * 6.1 + 14);
+    var x0 = anchor === 'end' ? x - w : anchor === 'middle' ? x - w / 2 : x;
+    return '<g><rect x="' + x0 + '" y="' + (y - 9) + '" width="' + w + '" height="18" rx="9" fill="' + colour + '" fill-opacity="0.10" stroke="' + colour + '" stroke-opacity="0.28"/>' +
+      '<text x="' + (x0 + w / 2) + '" y="' + (y + 4) + '" text-anchor="middle" font-size="10.5" font-weight="700" fill="' + colour + '">' + esc(text) + '</text></g>';
+  }
+
+  /* cfg: { key, giver, taker, shares, costPer, parPer, bvPer, pricePer, gain, uplift, exposed, caption, sideNote } */
+  function ladder(cfg) {
+    var k = cfg.key;
+    var W = 700, H = 320, padT = 44, padB = 66;
+    var xA = 116, xB = W - 168;
+
+    var vals = [];
+    if (isFinite(cfg.costPer)) vals.push(cfg.costPer);
+    if (isFinite(cfg.parPer)) vals.push(cfg.parPer);
+    if (isFinite(cfg.bvPer)) vals.push(cfg.bvPer);
+    if (isFinite(cfg.pricePer)) vals.push(cfg.pricePer);
+    if (!vals.length) return '';
+    var maxV = Math.max.apply(null, vals), minV = Math.min.apply(null, vals);
+    var span = (maxV - minV) || Math.abs(maxV) || 1;
+    var top = maxV + span * 0.30, bot = minV - span * 0.34;
+    function y(v) { return padT + (top - v) / (top - bot) * (H - padT - padB); }
+
+    var isLoss = cfg.gain < 0;
+    var g0 = isLoss ? LC.loss0 : LC.gain0, g1 = isLoss ? LC.loss1 : LC.gain1;
+    var gInk = isLoss ? LC.lossInk : LC.gainInk;
+
+    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" height="' + H + '" role="img" aria-label="Price ladder">';
+    s += '<defs>' +
+      '<linearGradient id="bg' + k + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#f8fafc"/></linearGradient>' +
+      '<linearGradient id="gg' + k + '" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="' + g0 + '" stop-opacity="0.42"/><stop offset="1" stop-color="' + g1 + '" stop-opacity="0.20"/></linearGradient>' +
+      '<linearGradient id="cl' + k + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#334155"/><stop offset="1" stop-color="#0f172a"/></linearGradient>' +
+      '<pattern id="hp' + k + '" width="8" height="8" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">' +
+        '<rect width="8" height="8" fill="#fef3c7" fill-opacity="0.75"/><line x1="0" y1="0" x2="0" y2="8" stroke="' + LC.warnLine + '" stroke-width="2.4" stroke-opacity="0.5"/></pattern>' +
+      '<marker id="mv' + k + '" markerWidth="11" markerHeight="11" refX="8.5" refY="4" orient="auto"><path d="M0,0 L9,4 L0,8 z" fill="' + LC.ink + '"/></marker>' +
+      '<marker id="mu' + k + '" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 z" fill="' + LC.warn + '"/></marker>' +
+      '<marker id="ms' + k + '" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 z" fill="' + LC.faint + '"/></marker>' +
+      '<marker id="mse' + k + '" markerWidth="9" markerHeight="9" refX="1" refY="3.2" orient="auto"><path d="M7,0 L0,3.2 L7,6.4 z" fill="' + LC.faint + '"/></marker>' +
+      '</defs>';
+    s += '<rect x="0" y="0" width="' + W + '" height="' + H + '" rx="12" fill="url(#bg' + k + ')"/>';
+
+    /* the two company lines */
+    [[xA, cfg.giver, 'end'], [xB, cfg.taker, 'start']].forEach(function (d) {
+      s += '<rect x="' + (d[0] - 2.2) + '" y="' + (padT - 20) + '" width="4.4" height="' + (H - padT - padB + 44) + '" rx="2.2" fill="url(#cl' + k + ')"/>';
+    });
+    s += '<text x="' + xA + '" y="' + (padT - 28) + '" text-anchor="middle" font-size="12.5" font-weight="700" fill="' + LC.ink + '">' + esc(String(cfg.giver || '').slice(0, 24)) + '</text>';
+    s += '<text x="' + xB + '" y="' + (padT - 28) + '" text-anchor="middle" font-size="12.5" font-weight="700" fill="' + LC.ink + '">' + esc(String(cfg.taker || '').slice(0, 24)) + '</text>';
+
+    var yCost = y(isFinite(cfg.costPer) ? cfg.costPer : minV), yPrice = y(cfg.pricePer);
+    var blockTop = Math.min(yCost, yPrice), blockH = Math.abs(yCost - yPrice);
+
+    /* the ม.65 ทวิ (4) band first, hatched, between the price and book value */
+    var expChip = '';
+    if (cfg.exposed && isFinite(cfg.bvPer) && cfg.pricePer < cfg.bvPer) {
+      var yBv = y(cfg.bvPer), expH = yPrice - yBv;
+      if (expH > 0.5) {
+        s += '<rect x="' + xA + '" y="' + yBv + '" width="' + (xB - xA) + '" height="' + expH + '" rx="3" fill="url(#hp' + k + ')" stroke="' + LC.warnLine + '" stroke-width="1.1" stroke-dasharray="5 3"/>';
+        var xu = xA + (xB - xA) * 0.80;
+        s += '<line x1="' + xu + '" y1="' + (yPrice - 2) + '" x2="' + xu + '" y2="' + (yBv + 3) + '" stroke="' + LC.warn + '" stroke-width="1.6" marker-end="url(#mu' + k + ')"/>';
+        expChip = chip(xA + 12, yBv + Math.min(expH / 2, 14), 'ม.65 ทวิ (4)  +' + fmtShort(cfg.uplift), LC.warn, 'start');
+      }
+    }
+
+    /* then the gain, as an area: height is value a share, width is the shares */
+    if (blockH > 0.5) {
+      s += '<rect x="' + xA + '" y="' + blockTop + '" width="' + (xB - xA) + '" height="' + blockH + '" rx="3" fill="#ffffff" fill-opacity="0.55"/>';
+      s += '<rect x="' + xA + '" y="' + blockTop + '" width="' + (xB - xA) + '" height="' + blockH + '" rx="3" fill="url(#gg' + k + ')" stroke="' + g1 + '" stroke-opacity="0.7" stroke-width="1.3"/>';
+    }
+    s += expChip;
+
+    /* the transfer vector — the shares leaving the giver at cost and landing at the price */
+    var yStart = isFinite(cfg.costPer) ? yCost : yPrice;
+    s += '<line x1="' + (xA + 3) + '" y1="' + yStart + '" x2="' + (xB - 6) + '" y2="' + yPrice + '" stroke="' + LC.ink + '" stroke-width="2.1" marker-end="url(#mv' + k + ')" stroke-linecap="round"/>';
+    var t = 0.42, mx = xA + (xB - xA) * t, my = yStart + (yPrice - yStart) * t;
+    var label = (isLoss ? 'loss ' : 'gain ') + fmtShort(Math.abs(cfg.gain));
+    s += chip(mx, my - 22, label, gInk, 'middle');
+
+    /* the reference lines, labels nudged apart where two values coincide */
+    var refs = [
+      { v: cfg.costPer, colour: LC.cost, label: 'cost', dash: '5 4' },
+      { v: cfg.parPer, colour: LC.par, label: 'par value', dash: '' },
+      { v: cfg.bvPer, colour: LC.bv, label: 'book value', dash: '' },
+      { v: cfg.pricePer, colour: LC.price, label: 'price', dash: '' }
+    ].filter(function (d) { return isFinite(d.v); });
+    refs.forEach(function (d) {
+      var yy = y(d.v);
+      s += '<line x1="46" y1="' + yy + '" x2="' + (xB + 8) + '" y2="' + yy + '" stroke="' + d.colour + '" stroke-width="1.5" stroke-opacity="0.85"' + (d.dash ? ' stroke-dasharray="' + d.dash + '"' : '') + '/>';
+    });
+    refs.sort(function (a2, b2) { return b2.v - a2.v; });
+    var lastY = -Infinity;
+    refs.forEach(function (d) {
+      var yy = y(d.v), ly2 = Math.max(yy, lastY + 15);
+      lastY = ly2;
+      if (Math.abs(ly2 - yy) > 1.5) {
+        s += '<line x1="' + (xB + 8) + '" y1="' + yy + '" x2="' + (xB + 14) + '" y2="' + ly2 + '" stroke="' + d.colour + '" stroke-opacity="0.6" stroke-width="1"/>';
+        s += '<line x1="46" y1="' + yy + '" x2="40" y2="' + ly2 + '" stroke="' + d.colour + '" stroke-opacity="0.6" stroke-width="1"/>';
+      }
+      s += '<text x="38" y="' + (ly2 + 4) + '" text-anchor="end" font-size="10.5" font-weight="700" fill="' + d.colour + '">' + esc(fmtShort(d.v)) + '</text>';
+      s += chip(xB + 17, ly2, d.label, d.colour, 'start');
+    });
+
+    /* the share count */
+    var yArrow = H - padB + 40;
+    s += '<line x1="' + xA + '" y1="' + yArrow + '" x2="' + xB + '" y2="' + yArrow + '" stroke="' + LC.faint + '" stroke-width="1.3" marker-end="url(#ms' + k + ')" marker-start="url(#mse' + k + ')"/>';
+    s += chip((xA + xB) / 2, yArrow - 12, fmtInt(cfg.shares) + ' shares', LC.muted, 'middle');
+    s += '</svg>';
+    return s;
+  }
+
+  function ladderBlock(cfg) {
+    var svg = ladder(cfg);
+    if (!svg) return '';
+    return '<div class="diagram">' + svg + '<div class="diagram-cap">' + cfg.caption + '</div></div>';
+  }
+
+  function ladderSvg(leg, r) {
+    if (!r.hasShares || !r.priceGiven) {
+      return '<div class="diagram"><div class="diagram-cap">Enter the shares and the transfer price to draw the price ladder.</div></div>';
+    }
+    var cap = 'The arrow is the transfer — the shares leaving ' + esc(String(leg.transferor || 'the transferor').trim()) +
+      ' at cost and landing at the price agreed with ' + esc(String(leg.transferee || 'the transferee').trim()) +
+      ' — where height is value a share and width is the number of shares, so the shaded area is the gain the period is taxed on. ' +
+      (r.bvGiven
+        ? (r.pricePer < r.bvPer
+            ? 'The price is below book value, so the hatched band is what ม.65 ทวิ (4) lets the officer add back.'
+            : 'The price is at or above book value, the accepted basis for unlisted shares.')
+        : 'Enter book value to draw the ม.65 ทวิ (4) line.');
+    var out = ladderBlock({
+      key: 'a' + r.id, giver: String(leg.transferor || 'Transferor').trim(), taker: String(leg.transferee || 'Transferee').trim(),
+      shares: r.shares, costPer: r.costPer, parPer: r.parPer, bvPer: r.bvGiven ? r.bvPer : NaN, pricePer: r.pricePer,
+      gain: r.gain, uplift: r.uplift, exposed: r.priceTest === 'exposed' || r.priceTest === 'causeAsserted',
+      caption: cap
+    });
+    if (r.two && r.two.hasShares && r.two.priceGiven) {
+      var o = r.two;
+      var nameA = String(leg.transferor || 'Transferor').trim(), nameB = String(leg.transferee || 'Transferee').trim();
+      var cap2 = 'The same transaction from the other side: ' + esc(nameB) +
+        ' parts with its own shares' + (leg.cTarget ? ' in ' + esc(String(leg.cTarget).trim()) : '') +
+        ' and receives ' + esc(fmt(o.proceeds)) + ' of value back. ' +
+        (o.priceTest === 'exposed' ? 'It is this side that is short of its own book value, and ม.65 ทวิ (4) is run against it.' : 'Its own price stands against its own book value.');
+      function head(n, who, shares, gain, exposed) {
+        return '<div class="ladder-head"><span class="ladder-n">' + n + '</span>' +
+          esc(who) + ' gives ' + fmtInt(shares) + ' shares ' +
+          '<span class="sub">— ' + (gain < 0 ? 'loss ' : 'gain ') + fmt(Math.abs(gain)) +
+          (exposed ? ' · exposed to ม.65 ทวิ (4)' : '') + '</span></div>';
+      }
+      out = '<div class="ladder-pair">' +
+        head(1, nameA, r.shares, r.gain, r.priceTest === 'exposed') + out +
+        head(2, nameB, o.shares, o.gain, o.priceTest === 'exposed') +
+        ladderBlock({
+          key: 'b' + r.id, giver: nameB, taker: nameA,
+          shares: o.shares, costPer: o.costPer, parPer: o.parPer, bvPer: o.bvGiven ? o.bvPer : NaN, pricePer: o.pricePer,
+          gain: o.gain, uplift: o.uplift, exposed: o.priceTest === 'exposed' || o.priceTest === 'causeAsserted',
+          caption: cap2
+        }) +
+        '<p class="pair-note">Two pictures because there are two transfers. Each side gives up shares of its own, so each has a price of its own to justify — which is why an exchange can be caught by ม.65 ทวิ (4) on a side that a cash sale would never expose.</p>' +
+      '</div>';
+    }
+    return out;
+  }
+
+  /* ── The timeline ───────────────────────────────── */
+  function statusColour(r) {
+    if (r.status === 'notIncome') return '#8e8e93';
+    if (r.status === 'exempt') return '#15803d';
+    if (r.status === 'deferred') return '#6d28d9';
+    if (r.gain > 0) return '#e11d48';
+    if (r.gain < 0) return r.leg.investmentPurpose ? '#15803d' : '#a16207';
+    return '#8e8e93';
+  }
+
+  function renderTimeline(computed) {
+    var host = document.getElementById('timelineHost');
+    if (!computed.length) {
+      host.innerHTML = '<div class="empty">Add a step and its date, and the chain will be drawn here with the accounting period each event falls in.</div>';
+      return;
+    }
+
+    /* lanes */
+    var lanes = [], laneOf = {};
+    function laneFor(name) {
+      var k = String(name || '').trim() || '(unnamed)';
+      if (!(k in laneOf)) { laneOf[k] = lanes.length; lanes.push(k); }
+      return laneOf[k];
+    }
+    for (var i = 0; i < computed.length; i++) {
+      laneFor(computed[i].leg.transferor || ('Transferor ' + (i + 1)));
+      laneFor(computed[i].leg.transferee || ('Transferee ' + (i + 1)));
+    }
+
+    var dated = computed.filter(function (r) { return !!parseDate(r.leg.date); });
+    var allDated = dated.length === computed.length && computed.length > 0;
+
+    var W = 700, padL = 132, padR = 34, padT = 52, laneH = 46;
+    var H = padT + lanes.length * laneH + 54;
+    var x0 = padL, x1 = W - padR;
+
+    var tMin = null, tMax = null;
+    if (dated.length) {
+      tMin = Math.min.apply(null, dated.map(function (r) { return parseDate(r.leg.date).getTime(); }));
+      tMax = Math.max.apply(null, dated.map(function (r) { return parseDate(r.leg.date).getTime(); }));
+    }
+    var innerW = Math.max(60, x1 - x0 - 150);   /* room on the right for the arrow and its label */
+    function xFor(r, idx) {
+      if (allDated && tMax > tMin) return x0 + 24 + (parseDate(r.leg.date).getTime() - tMin) / (tMax - tMin) * innerW;
+      if (computed.length === 1) return x0 + 24;
+      return x0 + 24 + idx / (computed.length - 1) * innerW;
+    }
+
+    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" height="' + H + '" role="img" aria-label="Timeline of the steps">';
+    s += '<rect x="0" y="0" width="' + W + '" height="' + H + '" fill="#fff"/>';
+
+    /* accounting period bands */
+    if (allDated) {
+      var seen = {}, bandIdx = 0;
+      for (var b = 0; b < computed.length; b++) {
+        var p = computed[b].period;
+        if (!p) continue;
+        var key = p.label;
+        if (seen[key]) continue;
+        seen[key] = true;
+        var xs = [];
+        for (var c = 0; c < computed.length; c++) if (computed[c].period && computed[c].period.label === key) xs.push(xFor(computed[c], c));
+        var bx0 = Math.min.apply(null, xs) - 24, bx1 = Math.min(W - 4, Math.max.apply(null, xs) + 36);
+        s += '<rect x="' + bx0 + '" y="' + (padT - 24) + '" width="' + (bx1 - bx0) + '" height="' + (H - padT - 6) + '" fill="' + (bandIdx % 2 ? 'rgba(41,121,255,0.045)' : 'rgba(225,29,72,0.04)') + '" rx="7"/>';
+        s += '<text x="' + ((bx0 + bx1) / 2) + '" y="' + (padT - 30) + '" text-anchor="middle" font-size="10.5" fill="#6e6e73" font-weight="600">' + esc(key) + '</text>';
+        bandIdx++;
+      }
+    }
+
+    /* lane lines */
+    for (var l = 0; l < lanes.length; l++) {
+      var ly = padT + l * laneH + 12;
+      s += '<line x1="' + (padL - 14) + '" y1="' + ly + '" x2="' + x1 + '" y2="' + ly + '" stroke="#e5e5ea" stroke-width="1.4"/>';
+      s += '<text x="' + (padL - 22) + '" y="' + (ly + 4) + '" text-anchor="end" font-size="12" font-weight="600" fill="#1c1c1e">' + esc(lanes[l].slice(0, 20)) + '</text>';
+    }
+
+    /* the steps */
+    for (var k = 0; k < computed.length; k++) {
+      var r = computed[k];
+      var xk = xFor(r, k);
+      var ya = padT + laneOf[String(r.leg.transferor || ('Transferor ' + (k + 1))).trim() || '(unnamed)'] * laneH + 12;
+      var yb = padT + laneOf[String(r.leg.transferee || ('Transferee ' + (k + 1))).trim() || '(unnamed)'] * laneH + 12;
+      var col = statusColour(r);
+      s += '<defs><marker id="tm' + k + '" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 z" fill="' + col + '"/></marker></defs>';
+      s += '<path d="M' + xk + ',' + ya + ' C' + (xk + 26) + ',' + ya + ' ' + (xk + 26) + ',' + yb + ' ' + (xk + 52) + ',' + yb + '" fill="none" stroke="' + col + '" stroke-width="2.2" marker-end="url(#tm' + k + ')"/>';
+      s += '<circle cx="' + xk + '" cy="' + ya + '" r="4.5" fill="' + col + '"/>';
+      s += '<text x="' + xk + '" y="' + (ya - 10) + '" text-anchor="middle" font-size="10.5" font-weight="700" fill="' + col + '">' + (k + 1) + (r.leg.date ? ' · ' + esc(fmtDate(parseDate(r.leg.date))) : '') + '</text>';
+      var tag = r.status === 'exempt' ? 'exempt' : r.status === 'deferred' ? 'deferred' : r.status === 'notIncome' ? 'capital'
+        : r.gain > 0 ? 'tax ' + fmtShort(r.cit) : r.gain < 0 ? (r.leg.investmentPurpose ? 'loss relief' : 'loss disallowed') : 'no gain';
+      s += '<text x="' + (xk + 56) + '" y="' + (yb + 4) + '" font-size="10.5" fill="' + col + '" font-weight="600">' + esc(tag) + '</text>';
+      if (r.two && r.two.hasShares) {
+        var col2 = r.two.gain > 0 ? '#e11d48' : r.two.gain < 0 ? (r.leg.cInvestmentPurpose ? '#15803d' : '#a16207') : '#8e8e93';
+        s += '<defs><marker id="tr' + k + '" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 z" fill="' + col2 + '"/></marker></defs>';
+        s += '<path d="M' + (xk + 14) + ',' + (yb + 9) + ' C' + (xk + 40) + ',' + (yb + 9) + ' ' + (xk + 40) + ',' + (ya + 9) + ' ' + (xk + 2) + ',' + (ya + 9) + '" fill="none" stroke="' + col2 + '" stroke-width="1.8" stroke-dasharray="4 3" marker-end="url(#tr' + k + ')"/>';
+        s += '<text x="' + (xk + 56) + '" y="' + (ya + 13) + '" font-size="10" fill="' + col2 + '" font-weight="600">' + esc(r.two.gain < 0 ? 'other side: loss' : 'other side: tax ' + fmtShort(r.two.cit)) + '</text>';
+      }
+    }
+    s += '</svg>';
+
+    var cap = allDated
+      ? 'Each band is one accounting period; each arrow is one step, drawn from the transferor’s line to the transferee’s.'
+      : 'Steps are spaced evenly because at least one has no date. Give every step a date and the periods are drawn to scale.';
+
+    var html = '<div class="diagram">' + s + '<div class="diagram-cap">' + cap + '</div></div>';
+
+    /* period table */
+    var byPeriod = {}, order = [];
+    for (var m = 0; m < computed.length; m++) {
+      var rr = computed[m];
+      var key2 = rr.period ? rr.period.label : 'No date';
+      if (!byPeriod[key2]) { byPeriod[key2] = { cit: 0, wht: 0, gain: 0, deferred: 0, steps: [], end: rr.period ? rr.period.end : null }; order.push(key2); }
+      var g = byPeriod[key2];
+      g.steps.push(rr.idx);
+      if (rr.status === 'taxable') { g.cit += roundAmt(rr.cit); g.gain += roundAmt(rr.taxableAmount); }
+      g.wht += roundAmt(rr.wht);
+      g.deferred += roundAmt(rr.deferredAmount);
+      if (rr.two && rr.two.hasShares) { g.cit += roundAmt(rr.two.cit); g.gain += roundAmt(rr.two.taxableAmount); g.wht += roundAmt(rr.two.wht); }
+    }
+    html += '<div class="tbl-wrap" style="margin-top:14px"><table class="data">';
+    html += '<tr><th>Accounting period</th><th>Steps</th><th class="num">Gain in the period</th><th class="num">Tax</th><th class="num">Withholding</th><th class="num">Deferred</th></tr>';
+    for (var o = 0; o < order.length; o++) {
+      var gp = byPeriod[order[o]];
+      html += '<tr><td>' + esc(order[o]) +
+        (gp.end ? '<span class="cite">P.N.D. 50 due within 150 days of ' + esc(fmtDate(gp.end)) + '</span>' : '') +
+        '</td><td class="muted">' + gp.steps.join(', ') + '</td>' +
+        '<td class="num">' + fmt(gp.gain) + '</td>' +
+        '<td class="num">' + fmt(gp.cit) + '</td>' +
+        '<td class="num">' + (gp.wht ? fmt(gp.wht) : '—') + '</td>' +
+        '<td class="num">' + (gp.deferred ? fmt(gp.deferred) : '—') + '</td></tr>';
+    }
+    html += '</table></div>';
+    host.innerHTML = html;
+  }
+
+  /* ── Result ─────────────────────────────────────── */
+  function renderResult(computed) {
+    var tbl = document.getElementById('resultTable');
+    var totals = { gain: 0, cit: 0, wht: 0, exposure: 0, deferred: 0, exempt: 0 };
+    var html = '<tr><th>Step</th><th>Transfer</th><th>Period</th><th class="num">Gain / (loss)</th><th class="num">Taxed on</th><th class="num">Tax</th><th class="num">WHT</th></tr>';
+    if (!computed.length) {
+      html += '<tr><td colspan="7" class="muted" style="text-align:center;padding:18px">Nothing entered yet.</td></tr>';
+    }
+    for (var i = 0; i < computed.length; i++) {
+      var r = computed[i], leg = r.leg;
+      /* totals add the rounded lines, so the statement adds up as printed */
+      totals.cit += r.status === 'taxable' ? roundAmt(r.cit) : 0;
+      totals.wht += roundAmt(r.wht);
+      totals.exposure += (r.priceTest === 'exposed' && r.status === 'taxable') ? roundAmt(r.uplift) : 0;
+      totals.deferred += roundAmt(r.deferredAmount);
+      if (r.status === 'taxable') totals.gain += roundAmt(r.taxableAmount);
+      if (r.status === 'exempt' && r.gain > 0) totals.exempt += roundAmt(r.gain);
+      html += '<tr>' +
+        '<td>' + r.idx + '</td>' +
+        '<td>' + esc(String(leg.transferor || 'Transferor').trim()) + ' → ' + esc(String(leg.transferee || 'Transferee').trim()) +
+          '<span class="cite">' + esc(CATS[leg.category].name) + (leg.target ? ' · ' + esc(leg.target) : '') + '</span></td>' +
+        '<td>' + (r.period ? esc(r.period.label) : '<span class="muted">no date</span>') + '</td>' +
+        '<td class="num">' + (r.gain < 0 ? '(' + fmt(-r.gain) + ')' : fmt(r.gain)) + '</td>' +
+        '<td class="num">' + (r.status === 'taxable' ? (r.taxableAmount < 0 ? '(' + fmt(-r.taxableAmount) + ')' : fmt(r.taxableAmount)) : r.status === 'exempt' ? 'exempt' : r.status === 'deferred' ? 'deferred' : 'capital') + '</td>' +
+        '<td class="num">' + (r.status === 'taxable' && r.cit !== 0 ? (r.citIsSaving ? '(' + fmt(-r.cit) + ')' : fmt(r.cit)) : '—') + '</td>' +
+        '<td class="num">' + (r.wht ? fmt(r.wht) : '—') + '</td>' +
+      '</tr>';
+      if (r.two && r.two.hasShares) {
+        var o2 = r.two;
+        totals.cit += roundAmt(o2.cit);
+        totals.wht += roundAmt(o2.wht);
+        totals.gain += roundAmt(o2.taxableAmount);
+        totals.exposure += o2.priceTest === 'exposed' ? roundAmt(o2.uplift) : 0;
+        html += '<tr class="muted">' +
+          '<td>' + r.idx + 'b</td>' +
+          '<td>' + esc(String(leg.transferee || 'Transferee').trim()) + ' → ' + esc(String(leg.transferor || 'Transferor').trim()) +
+            '<span class="cite">the other side of the exchange' + (leg.cTarget ? ' · ' + esc(leg.cTarget) : '') + '</span></td>' +
+          '<td>' + (r.period ? esc(r.period.label) : '<span class="muted">no date</span>') + '</td>' +
+          '<td class="num">' + (o2.gain < 0 ? '(' + fmt(-o2.gain) + ')' : fmt(o2.gain)) + '</td>' +
+          '<td class="num">' + (o2.taxableAmount < 0 ? '(' + fmt(-o2.taxableAmount) + ')' : fmt(o2.taxableAmount)) + '</td>' +
+          '<td class="num">' + (o2.cit !== 0 ? (o2.citIsSaving ? '(' + fmt(-o2.cit) + ')' : fmt(o2.cit)) : '—') + '</td>' +
+          '<td class="num">' + (o2.wht ? fmt(o2.wht) : '—') + '</td>' +
+        '</tr>';
+      }
+    }
+    if (computed.length) {
+      html += '<tr class="total"><td colspan="3">Total</td>' +
+        '<td class="num"></td>' +
+        '<td class="num">' + fmt(totals.gain) + '</td>' +
+        '<td class="num">' + fmt(totals.cit) + '</td>' +
+        '<td class="num">' + fmt(totals.wht) + '</td></tr>';
+    }
+    tbl.innerHTML = html;
+
+    document.getElementById('gainValue').textContent = computed.length ? fmt(totals.gain) : '—';
+    document.getElementById('citValue').textContent = computed.length ? fmt(totals.cit) : '—';
+    document.getElementById('whtValue').textContent = computed.length ? fmt(totals.wht) : '—';
+    document.getElementById('gainSub').textContent = totals.deferred || totals.exempt
+      ? 'Also ' + fmt(totals.deferred) + ' deferred and ' + fmt(totals.exempt) + ' exempt, neither taxed now.'
+      : 'Across every step that is a tax event.';
+    document.getElementById('citSub').textContent = 'At ' + fmtShort(num(S.citRate)) + '% on the taxable gain, period by period.';
+    document.getElementById('whtSub').textContent = totals.wht
+      ? 'P.N.D. 54 by the 7th of the month after payment.'
+      : 'Nothing to withhold on these steps.';
+
+    document.getElementById('sbSteps').textContent = String(computed.length);
+    document.getElementById('sbGain').textContent = computed.length ? fmt(totals.gain) : '—';
+    document.getElementById('sbCit').textContent = computed.length ? fmt(totals.cit) : '—';
+    document.getElementById('sbWht').textContent = computed.length ? fmt(totals.wht) : '—';
+    var expEl = document.getElementById('sbExp');
+    expEl.textContent = totals.exposure ? fmt(totals.exposure) : 'none';
+    expEl.className = 'sum-value' + (totals.exposure ? ' rose' : ' green');
+
+    /* the findings that matter across the whole chain */
+    var fh = '';
+    if (totals.exposure > 0) {
+      fh += findingHtml(F('red', 'Total s.65 bis (4) exposure across the chain: ' + fmt(totals.exposure),
+        'That is the value the assessment officer could add to the consideration on the steps priced below book value without a recorded cause — about ' + fmt(totals.exposure * num(S.citRate) / 100) + ' in tax. Pricing at book value, or recording why a lower price is right, removes it.',
+        'Revenue Code s.65 bis (4)'));
+    }
+    if (totals.deferred > 0) {
+      fh += findingHtml(F('violet', 'Deferred, not avoided: ' + fmt(totals.deferred),
+        'This is uplift that has arisen but has not been realised. It is not taxed while the shares are held; add the onward sale as a further step, carrying the cost base from the step that created it, and the charge appears in the period of that sale.',
+        'Rulings กค 0706(กม.01)/978, 20 Oct 2548; กค 0706/9960, 28 Nov 2548'));
+    }
+    if (totals.exempt > 0) {
+      fh += findingHtml(F('green', 'Exempt under s.5 sattaras: ' + fmt(totals.exempt),
+        'Keep the evidence for each condition on file — the transfer and the amalgamation or entire business transfer in one accounting period, dissolution registered and liquidation completed in that period, and the Director-General’s conditions met. The exemption covers only the excess over capital connected with that transfer.',
+        'Royal Decree (No. 10) B.E. 2500 s.5 sattaras, as amended by Royal Decree (No. 542) B.E. 2555'));
+    }
+    document.getElementById('findingsHost').innerHTML = fh;
+    return totals;
+  }
+
+  /* ── Paint ──────────────────────────────────────── */
+  var lastComputed = [], lastTotals = null;
+  function paint() {
+    lastComputed = computeAll();
+    renderLegs(lastComputed);
+    renderTimeline(lastComputed);
+    lastTotals = renderResult(lastComputed);
+  }
+
+  /* ── Persistence ────────────────────────────────── */
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+  function load() {
+    var st = null;
+    try { st = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+    if (!st || typeof st !== 'object') return;
+    adopt(st);
+  }
+  function adopt(st) {
+    if (st.citRate !== undefined) S.citRate = st.citRate;
+    if (st.whtRate !== undefined) S.whtRate = st.whtRate;
+    if (st.fyEnd) S.fyEnd = st.fyEnd;
+    if (st.dp !== undefined) S.dp = +st.dp;
+    if (st.rounding) S.rounding = st.rounding;
+    if (Array.isArray(st.legs)) {
+      S.legs = st.legs.map(function (raw) {
+        var leg = newLeg();
+        for (var k in leg) if (Object.prototype.hasOwnProperty.call(raw, k)) leg[k] = raw[k];
+        if (raw.id) leg.id = raw.id;
+        return leg;
+      });
+    }
+    syncSettingsInputs();
+  }
+  function syncSettingsInputs() {
+    document.getElementById('citRate').value = S.citRate;
+    document.getElementById('whtRate').value = S.whtRate;
+    document.getElementById('fyEnd').value = S.fyEnd;
+    document.getElementById('decimals').value = S.dp;
+    document.getElementById('rounding').value = S.rounding;
+  }
+
+  /* ── Copy summary ───────────────────────────────── */
+  function summaryText() {
+    var L = [];
+    L.push('SHARE TRANSFER / SWAP — TAX POSITION');
+    L.push('Corporate income tax ' + fmtShort(num(S.citRate)) + '% · withholding (s.70) ' + fmtShort(num(S.whtRate)) + '% · accounting period ending ' +
+      (document.getElementById('fyEnd').selectedOptions[0] ? document.getElementById('fyEnd').selectedOptions[0].textContent : S.fyEnd));
+    L.push('');
+    for (var i = 0; i < lastComputed.length; i++) {
+      var r = lastComputed[i], leg = r.leg;
+      L.push('STEP ' + r.idx + ' — ' + (String(leg.transferor || 'Transferor').trim()) + ' -> ' + (String(leg.transferee || 'Transferee').trim()) +
+        (leg.target ? ' (shares in ' + String(leg.target).trim() + ')' : ''));
+      L.push('  ' + CATS[leg.category].name + (leg.date ? ' on ' + fmtDate(parseDate(leg.date)) : '') +
+        (r.period ? ' · accounting period ' + r.period.label : ''));
+      L.push('  Shares ' + fmtInt(r.shares) + ' · price ' + fmtShort(r.pricePer) + '/share · book value ' + (r.bvGiven ? fmtShort(r.bvPer) : 'n/a') + '/share · par ' + (isFinite(r.parPer) ? fmtShort(r.parPer) : 'n/a'));
+      L.push('  Consideration ' + fmt(r.proceeds) + ' less cost ' + fmt(r.cost) + ' = ' + (r.gain < 0 ? 'loss ' : 'gain ') + fmt(Math.abs(r.gain)));
+      L.push('  Treatment: ' + (r.status === 'notIncome' ? 'capital, not income'
+        : r.status === 'exempt' ? 'exempt under s.5 sattaras'
+        : r.status === 'deferred' ? 'deferred until the shares are sold'
+        : r.gain > 0 ? 'taxable — tax ' + fmt(r.cit)
+        : r.gain < 0 ? (leg.investmentPurpose ? 'deductible loss — tax reduced by ' + fmt(-r.cit) : 'loss disallowed, s.65 ter (13)')
+        : 'no gain or loss'));
+      if (r.wht > 0) L.push('  Withhold under s.70: ' + fmt(r.wht));
+      if (r.priceTest === 'exposed') L.push('  s.65 bis (4): priced ' + fmt(r.uplift) + ' below book value with no cause recorded — additional tax if reassessed ' + fmt(r.uplift * num(S.citRate) / 100));
+      if (r.carriedFrom) L.push('  Cost carried from step ' + r.carriedFrom.idx);
+      L.push('  Cost base carried forward: ' + fmt(r.carriedBase));
+      if (r.two && r.two.hasShares) {
+        var os = r.two;
+        L.push('  OTHER SIDE — ' + (String(leg.transferee || 'Transferee').trim()) + ' hands over ' + fmtInt(os.shares) + ' shares' + (leg.cTarget ? ' in ' + String(leg.cTarget).trim() : ''));
+        L.push('    Value received ' + fmt(os.proceeds) + ' less cost ' + fmt(os.cost) + ' = ' + (os.gain < 0 ? 'loss ' : 'gain ') + fmt(Math.abs(os.gain)));
+        if (os.cit !== 0) L.push('    ' + (os.citIsSaving ? 'Tax reduced by ' : 'Tax ') + fmt(Math.abs(os.cit)));
+        if (os.wht > 0) L.push('    Withhold under s.70: ' + fmt(os.wht));
+        if (os.priceTest === 'exposed') L.push('    s.65 bis (4) on this side: ' + fmt(os.uplift) + ' below book value — additional tax if reassessed ' + fmt(os.uplift * num(S.citRate) / 100));
+        L.push('    Cost base it takes forward: ' + fmt(os.carriedBase));
+      }
+      for (var j = 0; j < r.findings.length; j++) {
+        L.push('  - ' + r.findings[j].title.replace(/<[^>]+>/g, '') + (r.findings[j].cite ? ' [' + r.findings[j].cite + ']' : ''));
+      }
+      L.push('');
+    }
+    if (lastTotals) {
+      L.push('TOTALS');
+      L.push('  Gain taxed        ' + fmt(lastTotals.gain));
+      L.push('  Corporate tax     ' + fmt(lastTotals.cit));
+      L.push('  Withholding s.70  ' + fmt(lastTotals.wht));
+      if (lastTotals.deferred) L.push('  Deferred          ' + fmt(lastTotals.deferred));
+      if (lastTotals.exempt) L.push('  Exempt            ' + fmt(lastTotals.exempt));
+      if (lastTotals.exposure) L.push('  s.65 bis (4) exposure ' + fmt(lastTotals.exposure) + ' (tax ' + fmt(lastTotals.exposure * num(S.citRate) / 100) + ')');
+    }
+    L.push('');
+    L.push('Revenue Code ss.65, 65 bis (3)(4), 65 ter (5)(12)(13)(17), 40(4)(ฉ), 40(4)(ช), 70; Royal Decree (No. 10) s.5 sattaras.');
+    L.push('Reference only, not tax advice. JuraTools — Share Transfer & Swap Tax.');
+    return L.join('\n');
+  }
+
+  /* ── Partial repaint, so typing keeps the caret ──── */
+  function paintDerived() {
+    lastComputed = computeAll();
+    for (var i = 0; i < lastComputed.length; i++) {
+      var r = lastComputed[i];
+      var res = document.querySelector('[data-res="' + r.id + '"]');
+      if (res) res.innerHTML = renderLegResult(r.leg, r);
+      var pill = document.querySelector('[data-pill="' + r.id + '"]');
+      if (pill) pill.innerHTML = statusPill(r);
+      var nm = document.querySelector('[data-name="' + r.id + '"]');
+      if (nm) nm.innerHTML = legTitle(r.leg, r);
+    }
+    renderTimeline(lastComputed);
+    lastTotals = renderResult(lastComputed);
+  }
+
+  function legById(id) {
+    for (var i = 0; i < S.legs.length; i++) if (S.legs[i].id === id) return S.legs[i];
+    return null;
+  }
+  function legIndex(id) {
+    for (var i = 0; i < S.legs.length; i++) if (S.legs[i].id === id) return i;
+    return -1;
+  }
+
+  /* ── Listeners ──────────────────────────────────── */
+  var host = document.getElementById('legHost');
+
+  host.addEventListener('input', function (e) {
+    var el = e.target;
+    if (!el.dataset || !el.dataset.k || !el.dataset.id) return;
+    if (el.tagName === 'SELECT' || el.type === 'checkbox' || el.type === 'radio' || el.type === 'date') return;
+    var leg = legById(el.dataset.id);
+    if (!leg) return;
+    if (el.classList.contains('amt')) liveFormat(el);
+    leg[el.dataset.k] = el.value;
+    paintDerived();
+    save();
+  });
+
+  host.addEventListener('change', function (e) {
+    var el = e.target;
+    if (!el.dataset || !el.dataset.k || !el.dataset.id) return;
+    var leg = legById(el.dataset.id);
+    if (!leg) return;
+    if (el.type === 'checkbox') leg[el.dataset.k] = el.checked;
+    else if (el.type === 'radio') { if (!el.checked) return; leg[el.dataset.k] = el.value; }
+    else leg[el.dataset.k] = el.value;
+    paint();
+    save();
+  });
+
+  host.addEventListener('click', function (e) {
+    var mb = e.target.closest ? e.target.closest('.mode-btn[data-cat]') : null;
+    if (mb) {
+      var leg = legById(mb.dataset.id);
+      if (leg) { leg.category = mb.dataset.cat; paint(); save(); }
+      return;
+    }
+    var ib = e.target.closest ? e.target.closest('.icon-btn[data-act]') : null;
+    if (!ib || ib.disabled) return;
+    var idx = legIndex(ib.dataset.id);
+    if (idx < 0) return;
+    var act = ib.dataset.act;
+    if (act === 'up' && idx > 0) { var t = S.legs[idx - 1]; S.legs[idx - 1] = S.legs[idx]; S.legs[idx] = t; }
+    else if (act === 'down' && idx < S.legs.length - 1) { var t2 = S.legs[idx + 1]; S.legs[idx + 1] = S.legs[idx]; S.legs[idx] = t2; }
+    else if (act === 'dup') {
+      var copy = JSON.parse(JSON.stringify(S.legs[idx]));
+      copy.id = uid();
+      copy.costMode = copy.costMode === 'fromLeg' ? 'perShare' : copy.costMode;
+      copy.costFromLeg = '';
+      S.legs.splice(idx + 1, 0, copy);
+    } else if (act === 'del') {
+      var dependants = S.legs.filter(function (l) { return l.costFromLeg === ib.dataset.id; }).length;
+      var msg = 'Delete step ' + (idx + 1) + '?';
+      if (dependants) msg += '\n\n' + dependants + ' later step' + (dependants > 1 ? 's take their cost base' : ' takes its cost base') + ' from it and will fall back to a cost of nothing until you set one.';
+      if (!window.confirm(msg)) return;
+      S.legs.splice(idx, 1);
+      S.legs.forEach(function (l) { if (l.costFromLeg === ib.dataset.id) { l.costFromLeg = ''; l.costMode = 'perShare'; } });
+    }
+    paint(); save();
+  });
+
+  document.getElementById('addLegBtn').addEventListener('click', function () {
+    var leg = newLeg();
+    var prev = S.legs[S.legs.length - 1];
+    if (prev) {
+      leg.transferor = prev.transferee;
+      leg.target = prev.target;
+      leg.shares = prev.shares;
+      leg.par = prev.par;
+      leg.costMode = 'fromLeg';
+      leg.costFromLeg = prev.id;
+    }
+    S.legs.push(leg);
+    paint(); save();
+  });
+
+  ['citRate', 'whtRate', 'fyEnd', 'decimals', 'rounding'].forEach(function (id) {
+    var el = document.getElementById(id);
+    el.addEventListener('input', function () {
+      if (id === 'decimals') S.dp = +el.value;
+      else if (id === 'rounding') S.rounding = el.value;
+      else if (id === 'fyEnd') S.fyEnd = el.value;
+      else S[id] = el.value;
+      paintDerived(); save();
+    });
+    el.addEventListener('change', function () {
+      if (id === 'decimals') S.dp = +el.value;
+      else if (id === 'rounding') S.rounding = el.value;
+      else if (id === 'fyEnd') S.fyEnd = el.value;
+      else S[id] = el.value;
+      paintDerived(); save();
+    });
+  });
+
+  document.getElementById('copyBtn').addEventListener('click', function () {
+    var btn = this, text = summaryText();
+    function done() { btn.classList.add('copied'); btn.textContent = 'Copied'; setTimeout(function () { btn.classList.remove('copied'); btn.textContent = 'Copy summary'; }, 1300); }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else fallback();
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); done(); } catch (e) { window.prompt('Copy the summary:', text); }
+      document.body.removeChild(ta);
+    }
+  });
+
+  document.getElementById('exportBtn').addEventListener('click', function () {
+    var payload = { tool: 'share-swap-tax-calculator', version: 1, savedAt: new Date().toISOString(), state: S };
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'share-swap-tax.json';
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); document.body.removeChild(a); }, 400);
+  });
+
+  document.getElementById('importBtn').addEventListener('click', function () { document.getElementById('importFile').click(); });
+  document.getElementById('importFile').addEventListener('change', function (e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+    var rdr = new FileReader();
+    rdr.onload = function () {
+      var data = null;
+      try { data = JSON.parse(rdr.result); } catch (err) { window.alert('That file is not valid JSON, so nothing has been changed.'); return; }
+      var st = data && data.state ? data.state : data;
+      if (!st || !Array.isArray(st.legs)) { window.alert('No steps found in that file, so nothing has been changed.'); return; }
+      var msg = 'Import ' + st.legs.length + ' step' + (st.legs.length === 1 ? '' : 's') + ' from this file?\n\nIt replaces the ' + S.legs.length + ' step' + (S.legs.length === 1 ? '' : 's') + ' and the rates now on the page.';
+      if (!window.confirm(msg)) return;
+      adopt(st);
+      paint(); save();
+    };
+    rdr.readAsText(file);
+    e.target.value = '';
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', function () {
+    if (!window.confirm('Clear every step and put the rates back to their defaults?')) return;
+    S.citRate = 20; S.whtRate = 15; S.fyEnd = '12-31'; S.dp = 2; S.rounding = 'normal';
+    S.legs = [newLeg()];
+    syncSettingsInputs();
+    paint(); save();
+  });
+
+  document.getElementById('exampleBtn').addEventListener('click', function () {
+    if (S.legs.some(function (l) { return l.transferor || l.transferee || l.shares || l.pricePerShare || l.priceTotal; })) {
+      if (!window.confirm('Replace what is on the page with the worked example?')) return;
+    }
+    var a = newLeg();
+    a.transferor = 'A Co., Ltd.'; a.transferee = 'B Co., Ltd.'; a.target = 'Target Co., Ltd.';
+    a.date = '2026-03-16'; a.shares = '100,000'; a.par = '100';
+    a.costMode = 'perShare'; a.costPerShare = '100';
+    a.bvMode = 'netAssets'; a.netAssets = '36,000,000'; a.registeredShares = '200,000';
+    a.priceMode = 'perShare'; a.pricePerShare = '150';
+    a.consideration = 'cash';
+    var b = newLeg();
+    b.transferor = 'B Co., Ltd.'; b.transferee = 'C Holding Co., Ltd.'; b.target = 'Target Co., Ltd.';
+    b.date = '2026-11-20'; b.shares = '100,000'; b.par = '100';
+    b.costMode = 'fromLeg'; b.costFromLeg = a.id; b.costFromPct = '100';
+    b.bvMode = 'perShare'; b.bvPerShare = '200';
+    b.priceMode = 'perShare'; b.pricePerShare = '210';
+    b.consideration = 'newShares'; b.newShares = '105,000'; b.newSharesPar = '100';
+    var c = newLeg();
+    c.transferor = 'D Co., Ltd.'; c.transferee = 'E Co., Ltd.'; c.target = 'D’s subsidiary';
+    c.date = '2027-02-08'; c.shares = '10,000'; c.par = '100';
+    c.costMode = 'perShare'; c.costPerShare = '100';
+    c.bvMode = 'perShare'; c.bvPerShare = '150';
+    c.priceMode = 'total'; c.priceTotal = '3,000,000';
+    c.consideration = 'ownShares'; c.otherSide = true;
+    c.cTarget = 'E’s subsidiary'; c.cShares = '15,000'; c.cPar = '100';
+    c.cCostPerShare = '100'; c.cBvPerShare = '200'; c.cValue = '1,000,000';
+    S.legs = [a, b, c];
+    paint(); save();
+  });
+
+  /* ── Init ───────────────────────────────────────── */
+  load();
+  if (!S.legs.length) S.legs = [newLeg()];
+  syncSettingsInputs();
+  paint();
+
+})();
+</script>
+</body>
+</html>

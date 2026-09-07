@@ -341,14 +341,14 @@
           </div>
         </article>
 
-        <article class="card" data-cat="tax" data-tags="thai tax calculator collection hub land sale comparison asset share spv stamp duty income tax sbt transfer fee revenue code withholding wht หัก ณ ที่จ่าย gross-up ออกภาษีแทน vat อากรแสตมป์ personal income tax pit ภาษีเงินได้บุคคลธรรมดา เงินได้พึงประเมิน ค่าลดหย่อน ค่าใช้จ่ายเหมา allowance deduction progressive bracket อัตราก้าวหน้า เงินได้สุทธิ dividend credit เครดิตภาษีเงินปันผล มาตรา 40 rmf pvd ประกันชีวิต บริจาค ภ.ง.ด. 90 91 refund">
+        <article class="card" data-cat="tax" data-tags="thai tax calculator collection hub land sale comparison asset share spv stamp duty income tax sbt transfer fee revenue code withholding wht หัก ณ ที่จ่าย gross-up ออกภาษีแทน vat อากรแสตมป์ personal income tax pit ภาษีเงินได้บุคคลธรรมดา เงินได้พึงประเมิน ค่าลดหย่อน ค่าใช้จ่ายเหมา allowance deduction progressive bracket อัตราก้าวหน้า เงินได้สุทธิ dividend credit เครดิตภาษีเงินปันผล มาตรา 40 rmf pvd ประกันชีวิต บริจาค ภ.ง.ด. 90 91 refund share transfer swap tax share-for-share exchange entire business transfer amalgamation merger holding company restructuring book value par value market price capital gain corporate income tax withholding s.70 double tax agreement treaty realization deferred gain accounting period แลกหุ้น โอนหุ้น ขายหุ้น ภาษีเงินได้นิติบุคคล กำไรจากการขายหุ้น ต้นทุนหุ้น ราคาตลาด มูลค่าตามบัญชี มูลค่าที่ตราไว้ มาตรา 65 มาตรา 65 ทวิ 4 มาตรา 65 ตรี มาตรา 40(4)(ฉ) มาตรา 70 มาตรา 5 สัตตรส โอนกิจการทั้งหมด ควบบริษัท ปรับโครงสร้างการถือหุ้น บริษัทโฮลดิ้ง หุ้นเพิ่มทุน ส่วนล้ำมูลค่าหุ้น รอบระยะเวลาบัญชี ภ.ง.ด. 50 54">
           <div class="card-head">
             <div class="card-icon">🧾</div>
-            <span class="card-badge badge-updated">4 tools</span>
+            <span class="card-badge badge-updated">5 tools</span>
           </div>
           <div class="card-sub">Collection</div>
           <h3 class="card-title">Thai Tax Tools</h3>
-          <p class="card-desc">Calculators for Thai tax planning — a <strong>Personal Income Tax Calculator</strong> (§40 categories, ค่าลดหย่อน cap-groups, dividend-credit election), the <strong>Land Sale Tax Comparison</strong> (asset sale vs. share sale / SPV), a <strong>Stamp Duty Calculator</strong> for the Revenue Code schedule, and a <strong>Withholding Tax Calculator</strong> with gross-up and VAT-aware invoice math.</p>
+          <p class="card-desc">Calculators for Thai tax planning — a <strong>Personal Income Tax Calculator</strong> (§40 categories, ค่าลดหย่อน cap-groups, dividend-credit election), <strong>Share Transfer &amp; Swap Tax</strong> for moving shares between companies (§65 bis (4) against book value, the §5 สัตตรส exemption, §70 withholding, and when each event falls), the <strong>Land Sale Tax Comparison</strong> (asset sale vs. share sale / SPV), a <strong>Stamp Duty Calculator</strong> for the Revenue Code schedule, and a <strong>Withholding Tax Calculator</strong> with gross-up and VAT-aware invoice math.</p>
           <div class="card-actions">
             <a class="btn btn-open" href="tax-tools/">Open →</a>
             <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/tree/main/tax-tools" target="_blank" rel="noopener">Source</a>
@@ -512,6 +512,10 @@
       <div class="section-head-line"></div>
     </div>
     <div class="changelog">
+      <div class="cl-item">
+        <span class="cl-date">Sep 2026</span>
+        <span class="cl-text">Added <strong>Share Transfer &amp; Swap Tax</strong> to <strong>Thai Tax Tools</strong> (ภาษีการโอนหุ้นและการแลกหุ้นระหว่างบริษัท) — a share sale, a share-for-share swap, an entire business transfer or an amalgamation modelled as a chain of steps between companies, each step carrying its cost base to the next, and both sides computed when existing shares are exchanged — pay cash and §65 ทวิ (4) can only be run against the seller, exchange shares and each side has a transfer of its own to justify. Gain or loss under §65, the §65 ทวิ (4) market-price test drawn as a price ladder of cost, par, book value and price over the number of shares, the §5 สัตตรส exemption as a conditions checklist, §65 ตรี (13) on a loss with no business purpose, §70 withholding on a foreign transferor and the treaty answer that removes it, and a timeline putting every event in its accounting period — including uplift that is only deferred until the shares are actually sold.</span>
+      </div>
       <div class="cl-item">
         <span class="cl-date">Aug 2026</span>
         <span class="cl-text">Added <strong>Corpus Tools</strong> — a new collection for reading your own executed contracts as a corpus, launching with the <strong>Contract Concordance</strong> (คลังข้อความสัญญา): KWIC search that centres every occurrence in its context and sorts by the neighbouring words, a clause library that ranks every termination or indemnity clause by how often that exact wording recurs so the house standard surfaces first, collocations, and corpus frequency. A local Python <strong>Corpus Builder</strong> prepares the file from .docx and Azure Document Intelligence output — reconstructing Word auto-numbering, which real contracts keep in <code>numbering.xml</code> rather than in the text, and segmenting Thai once with PyThaiNLP so the browser never has to. Corpus files are client material and stay out of the repository.</span>
