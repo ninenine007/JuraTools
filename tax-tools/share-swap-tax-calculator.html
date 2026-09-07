@@ -468,6 +468,8 @@
       <div class="panel-body">
         <p>A company that issues new shares and is paid for them with shares of another company receives capital, not income from or by reason of its business. It is not brought into net profit and it is not a VAT receipt. The excess over the registered value of the new shares — share premium — is capital in the same way, so the issuer bears no tax whether it issues at par or above it.</p>
         <p>The qualification is deliberate: if new shares are issued in a manner not permitted by law, or the premium is set above what is real, or the issue is a disguise — for a grant, a subsidy or other assistance — the excess beyond what is real may be treated as income of both the issuer and the subscriber. <span class="muted">Ruling กค 0702/3214, 12 Jun 2551.</span></p>
+        <p><strong>Pricing the new shares.</strong> Because the premium is capital rather than revenue, the issuer carries no tax whether it issues at the registered value or above it — so the exchange ratio is driven by the value of what is coming in, not by the issuer's tax position. The floor is company law, not tax: shares may not be issued at less than par. <span class="muted">Civil and Commercial Code s.1105 ¶2.</span></p>
+        <p><strong>What the subscriber takes away.</strong> The new shares sit in the transferor's hands at the value used in the exchange, not at their par value. A capital increase given as consideration therefore defers the charge to the disposal of those shares rather than removing it. <span class="muted">Ruling กค 0706/7148, 25 Aug 2548.</span></p>
       </div>
     </details>
     <details class="panel">
@@ -506,7 +508,7 @@
 </div>
 
 <footer>
-  <span class="cites">Revenue Code ss.40(4)(ข), 40(4)(ฉ), 40(4)(ช), 65, 65 bis (3), 65 bis (4), 65 ter (5), 65 ter (12), 65 ter (13), 65 ter (17), 70 · Royal Decree (No. 10) B.E. 2500 s.5 sattaras, as amended by Royal Decree (No. 542) B.E. 2555 · Director-General's Notification on amalgamation and entire business transfer (No. 3) · Supreme Court judgment 2722/2530</span><br>
+  <span class="cites">Revenue Code ss.40(4)(ข), 40(4)(ฉ), 40(4)(ช), 65, 65 bis (3), 65 bis (4), 65 ter (5), 65 ter (12), 65 ter (13), 65 ter (17), 70 · Royal Decree (No. 10) B.E. 2500 s.5 sattaras, as amended by Royal Decree (No. 542) B.E. 2555 · Director-General's Notification on amalgamation and entire business transfer (No. 3) · Civil and Commercial Code s.1105 · Supreme Court judgment 2722/2530</span><br>
   Reference tool only, not tax advice. Runs entirely in your browser — nothing is sent anywhere.
 </footer>
 
@@ -779,6 +781,19 @@
       r.whtNote = 'pe';
     }
 
+    /* the issuer's side of a capital increase given as the consideration */
+    r.issue = null;
+    if (leg.consideration === 'newShares' && num(leg.newShares) > 0) {
+      var q = {};
+      q.shares = num(leg.newShares);
+      q.par = num(leg.newSharesPar);
+      q.registered = q.shares * q.par;
+      q.perShare = q.shares > 0 ? r.proceeds / q.shares : NaN;
+      q.premium = r.proceeds - q.registered;
+      q.belowPar = has(leg.newSharesPar) && q.par > 0 && q.perShare < q.par - 1e-9;
+      r.issue = q;
+    }
+
     /* the other side of the exchange — handing over existing shares is a disposal too */
     r.two = null;
     if (leg.consideration === 'ownShares' && leg.otherSide) {
@@ -918,15 +933,24 @@
         'Revenue Code s.65 bis (4); CCC s.1105'));
     }
 
-    /* the consideration */
+    /* the consideration — a capital increase given in exchange */
     if (leg.consideration === 'newShares') {
-      var prem = 0, ns = num(leg.newShares), nsPar = num(leg.newSharesPar);
-      if (ns > 0) prem = r.proceeds - ns * nsPar;
+      var q2 = r.issue;
       out.push(F('info', 'The issuer bears no tax on the shares it issues',
-        'Receiving shares of another company as payment for its own new shares is capital of the issuer, not income from or by reason of its business: not in net profit, not a VAT receipt.' +
-        (ns > 0 ? ' Premium here is ' + fmt(prem) + ' over the registered value of ' + fmt(ns * nsPar) + ', and premium is capital in the same way.' : '') +
-        ' The qualification: an issue made in a manner not permitted by law, a premium set above what is real, or an issue disguising a grant or subsidy may be treated as income of both issuer and subscriber.',
+        'Receiving shares of another company as payment for its own new shares is capital of the issuer, not income from or by reason of its business: not in net profit, and not a VAT receipt. Premium over the registered value is capital in the same way, so it makes no difference to the issuer whether it issues at par or above it.' +
+        (q2 && q2.premium > 0 ? ' The premium here is ' + fmt(q2.premium) + '.' : ''),
+        'Ruling กค 0702/3214, 12 Jun 2551; ruling กค 0702/10436, 21 Dec 2552'));
+      if (q2 && q2.premium > 0) out.push(F('amber', 'What would make that premium taxable',
+        'The exemption is not unconditional. An issue made in a manner the law does not permit, a premium set above what is real, or an issue disguising something else — a grant, a subsidy, other assistance — can be treated as income of both the issuer and the subscriber for the part that exceeds what is real. Keep the valuation that supports the exchange ratio with the resolution.',
         'Ruling กค 0702/3214, 12 Jun 2551'));
+      if (q2 && q2.belowPar) {
+        out.push(F('red', 'The new shares are being issued below par',
+          'The consideration works out at ' + fmtShort(q2.perShare) + ' for each new share against a par value of ' + fmtShort(q2.par) + '. A company may not issue shares at less than their par value, so either the number of new shares or their par has to change before this exchange can be carried out.',
+          'Civil and Commercial Code s.1105 ¶2'));
+      }
+      out.push(F('violet', 'And what the transferor takes away',
+        'The new shares now in ' + esc(String(leg.transferor || 'the transferor').trim()) + '’s hands carry a cost of ' + fmt(r.proceeds) + ' — the value used in this exchange, not the par value printed on them. That is the figure deducted when they are sold on, which is why a capital increase given as consideration defers rather than removes the charge.',
+        'Revenue Code s.65; ruling กค 0706/7148, 25 Aug 2548'));
     }
 
     /* the acquirer's position */
@@ -1297,6 +1321,21 @@
     h += '</table></div>';
 
     for (var i = 0; i < r.findings.length; i++) h += findingHtml(r.findings[i]);
+
+    if (r.issue) {
+      var q = r.issue;
+      var qName = esc(String(leg.transferee || 'The transferee').trim());
+      h += '<div class="sub-head" style="margin-top:20px">And what it does to ' + qName + ' — the shares it issues <span class="pill pill-grey" style="margin-left:6px">capital</span></div>';
+      h += '<div class="tbl-wrap"><table class="data">';
+      h += '<tr><td>Value it receives <span class="cite">the shares handed to it, at the exchange value</span></td><td class="num">' + fmt(r.proceeds) + '</td></tr>';
+      h += '<tr class="muted"><td>Registered value of the new shares <span class="cite">' + fmtInt(q.shares) + ' shares at par ' + (isFinite(q.par) ? fmtShort(q.par) : '—') + '</span></td><td class="num">' + fmt(q.registered) + '</td></tr>';
+      h += q.premium < 0
+        ? '<tr class="total hl"><td>Short of the registered value <span class="cite">the new shares are not fully covered by what comes in</span></td><td class="num">(' + fmt(-q.premium) + ')</td></tr>'
+        : '<tr class="total"><td>Share premium <span class="cite">ส่วนล้ำมูลค่าหุ้น — capital, not income</span></td><td class="num">' + fmt(q.premium) + '</td></tr>';
+      h += '<tr><td>Issue price a new share</td><td class="num">' + (isFinite(q.perShare) ? fmtShort(q.perShare) : '—') + '</td></tr>';
+      h += '<tr class="hl"><td>Corporate income tax on this side</td><td class="num">none — s.65 does not reach capital</td></tr>';
+      h += '</table></div>';
+    }
 
     if (r.two && r.two.hasShares) {
       var o = r.two;
@@ -1781,6 +1820,12 @@
       if (r.priceTest === 'exposed') L.push('  s.65 bis (4): priced ' + fmt(r.uplift) + ' below book value with no cause recorded — additional tax if reassessed ' + fmt(r.uplift * num(S.citRate) / 100));
       if (r.carriedFrom) L.push('  Cost carried from step ' + r.carriedFrom.idx);
       L.push('  Cost base carried forward: ' + fmt(r.carriedBase));
+      if (r.issue) {
+        L.push('  ISSUER SIDE — ' + (String(leg.transferee || 'Transferee').trim()) + ' issues ' + fmtInt(r.issue.shares) + ' new shares at par ' + fmtShort(r.issue.par));
+        L.push('    Registered value ' + fmt(r.issue.registered) + ' · premium ' + fmt(r.issue.premium) + ' · issue price a share ' + fmtShort(r.issue.perShare));
+        L.push('    No corporate income tax on this side — capital, not income (กค 0702/3214)');
+        if (r.issue.belowPar) L.push('    WARNING: issued below par — CCC s.1105 does not allow it');
+      }
       if (r.two && r.two.hasShares) {
         var os = r.two;
         L.push('  OTHER SIDE — ' + (String(leg.transferee || 'Transferee').trim()) + ' hands over ' + fmtInt(os.shares) + ' shares' + (leg.cTarget ? ' in ' + String(leg.cTarget).trim() : ''));
