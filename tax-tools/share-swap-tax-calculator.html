@@ -543,7 +543,7 @@
       par: '',
       bvMode: 'perShare', bvPerShare: '', netAssets: '', registeredShares: '',
       priceMode: 'perShare', pricePerShare: '', priceTotal: '',
-      consideration: 'cash', newShares: '', newSharesPar: '',
+      consideration: 'cash', newShares: '', newSharesPar: '', issuePrice: '', premiumNote: '',
       /* the other side of an exchange of existing shares — it is a disposal too */
       otherSide: true, cTarget: '', cShares: '', cPar: '', cCostPerShare: '', cBvPerShare: '',
       cValue: '', transfereeType: 'thai', cTreaty: false, cInvestmentPurpose: true, cCauseNote: '',
@@ -788,9 +788,15 @@
       q.shares = num(leg.newShares);
       q.par = num(leg.newSharesPar);
       q.registered = q.shares * q.par;
-      q.perShare = q.shares > 0 ? r.proceeds / q.shares : NaN;
-      q.premium = r.proceeds - q.registered;
-      q.belowPar = has(leg.newSharesPar) && q.par > 0 && q.perShare < q.par - 1e-9;
+      /* the issue price is the user's if given, otherwise what the incoming value implies */
+      q.priceGiven = has(leg.issuePrice);
+      q.perShare = q.priceGiven ? num(leg.issuePrice) : (q.shares > 0 ? r.proceeds / q.shares : NaN);
+      q.premiumPer = isFinite(q.perShare) ? q.perShare - q.par : NaN;
+      q.premium = isFinite(q.premiumPer) ? q.premiumPer * q.shares : NaN;
+      q.subscribed = isFinite(q.perShare) ? q.perShare * q.shares : NaN;
+      q.mismatch = q.priceGiven ? r.proceeds - q.subscribed : 0;
+      q.belowPar = has(leg.newSharesPar) && q.par > 0 && isFinite(q.perShare) && q.perShare < q.par - 1e-9;
+      q.note = String(leg.premiumNote || '').trim();
       r.issue = q;
     }
 
@@ -941,8 +947,24 @@
         (q2 && q2.premium > 0 ? ' The premium here is ' + fmt(q2.premium) + '.' : ''),
         'Ruling กค 0702/3214, 12 Jun 2551; ruling กค 0702/10436, 21 Dec 2552'));
       if (q2 && q2.premium > 0) out.push(F('amber', 'What would make that premium taxable',
-        'The exemption is not unconditional. An issue made in a manner the law does not permit, a premium set above what is real, or an issue disguising something else — a grant, a subsidy, other assistance — can be treated as income of both the issuer and the subscriber for the part that exceeds what is real. Keep the valuation that supports the exchange ratio with the resolution.',
+        'The exemption is not unconditional. An issue made in a manner the law does not permit, a premium set above what is real, or an issue disguising something else — a grant, a subsidy, other assistance — can be treated as income of both the issuer and the subscriber for the part that exceeds what is real. Keep the valuation that supports the exchange ratio with the resolution.' +
+        (q2.note ? '' : ' Nothing is recorded here yet for how this premium of ' + fmt(q2.premium) + ' was arrived at.'),
         'Ruling กค 0702/3214, 12 Jun 2551'));
+      if (q2 && q2.priceGiven && Math.abs(q2.mismatch) > 0.005) {
+        out.push(F('red', 'The issue does not add up',
+          fmtInt(q2.shares) + ' new shares at ' + fmtShort(q2.perShare) + ' come to ' + fmt(q2.subscribed) +
+          ', but the value coming in for them is ' + fmt(r.proceeds) + ' — a difference of ' + fmt(Math.abs(q2.mismatch)) + '. ' +
+          (q2.mismatch < 0
+            ? 'The shares are being issued for more than is actually being paid for them, which is a subscription short of what the new shares are issued at.'
+            : 'More value is coming in than the issue price accounts for, so either the issue price is understated or part of what arrives is not consideration for these shares at all.') +
+          ' One of the three figures needs to move: the number of new shares, the issue price, or the value put on the shares being handed over. A premium that does not match what actually comes in is the fact pattern treated as a premium set above what is real.',
+          'Ruling กค 0702/3214, 12 Jun 2551'));
+      }
+      if (q2 && q2.note) {
+        out.push(F('info', 'The basis recorded for the premium',
+          '“' + esc(q2.note) + '” — kept with the working and carried into the copied summary, so the valuation behind the exchange ratio travels with the file.',
+          'Ruling กค 0702/3214, 12 Jun 2551'));
+      }
       if (q2 && q2.belowPar) {
         out.push(F('red', 'The new shares are being issued below par',
           'The consideration works out at ' + fmtShort(q2.perShare) + ' for each new share against a par value of ' + fmtShort(q2.par) + '. A company may not issue shares at less than their par value, so either the number of new shares or their par has to change before this exchange can be carried out.',
@@ -1200,12 +1222,24 @@
           '</select>' +
         '</div>' +
         (leg.consideration === 'newShares'
-          ? '<div class="field"><label>New shares issued in exchange</label><div class="field-row">' +
+          ? '<div class="field"><label>New shares issued in exchange <span class="hint">— หุ้นเพิ่มทุน</span></label><div class="field-row">' +
               '<div>' + money(leg, 'newShares', leg.newShares, 'number') + '<div class="field-note">Shares issued</div></div>' +
               '<div>' + money(leg, 'newSharesPar', leg.newSharesPar, 'par a share') + '<div class="field-note">Their par value</div></div>' +
             '</div></div>'
           : '<div class="field"></div>') +
       '</div>';
+
+      if (leg.consideration === 'newShares') {
+        html += '<div class="sub-head">The premium on the new shares <span class="pill pill-grey" style="margin-left:6px">capital</span></div>';
+        html += '<div class="field-row">' +
+          '<div class="field"><label>Issue price a new share <span class="hint">— ราคาเสนอขาย, blank = whatever the incoming value implies</span></label>' +
+            money(leg, 'issuePrice', leg.issuePrice, 'e.g. 200') +
+            '<div class="field-note">Par plus the premium. Enter it and the tool checks that price × shares matches the value actually coming in.</div></div>' +
+          '<div class="field"><label>How the premium was arrived at <span class="hint">— ส่วนล้ำมูลค่าหุ้น</span></label>' +
+            '<textarea data-id="' + leg.id + '" data-k="premiumNote" placeholder="e.g. exchange ratio from the net asset value of both companies at 31 Dec, per the valuation dated …">' + esc(leg.premiumNote) + '</textarea>' +
+            '<div class="field-note">Travels into the copied summary. A premium with no recorded basis is the one the officer asks about.</div></div>' +
+        '</div>';
+      }
 
       /* the other side — only an exchange of existing shares makes it a second disposal */
       if (leg.consideration === 'ownShares') {
@@ -1332,9 +1366,15 @@
       h += q.premium < 0
         ? '<tr class="total hl"><td>Short of the registered value <span class="cite">the new shares are not fully covered by what comes in</span></td><td class="num">(' + fmt(-q.premium) + ')</td></tr>'
         : '<tr class="total"><td>Share premium <span class="cite">ส่วนล้ำมูลค่าหุ้น — capital, not income</span></td><td class="num">' + fmt(q.premium) + '</td></tr>';
-      h += '<tr><td>Issue price a new share</td><td class="num">' + (isFinite(q.perShare) ? fmtShort(q.perShare) : '—') + '</td></tr>';
+      h += '<tr><td>Issue price a new share <span class="cite">' + (q.priceGiven ? 'as entered — par ' + fmtShort(q.par) + ' plus premium ' + fmtShort(q.premiumPer) : 'implied by the value coming in') + '</span></td><td class="num">' + (isFinite(q.perShare) ? fmtShort(q.perShare) : '—') + '</td></tr>';
+      if (q.priceGiven && Math.abs(q.mismatch) > 0.005) {
+        h += '<tr class="hl"><td>Against the value coming in <span class="cite">' + fmtInt(q.shares) + ' × ' + fmtShort(q.perShare) + ' = ' + fmt(q.subscribed) + '</span></td><td class="num">' +
+          (q.mismatch > 0 ? fmt(q.mismatch) + ' more comes in than the issue accounts for' : 'the issue exceeds what comes in by ' + fmt(-q.mismatch)) + '</td></tr>';
+      }
       h += '<tr class="hl"><td>Corporate income tax on this side</td><td class="num">none — s.65 does not reach capital</td></tr>';
+      if (q.note) h += '<tr class="muted"><td colspan="2">Basis recorded for the premium: ' + esc(q.note) + '</td></tr>';
       h += '</table></div>';
+
     }
 
     if (r.two && r.two.hasShares) {
@@ -1361,7 +1401,8 @@
     cost: '#475569', par: '#be123c', bv: '#047857', price: '#4338ca',
     warn: '#b45309', warnLine: '#f59e0b',
     gain0: '#6ee7b7', gain1: '#059669', gainInk: '#065f46',
-    loss0: '#fda4af', loss1: '#e11d48', lossInk: '#9f1239'
+    loss0: '#fda4af', loss1: '#e11d48', lossInk: '#9f1239',
+    prem0: '#c4b5fd', prem1: '#7c3aed', premInk: '#5b21b6'
   };
 
   function chip(x, y, text, colour, anchor) {
@@ -1389,8 +1430,10 @@
     function y(v) { return padT + (top - v) / (top - bot) * (H - padT - padB); }
 
     var isLoss = cfg.gain < 0;
-    var g0 = isLoss ? LC.loss0 : LC.gain0, g1 = isLoss ? LC.loss1 : LC.gain1;
-    var gInk = isLoss ? LC.lossInk : LC.gainInk;
+    var isPrem = cfg.tone === 'premium' && !isLoss;
+    var g0 = isPrem ? LC.prem0 : isLoss ? LC.loss0 : LC.gain0;
+    var g1 = isPrem ? LC.prem1 : isLoss ? LC.loss1 : LC.gain1;
+    var gInk = isPrem ? LC.premInk : isLoss ? LC.lossInk : LC.gainInk;
 
     var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" height="' + H + '" role="img" aria-label="Price ladder">';
     s += '<defs>' +
@@ -1439,7 +1482,9 @@
     var yStart = isFinite(cfg.costPer) ? yCost : yPrice;
     s += '<line x1="' + (xA + 3) + '" y1="' + yStart + '" x2="' + (xB - 6) + '" y2="' + yPrice + '" stroke="' + LC.ink + '" stroke-width="2.1" marker-end="url(#mv' + k + ')" stroke-linecap="round"/>';
     var t = 0.42, mx = xA + (xB - xA) * t, my = yStart + (yPrice - yStart) * t;
-    var label = (isLoss ? 'loss ' : 'gain ') + fmtShort(Math.abs(cfg.gain));
+    var label = cfg.blockLabel
+      ? cfg.blockLabel
+      : (isLoss ? 'loss ' : 'gain ') + fmtShort(Math.abs(cfg.gain));
     s += chip(mx, my - 22, label, gInk, 'middle');
 
     /* the reference lines, labels nudged apart where two values coincide */
@@ -1447,7 +1492,7 @@
       { v: cfg.costPer, colour: LC.cost, label: 'cost', dash: '5 4' },
       { v: cfg.parPer, colour: LC.par, label: 'par value', dash: '' },
       { v: cfg.bvPer, colour: LC.bv, label: 'book value', dash: '' },
-      { v: cfg.pricePer, colour: LC.price, label: 'price', dash: '' }
+      { v: cfg.pricePer, colour: LC.price, label: cfg.priceLabel || 'price', dash: '' }
     ].filter(function (d) { return isFinite(d.v); });
     refs.forEach(function (d) {
       var yy = y(d.v);
@@ -1498,6 +1543,33 @@
       gain: r.gain, uplift: r.uplift, exposed: r.priceTest === 'exposed' || r.priceTest === 'causeAsserted',
       caption: cap
     });
+    if (r.issue && r.issue.shares > 0 && isFinite(r.issue.perShare)) {
+      var q = r.issue;
+      var nA = String(leg.transferor || 'Transferor').trim(), nB = String(leg.transferee || 'Transferee').trim();
+      var capQ = 'No second gain here: ' + esc(nB) + ' issues shares rather than parting with any, so what comes in is capital. ' +
+        'The band is the premium over the registered value — ' + esc(fmt(q.premium)) + ' — which is capital in the same way, so the issuer bears no tax whichever height the price sits at.' +
+        (q.belowPar ? ' As drawn the price is below par, which company law does not permit.' : '');
+      function head2(n, txt, sub) {
+        return '<div class="ladder-head"><span class="ladder-n">' + n + '</span>' + txt +
+          (sub ? ' <span class="sub">— ' + sub + '</span>' : '') + '</div>';
+      }
+      out = '<div class="ladder-pair">' +
+        head2(1, esc(nA) + ' gives ' + fmtInt(r.shares) + ' shares',
+              (r.gain < 0 ? 'loss ' : 'gain ') + fmt(Math.abs(r.gain)) + ' · taxable') + out +
+        head2(2, esc(nB) + ' issues ' + fmtInt(q.shares) + ' new shares',
+              (q.premium >= 0 ? 'premium ' + fmt(q.premium) : 'below par by ' + fmt(-q.premium)) + ' · capital, no tax') +
+        ladderBlock({
+          key: 'q' + r.id, giver: nB, taker: nA, tone: 'premium',
+          shares: q.shares, costPer: NaN, parPer: isFinite(q.par) ? q.par : NaN, bvPer: NaN,
+          pricePer: q.perShare, priceLabel: 'issue price',
+          gain: isFinite(q.premium) ? q.premium : 0, uplift: 0, exposed: false,
+          blockLabel: (q.premium >= 0 ? 'ส่วนล้ำมูลค่าหุ้น ' : 'below par ') + fmtShort(Math.abs(q.premium)),
+          caption: capQ
+        }) +
+        '<p class="pair-note">Two pictures, two different things. The first is a disposal and is taxed on its area. The second is not a disposal at all: the height above par is share premium, which is capital of the issuer — not income, not a VAT receipt — so nothing is taxed there whether the shares go out at par or well above it.</p>' +
+      '</div>';
+    }
+
     if (r.two && r.two.hasShares && r.two.priceGiven) {
       var o = r.two;
       var nameA = String(leg.transferor || 'Transferor').trim(), nameB = String(leg.transferee || 'Transferee').trim();
@@ -1823,7 +1895,10 @@
       if (r.issue) {
         L.push('  ISSUER SIDE — ' + (String(leg.transferee || 'Transferee').trim()) + ' issues ' + fmtInt(r.issue.shares) + ' new shares at par ' + fmtShort(r.issue.par));
         L.push('    Registered value ' + fmt(r.issue.registered) + ' · premium ' + fmt(r.issue.premium) + ' · issue price a share ' + fmtShort(r.issue.perShare));
+        L.push('    Issue price a share ' + fmtShort(r.issue.perShare) + (r.issue.priceGiven ? ' (as entered)' : ' (implied by the value coming in)'));
         L.push('    No corporate income tax on this side — capital, not income (กค 0702/3214)');
+        if (r.issue.note) L.push('    Basis for the premium: ' + r.issue.note);
+        if (r.issue.priceGiven && Math.abs(r.issue.mismatch) > 0.005) L.push('    WARNING: price x shares = ' + fmt(r.issue.subscribed) + ' does not match the value coming in ' + fmt(r.proceeds));
         if (r.issue.belowPar) L.push('    WARNING: issued below par — CCC s.1105 does not allow it');
       }
       if (r.two && r.two.hasShares) {

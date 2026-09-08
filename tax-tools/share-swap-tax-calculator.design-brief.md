@@ -23,9 +23,19 @@ consideration is newly issued shares — a capital increase given in exchange �
 the second side is capital rather than income, and the tool shows that as its
 own table: value received, registered value of the new shares, the premium (or
 the shortfall, if the issue would be below par, which company law does not
-allow), the issue price a share, and no tax. The charge is not removed by that,
-only moved: the transferor holds the new shares at the exchange value, not at
-par, and that is what is deducted when they are sold on.
+allow), the issue price a share, and no tax. The issue price and the basis on
+which the premium was set are fields of their own, and entering the price makes
+the tool check it against the value actually coming in — a premium that does not
+match what arrives is the fact pattern treated as a premium above what is real.
+The charge is not removed by any of that, only moved: the transferor holds the
+new shares at the exchange value, not at par, and that is what is deducted when
+they are sold on.
+
+The issuer's picture is deliberately **not** a second gain ladder. Drawing one
+would assert a disposal that has not happened: newly issued shares have no cost,
+so there is no gain to compute. The second diagram is a premium picture instead
+— par, issue price, and the band between them labelled ส่วนล้ำมูลค่าหุ้น in the
+violet that means capital everywhere else in the tool.
 
 The reason it is a chain rather than a calculator is that the interesting Thai
 positions are about timing, not arithmetic. Acquiring below market value is not
