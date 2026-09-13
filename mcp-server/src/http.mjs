@@ -48,6 +48,13 @@ const allowedHosts = PUBLIC_URL
   : undefined;
 const app = createMcpExpressApp({ host: HOST, allowedHosts });
 
+/* Render (and any PaaS router) terminates TLS at the edge and forwards plain
+   HTTP to the container, so without this req.protocol always reports "http" —
+   a download link built from it would read https:// on the way in and come
+   back http:// in the reply. PUBLIC_URL below is the authoritative fix; this
+   is the fallback for a deploy that forgets to set it. */
+app.set('trust proxy', true);
+
 app.use((req, res, next) => {
   if (req.path.startsWith('/files/') || req.path === '/health') return next();
   const token = (req.get('authorization') || '').replace(/^Bearer\s+/i, '').trim();
