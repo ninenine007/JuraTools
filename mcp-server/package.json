@@ -1,0 +1,18 @@
+{
+  "name": "juratools-share-docs-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "MCP server exposing the JuraTools share-document generators as callable tools",
+  "scripts": {
+    "sync-templates": "node scripts/extract-templates.mjs",
+    "start": "node src/server.mjs",
+    "start:http": "node src/http.mjs",
+    "test": "node test/smoke.mjs && node test/mcp.mjs && node test/http.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "jszip": "^3.10.2",
+    "zod": "^4.6.2"
+  }
+}

@@ -1,0 +1,23 @@
+[Unit]
+Description=JuraTools share documents MCP server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=juratools
+WorkingDirectory=/opt/juratools-mcp
+EnvironmentFile=/etc/juratools-mcp.env
+ExecStart=/usr/bin/node src/http.mjs
+Restart=always
+RestartSec=5
+
+# The server writes nothing to disk — documents are held in memory and expire —
+# so it can run with the filesystem closed to it.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
