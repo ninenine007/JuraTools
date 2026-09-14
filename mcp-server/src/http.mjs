@@ -75,7 +75,8 @@ app.post('/mcp', async (req, res) => {
     const id = randomUUID();
     files.set(id, { name, buf, at: Date.now() });
     const minutes = Math.round(TTL_MS / 60_000);
-    return `Download it within ${minutes} minutes: ${base}/files/${id}/${encodeURIComponent(name)}.docx`;
+    const location = `${base}/files/${id}/${encodeURIComponent(name)}.docx`;
+    return { message: `Download it within ${minutes} minutes: ${location}`, location };
   };
 
   /* A server per request: nothing one colleague sends can end up in another's

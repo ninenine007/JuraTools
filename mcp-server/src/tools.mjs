@@ -85,7 +85,23 @@ export function createMcpServer({ deliver, user = null }) {
       'Returns the document, the stamp duty worked out under the Stamp Duty Schedule, and ' +
       'any field left blank. ' + PLACEHOLDER_NOTE + ' ' +
       'The result is a draft for a lawyer to check — say so when reporting it.',
-    inputSchema: INPUT
+    inputSchema: INPUT,
+    outputSchema: {
+      location: z.string().describe('Where the document went — a local file path from the stdio server, or a one-time download URL from the HTTP server'),
+      fileSizeKB: z.number(),
+      stampDuty: z.object({
+        computed: z.boolean(),
+        dutyOnOriginalBaht: z.number().optional(),
+        dutyOnDuplicateBaht: z.number().optional(),
+        totalBaht: z.number().optional(),
+        basisBaht: z.number().optional(),
+        usedPaidUpValueAsFloor: z.boolean().optional().describe('true if no transfer price was given, so the paid-up value set the basis'),
+        missingInputs: z.array(z.string()).optional().describe('Present only when computed is false')
+      }),
+      unresolvedPlaceholders: z.array(z.string()).describe('Fields deliberately left as "(*)" to settle before signing'),
+      blankFields: z.array(z.string()).describe('Fields left empty in the generated document'),
+      isDraft: z.literal(true)
+    }
   }, async args => {
     const t = normalizeTransfer(toInternal(args));
     const buf = await buildDocx(t);
@@ -93,6 +109,7 @@ export function createMcpServer({ deliver, user = null }) {
 
     const duty = dutyOf(t);
     const open = unresolved(t);
+    const fileSizeKB = Math.round(buf.length / 1024);
 
     if (user) {
       console.error(`[${new Date().toISOString()}] ${user} created a transfer instrument: ` +
@@ -101,7 +118,7 @@ export function createMcpServer({ deliver, user = null }) {
     }
 
     const report = [
-      `${delivery} (${(buf.length / 1024).toFixed(0)} KB).`,
+      `${delivery.message} (${fileSizeKB} KB).`,
       duty.ok
         ? `Stamp duty: ${duty.duty} baht on the Original + ${duty.dup} baht counterpart on the Duplicate = ${duty.total} baht, on a basis of ${duty.basis.toLocaleString('en-US')} baht.` +
           (duty.floor ? ' No transfer price was given, so the paid-up value set the basis.' : '')
@@ -111,7 +128,18 @@ export function createMcpServer({ deliver, user = null }) {
       'Draft only — have a lawyer check it against the source instructions before it is signed.'
     ].filter(Boolean).join('\n');
 
-    return { content: [{ type: 'text', text: report }] };
+    const structuredContent = {
+      location: delivery.location,
+      fileSizeKB,
+      stampDuty: duty.ok
+        ? { computed: true, dutyOnOriginalBaht: duty.duty, dutyOnDuplicateBaht: duty.dup, totalBaht: duty.total, basisBaht: duty.basis, usedPaidUpValueAsFloor: duty.floor }
+        : { computed: false, missingInputs: duty.missing },
+      unresolvedPlaceholders: open.placeholder,
+      blankFields: open.blank,
+      isDraft: true
+    };
+
+    return { content: [{ type: 'text', text: report }], structuredContent };
   });
 
   registerDateTools(server);

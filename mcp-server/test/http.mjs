@@ -64,6 +64,7 @@ const text = res.content.map(c => c.text).join('\n');
 const url = text.match(/(http:\/\/\S+\.docx)/)?.[1];
 assert.ok(url, `a download link is returned — got: ${text}`);
 assert.ok(text.includes('250 baht on the Original'), 'duty is reported');
+assert.equal(res.structuredContent?.location, url, 'structuredContent.location matches the link in the text');
 
 const dl = await fetch(url);
 assert.equal(dl.status, 200);

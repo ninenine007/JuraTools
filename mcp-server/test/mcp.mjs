@@ -20,6 +20,7 @@ const { tools } = await client.listTools();
 const transferTool = tools.find(t => t.name === 'create_share_transfer_instrument');
 assert.ok(transferTool, 'create_share_transfer_instrument is registered');
 assert.ok(transferTool.inputSchema.properties.transferor, 'transferor is part of the published schema');
+assert.ok(transferTool.outputSchema?.properties?.stampDuty, 'an outputSchema is published, per ChatGPT\'s own recommendation for this tool');
 
 const res = await client.callTool({
   name: 'create_share_transfer_instrument',
@@ -35,6 +36,17 @@ const text = res.content.map(c => c.text).join('\n');
 assert.ok(/Saved to .*\.docx/.test(text), 'reports where it saved the file');
 assert.ok(text.includes('250 baht on the Original'), 'reports the computed duty');
 assert.ok(text.includes('Draft only'), 'flags the document as a draft for review');
+
+const sc = res.structuredContent;
+assert.ok(sc, 'structuredContent is present alongside the text content');
+assert.ok(sc.location.endsWith('.docx'));
+assert.equal(sc.stampDuty.computed, true);
+assert.equal(sc.stampDuty.dutyOnOriginalBaht, 250);
+assert.equal(sc.stampDuty.dutyOnDuplicateBaht, 5);
+assert.equal(sc.stampDuty.totalBaht, 255);
+assert.equal(sc.isDraft, true);
+assert.deepEqual(sc.unresolvedPlaceholders, []);
+assert.ok(sc.blankFields.includes('TFR_WIT_1'));
 
 const files = await readdir(out);
 assert.equal(files.length, 1);

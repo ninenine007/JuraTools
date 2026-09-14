@@ -22,7 +22,7 @@ const deliver = async (base, buf) => {
   await mkdir(OUT_DIR, { recursive: true });
   const path = await freePath(OUT_DIR, base);
   await writeFile(path, buf);
-  return `Saved to ${path}`;
+  return { message: `Saved to ${path}`, location: path };
 };
 
 const server = createMcpServer({ deliver });
