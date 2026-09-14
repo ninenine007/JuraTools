@@ -17,9 +17,9 @@ await client.connect(new StdioClientTransport({
 }));
 
 const { tools } = await client.listTools();
-assert.equal(tools.length, 1);
-assert.equal(tools[0].name, 'create_share_transfer_instrument');
-assert.ok(tools[0].inputSchema.properties.transferor, 'transferor is part of the published schema');
+const transferTool = tools.find(t => t.name === 'create_share_transfer_instrument');
+assert.ok(transferTool, 'create_share_transfer_instrument is registered');
+assert.ok(transferTool.inputSchema.properties.transferor, 'transferor is part of the published schema');
 
 const res = await client.callTool({
   name: 'create_share_transfer_instrument',

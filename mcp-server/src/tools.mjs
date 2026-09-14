@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { buildDocx, dutyOf, fileNameOf, normalizeTransfer, unresolved } from './transfer.mjs';
+import { registerDateTools } from './date-tools.mjs';
 
 const PLACEHOLDER_NOTE =
   'Write "(*)" for any value that is deliberately not settled yet — it is carried ' +
@@ -112,6 +113,8 @@ export function createMcpServer({ deliver, user = null }) {
 
     return { content: [{ type: 'text', text: report }] };
   });
+
+  registerDateTools(server);
 
   return server;
 }
