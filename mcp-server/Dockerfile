@@ -6,6 +6,7 @@ RUN npm ci --omit=dev
 
 COPY src ./src
 COPY templates ./templates
+COPY openapi ./openapi
 
 ENV PORT=8787
 EXPOSE 8787
