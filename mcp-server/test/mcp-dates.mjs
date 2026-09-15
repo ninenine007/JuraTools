@@ -17,8 +17,8 @@ await client.connect(new StdioClientTransport({
 }));
 
 const { tools } = await client.listTools();
-const names = tools.map(t => t.name).sort();
-assert.deepEqual(names, [
+const names = new Set(tools.map(t => t.name));
+for (const expected of [
   'calculate_agm_registration_deadline',
   'calculate_ccc_deadline',
   'calculate_ccc_duration',
@@ -26,7 +26,7 @@ assert.deepEqual(names, [
   'calculate_clear_days',
   'calculate_gm_notice_period',
   'create_share_transfer_instrument'
-].sort());
+]) assert.ok(names.has(expected), `${expected} is registered`);
 
 const readJson = res => JSON.parse(res.content[0].text);
 

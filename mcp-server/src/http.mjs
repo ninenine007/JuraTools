@@ -4,7 +4,13 @@
 import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createMcpServer } from './tools.mjs';
+import { buildPlainDocx, fileNameOfPlain, PlainDocumentInput } from './plain-doc.mjs';
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 const PORT = Number(process.env.PORT || 8787);
 const HOST = process.env.HOST || '0.0.0.0';
@@ -56,7 +62,7 @@ const app = createMcpExpressApp({ host: HOST, allowedHosts });
 app.set('trust proxy', true);
 
 app.use((req, res, next) => {
-  if (req.path.startsWith('/files/') || req.path === '/health') return next();
+  if (req.path.startsWith('/files/') || req.path === '/health' || req.path === '/openapi.json') return next();
   const token = (req.get('authorization') || '').replace(/^Bearer\s+/i, '').trim();
   const user = token && TOKENS.get(token);
   if (!user) {
@@ -67,10 +73,10 @@ app.use((req, res, next) => {
   next();
 });
 
-app.post('/mcp', async (req, res) => {
-  const base = PUBLIC_URL || `${req.protocol}://${req.get('host')}`;
-
-  const deliver = async (name, buf) => {
+/* Shared by the MCP transport and the plain REST action below — the same
+   in-memory, TTL'd, unguessable-link delivery either way. */
+function makeDeliver(base) {
+  return async (name, buf) => {
     sweep();
     const id = randomUUID();
     files.set(id, { name, buf, at: Date.now() });
@@ -78,6 +84,11 @@ app.post('/mcp', async (req, res) => {
     const location = `${base}/files/${id}/${encodeURIComponent(name)}.docx`;
     return { message: `Download it within ${minutes} minutes: ${location}`, location };
   };
+}
+
+app.post('/mcp', async (req, res) => {
+  const base = PUBLIC_URL || `${req.protocol}://${req.get('host')}`;
+  const deliver = makeDeliver(base);
 
   /* A server per request: nothing one colleague sends can end up in another's
      session, and there is no session state to lose when a container restarts. */
@@ -97,6 +108,42 @@ app.post('/mcp', async (req, res) => {
 const noSessions = (_req, res) => res.status(405).json({ error: 'this server is stateless; POST /mcp only' });
 app.get('/mcp', noSessions);
 app.delete('/mcp', noSessions);
+
+/* A plain REST twin of create_plain_document, for callers that speak OpenAPI
+   Actions rather than MCP (ChatGPT's Custom GPTs, as of when this was written,
+   fall in that category). Same bearer auth, same delivery, same engine —
+   only the transport differs. */
+app.post('/actions/plain-document', async (req, res) => {
+  let args;
+  try {
+    args = PlainDocumentInput.parse(req.body);
+  } catch (err) {
+    return res.status(400).json({ error: 'invalid request', details: err.issues?.map(i => i.message) ?? [String(err)] });
+  }
+
+  try {
+    const buf = await buildPlainDocx(args);
+    const base = PUBLIC_URL || `${req.protocol}://${req.get('host')}`;
+    const delivery = await makeDeliver(base)(fileNameOfPlain(args), buf);
+    if (req.user) {
+      console.error(`[${new Date().toISOString()}] ${req.user} created a plain document via Action: ${args.title || 'untitled'}`);
+    }
+    res.json({ location: delivery.location, fileSizeKB: Math.round(buf.length / 1024) });
+  } catch (err) {
+    console.error('plain-document action failed:', err);
+    res.status(500).json({ error: 'internal error' });
+  }
+});
+
+/* The schema a Custom GPT Action imports. Served unauthenticated, like any
+   API's own published spec — it describes the shape of the door, not what is
+   behind it. */
+app.get('/openapi.json', async (req, res) => {
+  const base = PUBLIC_URL || `${req.protocol}://${req.get('host')}`;
+  const spec = JSON.parse(await readFile(join(root, 'openapi', 'plain-document.json'), 'utf8'));
+  spec.servers = [{ url: base }];
+  res.json(spec);
+});
 
 /* The link is the capability: a browser following it cannot send the bearer
    token, so the unguessable id and the short life are what protect the file. */

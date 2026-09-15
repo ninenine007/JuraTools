@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { buildDocx, dutyOf, fileNameOf, normalizeTransfer, unresolved } from './transfer.mjs';
 import { registerDateTools } from './date-tools.mjs';
+import { buildPlainDocx, fileNameOfPlain, PLAIN_INPUT_SHAPE } from './plain-doc.mjs';
 
 const PLACEHOLDER_NOTE =
   'Write "(*)" for any value that is deliberately not settled yet — it is carried ' +
@@ -140,6 +141,35 @@ export function createMcpServer({ deliver, user = null }) {
     };
 
     return { content: [{ type: 'text', text: report }], structuredContent };
+  });
+
+  server.registerTool('create_plain_document', {
+    title: 'Create a plain Word document (.docx)',
+    description:
+      'Turn plain text into a real .docx using the firm\'s own document engine, instead of ' +
+      'generating one from scratch. Use this whenever the user wants a Word file of ordinary ' +
+      'text — a letter, a memo, a summary, meeting notes — with no legal template involved. ' +
+      'Give it a title (optional) and an ordered list of blocks: heading1, heading2, paragraph ' +
+      '(optionally bold/italic) or bullet. Thai and English render correctly in the same ' +
+      'document; there is no length limit beyond what is reasonable for one file.',
+    inputSchema: PLAIN_INPUT_SHAPE,
+    outputSchema: {
+      location: z.string().describe('Where the document went — a local file path from the stdio server, or a one-time download URL from the HTTP server'),
+      fileSizeKB: z.number()
+    }
+  }, async args => {
+    const buf = await buildPlainDocx(args);
+    const delivery = await deliver(fileNameOfPlain(args), buf);
+    const fileSizeKB = Math.round(buf.length / 1024);
+
+    if (user) {
+      console.error(`[${new Date().toISOString()}] ${user} created a plain document: ${args.title || fileNameOfPlain(args)}`);
+    }
+
+    return {
+      content: [{ type: 'text', text: `${delivery.message} (${fileSizeKB} KB).` }],
+      structuredContent: { location: delivery.location, fileSizeKB }
+    };
   });
 
   registerDateTools(server);

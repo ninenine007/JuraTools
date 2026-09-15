@@ -1,0 +1,116 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "JuraTools Plain Document",
+    "description": "Generate a real .docx Word document from plain text using the firm's own document engine — not a from-scratch generator. Use this for letters, memos, notes and summaries with no legal template involved. Returns a one-time download link, not the file itself.",
+    "version": "0.1.0"
+  },
+  "servers": [{ "url": "https://example.invalid" }],
+  "paths": {
+    "/actions/plain-document": {
+      "post": {
+        "operationId": "createPlainDocument",
+        "summary": "Create a plain Word document (.docx)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PlainDocumentRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The document was created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PlainDocumentResponse" }
+              }
+            }
+          },
+          "400": { "description": "The request could not be turned into a document" },
+          "401": { "description": "A valid bearer token is required" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer" }
+    },
+    "schemas": {
+      "PlainDocumentRequest": {
+        "type": "object",
+        "required": ["blocks"],
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Document title, centered and bold at the top. Omit for none."
+          },
+          "fileName": {
+            "type": "string",
+            "description": "Override the file name (without extension). Defaults to the title."
+          },
+          "blocks": {
+            "type": "array",
+            "minItems": 1,
+            "description": "The body content, in order.",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "required": ["type", "text"],
+                  "properties": {
+                    "type": { "const": "heading1" },
+                    "text": { "type": "string" }
+                  },
+                  "description": "A top-level heading"
+                },
+                {
+                  "type": "object",
+                  "required": ["type", "text"],
+                  "properties": {
+                    "type": { "const": "heading2" },
+                    "text": { "type": "string" }
+                  },
+                  "description": "A sub-heading"
+                },
+                {
+                  "type": "object",
+                  "required": ["type", "text"],
+                  "properties": {
+                    "type": { "const": "paragraph" },
+                    "text": { "type": "string" },
+                    "bold": { "type": "boolean" },
+                    "italic": { "type": "boolean" }
+                  },
+                  "description": "A normal paragraph, optionally bold or italic throughout"
+                },
+                {
+                  "type": "object",
+                  "required": ["type", "text"],
+                  "properties": {
+                    "type": { "const": "bullet" },
+                    "text": { "type": "string" }
+                  },
+                  "description": "One bullet-list item"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "PlainDocumentResponse": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "string",
+            "description": "A one-time download URL, valid for a limited time"
+          },
+          "fileSizeKB": { "type": "number" }
+        }
+      }
+    }
+  },
+  "security": [{ "bearerAuth": [] }]
+}

@@ -76,6 +76,48 @@ assert.equal(buf.subarray(0, 2).toString('latin1'), 'PK', 'the link serves a rea
 const missing = await fetch(`${BASE}/files/00000000-0000-0000-0000-000000000000/x.docx`);
 assert.equal(missing.status, 404, 'an unknown id is not served');
 
+/* The plain-document REST Action: same auth, same delivery, a JSON body/reply
+   instead of MCP's JSON-RPC — this is what a Custom GPT Action calls. */
+const actionAnon = await fetch(`${BASE}/actions/plain-document`, {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({ blocks: [{ type: 'paragraph', text: 'x' }] })
+});
+assert.equal(actionAnon.status, 401, 'the action route requires a token too');
+
+const actionRes = await fetch(`${BASE}/actions/plain-document`, {
+  method: 'POST',
+  headers: { 'content-type': 'application/json', authorization: `Bearer ${TOKEN}` },
+  body: JSON.stringify({
+    title: 'Test memo',
+    blocks: [
+      { type: 'paragraph', text: 'เนื้อหาทดสอบ' },
+      { type: 'bullet', text: 'one' }
+    ]
+  })
+});
+assert.equal(actionRes.status, 200);
+const actionBody = await actionRes.json();
+assert.ok(actionBody.location?.startsWith(BASE), 'the action returns a download link on the same host');
+assert.ok(actionBody.fileSizeKB > 0);
+
+const actionDl = await fetch(actionBody.location);
+assert.equal(actionDl.status, 200);
+assert.equal((await actionDl.arrayBuffer()).byteLength > 0, true);
+
+const badAction = await fetch(`${BASE}/actions/plain-document`, {
+  method: 'POST',
+  headers: { 'content-type': 'application/json', authorization: `Bearer ${TOKEN}` },
+  body: JSON.stringify({ blocks: [] })
+});
+assert.equal(badAction.status, 400, 'an empty blocks array is rejected, not silently accepted');
+
+const spec = await fetch(`${BASE}/openapi.json`);
+assert.equal(spec.status, 200, 'the OpenAPI schema is served without a token, for the GPT Builder import step');
+const specBody = await spec.json();
+assert.equal(specBody.servers[0].url, BASE, 'the schema is stamped with this server\'s own base URL');
+assert.ok(specBody.paths['/actions/plain-document'], 'the schema documents the action route');
+
 await client.close();
 stop();
 console.log(`ok — HTTP round trip, ${(buf.length / 1024).toFixed(0)} KB served over a one-time link`);
