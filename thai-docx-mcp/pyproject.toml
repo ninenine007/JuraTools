@@ -1,0 +1,19 @@
+[project]
+name = "juratools-thai-docx-mcp"
+version = "0.1.0"
+description = "MCP server that writes Thai legal Word documents with python-docx"
+requires-python = ">=3.10"
+dependencies = [
+    "python-docx>=1.1",
+    "mcp>=2,<3",
+]
+
+[project.scripts]
+thai-docx-mcp = "thai_docx_mcp.server:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

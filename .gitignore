@@ -149,6 +149,8 @@ push.sh
 # Python
 __pycache__/
 *.py[cod]
+.venv/
+*.egg-info/
 
 # Contract corpus — client material, never committed.
 # Code, lexicons and fixtures under tools/contract-corpus/ ARE tracked.
