@@ -1,0 +1,788 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Text to Speech — JuraTools</title>
+  <meta name="description" content="Turn typed or pasted text into a downloadable speech file using your own Azure AI Speech key — Thai, English, and 140+ languages. Runs in your browser; only Azure sees your text and key." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      color: #1c1c1e;
+      min-height: 100vh;
+      background: #f2f2f7;
+      background-image:
+        radial-gradient(ellipse 1100px 700px at 10% 0%,   rgba(167,243,208,0.4)   0%, transparent 60%),
+        radial-gradient(ellipse  700px 700px at 95% 10%,  rgba(167,243,208,0.3)   0%, transparent 55%),
+        radial-gradient(ellipse  800px 600px at 0%  90%,  rgba(194,221,255,0.3)   0%, transparent 55%),
+        radial-gradient(ellipse  900px 500px at 100% 95%, rgba(218,205,255,0.25)  0%, transparent 55%);
+    }
+
+    /* ── Nav ── */
+    .nav {
+      position: sticky; top: 0; z-index: 200;
+      height: 52px;
+      display: flex; align-items: center; gap: 12px;
+      padding: 0 24px;
+      background: rgba(242,242,247,0.82);
+      backdrop-filter: blur(24px) saturate(200%);
+      -webkit-backdrop-filter: blur(24px) saturate(200%);
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+    }
+    .nav-brand { display: flex; align-items: center; gap: 9px; text-decoration: none; color: inherit; flex-shrink: 0; user-select: none; }
+    .nav-icon {
+      width: 30px; height: 30px; border-radius: 7px; flex-shrink: 0;
+      background: linear-gradient(145deg, #2979ff, #1565c0);
+      display: grid; place-items: center; font-size: 15px;
+      box-shadow: 0 2px 6px rgba(41,121,255,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    .nav-wordmark { font-size: 15px; font-weight: 700; letter-spacing: -0.4px; }
+    .nav-sep { color: #d1d1d6; font-size: 15px; }
+    .nav-title { font-size: 15px; font-weight: 500; color: #6e6e73; }
+    .nav-back {
+      margin-left: auto;
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 6px 12px; border-radius: 9px;
+      font-size: 13px; font-weight: 500; font-family: inherit;
+      background: rgba(0,0,0,0.055); color: #3c3c43;
+      border: 1px solid rgba(0,0,0,0.1); cursor: pointer; text-decoration: none;
+      transition: background .14s;
+    }
+    .nav-back:hover { background: rgba(0,0,0,0.09); }
+
+    /* ── Page layout ── */
+    .page { max-width: 900px; margin: 0 auto; padding: 36px 24px 64px; }
+    .page-header { margin-bottom: 22px; }
+    .page-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(13,148,136,0.10); border: 1px solid rgba(13,148,136,0.22);
+      border-radius: 999px; padding: 4px 12px;
+      font-size: 12px; font-weight: 600; color: #0d6e64;
+      margin-bottom: 14px;
+    }
+    .page-header h1 {
+      font-size: clamp(26px, 4vw, 36px);
+      font-weight: 800; letter-spacing: -1px; line-height: 1.1;
+      background: linear-gradient(135deg, #1c1c1e 0%, #0d9488 70%, #2979ff 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 6px;
+    }
+    .page-header .th { font-size: 13px; color: #8e8e93; font-weight: 500; margin-bottom: 8px; }
+    .page-header p { font-size: 15px; color: #6e6e73; line-height: 1.55; max-width: 620px; }
+
+    .disclosure {
+      display: flex; gap: 10px; align-items: flex-start;
+      background: rgba(255,159,10,0.08); border: 1px solid rgba(255,159,10,0.25);
+      border-radius: 12px; padding: 12px 16px; margin-top: 16px;
+      font-size: 13px; color: #7a4a00; line-height: 1.55; max-width: 700px;
+    }
+    .disclosure b { color: #5c3800; }
+
+    /* ── Cards ── */
+    .card {
+      background: rgba(255,255,255,0.82);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.9);
+      border-radius: 18px;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.07);
+      margin-top: 18px;
+      overflow: hidden;
+    }
+    .card-title-bar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 16px 20px 4px;
+    }
+    .step-n {
+      width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+      background: rgba(13,148,136,0.14); color: #0d6e64;
+      font-size: 12px; font-weight: 700;
+      display: grid; place-items: center;
+    }
+    .card-title {
+      font-size: 12px; font-weight: 700; color: #6e6e73;
+      text-transform: uppercase; letter-spacing: .7px;
+    }
+    .card-body { padding: 14px 20px 20px; }
+
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+    .field label { font-size: 12.5px; font-weight: 600; color: #3c3c43; }
+    .field .hint { font-size: 11.5px; color: #aeaeb2; line-height: 1.4; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 560px) { .field-row { grid-template-columns: 1fr; } }
+
+    input[type=text], input[type=password], select, textarea {
+      width: 100%; font-family: inherit; font-size: 14px; color: #1c1c1e;
+      border: 1px solid rgba(0,0,0,0.12); border-radius: 10px;
+      padding: 9px 12px; background: rgba(255,255,255,0.7);
+      outline: none; transition: border-color .15s, box-shadow .15s;
+    }
+    input[type=text]:focus, input[type=password]:focus, select:focus, textarea:focus {
+      border-color: rgba(13,148,136,0.55);
+      box-shadow: 0 0 0 3px rgba(13,148,136,0.12);
+    }
+    .key-row { display: flex; gap: 8px; }
+    .key-row input { flex: 1; }
+
+    textarea#ttsText {
+      min-height: 200px; resize: vertical; line-height: 1.6;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Noto Sans Thai", sans-serif;
+    }
+
+    .checkbox-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #3c3c43; }
+    .checkbox-row input { width: auto; }
+
+    .slider-row { display: flex; align-items: center; gap: 10px; }
+    .slider-row input[type=range] { flex: 1; accent-color: #0d9488; }
+    .slider-val { font-size: 12.5px; font-weight: 600; color: #0d6e64; width: 48px; text-align: right; font-variant-numeric: tabular-nums; }
+
+    .meta-row {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 12px; color: #aeaeb2; margin-top: 6px;
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 18px; border-radius: 10px;
+      font-size: 13.5px; font-weight: 500; font-family: inherit;
+      cursor: pointer; border: none; transition: all .14s; white-space: nowrap;
+    }
+    .btn-primary {
+      background: #0d9488; color: #fff;
+      box-shadow: 0 1px 4px rgba(13,148,136,.38), inset 0 1px 0 rgba(255,255,255,.18);
+    }
+    .btn-primary:hover:not(:disabled) { background: #0c7a70; }
+    .btn-primary:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-secondary { background: rgba(0,0,0,0.055); color: #3c3c43; border: 1px solid rgba(0,0,0,0.1); }
+    .btn-secondary:hover { background: rgba(0,0,0,0.09); }
+    .btn-danger { background: rgba(255,59,48,0.09); color: #c0392b; border: 1px solid rgba(255,59,48,0.18); }
+    .btn-danger:hover { background: rgba(255,59,48,0.15); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
+    .spacer { flex: 1; }
+
+    .status-line { font-size: 12.5px; color: #6e6e73; margin-top: 8px; }
+    .status-line.err { color: #c0392b; }
+    .status-line.ok { color: #1a7a35; }
+
+    .callout {
+      display: flex; gap: 10px; align-items: flex-start;
+      border-radius: 12px; padding: 12px 16px; font-size: 13px; line-height: 1.55;
+      margin-top: 14px;
+    }
+    .callout-red { background: rgba(255,59,48,0.08); border: 1px solid rgba(255,59,48,0.22); color: #9a2a20; }
+    .callout-info { background: rgba(41,121,255,0.07); border: 1px solid rgba(41,121,255,0.18); color: #164a99; }
+    .hidden { display: none !important; }
+
+    audio { width: 100%; margin-top: 4px; }
+
+    footer { max-width: 900px; margin: 32px auto 0; padding: 0 24px 40px; font-size: 12px; color: #8e8e93; line-height: 1.6; }
+  </style>
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav class="nav">
+    <a class="nav-brand" href="../index.html">
+      <div class="nav-icon">&#x2696;&#xFE0F;</div>
+      <span class="nav-wordmark">JuraTools</span>
+    </a>
+    <span class="nav-sep">/</span>
+    <a class="nav-title" href="index.html" style="text-decoration:none;">Utilities</a>
+    <span class="nav-sep">/</span>
+    <span class="nav-title">Text to Speech</span>
+    <a class="nav-back" href="index.html">&#x2190; All utilities</a>
+  </nav>
+
+  <div class="page">
+
+    <div class="page-header">
+      <div class="page-badge">&#x1F50A; Text Utility &#x00B7; Uses your own Azure key</div>
+      <h1>Text to Speech</h1>
+      <div class="th">แปลงข้อความเป็นเสียงพูด</div>
+      <p>Paste or type text, pick a voice, and get back a downloadable speech file — powered by Azure AI Speech neural voices in Thai, English, and 140+ other languages.</p>
+      <div class="disclosure">
+        <span>&#x26A0;&#xFE0F;</span>
+        <div><b>The one exception to "nothing leaves the machine":</b> this tool needs a real text-to-speech engine, so it calls the Azure AI Speech REST API directly from your browser using an API key you supply. Your text and key are sent only to Microsoft Azure — never to any other server, and never stored anywhere but this browser (and only if you choose to remember them).</div>
+      </div>
+    </div>
+
+    <!-- Step 1: Azure resource -->
+    <div class="card">
+      <div class="card-title-bar"><span class="step-n">1</span><span class="card-title">Your Azure AI Speech resource</span></div>
+      <div class="card-body">
+        <div class="field">
+          <label for="apiKey">API key</label>
+          <div class="key-row">
+            <input type="password" id="apiKey" autocomplete="off" placeholder="Paste your Speech resource key" />
+            <button class="btn btn-secondary" id="toggleKeyBtn" type="button">Show</button>
+          </div>
+          <div class="hint">From the Azure Portal (Speech resource &#x2192; Keys and Endpoint) or an Azure AI Foundry Speech deployment.</div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="region">Region</label>
+            <select id="region">
+              <option value="southeastasia">Southeast Asia</option>
+              <option value="eastasia">East Asia</option>
+              <option value="eastus">East US</option>
+              <option value="eastus2">East US 2</option>
+              <option value="westus">West US</option>
+              <option value="westus2">West US 2</option>
+              <option value="westus3">West US 3</option>
+              <option value="centralus">Central US</option>
+              <option value="northeurope">North Europe</option>
+              <option value="westeurope">West Europe</option>
+              <option value="uksouth">UK South</option>
+              <option value="francecentral">France Central</option>
+              <option value="germanywestcentral">Germany West Central</option>
+              <option value="swedencentral">Sweden Central</option>
+              <option value="switzerlandnorth">Switzerland North</option>
+              <option value="norwayeast">Norway East</option>
+              <option value="australiaeast">Australia East</option>
+              <option value="japaneast">Japan East</option>
+              <option value="japanwest">Japan West</option>
+              <option value="koreacentral">Korea Central</option>
+              <option value="centralindia">Central India</option>
+              <option value="canadacentral">Canada Central</option>
+              <option value="brazilsouth">Brazil South</option>
+              <option value="uaenorth">UAE North</option>
+              <option value="southafricanorth">South Africa North</option>
+              <option value="custom">Custom endpoint&#x2026;</option>
+            </select>
+          </div>
+          <div class="field" id="customEndpointField" style="display:none;">
+            <label for="customEndpoint">Custom endpoint base URL</label>
+            <input type="text" id="customEndpoint" placeholder="https://your-resource.cognitiveservices.azure.com" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="checkbox-row"><input type="checkbox" id="rememberKey" /> Remember key &amp; settings on this device (stored in this browser&#x2019;s local storage)</label>
+          <div class="hint">Unchecked: kept only for this browser tab and cleared when you close it.</div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-secondary" id="fetchVoicesBtn" type="button">Load full voice list from Azure</button>
+          <button class="btn btn-secondary" id="forgetBtn" type="button">Forget saved key</button>
+        </div>
+        <div class="status-line" id="voiceFetchStatus"></div>
+      </div>
+    </div>
+
+    <!-- Step 2: Voice & delivery -->
+    <div class="card">
+      <div class="card-title-bar"><span class="step-n">2</span><span class="card-title">Voice &amp; delivery</span></div>
+      <div class="card-body">
+        <div class="field">
+          <label for="voiceSelect">Voice</label>
+          <select id="voiceSelect"></select>
+          <div class="hint">Thai and English neural voices are listed by default &#x2014; load the full Azure list above for every locale.</div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="rateSlider">Speaking rate</label>
+            <div class="slider-row">
+              <input type="range" id="rateSlider" min="-50" max="50" step="5" value="0" />
+              <span class="slider-val" id="rateVal">+0%</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="pitchSlider">Pitch</label>
+            <div class="slider-row">
+              <input type="range" id="pitchSlider" min="-50" max="50" step="5" value="0" />
+              <span class="slider-val" id="pitchVal">+0%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="formatSelect">Output format</label>
+          <select id="formatSelect">
+            <option value="audio-24khz-48kbitrate-mono-mp3">MP3 &#x2014; standard quality (48 kbps)</option>
+            <option value="audio-24khz-96kbitrate-mono-mp3">MP3 &#x2014; high quality (96 kbps)</option>
+            <option value="audio-48khz-192kbitrate-mono-mp3">MP3 &#x2014; very high quality (192 kbps)</option>
+            <option value="riff-24khz-16bit-mono-pcm">WAV &#x2014; uncompressed (24 kHz, 16-bit)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Text -->
+    <div class="card">
+      <div class="card-title-bar"><span class="step-n">3</span><span class="card-title">Text</span></div>
+      <div class="card-body">
+        <div class="field">
+          <label for="ttsText">What should it say?</label>
+          <textarea id="ttsText" placeholder="Type or paste the text to speak&#x2026;" spellcheck="false"></textarea>
+          <div class="meta-row">
+            <span id="charCount">0 characters</span>
+            <span id="chunkNote"></span>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" id="loadExampleBtn" type="button">Load example</button>
+          <div class="spacer"></div>
+          <button class="btn btn-danger" id="clearTextBtn" type="button">Clear text</button>
+          <button class="btn btn-primary" id="generateBtn" type="button" disabled>Generate speech</button>
+        </div>
+        <div class="status-line" id="genProgress"></div>
+        <div class="callout callout-red hidden" id="errorCallout"></div>
+      </div>
+    </div>
+
+    <!-- Step 4: Result -->
+    <div class="card" id="resultCard" style="display:none;">
+      <div class="card-title-bar"><span class="step-n">4</span><span class="card-title">Result</span></div>
+      <div class="card-body">
+        <audio id="audioPlayer" controls></audio>
+        <div class="btn-row">
+          <a class="btn btn-primary" id="downloadBtn" download>Download speech file</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-info">
+      <span>&#x2139;&#xFE0F;</span>
+      <div>Long text is split into multiple Azure requests at sentence boundaries and stitched back into one file automatically &#x2014; the chunk count above the text box shows how many calls that will take.</div>
+    </div>
+
+  </div>
+
+  <footer>
+    Calls the Azure AI Speech text-to-speech REST API with the key and region you provide.
+    Reference tool only — not legal advice. Everything else runs entirely in your browser.
+  </footer>
+
+  <script>
+  (function () {
+    'use strict';
+
+    var KEY = 'ttsAzure_v1';
+
+    // ── Elements ──────────────────────────────────────────
+    var apiKeyEl        = document.getElementById('apiKey');
+    var toggleKeyBtn    = document.getElementById('toggleKeyBtn');
+    var regionEl        = document.getElementById('region');
+    var customEndpointField = document.getElementById('customEndpointField');
+    var customEndpointEl    = document.getElementById('customEndpoint');
+    var rememberKeyEl   = document.getElementById('rememberKey');
+    var fetchVoicesBtn  = document.getElementById('fetchVoicesBtn');
+    var forgetBtn       = document.getElementById('forgetBtn');
+    var voiceFetchStatus = document.getElementById('voiceFetchStatus');
+
+    var voiceSelect     = document.getElementById('voiceSelect');
+    var rateSlider       = document.getElementById('rateSlider');
+    var rateVal          = document.getElementById('rateVal');
+    var pitchSlider      = document.getElementById('pitchSlider');
+    var pitchVal         = document.getElementById('pitchVal');
+    var formatSelect     = document.getElementById('formatSelect');
+
+    var ttsText          = document.getElementById('ttsText');
+    var charCount        = document.getElementById('charCount');
+    var chunkNote         = document.getElementById('chunkNote');
+    var loadExampleBtn    = document.getElementById('loadExampleBtn');
+    var clearTextBtn      = document.getElementById('clearTextBtn');
+    var generateBtn       = document.getElementById('generateBtn');
+    var genProgress        = document.getElementById('genProgress');
+    var errorCallout        = document.getElementById('errorCallout');
+
+    var resultCard         = document.getElementById('resultCard');
+    var audioPlayer         = document.getElementById('audioPlayer');
+    var downloadBtn          = document.getElementById('downloadBtn');
+
+    var MAX_CHUNK = 1500;
+    var currentBlobUrl = null;
+
+    // ── Default curated voice list (before "Load full voice list") ──
+    var DEFAULT_VOICES = [
+      { locale: 'th-TH', shortName: 'th-TH-PremwadeeNeural', label: 'Premwadee (Female)' },
+      { locale: 'th-TH', shortName: 'th-TH-NiwatNeural',      label: 'Niwat (Male)' },
+      { locale: 'th-TH', shortName: 'th-TH-AcharaNeural',     label: 'Achara (Female)' },
+      { locale: 'en-US', shortName: 'en-US-AvaMultilingualNeural',    label: 'Ava — Multilingual (Female)' },
+      { locale: 'en-US', shortName: 'en-US-AndrewMultilingualNeural', label: 'Andrew — Multilingual (Male)' },
+      { locale: 'en-US', shortName: 'en-US-JennyNeural', label: 'Jenny (Female)' },
+      { locale: 'en-US', shortName: 'en-US-GuyNeural',   label: 'Guy (Male)' },
+      { locale: 'en-GB', shortName: 'en-GB-SoniaNeural', label: 'Sonia (Female)' },
+      { locale: 'en-GB', shortName: 'en-GB-RyanNeural',  label: 'Ryan (Male)' }
+    ];
+
+    function populateDefaultVoices() {
+      var byLocale = {};
+      DEFAULT_VOICES.forEach(function (v) {
+        (byLocale[v.locale] = byLocale[v.locale] || []).push(v);
+      });
+      voiceSelect.innerHTML = '';
+      Object.keys(byLocale).forEach(function (loc) {
+        var grp = document.createElement('optgroup');
+        grp.label = loc;
+        byLocale[loc].forEach(function (v) {
+          var opt = document.createElement('option');
+          opt.value = v.shortName;
+          opt.setAttribute('data-locale', v.locale);
+          opt.textContent = v.label;
+          grp.appendChild(opt);
+        });
+        voiceSelect.appendChild(grp);
+      });
+    }
+
+    // ── State persistence ─────────────────────────────────
+    function save() {
+      var remember = rememberKeyEl.checked;
+      var state = {
+        region: regionEl.value,
+        customEndpoint: customEndpointEl.value,
+        voice: voiceSelect.value,
+        rate: rateSlider.value,
+        pitch: pitchSlider.value,
+        format: formatSelect.value,
+        remember: remember
+      };
+      try {
+        if (remember) {
+          state.apiKey = apiKeyEl.value;
+          localStorage.setItem(KEY, JSON.stringify(state));
+          sessionStorage.removeItem(KEY);
+        } else {
+          sessionStorage.setItem(KEY, JSON.stringify(Object.assign({}, state, { apiKey: apiKeyEl.value })));
+          localStorage.removeItem(KEY);
+        }
+      } catch (e) {}
+    }
+
+    function load() {
+      var st = null;
+      try {
+        st = JSON.parse(localStorage.getItem(KEY) || 'null') || JSON.parse(sessionStorage.getItem(KEY) || 'null');
+      } catch (e) {}
+      if (!st) return;
+      if (st.region) regionEl.value = st.region;
+      if (st.customEndpoint) customEndpointEl.value = st.customEndpoint;
+      if (st.rate != null) rateSlider.value = st.rate;
+      if (st.pitch != null) pitchSlider.value = st.pitch;
+      if (st.format) formatSelect.value = st.format;
+      if (st.remember) rememberKeyEl.checked = true;
+      if (st.apiKey) apiKeyEl.value = st.apiKey;
+      updateCustomEndpointVisibility();
+      if (st.voice) {
+        // voice option may not exist yet in the default list; try after populate
+        setTimeout(function () { voiceSelect.value = st.voice; }, 0);
+      }
+    }
+
+    // ── Helpers ───────────────────────────────────────────
+    function esc(s) {
+      return String(s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+    }
+
+    function getBaseUrl() {
+      var custom = customEndpointEl.value.trim();
+      if (regionEl.value === 'custom' && custom) return custom.replace(/\/+$/, '');
+      return 'https://' + regionEl.value + '.tts.speech.microsoft.com';
+    }
+
+    function updateCustomEndpointVisibility() {
+      customEndpointField.style.display = regionEl.value === 'custom' ? '' : 'none';
+    }
+
+    function showError(msg) {
+      errorCallout.textContent = msg;
+      errorCallout.classList.remove('hidden');
+    }
+    function hideError() { errorCallout.classList.add('hidden'); }
+
+    function setProgress(msg) { genProgress.textContent = msg || ''; }
+
+    function showVoiceStatus(msg, isErr) {
+      voiceFetchStatus.textContent = msg;
+      voiceFetchStatus.className = 'status-line' + (isErr ? ' err' : ' ok');
+    }
+
+    function updateGenerateEnabled() {
+      generateBtn.disabled = !(apiKeyEl.value.trim() && ttsText.value.trim());
+    }
+
+    function updateCharCount() {
+      var n = ttsText.value.length;
+      charCount.textContent = n.toLocaleString() + ' character' + (n === 1 ? '' : 's');
+      if (n === 0) { chunkNote.textContent = ''; return; }
+      var chunks = chunkText(ttsText.value, MAX_CHUNK);
+      chunkNote.textContent = chunks.length + ' request' + (chunks.length === 1 ? '' : 's') + ' to Azure';
+    }
+
+    // ── Sentence-aware chunking ───────────────────────────
+    function splitSentences(str) {
+      var parts = str.match(/[^.!?\n]+[.!?\n]*/g);
+      return parts || [str];
+    }
+
+    function chunkText(text, max) {
+      var sentences = splitSentences(text);
+      var chunks = [];
+      var cur = '';
+      sentences.forEach(function (s) {
+        if (s.length > max) {
+          if (cur) { chunks.push(cur); cur = ''; }
+          for (var i = 0; i < s.length; i += max) chunks.push(s.slice(i, i + max));
+          return;
+        }
+        if ((cur + s).length > max) {
+          if (cur) chunks.push(cur);
+          cur = s;
+        } else {
+          cur += s;
+        }
+      });
+      if (cur) chunks.push(cur);
+      return chunks.filter(function (c) { return c.trim().length > 0; });
+    }
+
+    // ── SSML + synthesis ──────────────────────────────────
+    function buildSsml(text, voiceName, locale, rate, pitch) {
+      var r = (Number(rate) >= 0 ? '+' : '') + rate + '%';
+      var p = (Number(pitch) >= 0 ? '+' : '') + pitch + '%';
+      return '<speak version="1.0" xml:lang="' + esc(locale) + '" xmlns="http://www.w3.org/2001/10/synthesis">' +
+             '<voice name="' + esc(voiceName) + '">' +
+             '<prosody rate="' + r + '" pitch="' + p + '">' + esc(text) + '</prosody>' +
+             '</voice></speak>';
+    }
+
+    function synthesizeChunk(text, voiceName, locale, format, rate, pitch, key) {
+      var ssml = buildSsml(text, voiceName, locale, rate, pitch);
+      return fetch(getBaseUrl() + '/cognitiveservices/v1', {
+        method: 'POST',
+        headers: {
+          'Ocp-Apim-Subscription-Key': key,
+          'Content-Type': 'application/ssml+xml',
+          'X-Microsoft-OutputFormat': format
+        },
+        body: ssml
+      }).then(function (res) {
+        if (!res.ok) {
+          return res.text().then(function (t) {
+            throw new Error('Azure returned ' + res.status + ' ' + res.statusText + (t ? (' — ' + t.slice(0, 300)) : ''));
+          });
+        }
+        return res.arrayBuffer();
+      }).then(function (buf) { return new Uint8Array(buf); });
+    }
+
+    function concatBuffers(arrs) {
+      var total = arrs.reduce(function (s, a) { return s + a.length; }, 0);
+      var out = new Uint8Array(total);
+      var offset = 0;
+      arrs.forEach(function (a) { out.set(a, offset); offset += a.length; });
+      return out;
+    }
+
+    // ── WAV chunk merging (parses RIFF/data, rebuilds one header) ──
+    function parseWav(u8) {
+      var buf = u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength);
+      var view = new DataView(buf);
+      var pos = 12;
+      var fmt = null, dataOffset = -1, dataLength = 0;
+      while (pos + 8 <= buf.byteLength) {
+        var id = String.fromCharCode(view.getUint8(pos), view.getUint8(pos + 1), view.getUint8(pos + 2), view.getUint8(pos + 3));
+        var size = view.getUint32(pos + 4, true);
+        if (id === 'fmt ') fmt = new Uint8Array(buf, pos + 8, size);
+        if (id === 'data') { dataOffset = pos + 8; dataLength = size; }
+        pos += 8 + size + (size % 2);
+      }
+      if (dataOffset < 0) throw new Error('Could not parse WAV audio returned by Azure.');
+      return { fmt: fmt, data: new Uint8Array(buf, dataOffset, dataLength) };
+    }
+
+    function mergeWav(buffers) {
+      var parts = buffers.map(parseWav);
+      var fmt = parts[0].fmt;
+      var fmtView = new DataView(fmt.buffer, fmt.byteOffset, fmt.byteLength);
+      var totalDataLen = parts.reduce(function (s, p) { return s + p.data.length; }, 0);
+      var header = new ArrayBuffer(44);
+      var dv = new DataView(header);
+      function writeStr(off, str) { for (var i = 0; i < str.length; i++) dv.setUint8(off + i, str.charCodeAt(i)); }
+      writeStr(0, 'RIFF'); dv.setUint32(4, 36 + totalDataLen, true); writeStr(8, 'WAVE');
+      writeStr(12, 'fmt '); dv.setUint32(16, 16, true);
+      dv.setUint16(20, fmtView.getUint16(0, true), true);
+      dv.setUint16(22, fmtView.getUint16(2, true), true);
+      dv.setUint32(24, fmtView.getUint32(4, true), true);
+      dv.setUint32(28, fmtView.getUint32(8, true), true);
+      dv.setUint16(32, fmtView.getUint16(12, true), true);
+      dv.setUint16(34, fmtView.getUint16(14, true), true);
+      writeStr(36, 'data'); dv.setUint32(40, totalDataLen, true);
+      var out = new Uint8Array(44 + totalDataLen);
+      out.set(new Uint8Array(header), 0);
+      var offset = 44;
+      parts.forEach(function (p) { out.set(p.data, offset); offset += p.data.length; });
+      return out;
+    }
+
+    function setResult(blob, ext) {
+      if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
+      currentBlobUrl = URL.createObjectURL(blob);
+      audioPlayer.src = currentBlobUrl;
+      downloadBtn.href = currentBlobUrl;
+      var stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      downloadBtn.setAttribute('download', 'speech-' + stamp + '.' + ext);
+      resultCard.style.display = '';
+      resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // ── Generate ──────────────────────────────────────────
+    async function generate() {
+      hideError();
+      var key = apiKeyEl.value.trim();
+      var text = ttsText.value.trim();
+      if (!key || !text) return;
+
+      var voiceOpt = voiceSelect.selectedOptions[0];
+      if (!voiceOpt) { showError('Choose a voice.'); return; }
+      var voiceName = voiceOpt.value;
+      var locale = voiceOpt.getAttribute('data-locale') || 'en-US';
+      var format = formatSelect.value;
+      var isWav = format.indexOf('riff') === 0;
+      var rate = rateSlider.value, pitch = pitchSlider.value;
+
+      var chunks = chunkText(text, MAX_CHUNK);
+      generateBtn.disabled = true;
+      var buffers = [];
+      try {
+        for (var i = 0; i < chunks.length; i++) {
+          setProgress('Synthesizing part ' + (i + 1) + ' of ' + chunks.length + '…');
+          var buf = await synthesizeChunk(chunks[i], voiceName, locale, format, rate, pitch, key);
+          buffers.push(buf);
+        }
+        setProgress(chunks.length > 1 ? 'Combining audio…' : '');
+        var finalBytes = isWav ? mergeWav(buffers) : concatBuffers(buffers);
+        var mime = isWav ? 'audio/wav' : 'audio/mpeg';
+        setResult(new Blob([finalBytes], { type: mime }), isWav ? 'wav' : 'mp3');
+        setProgress('Done.');
+      } catch (err) {
+        showError((err && err.message) || 'Speech synthesis failed.');
+        setProgress('');
+      } finally {
+        updateGenerateEnabled();
+      }
+    }
+
+    // ── Fetch full voice list ─────────────────────────────
+    async function fetchVoices() {
+      var key = apiKeyEl.value.trim();
+      if (!key) { showVoiceStatus('Enter your API key first.', true); return; }
+      showVoiceStatus('Loading voices…', false);
+      try {
+        var res = await fetch(getBaseUrl() + '/cognitiveservices/voices/list', {
+          headers: { 'Ocp-Apim-Subscription-Key': key }
+        });
+        if (!res.ok) throw new Error('Azure returned ' + res.status + ' ' + res.statusText);
+        var voices = await res.json();
+        populateVoiceSelect(voices);
+        showVoiceStatus(voices.length + ' voices loaded.', false);
+      } catch (err) {
+        showVoiceStatus('Could not load voices — check your key and region (or your browser blocked the request). ' + ((err && err.message) || ''), true);
+      }
+    }
+
+    function populateVoiceSelect(voices) {
+      var byLocale = {};
+      voices.forEach(function (v) {
+        if (v.VoiceType && v.VoiceType !== 'Neural') return;
+        (byLocale[v.Locale] = byLocale[v.Locale] || []).push(v);
+      });
+      var locales = Object.keys(byLocale).sort(function (a, b) {
+        var pa = a === 'th-TH' ? 0 : a.indexOf('en-') === 0 ? 1 : 2;
+        var pb = b === 'th-TH' ? 0 : b.indexOf('en-') === 0 ? 1 : 2;
+        if (pa !== pb) return pa - pb;
+        return a.localeCompare(b);
+      });
+      voiceSelect.innerHTML = '';
+      locales.forEach(function (loc) {
+        var grp = document.createElement('optgroup');
+        grp.label = loc;
+        byLocale[loc]
+          .sort(function (a, b) { return a.DisplayName.localeCompare(b.DisplayName); })
+          .forEach(function (v) {
+            var opt = document.createElement('option');
+            opt.value = v.ShortName;
+            opt.setAttribute('data-locale', v.Locale);
+            var extra = v.LocalName && v.LocalName !== v.DisplayName ? ' — ' + v.LocalName : '';
+            opt.textContent = v.DisplayName + ' (' + v.Gender + ')' + extra;
+            grp.appendChild(opt);
+          });
+        voiceSelect.appendChild(grp);
+      });
+    }
+
+    // ── Wiring ────────────────────────────────────────────
+    toggleKeyBtn.addEventListener('click', function () {
+      var show = apiKeyEl.type === 'password';
+      apiKeyEl.type = show ? 'text' : 'password';
+      toggleKeyBtn.textContent = show ? 'Hide' : 'Show';
+    });
+
+    regionEl.addEventListener('change', function () { updateCustomEndpointVisibility(); save(); });
+    customEndpointEl.addEventListener('input', save);
+    rememberKeyEl.addEventListener('change', save);
+    apiKeyEl.addEventListener('input', function () { updateGenerateEnabled(); save(); });
+
+    voiceSelect.addEventListener('change', save);
+    formatSelect.addEventListener('change', save);
+
+    rateSlider.addEventListener('input', function () {
+      var v = Number(rateSlider.value);
+      rateVal.textContent = (v >= 0 ? '+' : '') + v + '%';
+      save();
+    });
+    pitchSlider.addEventListener('input', function () {
+      var v = Number(pitchSlider.value);
+      pitchVal.textContent = (v >= 0 ? '+' : '') + v + '%';
+      save();
+    });
+
+    ttsText.addEventListener('input', function () {
+      updateCharCount();
+      updateGenerateEnabled();
+    });
+
+    loadExampleBtn.addEventListener('click', function () {
+      ttsText.value = 'สัญญาฉบับนี้จัดทำขึ้นโดยมีเจตนาให้มีผลผูกพันตามกฎหมายระหว่างคู่สัญญาทั้งสองฝ่าย. This agreement is intended to be legally binding on both parties.';
+      updateCharCount();
+      updateGenerateEnabled();
+    });
+
+    clearTextBtn.addEventListener('click', function () {
+      ttsText.value = '';
+      updateCharCount();
+      updateGenerateEnabled();
+    });
+
+    forgetBtn.addEventListener('click', function () {
+      try { localStorage.removeItem(KEY); sessionStorage.removeItem(KEY); } catch (e) {}
+      apiKeyEl.value = '';
+      rememberKeyEl.checked = false;
+      updateGenerateEnabled();
+      showVoiceStatus('Saved key and settings cleared from this browser.', false);
+    });
+
+    fetchVoicesBtn.addEventListener('click', fetchVoices);
+    generateBtn.addEventListener('click', generate);
+
+    // ── Init ──────────────────────────────────────────────
+    populateDefaultVoices();
+    load();
+    updateCustomEndpointVisibility();
+    updateCharCount();
+    updateGenerateEnabled();
+  })();
+  </script>
+</body>
+</html>
