@@ -1,0 +1,815 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Temperature Mixer &amp; Cooling Time | JuraTools</title>
+<meta name="description" content="Calculate how much hot/cold liquid or ice to mix to hit a target volume and temperature, and how long an item takes to cool in the fridge or freezer — calibrated from your own measurement, not a guess. By Kornrawee Chanchom." />
+<style>
+  :root {
+    --ink: #1c1c1e; --ink-2: #3c3c43; --muted: #6e6e73; --faint: #aeaeb2;
+    --line: rgba(0,0,0,0.08); --line-soft: rgba(0,0,0,0.05);
+    --teal: #0d9488; --teal-dark: #0f766e; --teal-light: #f0fdfa; --teal-border: #99f6e4;
+    --green: #15803d; --green-light: #f0fdf4; --green-border: #bbf7d0;
+    --info: #0369a1; --info-light: #f0f9ff; --info-border: #bae6fd;
+    --amber: #b45309; --amber-light: #fffbeb; --amber-border: #fde68a;
+    --red: #dc2626; --red-light: #fef2f2; --red-border: #fecaca;
+    --card-bg: rgba(255,255,255,0.82);
+    --radius: 16px; --radius-sm: 10px;
+    --shadow: 0 1px 1px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06);
+    --maxw: 860px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; color: var(--ink); line-height: 1.45;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", "Noto Sans Thai", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    background: #f2f2f7;
+    background-image:
+      radial-gradient(ellipse 1100px 700px at 10% 0%,   rgba(153,246,228,0.5)  0%, transparent 60%),
+      radial-gradient(ellipse  700px 700px at 95% 8%,   rgba(191,219,254,0.4)  0%, transparent 55%),
+      radial-gradient(ellipse  800px 600px at 0%  92%,  rgba(254,215,170,0.3)  0%, transparent 55%),
+      radial-gradient(ellipse  900px 500px at 100% 96%, rgba(218,205,255,0.25) 0%, transparent 55%);
+  }
+  button, input, select, textarea { font: inherit; }
+  a { color: var(--teal); }
+  h1, h2, h3, p { margin-top: 0; }
+  .muted { color: var(--muted); }
+
+  .nav {
+    position: sticky; top: 0; z-index: 200; height: 52px;
+    display: flex; align-items: center; gap: 11px; padding: 0 22px;
+    background: rgba(242,242,247,0.82);
+    backdrop-filter: blur(24px) saturate(200%);
+    -webkit-backdrop-filter: blur(24px) saturate(200%);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav a { text-decoration: none; color: inherit; }
+  .nav-brand { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+  .nav-icon {
+    width: 30px; height: 30px; border-radius: 7px;
+    background: linear-gradient(145deg, #2979ff, #1565c0);
+    display: grid; place-items: center; font-size: 15px;
+    box-shadow: 0 2px 6px rgba(41,121,255,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+  }
+  .nav-wordmark { font-size: 15px; font-weight: 700; letter-spacing: -0.4px; color: var(--ink); }
+  .nav-sep { color: #c7c7cc; font-size: 14px; }
+  .nav-crumb { font-size: 14px; font-weight: 500; color: var(--muted); }
+  .nav-crumb.current { color: var(--ink); font-weight: 600; }
+  .nav-back {
+    margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+    font-size: 13px; font-weight: 500; color: var(--ink-2);
+    background: rgba(0,0,0,0.055); border: 1px solid rgba(0,0,0,0.1);
+    padding: 6px 12px; border-radius: 9px; transition: background .14s;
+  }
+  .nav-back:hover { background: rgba(0,0,0,0.09); }
+
+  .hero { width: min(var(--maxw), calc(100% - 32px)); margin: 0 auto; padding: 30px 0 8px; }
+  .hero h1 {
+    font-size: clamp(26px, 3.6vw, 34px); font-weight: 800; letter-spacing: -1px; line-height: 1.12;
+    background: linear-gradient(135deg, #1c1c1e 0%, #0d9488 55%, #2979ff 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    margin-bottom: 6px;
+  }
+  .hero .th { font-size: 13px; color: var(--faint); margin-bottom: 6px; }
+  .hero .sub { font-size: 14px; color: var(--muted); line-height: 1.5; max-width: 720px; }
+
+  .wrap { width: min(var(--maxw), calc(100% - 32px)); margin: 16px auto 40px; }
+
+  .top-toggle { display: flex; gap: 8px; margin-bottom: 16px; }
+  .top-btn {
+    flex: 1; padding: 14px 12px; text-align: center; cursor: pointer;
+    background: var(--card-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.9); border-radius: var(--radius);
+    box-shadow: var(--shadow); transition: box-shadow .15s, transform .15s;
+  }
+  .top-btn .ic { font-size: 20px; }
+  .top-btn .tt { display: block; font-size: 14.5px; font-weight: 700; margin-top: 4px; }
+  .top-btn .st { display: block; font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+  .top-btn.active { box-shadow: 0 0 0 2px var(--teal), var(--shadow); }
+  .top-btn.active .tt { color: var(--teal-dark); }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .card {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.9);
+    border-radius: var(--radius); padding: 22px;
+    box-shadow: var(--shadow); margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 13px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.05em; color: var(--muted); margin-bottom: 14px;
+  }
+  label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 5px; }
+  .hint { font-size: 12px; color: var(--muted); font-weight: 400; }
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .field-row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  @media (max-width: 560px) { .field-row, .field-row3 { grid-template-columns: 1fr; } }
+  input[type="text"], select {
+    width: 100%; padding: 9px 11px;
+    border: 1px solid var(--line); border-radius: 8px;
+    font-size: 15px; background: #fff; color: var(--ink);
+    outline: none; transition: border-color .15s, box-shadow .15s;
+    font-variant-numeric: tabular-nums;
+  }
+  input:focus, select:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(13,148,136,0.12); }
+  .field-note { font-size: 12px; color: var(--muted); line-height: 1.5; margin-top: 6px; }
+
+  .mode-toggle { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: #fff; }
+  .mode-btn {
+    flex: 1; padding: 9px 8px; text-align: center; font-size: 13px; font-weight: 600;
+    cursor: pointer; background: transparent; border: none; color: var(--muted);
+    transition: background 0.15s, color 0.15s; line-height: 1.35;
+  }
+  .mode-btn.active { background: var(--teal); color: #fff; }
+
+  .callout { border-radius: 8px; padding: 10px 14px; font-size: 13px; line-height: 1.5; border: 1px solid; margin-top: 14px; }
+  .callout-amber { background: var(--amber-light); border-color: var(--amber-border); color: var(--amber); }
+  .callout-info  { background: var(--info-light);  border-color: var(--info-border);  color: var(--info); }
+  .callout-green { background: var(--green-light); border-color: var(--green-border); color: var(--green); }
+  .callout-red   { background: var(--red-light);   border-color: var(--red-border);   color: var(--red); }
+  .callout strong { font-weight: 700; }
+
+  .result-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 4px; }
+  @media (max-width: 520px) { .result-cards { grid-template-columns: 1fr; } }
+  .amount-box { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .amount-label { font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; }
+  .amount-value { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; margin-top: 3px; color: var(--ink); }
+  .amount-value.teal { color: var(--teal-dark); }
+
+  table.data { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }
+  table.data th, table.data td { text-align: right; padding: 7px 9px; border-bottom: 1px solid var(--line-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  table.data th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); font-weight: 600; }
+  table.data th:first-child, table.data td:first-child { text-align: left; font-weight: 600; }
+  table.data tr.total td { border-top: 2px solid var(--ink); font-weight: 700; }
+
+  .chk-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: end; margin-bottom: 8px; }
+  @media (max-width: 480px) { .chk-row { grid-template-columns: 1fr 1fr; } .chk-row .chk-rm { grid-column: 1 / -1; } }
+  .chk-rm {
+    border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--muted);
+    padding: 9px 12px; font-size: 13px; cursor: pointer; transition: border-color .14s, color .14s;
+  }
+  .chk-rm:hover { border-color: var(--red); color: var(--red); }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: #fff; border: 1px solid var(--line); border-radius: 8px;
+    padding: 8px 15px; font-size: 13px; font-weight: 500;
+    cursor: pointer; color: var(--ink-2); transition: background 0.14s, border-color 0.14s, color .14s;
+  }
+  .btn:hover { border-color: var(--teal); color: var(--teal-dark); }
+  .btn-primary { background: var(--teal); border-color: var(--teal); color: #fff; }
+  .btn-primary:hover { background: var(--teal-dark); border-color: var(--teal-dark); color: #fff; }
+
+  details.rules { font-size: 13px; }
+  details.rules summary { cursor: pointer; font-weight: 600; color: var(--ink-2); list-style: none; }
+  details.rules summary::-webkit-details-marker { display: none; }
+  details.rules summary::before { content: "▸ "; color: var(--teal); }
+  details.rules[open] summary::before { content: "▾ "; }
+  details.rules .body { margin-top: 10px; color: var(--muted); line-height: 1.6; }
+  details.rules .body p { margin: 0 0 8px; }
+  details.rules .body p:last-child { margin-bottom: 0; }
+  details.rules code { background: rgba(0,0,0,0.05); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+
+  .hidden { display: none !important; }
+
+  footer {
+    width: min(var(--maxw), calc(100% - 32px)); margin: 24px auto 32px;
+    font-size: 12px; color: var(--faint); text-align: center; line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-brand" href="../index.html">
+    <div class="nav-icon">⚖️</div>
+    <span class="nav-wordmark">JuraTools</span>
+  </a>
+  <span class="nav-sep">/</span>
+  <a class="nav-crumb" href="index.html">Utilities</a>
+  <span class="nav-sep">/</span>
+  <span class="nav-crumb current">Temperature Mixer &amp; Cooling Time</span>
+  <a class="nav-back" href="index.html">← All tools</a>
+</nav>
+
+<div class="hero">
+  <h1>Temperature Mixer &amp; Cooling Time</h1>
+  <div class="th">ผสมของเหลวให้ได้อุณหภูมิที่ต้องการ · คำนวณเวลาแช่เย็น</div>
+  <p class="sub">Two calculators built on real physics: energy-balance mixing (calorimetry) to hit a target volume and temperature with hot/cold liquid or ice, and Newton's law of cooling — calibrated from one measurement of your own fridge or freezer, not a generic guess.</p>
+</div>
+
+<div class="wrap">
+
+  <div class="top-toggle">
+    <div class="top-btn active" data-top="mix">
+      <span class="ic">🥤</span>
+      <span class="tt">Mix to a target</span>
+      <span class="st">Hot + cold, or liquid + ice</span>
+    </div>
+    <div class="top-btn" data-top="cool">
+      <span class="ic">🧊</span>
+      <span class="tt">Cooling time</span>
+      <span class="st">Fridge or freezer, calibrated</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════ PANEL: MIX ══════════════════ -->
+  <div class="panel active" id="panel-mix">
+
+    <div class="card">
+      <div class="card-title">1 · What are you mixing?</div>
+      <div class="mode-toggle" id="mixModeToggle">
+        <button class="mode-btn active" data-mixmode="two">Two liquids</button>
+        <button class="mode-btn" data-mixmode="ice">Liquid + ice</button>
+      </div>
+    </div>
+
+    <!-- ── Two liquids ── -->
+    <div id="mix-two">
+      <div class="card">
+        <div class="card-title">2 · Target</div>
+        <div class="field-row">
+          <div class="field">
+            <label for="tw-vol">Target volume (ml)</label>
+            <input type="text" inputmode="decimal" id="tw-vol" value="500" autocomplete="off" spellcheck="false" />
+          </div>
+          <div class="field">
+            <label for="tw-temp">Target temperature (°C)</label>
+            <input type="text" inputmode="decimal" id="tw-temp" value="40" autocomplete="off" spellcheck="false" />
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">3 · The two liquids</div>
+        <div class="field-row">
+          <div class="field">
+            <label for="tw-a-type">Liquid A · type</label>
+            <select id="tw-a-type"></select>
+          </div>
+          <div class="field">
+            <label for="tw-a-temp">Liquid A · temperature (°C)</label>
+            <input type="text" inputmode="decimal" id="tw-a-temp" value="90" autocomplete="off" spellcheck="false" />
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="tw-b-type">Liquid B · type</label>
+            <select id="tw-b-type"></select>
+          </div>
+          <div class="field">
+            <label for="tw-b-temp">Liquid B · temperature (°C)</label>
+            <input type="text" inputmode="decimal" id="tw-b-temp" value="25" autocomplete="off" spellcheck="false" />
+          </div>
+        </div>
+        <div class="field-note">Different liquid types use their own specific heat, so equal volumes of two different liquids don't necessarily average to the midpoint temperature. All liquids are assumed to have a density of ≈1 g/ml, so 1 ml ≈ 1 g.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Result</div>
+        <div id="tw-result"></div>
+      </div>
+
+      <div class="card">
+        <details class="rules">
+          <summary>The physics</summary>
+          <div class="body">
+            <p>Heat lost by the hotter portion equals heat gained by the cooler one. For two liquids A and B combining to volume <code>V</code> at target temperature <code>T</code>:</p>
+            <p><code>V_A = V · c_B·(T − T_B) / [c_A·(T_A − T) − c_B·(T_B − T)]</code>, then <code>V_B = V − V_A</code>.</p>
+            <p>When both liquids share the same specific heat (e.g. two water-based liquids), this reduces to the simple volume-weighted average <code>V_A = V·(T − T_B)/(T_A − T_B)</code>.</p>
+            <p><strong>Not modelled:</strong> heat lost to the container or the air while pouring, and the ≈4% density change of water between 100 °C and 4 °C. Both are small next to typical rounding in real use.</p>
+          </div>
+        </details>
+      </div>
+    </div>
+
+    <!-- ── Liquid + ice ── -->
+    <div id="mix-ice" class="hidden">
+      <div class="card">
+        <div class="card-title">2 · Starting liquid</div>
+        <div class="field-row">
+          <div class="field">
+            <label for="ti-type">Liquid type</label>
+            <select id="ti-type"></select>
+          </div>
+          <div class="field">
+            <label for="ti-vol">Volume (ml)</label>
+            <input type="text" inputmode="decimal" id="ti-vol" value="300" autocomplete="off" spellcheck="false" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="ti-temp">Starting temperature (°C)</label>
+          <input type="text" inputmode="decimal" id="ti-temp" value="85" autocomplete="off" spellcheck="false" />
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">3 · Ice &amp; target</div>
+        <div class="field-row">
+          <div class="field">
+            <label for="ti-cube">Mass per ice cube (g)</label>
+            <input type="text" inputmode="decimal" id="ti-cube" value="30" autocomplete="off" spellcheck="false" />
+          </div>
+          <div class="field">
+            <label for="ti-icetemp">Ice temperature (°C)</label>
+            <input type="text" inputmode="decimal" id="ti-icetemp" value="-18" autocomplete="off" spellcheck="false" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="ti-target">Target temperature (°C)</label>
+          <input type="text" inputmode="decimal" id="ti-target" value="10" autocomplete="off" spellcheck="false" />
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Result</div>
+        <div id="ti-result"></div>
+      </div>
+
+      <div class="card">
+        <details class="rules">
+          <summary>The physics</summary>
+          <div class="body">
+            <p>Melting ice absorbs 334 J/g before it even starts warming as water (latent heat of fusion) — about as much energy as warming that same gram of water by 80 °C. The ice mass needed to bring <code>m</code> grams of liquid from <code>T_liq</code> down to a target <code>T</code> (with <code>T</code> above 0 °C) is:</p>
+            <p><code>m_ice = m·c_liq·(T_liq − T) / [c_ice·(0 − T_ice) + L_f + c_liq·T]</code></p>
+            <p>where <code>c_ice</code> ≈ 2.108 J/g°C and <code>L_f</code> = 334 J/g. The number of cubes is rounded <em>up</em> to a whole cube, so the check below shows the slightly cooler result whole cubes actually give you.</p>
+            <p><strong>Not modelled:</strong> the ice cube's own surface melting more slowly than this instant-mixing model assumes, and container heat loss.</p>
+          </div>
+        </details>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════ PANEL: COOL ══════════════════ -->
+  <div class="panel" id="panel-cool">
+
+    <div class="card">
+      <div class="card-title">1 · Temperatures</div>
+      <div class="field-row3">
+        <div class="field">
+          <label for="c-t0">Starting temperature (°C)</label>
+          <input type="text" inputmode="decimal" id="c-t0" value="25" autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="field">
+          <label for="c-tenv">Fridge / freezer temperature (°C)</label>
+          <input type="text" inputmode="decimal" id="c-tenv" value="4" autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="field">
+          <label for="c-target">Target temperature (°C)</label>
+          <input type="text" inputmode="decimal" id="c-target" value="8" autocomplete="off" spellcheck="false" />
+        </div>
+      </div>
+      <div class="field" style="margin-top:2px">
+        <label for="c-liquid">Contents (for the freezing calculation)</label>
+        <select id="c-liquid"></select>
+        <div class="field-note">Only affects the result when the target is below 0 °C, i.e. the item partly freezes.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">2 · How fast does it cool? (time constant τ)</div>
+      <div class="mode-toggle" id="tauModeToggle">
+        <button class="mode-btn active" data-taumode="calib">Calibrate from a measurement</button>
+        <button class="mode-btn" data-taumode="preset">Rough preset</button>
+      </div>
+
+      <div id="tau-calib" style="margin-top:14px">
+        <div class="field-note" style="margin-bottom:10px">Enter how many minutes after starting you checked, and what it read. One reading works; two or more are fit together for a steadier estimate.</div>
+        <div id="chk-rows"></div>
+        <button class="btn" id="chk-add" type="button">+ Add another reading</button>
+      </div>
+
+      <div id="tau-preset" class="hidden" style="margin-top:14px">
+        <div class="field">
+          <label for="c-preset">Container &amp; setting</label>
+          <select id="c-preset">
+            <option value="0.7">Thin glass or can, small (≈250–350 ml), fridge with fan circulation</option>
+            <option value="1.3" selected>Plastic or glass bottle, medium (≈500–600 ml), ordinary fridge, still air</option>
+            <option value="2.5">Plastic bottle, large (≈1.5 L), ordinary fridge</option>
+            <option value="0.9">Wide, shallow bowl or pan (large surface area), any fridge</option>
+            <option value="3.5">Pot of soup or stew, ≈2 L, ordinary fridge</option>
+          </select>
+        </div>
+        <div class="callout callout-amber"><strong>Ballpark only.</strong> The surface heat-transfer coefficient varies a lot with airflow, material and whether the lid is on — these presets can easily be off by 2×. Calibrate from one real measurement whenever you can.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Result</div>
+      <div id="cool-result"></div>
+    </div>
+
+    <div class="card">
+      <details class="rules">
+        <summary>The physics</summary>
+        <div class="body">
+          <p>Newton's law of cooling: the rate of heat loss is proportional to the temperature difference with the surroundings, giving exponential decay <code>T(t) = T_env + (T₀ − T_env)·e^(−t/τ)</code>. Solved for time to reach a target:</p>
+          <p><code>t = τ · ln[(T₀ − T_env) / (T_target − T_env)]</code></p>
+          <p>τ (the time constant) bundles the item's heat capacity and how easily heat leaves its surface — it's specific to a container, fridge and airflow, which is why calibrating from one real measurement beats a formula built from guessed numbers.</p>
+          <p>When the target is below 0 °C, three stages are chained: cooling to 0 °C at τ, a plateau while it freezes (<code>τ·(L_f/c) / (−T_env)</code> — independent of mass, since both mass terms cancel), then cooling on as ice at a scaled time constant <code>τ·(c_ice/c_liquid)</code>, using the same surface heat-transfer rate.</p>
+          <p><strong>Not modelled:</strong> the door being opened, a solid or thick item (its centre lags well behind its surface — this model assumes something thin or well-stirred), and the container's own heat capacity.</p>
+        </div>
+      </details>
+    </div>
+
+  </div>
+
+  <div class="actions-row" style="display:flex;gap:8px;justify-content:center;margin-top:4px">
+    <button class="btn" id="resetBtn" type="button">↺ Reset this calculator</button>
+  </div>
+
+</div>
+
+<footer>
+  Physics reference: energy-balance mixing (calorimetry) and Newton's law of cooling.<br>
+  Reference tool only — verify with a thermometer for anything temperature-sensitive. Runs entirely in your browser; nothing is sent anywhere.
+</footer>
+
+<script>
+'use strict';
+
+// ── Liquid types: approximate specific heat, J/(g·°C) ──
+var LIQUIDS = [
+  { id: 'water',  label: 'Water (default)',      c: 4.186 },
+  { id: 'coffee', label: 'Coffee / tea',          c: 4.15  },
+  { id: 'milk',   label: 'Milk',                  c: 3.90  },
+  { id: 'juice',  label: 'Juice',                 c: 3.85  },
+  { id: 'broth',  label: 'Broth / soup',          c: 3.95  },
+  { id: 'soda',   label: 'Soda / soft drink',     c: 4.00  },
+  { id: 'wine',   label: 'Wine / beer',           c: 4.00  }
+];
+var C_ICE = 2.108;   // J/(g·°C)
+var LF    = 334;     // J/g, latent heat of fusion
+
+var KEY = 'juratools.tempMixer.v1';
+
+function byId(id) { return document.getElementById(id); }
+function parseNum(v) {
+  if (v == null) return NaN;
+  var s = String(v).replace(/,/g, '').trim();
+  if (s === '' || s === '-') return NaN;
+  return parseFloat(s);
+}
+function fmt(n, dp) {
+  if (dp == null) dp = 1;
+  if (!isFinite(n)) return '—';
+  return n.toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp });
+}
+function fmtTime(minutes) {
+  if (!isFinite(minutes) || minutes < 0) return '—';
+  var h = Math.floor(minutes / 60), m = Math.round(minutes % 60);
+  if (m === 60) { h += 1; m = 0; }
+  if (h === 0) return m + ' min';
+  return h + ' h ' + (m ? m + ' min' : '');
+}
+function calloutHTML(kind, html) { return '<div class="callout callout-' + kind + '">' + html + '</div>'; }
+
+function fillLiquidSelects() {
+  var opts = LIQUIDS.map(function (l) { return '<option value="' + l.id + '">' + l.label + '</option>'; }).join('');
+  ['tw-a-type', 'tw-b-type', 'ti-type', 'c-liquid'].forEach(function (id) {
+    var el = byId(id);
+    el.innerHTML = opts;
+  });
+  byId('tw-b-type').value = 'water';
+}
+function liquidC(id) {
+  for (var i = 0; i < LIQUIDS.length; i++) if (LIQUIDS[i].id === id) return LIQUIDS[i].c;
+  return LIQUIDS[0].c;
+}
+
+// ── Persistence ──────────────────────────────────
+function save() {
+  try {
+    var S = {};
+    ['tw-vol','tw-temp','tw-a-type','tw-a-temp','tw-b-type','tw-b-temp',
+     'ti-type','ti-vol','ti-temp','ti-cube','ti-icetemp','ti-target',
+     'c-t0','c-tenv','c-target','c-liquid','c-preset'].forEach(function (id) {
+      S[id] = byId(id).value;
+    });
+    S.mixMode = document.querySelector('#mixModeToggle .mode-btn.active').getAttribute('data-mixmode');
+    S.tauMode = document.querySelector('#tauModeToggle .mode-btn.active').getAttribute('data-taumode');
+    S.top = document.querySelector('.top-btn.active').getAttribute('data-top');
+    S.checkpoints = readCheckpoints();
+    localStorage.setItem(KEY, JSON.stringify(S));
+  } catch (e) {}
+}
+function load() {
+  try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { return null; }
+}
+
+// ── Two liquids ──────────────────────────────────
+function solveTwoLiquids(V, T, TA, cA, TB, cB) {
+  var D = cA * (TA - T) - cB * (TB - T);
+  if (Math.abs(D) < 1e-9) return null;
+  var VA = V * cB * (T - TB) / D;
+  var VB = V - VA;
+  return { VA: VA, VB: VB };
+}
+function renderTwoLiquids() {
+  var V = parseNum(byId('tw-vol').value);
+  var T = parseNum(byId('tw-temp').value);
+  var TA = parseNum(byId('tw-a-temp').value);
+  var TB = parseNum(byId('tw-b-temp').value);
+  var cA = liquidC(byId('tw-a-type').value);
+  var cB = liquidC(byId('tw-b-type').value);
+  var out = byId('tw-result');
+
+  if (![V, T, TA, TB].every(isFinite) || V <= 0) {
+    out.innerHTML = calloutHTML('info', 'Enter a target volume, target temperature, and both liquid temperatures.');
+    return;
+  }
+  if (TA === TB) {
+    out.innerHTML = calloutHTML('amber', 'Both liquids are at the same temperature — there is no unique split; any combination gives the same result. Give the two liquids different temperatures.');
+    return;
+  }
+  var sol = solveTwoLiquids(V, T, TA, cA, TB, cB);
+  if (!sol) {
+    out.innerHTML = calloutHTML('amber', 'No solution — check the inputs.');
+    return;
+  }
+  var infeasible = sol.VA < -1e-6 || sol.VB < -1e-6;
+  var html = '<div class="result-cards">' +
+    '<div class="amount-box"><div class="amount-label">Liquid A</div><div class="amount-value teal">' + fmt(sol.VA, 0) + ' ml</div></div>' +
+    '<div class="amount-box"><div class="amount-label">Liquid B</div><div class="amount-value teal">' + fmt(sol.VB, 0) + ' ml</div></div>' +
+    '</div>';
+  if (infeasible) {
+    html += calloutHTML('red', '<strong>Not achievable.</strong> Target ' + fmt(T,1) + ' °C is outside the range these two liquids can reach at any mix ratio — it must lie between ' + fmt(TA,1) + ' °C and ' + fmt(TB,1) + ' °C.');
+  } else {
+    var VAr = Math.round(sol.VA), VBr = V - VAr;
+    var check = (VAr * cA * TA + VBr * cB * TB) / (VAr * cA + VBr * cB);
+    html += calloutHTML('green', 'Using whole millilitres (' + VAr + ' + ' + VBr + ' ml), the actual result is <strong>' + fmt(check, 2) + ' °C</strong> — a difference of ' + fmt(Math.abs(check - T), 2) + ' °C from target, from rounding alone.');
+  }
+  out.innerHTML = html;
+}
+
+// ── Liquid + ice ─────────────────────────────────
+function renderIce() {
+  var Vliq = parseNum(byId('ti-vol').value);
+  var Tliq = parseNum(byId('ti-temp').value);
+  var cLiq = liquidC(byId('ti-type').value);
+  var cube = parseNum(byId('ti-cube').value);
+  var Tice = parseNum(byId('ti-icetemp').value);
+  var Ttarget = parseNum(byId('ti-target').value);
+  var out = byId('ti-result');
+
+  if (![Vliq, Tliq, cube, Tice, Ttarget].every(isFinite) || Vliq <= 0 || cube <= 0) {
+    out.innerHTML = calloutHTML('info', 'Enter the starting liquid, the ice cube mass, and a target temperature.');
+    return;
+  }
+  if (Ttarget <= 0 || Ttarget >= Tliq) {
+    out.innerHTML = calloutHTML('amber', 'Target temperature must be above 0 °C (ice can’t cool it further without freezing the mix) and below the starting temperature (' + fmt(Tliq,1) + ' °C).');
+    return;
+  }
+  if (Tice > 0) {
+    out.innerHTML = calloutHTML('amber', 'Ice temperature should be at or below 0 °C.');
+    return;
+  }
+  var mLiq = Vliq; // density ≈ 1 g/ml
+  var denom = C_ICE * (-Tice) + LF + cLiq * Ttarget;
+  var mIce = mLiq * cLiq * (Tliq - Ttarget) / denom;
+  var cubes = Math.ceil(mIce / cube);
+  var mIceActual = cubes * cube;
+  var finalV = Vliq + mIceActual;
+  var Tfinal = (mLiq * cLiq * Tliq - mIceActual * (C_ICE * (-Tice) + LF)) / (cLiq * (mLiq + mIceActual));
+
+  var html = '<div class="result-cards">' +
+    '<div class="amount-box"><div class="amount-label">Ice needed</div><div class="amount-value teal">' + fmt(mIce, 0) + ' g</div></div>' +
+    '<div class="amount-box"><div class="amount-label">≈ whole cubes</div><div class="amount-value teal">' + cubes + '</div></div>' +
+    '</div>';
+  html += calloutHTML(Tfinal < -0.5 ? 'red' : 'green',
+    'With ' + cubes + ' whole cube' + (cubes === 1 ? '' : 's') + ' (' + fmt(mIceActual,0) + ' g), the mix comes to <strong>' + fmt(Tfinal, 1) + ' °C</strong> in about <strong>' + fmt(finalV, 0) + ' ml</strong>' +
+    (Tfinal < -0.5 ? ' — that’s more ice than the liquid can fully melt at this ratio; use fewer or larger cubes.' : '.'));
+  out.innerHTML = html;
+}
+
+// ── Cooling: checkpoints & τ ─────────────────────
+var checkpointCount = 0;
+function addCheckpointRow(t, T) {
+  checkpointCount++;
+  var id = checkpointCount;
+  var row = document.createElement('div');
+  row.className = 'chk-row';
+  row.setAttribute('data-chk', id);
+  row.innerHTML =
+    '<div class="field" style="margin-bottom:0"><label>Minutes after start</label>' +
+    '<input type="text" inputmode="decimal" class="chk-t" value="' + (t != null ? t : '') + '" autocomplete="off" /></div>' +
+    '<div class="field" style="margin-bottom:0"><label>Reading (°C)</label>' +
+    '<input type="text" inputmode="decimal" class="chk-T" value="' + (T != null ? T : '') + '" autocomplete="off" /></div>' +
+    '<button class="chk-rm" type="button" title="Remove">✕</button>';
+  byId('chk-rows').appendChild(row);
+}
+function readCheckpoints() {
+  var rows = byId('chk-rows').querySelectorAll('.chk-row');
+  var pts = [];
+  rows.forEach(function (r) {
+    var t = parseNum(r.querySelector('.chk-t').value);
+    var T = parseNum(r.querySelector('.chk-T').value);
+    if (isFinite(t) && isFinite(T) && t > 0) pts.push({ t: t, T: T });
+  });
+  return pts;
+}
+// τ in minutes. T0/Tenv in °C. points = [{t,T}] with t in minutes since start.
+function tauFromCheckpoints(T0, Tenv, points) {
+  var valid = points.filter(function (p) { return p.T > Tenv; });
+  if (valid.length === 0) return null;
+  if (valid.length === 1) {
+    var p = valid[0];
+    if (p.T >= T0) return null;
+    var ratio = (T0 - Tenv) / (p.T - Tenv);
+    if (ratio <= 1) return null;
+    return p.t / Math.log(ratio);
+  }
+  // Least squares on ln(T-Tenv) = ln(T0-Tenv) - t/τ, anchored with (0, T0)
+  var pts = [{ t: 0, T: T0 }].concat(valid);
+  var n = pts.length, sx = 0, sy = 0, sxy = 0, sxx = 0;
+  pts.forEach(function (p) {
+    var y = Math.log(p.T - Tenv);
+    sx += p.t; sy += y; sxy += p.t * y; sxx += p.t * p.t;
+  });
+  var denom = n * sxx - sx * sx;
+  if (Math.abs(denom) < 1e-9) return null;
+  var slope = (n * sxy - sx * sy) / denom;
+  if (slope >= 0) return null;
+  return -1 / slope;
+}
+
+function coolingTimeSimple(tau, T0, Tenv, Ttarget) {
+  var ratio = (T0 - Tenv) / (Ttarget - Tenv);
+  if (ratio <= 1) return null;
+  return tau * Math.log(ratio);
+}
+
+function renderCool() {
+  var T0 = parseNum(byId('c-t0').value);
+  var Tenv = parseNum(byId('c-tenv').value);
+  var Ttarget = parseNum(byId('c-target').value);
+  var cLiq = liquidC(byId('c-liquid').value);
+  var out = byId('cool-result');
+  var tauMode = document.querySelector('#tauModeToggle .mode-btn.active').getAttribute('data-taumode');
+
+  if (![T0, Tenv, Ttarget].every(isFinite)) {
+    out.innerHTML = calloutHTML('info', 'Enter the starting, fridge/freezer, and target temperatures.');
+    return;
+  }
+
+  var tauHours, tauSourceNote;
+  if (tauMode === 'preset') {
+    tauHours = parseNum(byId('c-preset').value);
+    tauSourceNote = 'from the preset — treat this as a rough estimate.';
+  } else {
+    var pts = readCheckpoints();
+    var tauMin = tauFromCheckpoints(T0, Tenv, pts);
+    if (tauMin == null) {
+      out.innerHTML = calloutHTML('amber', 'Add at least one reading (time &gt; 0, and warmer than the fridge/freezer temperature, and cooler than the start) to calibrate τ.');
+      return;
+    }
+    tauHours = tauMin / 60;
+    tauSourceNote = 'calibrated from ' + pts.length + ' reading' + (pts.length === 1 ? '' : 's') + '.';
+  }
+  var tauMinFinal = tauHours * 60;
+
+  var html = '<div class="result-cards">' +
+    '<div class="amount-box"><div class="amount-label">Time constant τ</div><div class="amount-value teal">' + fmt(tauHours, 2) + ' h</div></div>' +
+    '<div class="amount-box"><div class="amount-label">Source</div><div class="amount-value" style="font-size:13px;font-weight:600;color:var(--muted)">' + tauSourceNote + '</div></div>' +
+    '</div>';
+
+  if (Ttarget >= 0 || Tenv >= 0) {
+    // Simple single-phase cooling (no freezing crossed)
+    if (Tenv >= Ttarget) {
+      html += calloutHTML('red', 'The fridge/freezer temperature (' + fmt(Tenv,1) + ' °C) must be below the target (' + fmt(Ttarget,1) + ' °C) — otherwise the item never gets there.');
+    } else if (T0 <= Ttarget) {
+      html += calloutHTML('amber', 'Starting temperature is already at or below the target.');
+    } else {
+      var tmin = coolingTimeSimple(tauMinFinal, T0, Tenv, Ttarget);
+      html += calloutHTML('green', 'Reaches <strong>' + fmt(Ttarget,1) + ' °C in about ' + fmtTime(tmin) + '</strong>.');
+    }
+  } else {
+    // Ttarget < 0: freezing crossed
+    if (Tenv >= 0) {
+      html += calloutHTML('red', 'To reach a target below 0 °C, the fridge/freezer temperature must itself be below 0 °C.');
+    } else if (T0 <= 0) {
+      html += calloutHTML('amber', 'This three-stage model assumes the item starts above 0 °C. Set a starting temperature above 0 °C, or treat this as already in its freezing stage.');
+    } else {
+      var t1 = coolingTimeSimple(tauMinFinal, T0, Tenv, 0.001); // to ~0°C
+      var tPlateau = tauMinFinal * (LF / cLiq) / (-Tenv);
+      var tauIce = tauMinFinal * (C_ICE / cLiq);
+      var t3 = coolingTimeSimple(tauIce, -0.001, Tenv, Ttarget); // from ~0°C as ice
+      if (t1 == null || t3 == null) {
+        html += calloutHTML('red', 'Check the inputs — this combination doesn’t resolve to a valid cooling path.');
+      } else {
+        var total = t1 + tPlateau + t3;
+        html += '<table class="data"><thead><tr><th>Stage</th><th>Duration</th></tr></thead><tbody>' +
+          '<tr><td>Cooling to 0 °C</td><td>' + fmtTime(t1) + '</td></tr>' +
+          '<tr><td>Freezing plateau at 0 °C</td><td>' + fmtTime(tPlateau) + '</td></tr>' +
+          '<tr><td>Cooling as ice to target</td><td>' + fmtTime(t3) + '</td></tr>' +
+          '<tr class="total"><td>Total</td><td>' + fmtTime(total) + '</td></tr>' +
+          '</tbody></table>';
+        html += calloutHTML('green', 'Reaches <strong>' + fmt(Ttarget,1) + ' °C in about ' + fmtTime(total) + '</strong> total.');
+      }
+    }
+  }
+  out.innerHTML = html;
+}
+
+// ── Wiring ───────────────────────────────────────
+function renderAll() { renderTwoLiquids(); renderIce(); renderCool(); save(); }
+
+function setActive(container, selector, attr, val) {
+  container.querySelectorAll(selector).forEach(function (b) {
+    b.classList.toggle('active', b.getAttribute(attr) === val);
+  });
+}
+
+document.addEventListener('input', function (e) {
+  if (e.target.closest('.wrap')) renderAll();
+});
+document.addEventListener('click', function (e) {
+  var top = e.target.closest('.top-btn');
+  if (top) {
+    setActive(document, '.top-btn', 'data-top', top.getAttribute('data-top'));
+    byId('panel-mix').classList.toggle('active', top.getAttribute('data-top') === 'mix');
+    byId('panel-cool').classList.toggle('active', top.getAttribute('data-top') === 'cool');
+    save();
+    return;
+  }
+  var mixBtn = e.target.closest('#mixModeToggle .mode-btn');
+  if (mixBtn) {
+    setActive(byId('mixModeToggle'), '.mode-btn', 'data-mixmode', mixBtn.getAttribute('data-mixmode'));
+    byId('mix-two').classList.toggle('hidden', mixBtn.getAttribute('data-mixmode') !== 'two');
+    byId('mix-ice').classList.toggle('hidden', mixBtn.getAttribute('data-mixmode') !== 'ice');
+    save();
+    return;
+  }
+  var tauBtn = e.target.closest('#tauModeToggle .mode-btn');
+  if (tauBtn) {
+    setActive(byId('tauModeToggle'), '.mode-btn', 'data-taumode', tauBtn.getAttribute('data-taumode'));
+    byId('tau-calib').classList.toggle('hidden', tauBtn.getAttribute('data-taumode') !== 'calib');
+    byId('tau-preset').classList.toggle('hidden', tauBtn.getAttribute('data-taumode') !== 'preset');
+    renderCool(); save();
+    return;
+  }
+  if (e.target.id === 'chk-add') {
+    addCheckpointRow();
+    renderCool(); save();
+    return;
+  }
+  if (e.target.classList.contains('chk-rm')) {
+    var row = e.target.closest('.chk-row');
+    var rows = byId('chk-rows').querySelectorAll('.chk-row');
+    if (rows.length > 1) { row.remove(); renderCool(); save(); }
+    return;
+  }
+  if (e.target.id === 'resetBtn') {
+    try { localStorage.removeItem(KEY); } catch (ex) {}
+    location.reload();
+    return;
+  }
+});
+
+function init() {
+  fillLiquidSelects();
+  var S = load();
+  if (S) {
+    ['tw-vol','tw-temp','tw-a-type','tw-a-temp','tw-b-type','tw-b-temp',
+     'ti-type','ti-vol','ti-temp','ti-cube','ti-icetemp','ti-target',
+     'c-t0','c-tenv','c-target','c-liquid','c-preset'].forEach(function (id) {
+      if (S[id] != null) byId(id).value = S[id];
+    });
+    if (S.checkpoints && S.checkpoints.length) {
+      S.checkpoints.forEach(function (p) { addCheckpointRow(p.t, p.T); });
+    } else {
+      addCheckpointRow(60, 15);
+    }
+    if (S.mixMode) {
+      setActive(byId('mixModeToggle'), '.mode-btn', 'data-mixmode', S.mixMode);
+      byId('mix-two').classList.toggle('hidden', S.mixMode !== 'two');
+      byId('mix-ice').classList.toggle('hidden', S.mixMode !== 'ice');
+    }
+    if (S.tauMode) {
+      setActive(byId('tauModeToggle'), '.mode-btn', 'data-taumode', S.tauMode);
+      byId('tau-calib').classList.toggle('hidden', S.tauMode !== 'calib');
+      byId('tau-preset').classList.toggle('hidden', S.tauMode !== 'preset');
+    }
+    if (S.top) {
+      setActive(document, '.top-btn', 'data-top', S.top);
+      byId('panel-mix').classList.toggle('active', S.top === 'mix');
+      byId('panel-cool').classList.toggle('active', S.top === 'cool');
+    }
+  } else {
+    addCheckpointRow(60, 15);
+  }
+  renderAll();
+}
+init();
+</script>
+</body>
+</html>
