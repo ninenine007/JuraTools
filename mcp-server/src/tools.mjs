@@ -3,6 +3,74 @@ import { z } from 'zod';
 import { buildDocx, dutyOf, fileNameOf, normalizeTransfer, unresolved } from './transfer.mjs';
 import { registerDateTools } from './date-tools.mjs';
 import { buildPlainDocx, fileNameOfPlain, PLAIN_INPUT_SHAPE } from './plain-doc.mjs';
+import { buildDocx as buildPoaDocx, documentsOf, FIELD_TH, idValid } from './poa.mjs';
+
+/* ใบแต่งทนายความ — the schema a model fills. Keys are English for the caller;
+   they map one-to-one onto the page's own state (see toPoaState). The rules
+   in the descriptions are the guide's (litigation-tools/attorney-appointment.guide.md). */
+const POA_INPUT = {
+  form: z.enum(['JDA', 'PY']).describe(
+    'Which of the firm\'s two precedents to fill. "JDA" is the defendant-side file, whose authority clause reads ' +
+    '"การถอนคำให้การ"; "PY" is the plaintiff-side file, reading "การถอนฟ้อง". Default to the side the clients are on ' +
+    '(จำเลย → JDA; โจทก์/ผู้ร้อง → PY), but if the user names a form, use it — it is the lawyer\'s call. The authority ' +
+    'wording itself is never edited.'),
+  case: z.object({
+    matter: z.string().optional().describe('Short matter name, used only in the file name, e.g. "01 บริษัท ก."'),
+    blackNo: z.string().optional().describe('คดีหมายเลขดำที่ — prefix and number as the court issued it, e.g. "พ.1234". No "/25xx"'),
+    blackYear: z.string().optional().describe('Buddhist-era year of the black number — last two digits only, e.g. "69"'),
+    redNo: z.string().optional().describe('คดีหมายเลขแดงที่ — usually not issued yet when the appointment is filed: leave out'),
+    redYear: z.string().optional().describe('Last two digits of the red-number year'),
+    court: z.string().optional().describe('Only the words after the printed "ศาล", e.g. "แพ่งกรุงเทพใต้" or "จังหวัดเชียงใหม่"'),
+    caseType: z.string().optional().describe('ความ — แพ่ง, อาญา, ผู้บริโภค, แรงงาน, ล้มละลาย … Defaults to แพ่ง'),
+    date: z.string().optional().describe('Date the appointment is signed, YYYY-MM-DD (printed as Thai day/month/BE year). Leave out to keep the date line blank for handwriting — never guess it'),
+    partyTop: z.string().optional().describe('Upper party in the ระหว่าง block, exactly as in the plaint, e.g. "บริษัท ก. จำกัด" or "นาย ข. กับพวกรวม 3 คน"'),
+    partyTopRole: z.string().optional().describe('Its role, one word: โจทก์ (default), ผู้ร้อง …'),
+    partyBottom: z.string().optional().describe('Lower party in the ระหว่าง block'),
+    partyBottomRole: z.string().optional().describe('Its role: จำเลย (default), ผู้คัดค้าน …')
+  }).describe('The case, printed on page 1'),
+  clients: z.array(z.object({
+    name: z.string().describe('The client this lawyer acts for (ขอรับเป็นทนายความของ), e.g. "นาย ข."'),
+    role: z.string().describe('The client\'s role, e.g. "จำเลยที่ 1", "โจทก์", "ผู้ร้อง"'),
+    appointer: z.string().optional().describe('ข้าพเจ้า — who signs the appointment. The attorney-in-fact\'s name; or the client\'s own name when the client signs; or for a company "บริษัท ก. จำกัด โดยนาย ค. ผู้รับมอบอำนาจ". Never guess who holds the power of attorney'),
+    appointerCapacity: z.string().optional().describe('Words right-aligned after the signer\'s name. Leave out for automatic: "ผู้รับมอบอำนาจ" + role, or just the role when the client signs itself. Send "" when the company form above already says ผู้รับมอบอำนาจ'),
+    signatureName: z.string().optional().describe('Name in brackets under the signer\'s signature. Leave out for automatic (the signer; for "… โดยนาย ค. …" the part after โดย)'),
+    lawyers: z.array(z.string()).min(1).describe('Keys of the lawyers (from `lawyers`) appointed for this client — one document per lawyer')
+  })).min(1).describe('One entry per client the firm acts for in this case'),
+  lawyers: z.array(z.object({
+    key: z.string().describe('Short key, e.g. the lawyer\'s initials; also ends the file name'),
+    name: z.string().describe('Full name with title, exactly as on the bar licence'),
+    idNumber: z.string().optional().describe('13-digit Thai national ID (checked against its check digit)'),
+    licenseNumber: z.string().optional().describe('Bar licence "number/full BE year", e.g. "1234/2567"'),
+    phone: z.string().optional().describe('The lawyer\'s own phone. The office address is fixed by the form and is not sent'),
+    email: z.string().optional().describe('The lawyer\'s e-mail')
+  })).min(1).describe('The lawyers referred to by clients[].lawyers. Only values from the user\'s material — never invent an ID or licence number'),
+  officePhone: z.string().optional().describe('The office line printed on page 2 ("สำนักงานอยู่ที่ … โทรศัพท์"). Leave out to use the server\'s configured office number, or blank'),
+  maxCondensePt: z.number().min(0).max(1).optional().describe('Largest character condensing allowed on a value that would otherwise wrap, in points. Default 0.75; 0 = never condense, only report')
+};
+
+const toPoaState = a => ({
+  state: {
+    tpl: a.form,
+    cse: {
+      matter: a.case?.matter ?? '', blackNo: a.case?.blackNo ?? '', blackYear: a.case?.blackYear ?? '',
+      redNo: a.case?.redNo ?? '', redYear: a.case?.redYear ?? '', court: a.case?.court ?? '',
+      caseType: a.case?.caseType ?? 'แพ่ง', dateIso: a.case?.date ?? '', day: null, month: null, year: null,
+      partyA: a.case?.partyTop ?? '', roleA: a.case?.partyTopRole ?? 'โจทก์',
+      partyB: a.case?.partyBottom ?? '', roleB: a.case?.partyBottomRole ?? 'จำเลย'
+    },
+    clients: (a.clients || []).map(c => ({
+      name: c.name, role: c.role, appointer: c.appointer ?? '',
+      appointerRole: c.appointerCapacity ?? null, appointerSig: c.signatureName ?? null, lawyers: c.lawyers || []
+    })),
+    firm: { officePhone: a.officePhone ?? null },
+    opts: { thaiDigits: true, maxCondense: Math.round((a.maxCondensePt ?? 0.75) * 20) }
+  },
+  lawyers: (a.lawyers || []).map(l => ({ key: l.key, name: l.name, idNo: l.idNumber ?? '', licenseNo: l.licenseNumber ?? '', phone: l.phone ?? '', email: l.email ?? '' }))
+});
+
+/* Blanks worth telling the lawyer about; the red number is normally empty. */
+const QUIET_BLANKS = new Set(['redNo', 'redYear']);
+const pt = tw => Math.round(tw / 2) / 10;
 
 const PLACEHOLDER_NOTE =
   'Write "(*)" for any value that is deliberately not settled yet — it is carried ' +
@@ -169,6 +237,89 @@ export function createMcpServer({ deliver, user = null }) {
     return {
       content: [{ type: 'text', text: `${delivery.message} (${fileSizeKB} KB).` }],
       structuredContent: { location: delivery.location, fileSizeKB }
+    };
+  });
+
+  server.registerTool('create_attorney_appointment', {
+    title: 'Create ใบแต่งทนายความ (attorney appointment, court form ๙)',
+    description:
+      'Fill the firm\'s own Thai court form (๙) ใบแต่งทนายความ and return .docx files — one per client and per ' +
+      'lawyer. The firm\'s JDA (defendant, "การถอนคำให้การ") or PY (plaintiff, "การถอนฟ้อง") precedent is used as it ' +
+      'is: values are typed into the form\'s own runs, and the CPC s.62 authority wording and the office address ' +
+      'on page 2 are never changed. Every value must fit its printed line so the form stays on two pages; the ' +
+      'result reports, per document, any value that had to be condensed and any that is still too long — tell the ' +
+      'user about both, and shorten (never abbreviate a party name against the plaint) and call again for the ' +
+      'latter. Leave out anything not in the user\'s material rather than guessing; blanks are reported. ' +
+      'The result is a draft for a lawyer to check — say so when reporting it.',
+    inputSchema: POA_INPUT,
+    outputSchema: {
+      form: z.enum(['JDA', 'PY']),
+      withdrawalWording: z.string().describe('The authority-clause wording printed on this form'),
+      documents: z.array(z.object({
+        fileName: z.string(),
+        location: z.string().describe('A local file path from the stdio server, or a one-time download URL from the HTTP server'),
+        client: z.string(),
+        clientRole: z.string(),
+        lawyer: z.string(),
+        fileSizeKB: z.number(),
+        fit: z.enum(['ok', 'condensed', 'overflow']),
+        condensed: z.array(z.object({ field: z.string(), label: z.string(), points: z.number() })),
+        overflow: z.array(z.object({ field: z.string(), label: z.string(), overByPoints: z.number() }))
+      })),
+      blankFields: z.array(z.string()).describe('Printed lines left empty in at least one document (Thai labels)'),
+      unmatchedLawyerKeys: z.array(z.string()).describe('clients[].lawyers keys with no matching entry in lawyers — no document was made for them'),
+      invalidIdNumbers: z.array(z.string()).describe('Lawyers whose ID number fails the Thai check digit'),
+      isDraft: z.literal(true)
+    }
+  }, async args => {
+    const { docs, unmatched, lawyers } = documentsOf(toPoaState(args));
+    const documents = [];
+    const blank = new Set();
+    for (const d of docs) {
+      const r = await buildPoaDocx(d);
+      const base = d.fileName.replace(/\.docx$/, '');
+      const delivery = await deliver(base, r.buffer);
+      r.blank.filter(id => !QUIET_BLANKS.has(id)).forEach(id => blank.add(FIELD_TH[id] || id));
+      const condensed = r.summary.cond.map(id => ({ field: id, label: FIELD_TH[id] || id, points: pt(r.report[id].condense) }));
+      const overflow = r.summary.over.map(id => ({ field: id, label: FIELD_TH[id] || id, overByPoints: pt(r.report[id].need || 0) }));
+      documents.push({
+        fileName: d.fileName, location: delivery.location, client: d.c.name, clientRole: d.c.role, lawyer: d.l.name,
+        fileSizeKB: Math.round(r.buffer.length / 1024),
+        fit: overflow.length ? 'overflow' : condensed.length ? 'condensed' : 'ok', condensed, overflow,
+        message: delivery.message
+      });
+    }
+    const invalidIdNumbers = lawyers.filter(l => l.idNo && !idValid(l.idNo)).map(l => l.name || l.key);
+    const unmatchedLawyerKeys = [...new Set(unmatched.map(u => u.key))];
+    const wording = args.form === 'JDA' ? 'การถอนคำให้การ' : 'การถอนฟ้อง';
+
+    if (user) {
+      console.error(`[${new Date().toISOString()}] ${user} created ${documents.length} attorney appointment(s), form ${args.form}`);
+    }
+
+    const lines = [
+      documents.length
+        ? `Form ${args.form} ("${wording}") — ${documents.length} document${documents.length > 1 ? 's' : ''}:`
+        : 'No document was made — no client names a lawyer that is listed in `lawyers`.',
+      ...documents.map(d => {
+        const bits = [`• ${d.fileName}: ${d.message} (${d.fileSizeKB} KB).`];
+        if (d.condensed.length) bits.push(`  Condensed to fit: ${d.condensed.map(c => `${c.label} ${c.points} pt`).join(', ')}.`);
+        if (d.overflow.length) bits.push(`  TOO LONG — Word will wrap these and the form may run to 3 pages: ${d.overflow.map(o => `${o.label} (+${o.overByPoints} pt)`).join(', ')}. Shorten and generate again.`);
+        return bits.join('\n');
+      }),
+      unmatchedLawyerKeys.length ? `No lawyer listed for key(s): ${unmatchedLawyerKeys.join(', ')}.` : '',
+      invalidIdNumbers.length ? `ID number fails the check digit for: ${invalidIdNumbers.join(', ')} — check it.` : '',
+      blank.size ? `Left blank on the form: ${[...blank].join(', ')}.` : '',
+      'Draft only — have a lawyer check it against the case file before it is signed.'
+    ].filter(Boolean).join('\n');
+
+    return {
+      content: [{ type: 'text', text: lines }],
+      structuredContent: {
+        form: args.form, withdrawalWording: wording,
+        documents: documents.map(({ message, ...d }) => d),
+        blankFields: [...blank], unmatchedLawyerKeys, invalidIdNumbers, isDraft: true
+      }
     };
   });
 
