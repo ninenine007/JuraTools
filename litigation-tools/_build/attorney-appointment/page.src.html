@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attorney Appointment — JuraTools</title>
+<meta name="description" content="Fill the firm's own (๙) ใบแต่งทนายความ — JDA (defendant) or PY (plaintiff) — and export Word .docx. Values are typed into the original runs only; format, language and the s.62 wording are never touched.">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+@font-face{font-family:'PoaSarabun';src:local('TH SarabunPSK'),local('THSarabunPSK'),local('TH Sarabun New'),local('THSarabunNew');}
+:root{
+  --primary:#9f1239; --primary-dark:#881337;
+  --bg:#f7f6f7; --card:#fff; --text:#3f3f46; --heading:#18181b;
+  --border:#e7e5e7; --muted:#a1a1aa; --hover-gray:#f4f4f5;
+  --success:#0d9488; --danger:#dc2626; --amber:#b45309;
+  --shadow:0 1px 2px rgba(24,24,27,.04), 0 4px 12px -4px rgba(24,24,27,.07);
+  --c-tpl:#9f1239; --c-case:#be123c; --c-party:#7c3aed; --c-appt:#0891b2;
+  --c-law:#2563eb; --c-out:#059669;
+}
+*{box-sizing:border-box;}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","Noto Sans Thai",sans-serif;
+  -webkit-font-smoothing:antialiased;background:var(--bg);color:var(--text);margin:0;font-size:14px;}
+
+/* ── Nav ─────────────────────────────────────── */
+.nav{position:sticky;top:0;z-index:200;height:52px;display:flex;align-items:center;gap:12px;padding:0 24px;
+  background:rgba(247,246,247,.88);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);
+  border-bottom:1px solid var(--border);}
+.nav a{color:inherit;text-decoration:none;}
+.nav-brand{display:flex;align-items:center;gap:9px;user-select:none;}
+.nav-icon{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;
+  background:linear-gradient(145deg,#2979ff,#1565c0);font-size:15px;
+  box-shadow:0 2px 6px rgba(41,121,255,.4), inset 0 1px 0 rgba(255,255,255,.2);}
+.nav-wordmark{font-size:15px;font-weight:700;letter-spacing:-.4px;color:var(--heading);}
+.nav-sep{color:#d4d4d8;}
+.nav-current{font-size:15px;font-weight:600;color:#71717a;}
+.nav-back{margin-left:auto;font-size:13px;font-weight:500;color:#3f3f46;background:rgba(0,0,0,.05);
+  border:1px solid rgba(0,0,0,.09);padding:6px 12px;border-radius:9px;}
+.nav-back:hover{background:rgba(0,0,0,.09);}
+@media(max-width:620px){.nav-current,.nav-sep{display:none;}}
+
+/* ── Layout ──────────────────────────────────── */
+.app{display:flex;gap:20px;max-width:1800px;margin:0 auto;padding:20px 24px 72px;align-items:flex-start;}
+.app[data-view="form"] .pv{display:none;}
+.app[data-view="preview"] .sidebar,.app[data-view="preview"] .main{display:none;}
+.app[data-view="preview"] .pv{width:auto;min-width:0;flex:1;max-height:none;position:static;}
+.sidebar{width:250px;min-width:250px;background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:16px;position:sticky;top:72px;box-shadow:var(--shadow);max-height:calc(100vh - 92px);overflow-y:auto;}
+.main{flex:1 1 420px;min-width:0;display:flex;flex-direction:column;gap:16px;}
+@media(max-width:1100px){.app{flex-direction:column;align-items:stretch;}
+  .sidebar{width:auto;min-width:0;position:static;max-height:none;}
+  .pv{width:auto!important;min-width:0!important;position:static!important;max-height:none!important;}}
+
+/* ── Sidebar ─────────────────────────────────── */
+.side-head{display:flex;align-items:center;gap:8px;margin-bottom:2px;}
+.side-head h2{margin:0;font-size:1.02em;color:var(--heading);}
+.count-pill{margin-left:auto;font-size:.72em;font-weight:700;color:var(--primary);
+  background:#fff1f2;border:1px solid #fecdd3;border-radius:999px;padding:2px 9px;}
+.sidebar .hint{font-size:.78em;color:var(--muted);margin:0 0 12px;line-height:1.45;}
+.cl-list{display:flex;flex-direction:column;gap:7px;margin-bottom:12px;}
+.cl{padding:10px 11px 10px 13px;border-radius:10px;border:1px solid var(--border);cursor:pointer;
+  background:#fff;position:relative;border-left:3px solid #e4e4e7;}
+.cl:hover{background:var(--hover-gray);}
+.cl.active{border-color:#fecdd3;border-left-color:var(--primary);background:#fff7f8;box-shadow:0 0 0 3px rgba(159,18,57,.07);}
+.cl-no{font-size:.67em;font-weight:800;color:var(--muted);letter-spacing:.06em;}
+.cl.active .cl-no{color:var(--primary);}
+.cl-name{font-weight:700;font-size:.85em;color:var(--heading);margin:1px 0 3px;line-height:1.25;padding-right:18px;}
+.cl-role{font-size:.76em;color:var(--text);}
+.cl-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
+.cl-del{position:absolute;top:6px;right:7px;border:none;background:none;color:#d4d4d8;cursor:pointer;
+  font-size:1.05em;line-height:1;padding:2px 5px;border-radius:6px;}
+.cl-del:hover{color:var(--danger);background:#fef2f2;}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-left:4px;vertical-align:middle;}
+.dot.ok{background:#10b981;} .dot.cond{background:#f59e0b;} .dot.over{background:#ef4444;}
+.empty{color:#d4d4d8;font-style:italic;}
+.chip{font-size:.72em;font-weight:600;border-radius:6px;padding:2px 8px;border:1px solid var(--border);
+  background:#f4f4f5;color:#52525b;cursor:pointer;font-family:inherit;}
+.chip.on{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8;}
+
+/* ── Cards ───────────────────────────────────── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;}
+.card-hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:13px 18px;border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg,#fdfdfd,#f8f8f9);}
+.card-hd .ico{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:13px;flex-shrink:0;
+  background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-line);}
+.card-hd h3{margin:0;font-size:.94em;color:var(--heading);font-weight:700;}
+.card-hd .th{font-weight:500;color:var(--muted);font-size:.88em;margin-left:-4px;}
+.card-hd .spacer{margin-left:auto;}
+.card-bd{padding:16px 18px 18px;}
+.acc-tpl{--accent:var(--c-tpl);--accent-soft:#fff1f2;--accent-line:#fecdd3;}
+.acc-case{--accent:var(--c-case);--accent-soft:#fff1f2;--accent-line:#fecdd3;}
+.acc-party{--accent:var(--c-party);--accent-soft:#f5f3ff;--accent-line:#ddd6fe;}
+.acc-appt{--accent:var(--c-appt);--accent-soft:#ecfeff;--accent-line:#a5f3fc;}
+.acc-law{--accent:var(--c-law);--accent-soft:#eff6ff;--accent-line:#bfdbfe;}
+.acc-out{--accent:var(--c-out);--accent-soft:#ecfdf5;--accent-line:#a7f3d0;}
+
+/* ── Template tiles ──────────────────────────── */
+.tpls{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:640px){.tpls{grid-template-columns:1fr;}}
+.tpl{border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;cursor:pointer;background:#fff;text-align:left;
+  font-family:inherit;color:inherit;transition:.12s;}
+.tpl:hover{background:#fcfcfd;border-color:#d4d4d8;}
+.tpl.on{border-color:var(--primary);background:#fff7f8;box-shadow:0 0 0 3px rgba(159,18,57,.08);}
+.tpl-top{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.tpl-key{font-size:.72em;font-weight:800;letter-spacing:.05em;color:#fff;background:#a1a1aa;border-radius:6px;padding:2px 7px;}
+.tpl.on .tpl-key{background:var(--primary);}
+.tpl-name{font-weight:700;color:var(--heading);font-size:.9em;}
+.tpl-src{font-size:.74em;color:var(--muted);margin-bottom:8px;}
+.tpl-quote{font-family:'PoaSarabun','Sarabun','Noto Sans Thai',serif;font-size:1.12em;line-height:1.35;color:#52525b;
+  background:#fafafa;border:1px solid var(--border);border-radius:8px;padding:6px 9px;}
+.tpl-quote b{color:var(--primary);font-weight:700;}
+
+/* ── Fields ──────────────────────────────────── */
+label{display:block;font-size:.77em;font-weight:600;color:#71717a;margin:0;}
+input[type=text],input[type=date],select{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;
+  font-family:inherit;font-size:.92em;color:var(--text);background:#fff;transition:border-color .12s, box-shadow .12s;}
+input:focus,select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(159,18,57,.11);}
+input::placeholder{color:#d4d4d8;}
+input.is-auto{color:#71717a;background:#fcfcfd;}
+input.bad{border-color:#fca5a5;background:#fff7f7;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+.grid4{display:grid;grid-template-columns:2fr 1fr 2fr 1fr;gap:14px;}
+.grid-role{display:grid;grid-template-columns:3fr 1fr;gap:14px;}
+@media(max-width:640px){.grid2,.grid3,.grid4,.grid-role{grid-template-columns:1fr;}}
+.field{margin-bottom:14px;}
+.field:last-child{margin-bottom:0;}
+.note{font-size:.72em;color:var(--muted);margin-top:4px;line-height:1.45;}
+.row-lbl{display:flex;align-items:center;gap:6px;margin-bottom:5px;min-height:18px;}
+.auto-tag{font-size:.66em;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--muted);background:#f4f4f5;border:1px solid var(--border);border-radius:999px;padding:1px 7px;cursor:default;}
+.auto-tag.manual{color:var(--amber);background:#fffbeb;border-color:#fde68a;cursor:pointer;}
+.fit{margin-left:auto;font-size:.68em;font-weight:700;border-radius:999px;padding:1px 7px;white-space:nowrap;}
+.fit:empty{display:none;}
+.fit.ok{color:#047857;background:#ecfdf5;border:1px solid #a7f3d0;}
+.fit.cond{color:#92400e;background:#fffbeb;border:1px solid #fde68a;}
+.fit.over{color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;}
+.fit.info{color:#475569;background:#f8fafc;border:1px solid #e2e8f0;}
+
+/* ── Buttons ─────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:8px 14px;border-radius:9px;font-size:.86em;
+  font-weight:600;font-family:inherit;cursor:pointer;border:1px solid transparent;transition:.13s;white-space:nowrap;}
+.btn-primary{background:var(--primary);color:#fff;box-shadow:0 1px 4px rgba(159,18,57,.32);}
+.btn-primary:hover{background:var(--primary-dark);}
+.btn-primary:disabled{background:#d4d4d8;box-shadow:none;cursor:default;}
+.btn-ghost{background:#fff;color:#3f3f46;border-color:var(--border);}
+.btn-ghost:hover{background:var(--hover-gray);}
+.btn-soft{background:#f4f4f5;color:#52525b;border-color:var(--border);}
+.btn-soft:hover{background:#e7e5e7;}
+.btn-danger{background:#fff;color:var(--danger);border-color:#fecaca;}
+.btn-danger:hover{background:#fef2f2;}
+.btn-sm{padding:5px 10px;font-size:.8em;}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.seg{display:inline-flex;background:#f4f4f5;border:1px solid var(--border);border-radius:9px;padding:2px;gap:2px;}
+.seg button{border:none;background:none;font-family:inherit;font-size:.8em;font-weight:600;color:#71717a;
+  padding:5px 11px;border-radius:7px;cursor:pointer;}
+.seg button.on{background:#fff;color:var(--heading);box-shadow:0 1px 2px rgba(0,0,0,.08);}
+
+/* ── Lawyer register ─────────────────────────── */
+.law-list{display:flex;flex-direction:column;gap:8px;}
+.law{border:1px solid var(--border);border-radius:11px;background:#fff;}
+.law>summary{list-style:none;cursor:pointer;padding:10px 13px;display:flex;align-items:center;gap:9px;}
+.law>summary::-webkit-details-marker{display:none;}
+.law-key{font-size:.72em;font-weight:800;letter-spacing:.05em;color:#1d4ed8;background:#eff6ff;
+  border:1px solid #bfdbfe;border-radius:6px;padding:2px 7px;min-width:36px;text-align:center;}
+.law-name{font-weight:700;color:var(--heading);font-size:.9em;}
+.law-lic{font-size:.76em;color:var(--muted);margin-left:auto;}
+.law-bd{padding:12px 13px 14px;border-top:1px solid var(--border);}
+
+/* ── Docs table ──────────────────────────────── */
+table.docs{width:100%;border-collapse:collapse;font-size:.84em;}
+table.docs th{text-align:left;font-size:.78em;font-weight:700;color:#71717a;padding:6px 8px;border-bottom:1px solid var(--border);}
+table.docs td{padding:8px;border-bottom:1px solid #f4f4f5;vertical-align:middle;}
+table.docs td.fn{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.86em;color:#52525b;word-break:break-all;}
+.stat{font-size:.78em;font-weight:700;white-space:nowrap;}
+.stat.ok{color:#047857;} .stat.cond{color:#b45309;} .stat.over{color:#b91c1c;}
+
+details.rules{border-top:1px solid var(--border);}
+details.rules>summary{cursor:pointer;padding:11px 18px;font-size:.8em;font-weight:600;color:#71717a;list-style:none;}
+details.rules>summary::-webkit-details-marker{display:none;}
+details.rules>summary::before{content:"▸ ";color:var(--muted);}
+details.rules[open]>summary::before{content:"▾ ";}
+details.rules .rules-bd{padding:0 18px 16px;font-size:.82em;line-height:1.65;color:#52525b;}
+details.rules .rules-bd p{margin:0 0 9px;}
+details.rules .rules-bd b{color:var(--heading);}
+.warn{display:flex;gap:9px;align-items:flex-start;font-size:.82em;line-height:1.5;border-radius:10px;padding:9px 12px;margin-top:12px;}
+.warn.amber{background:#fffbeb;border:1px solid #fde68a;color:#92400e;}
+.warn.rose{background:#fff1f2;border:1px solid #fecdd3;color:#9f1239;}
+.warn.slate{background:#f8fafc;border:1px solid #e2e8f0;color:#475569;}
+.warn:empty{display:none;}
+
+/* ── Preview ─────────────────────────────────── */
+.pv{width:600px;min-width:460px;position:sticky;top:72px;max-height:calc(100vh - 92px);
+  background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);
+  display:flex;flex-direction:column;overflow:hidden;}
+.pv-hd{display:flex;align-items:center;gap:9px;padding:10px 14px;border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg,#fdfdfd,#f8f8f9);flex-wrap:wrap;}
+.pv-hd h3{margin:0;font-size:.9em;color:var(--heading);}
+.pv-hd select{width:auto;max-width:100%;flex:1;min-width:160px;font-size:.82em;padding:5px 8px;}
+.pv-body{overflow:auto;padding:16px;background:#e7e5e8;flex:1;}
+.pg-wrap{margin:0 auto 14px;box-shadow:0 2px 10px rgba(0,0,0,.16);background:#fff;position:relative;overflow:hidden;}
+.pg{position:absolute;left:0;top:0;width:595.44pt;height:841.68pt;transform-origin:0 0;}
+.pg img{position:absolute;left:0;top:0;width:100%;height:100%;user-select:none;pointer-events:none;}
+.ov{position:absolute;white-space:pre;font-family:'PoaSarabun','Sarabun','Noto Sans Thai',serif;font-size:17pt;
+  color:#111;transform-origin:0 50%;}
+.ov.mask{background:#fff;}
+.ov.over{color:#b91c1c;background:rgba(254,202,202,.55);outline:1.5pt dashed #ef4444;}
+.ov.cond{background:rgba(253,230,138,.45);}
+.ov.hot{background:rgba(191,219,254,.75);outline:1pt solid #3b82f6;}
+.pv-fit{font-size:.74em;font-weight:700;border-radius:999px;padding:2px 9px;white-space:nowrap;}
+.pv-fit.ok{color:#047857;background:#ecfdf5;border:1px solid #a7f3d0;}
+.pv-fit.cond{color:#92400e;background:#fffbeb;border:1px solid #fde68a;}
+.pv-fit.over{color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;}
+.pv-note{font-size:.74em;color:var(--muted);padding:9px 14px;border-top:1px solid var(--border);background:#fafafa;line-height:1.5;}
+.pv-list{font-size:.78em;padding:0 14px 8px;background:#fafafa;}
+.pv-list div{padding:2px 0;}
+
+/* ── Dialog & toast ──────────────────────────── */
+.dlg-bg{position:fixed;inset:0;background:rgba(24,24,27,.38);display:none;align-items:center;justify-content:center;z-index:600;padding:20px;}
+.dlg-bg.on{display:flex;}
+.dlg{background:#fff;border-radius:14px;max-width:470px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);padding:18px 20px;}
+.dlg h4{margin:0 0 8px;color:var(--heading);font-size:1em;}
+.dlg .dlg-msg{font-size:.86em;line-height:1.6;color:#52525b;margin-bottom:16px;white-space:pre-line;}
+.dlg .btn-row{justify-content:flex-end;}
+#toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(14px);opacity:0;
+  background:#18181b;color:#fff;font-size:.86em;font-weight:500;padding:10px 18px;border-radius:11px;
+  box-shadow:0 6px 24px rgba(0,0,0,.3);pointer-events:none;transition:.22s;z-index:700;max-width:88vw;text-align:center;}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
+footer{text-align:center;font-size:.79em;color:var(--muted);line-height:1.7;padding:0 24px 40px;}
+footer .cites{color:#a1a1aa;}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <a class="nav-brand" href="../index.html"><div class="nav-icon">⚖️</div><span class="nav-wordmark">JuraTools</span></a>
+  <span class="nav-sep">/</span><a class="nav-current" href="index.html">Litigation Tools</a>
+  <span class="nav-sep">/</span><span class="nav-current">Attorney Appointment</span>
+  <a class="nav-back" href="index.html">← All</a>
+</nav>
+
+<div class="app" id="app" data-view="split">
+
+  <!-- ── Sidebar: one row per client; one .docx per client per lawyer ── -->
+  <aside class="sidebar">
+    <div class="side-head"><h2>ใบแต่งทนายความ</h2><span class="count-pill" id="docCount">0</span></div>
+    <p class="hint">หนึ่งแถว = ลูกความหนึ่งราย เลือกทนายได้หลายคน — ได้เอกสารคนละฉบับ</p>
+    <div class="cl-list" id="clList"></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost btn-sm" id="addClient">+ เพิ่มลูกความ</button>
+      <button class="btn btn-soft btn-sm" id="dupClient">ทำซ้ำ</button>
+    </div>
+    <p class="hint" style="margin:16px 0 6px">มุมมอง</p>
+    <div class="seg" id="viewSeg">
+      <button data-view="form">ฟอร์ม</button>
+      <button data-view="split" class="on">แบ่งจอ</button>
+      <button data-view="preview">ตัวอย่าง</button>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- 1 · Which form -->
+    <section class="card acc-tpl">
+      <div class="card-hd"><div class="ico">📄</div><h3>Which form</h3><span class="th">แบบที่ใช้</span></div>
+      <div class="card-bd">
+        <div class="tpls" id="tplTiles">
+          <button class="tpl" data-tpl="JDA">
+            <div class="tpl-top"><span class="tpl-key">JDA</span><span class="tpl-name">ฝ่ายจำเลย</span></div>
+            <div class="tpl-src">แบบที่สำนักงานใช้ฝ่ายจำเลย</div>
+            <div class="tpl-quote">…การยอมรับตามที่คู่ความอีกฝ่ายหนึ่งเรียกร้อง <b>การถอนคำให้การ</b> การประนีประนอมยอมความ…</div>
+          </button>
+          <button class="tpl" data-tpl="PY">
+            <div class="tpl-top"><span class="tpl-key">PY</span><span class="tpl-name">ฝ่ายโจทก์</span></div>
+            <div class="tpl-src">แบบที่สำนักงานใช้ฝ่ายโจทก์</div>
+            <div class="tpl-quote">…การยอมรับตามที่คู่ความอีกฝ่ายหนึ่งเรียกร้อง <b>การถอนฟ้อง</b> การประนีประนอมยอมความ…</div>
+          </button>
+        </div>
+        <div class="warn slate" id="tplHint"></div>
+      </div>
+      <details class="rules"><summary>สิ่งที่เครื่องมือนี้ไม่แตะ</summary><div class="rules-bd">
+        <p><b>ข้อความเรื่องอำนาจ*</b> (มาตรา ๖๒) คงไว้ตามไฟล์ต้นฉบับทุกตัวอักษร เลือกได้อย่างเดียวว่าจะใช้ไฟล์ไหน</p>
+        <p><b>คำรับเป็นทนายความ (หน้า ๒)</b> ของทั้งสองแบบมาจากไฟล์ PY — ที่อยู่ปัจจุบันและที่อยู่สำนักงานเป็นที่อยู่ของสำนักงาน
+        (อาคารเอไอเอ แคปปิตอล เซ็นเตอร์ ชั้น ๑๕) ตามไฟล์นั้นทุกช่อง รวมทั้ง “ทั่วราชอาณาจักร” และคำที่ขีดฆ่า
+        ส่วนที่เปลี่ยนตามตัวทนายมีแค่ ชื่อ เลขประจำตัวประชาชน เลขใบอนุญาต โทรศัพท์ส่วนตัว และอีเมล</p>
+        <p><b>วิธีเติมข้อความ</b> เหมือนวางเคอร์เซอร์ในช่องแล้วพิมพ์ทับ — ข้อความใหม่อยู่ใน run เดิมของ Word จึงได้ฟอนต์ ขนาด
+        ขีดเส้นใต้ และภาษา (w:lang) เดิมทุกอย่าง ไม่มีการตั้งรูปแบบใหม่ ช่องว่างหน้าข้อความปรับให้ข้อความอยู่ตรงที่เดิมของไฟล์ต้นฉบับ</p>
+        <p>แก้คำพิมพ์ผิดในแบบฟอร์มไฟล์ PY หนึ่งจุด: “ดือน” → “เดือน”</p>
+      </div></details>
+    </section>
+
+    <!-- 2 · The case -->
+    <section class="card acc-case">
+      <div class="card-hd"><div class="ico">⚖️</div><h3>The case</h3><span class="th">คดี</span>
+        <span class="spacer"></span><button class="btn btn-soft btn-sm" id="loadExample">ตัวอย่าง</button></div>
+      <div class="card-bd">
+        <div class="field">
+          <div class="row-lbl"><label for="matter">ชื่อเรื่อง (ใช้ตั้งชื่อไฟล์เท่านั้น)</label></div>
+          <input type="text" id="matter" data-k="cse.matter" placeholder="เช่น 01 บริษัท ก.">
+        </div>
+        <div class="grid4">
+          <div class="field"><div class="row-lbl"><label for="blackNo">คดีหมายเลขดำที่</label><span class="fit" data-fit="blackNo"></span></div>
+            <input type="text" id="blackNo" data-k="cse.blackNo" data-hot="blackNo" placeholder="พ.123"></div>
+          <div class="field"><div class="row-lbl"><label for="blackYear">/๒๕ …</label><span class="fit" data-fit="blackYear"></span></div>
+            <input type="text" id="blackYear" data-k="cse.blackYear" data-hot="blackYear" placeholder="67"></div>
+          <div class="field"><div class="row-lbl"><label for="redNo">คดีหมายเลขแดงที่</label><span class="fit" data-fit="redNo"></span></div>
+            <input type="text" id="redNo" data-k="cse.redNo" data-hot="redNo" placeholder="เว้นว่าง"></div>
+          <div class="field"><div class="row-lbl"><label for="redYear">/๒๕ …</label><span class="fit" data-fit="redYear"></span></div>
+            <input type="text" id="redYear" data-k="cse.redYear" data-hot="redYear"></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><div class="row-lbl"><label for="court">ศาล</label><span class="fit" data-fit="court"></span></div>
+            <input type="text" id="court" data-k="cse.court" data-hot="court" placeholder="แพ่ง / จังหวัดเชียงใหม่">
+            <div class="note">เฉพาะส่วนที่ตามหลังคำว่า “ศาล” ที่พิมพ์อยู่แล้ว</div></div>
+          <div class="field"><div class="row-lbl"><label for="caseType">ความ</label><span class="fit" data-fit="caseType"></span></div>
+            <input type="text" id="caseType" data-k="cse.caseType" data-hot="caseType" list="caseTypes" placeholder="แพ่ง">
+            <datalist id="caseTypes"><option value="แพ่ง"><option value="อาญา"><option value="ผู้บริโภค"><option value="แรงงาน"><option value="ล้มละลาย"><option value="แพ่ง (ไม่มีข้อพิพาท)"></datalist></div>
+        </div>
+        <div class="field">
+          <div class="row-lbl"><label for="dateIso">วันที่ในใบแต่ง</label>
+            <span class="note" style="margin:0">เว้นว่างไว้เขียนเองตอนลงนามได้</span></div>
+          <div class="btn-row"><input type="date" id="dateIso" style="max-width:190px">
+            <button class="btn btn-soft btn-sm" id="dateToday">วันนี้</button>
+            <button class="btn btn-soft btn-sm" id="dateClear">เว้นว่าง</button></div>
+        </div>
+        <div class="grid3">
+          <div class="field"><div class="row-lbl"><label for="day">วันที่</label><span class="auto-tag" data-tag="day">auto</span><span class="fit" data-fit="day"></span></div>
+            <input type="text" id="day" data-ov="day" data-hot="day"></div>
+          <div class="field"><div class="row-lbl"><label for="month">เดือน</label><span class="auto-tag" data-tag="month">auto</span><span class="fit" data-fit="month"></span></div>
+            <input type="text" id="month" data-ov="month" data-hot="month" list="monthList">
+            <datalist id="monthList"><option value="มกราคม"><option value="กุมภาพันธ์"><option value="มีนาคม"><option value="เมษายน"><option value="พฤษภาคม"><option value="มิถุนายน"><option value="กรกฎาคม"><option value="สิงหาคม"><option value="กันยายน"><option value="ตุลาคม"><option value="พฤศจิกายน"><option value="ธันวาคม"></datalist></div>
+          <div class="field"><div class="row-lbl"><label for="year">พุทธศักราช ๒๕ …</label><span class="auto-tag" data-tag="year">auto</span><span class="fit" data-fit="year"></span></div>
+            <input type="text" id="year" data-ov="year" data-hot="year"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3 · The parties -->
+    <section class="card acc-party">
+      <div class="card-hd"><div class="ico">👥</div><h3>The parties</h3><span class="th">ช่อง “ระหว่าง”</span>
+        <span class="spacer"></span><button class="btn btn-soft btn-sm" id="swapParties">สลับ ↕</button></div>
+      <div class="card-bd">
+        <div class="grid-role">
+          <div class="field"><div class="row-lbl"><label for="partyA">บรรทัดบน</label><span class="fit" data-fit="partyA"></span></div>
+            <input type="text" id="partyA" data-k="cse.partyA" data-hot="partyA" placeholder="บริษัท … จำกัด"></div>
+          <div class="field"><div class="row-lbl"><label for="roleA">ฐานะ</label></div>
+            <input type="text" id="roleA" data-k="cse.roleA" data-hot="roleA" list="roles"></div>
+        </div>
+        <div class="grid-role">
+          <div class="field"><div class="row-lbl"><label for="partyB">บรรทัดล่าง</label><span class="fit" data-fit="partyB"></span></div>
+            <input type="text" id="partyB" data-k="cse.partyB" data-hot="partyB" placeholder="… กับพวกรวม ๑๙ คน"></div>
+          <div class="field"><div class="row-lbl"><label for="roleB">ฐานะ</label></div>
+            <input type="text" id="roleB" data-k="cse.roleB" data-hot="roleB" list="roles"></div>
+        </div>
+        <datalist id="roles"><option value="โจทก์"><option value="จำเลย"><option value="ผู้ร้อง"><option value="ผู้คัดค้าน"><option value="ผู้ร้องคัดค้าน"></datalist>
+      </div>
+    </section>
+
+    <!-- 4 · This client -->
+    <section class="card acc-appt">
+      <div class="card-hd"><div class="ico">✍️</div><h3>This client</h3><span class="th" id="clientTitle">ลูกความรายที่ ๑</span></div>
+      <div class="card-bd">
+        <div class="grid-role">
+          <div class="field"><div class="row-lbl"><label for="cName">ขอรับเป็นทนายความของ</label><span class="fit" data-fit="client"></span></div>
+            <input type="text" id="cName" data-c="name" data-hot="client" placeholder="ชื่อลูกความ"></div>
+          <div class="field"><div class="row-lbl"><label for="cRole">ฐานะ</label></div>
+            <input type="text" id="cRole" data-c="role" data-hot="clientRole" list="roles" placeholder="จำเลยที่ 1"></div>
+        </div>
+        <div class="field"><div class="row-lbl"><label for="cAppointer">ข้าพเจ้า (ผู้แต่งทนายความ)</label><span class="fit" data-fit="appointer"></span></div>
+          <input type="text" id="cAppointer" data-c="appointer" data-hot="appointer" placeholder="นาย ก. ตัวอย่าง">
+          <div class="note">นิติบุคคลเขียนได้ว่า “บริษัท … จำกัด โดยนาย… ผู้รับมอบอำนาจ” แล้วล้างช่องฐานะด้านขวา</div></div>
+        <div class="grid2">
+          <div class="field"><div class="row-lbl"><label for="cApRole">ฐานะผู้แต่ง (ท้ายบรรทัด)</label><span class="auto-tag" data-tag="appointerRole">auto</span><span class="fit" data-fit="appointerRole"></span></div>
+            <input type="text" id="cApRole" data-cov="appointerRole" data-hot="appointerRole"></div>
+          <div class="field"><div class="row-lbl"><label for="cApSig">ชื่อในวงเล็บใต้ลายมือชื่อ</label><span class="auto-tag" data-tag="appointerSig">auto</span><span class="fit" data-fit="appointerSig"></span></div>
+            <input type="text" id="cApSig" data-cov="appointerSig" data-hot="appointerSig"></div>
+        </div>
+        <div class="field"><div class="row-lbl"><label>ขอแต่งให้ — ทนายความ (ได้คนละฉบับ)</label></div>
+          <div class="cl-chips" id="cLawyers"></div>
+          <div class="note" id="cLawyersNote"></div></div>
+      </div>
+    </section>
+
+    <!-- 5 · Lawyer register -->
+    <section class="card acc-law">
+      <div class="card-hd"><div class="ico">🎓</div><h3>Lawyers</h3><span class="th">ทะเบียนทนายความ</span>
+        <span class="spacer"></span>
+        <button class="btn btn-soft btn-sm" id="lawImport">นำเข้า</button>
+        <button class="btn btn-soft btn-sm" id="lawExport">ส่งออก</button>
+        <button class="btn btn-ghost btn-sm" id="lawAdd">+ เพิ่มทนาย</button></div>
+      <div class="card-bd">
+        <p class="note" style="margin:0 0 12px">เก็บในเบราว์เซอร์เครื่องนี้เท่านั้น ใช้ได้ทุกคดี — ที่อยู่ไม่ต้องกรอก ใช้ที่อยู่สำนักงานตามแบบ PY</p>
+        <div class="law-list" id="lawList"></div>
+      </div>
+    </section>
+
+    <!-- 6 · Export -->
+    <section class="card acc-out">
+      <div class="card-hd"><div class="ico">⬇️</div><h3>Export</h3><span class="th">ส่งออก</span></div>
+      <div class="card-bd">
+        <table class="docs"><thead><tr><th>ไฟล์</th><th>สถานะ</th><th></th></tr></thead><tbody id="docRows"></tbody></table>
+        <div class="warn amber" id="exportWarn"></div>
+        <div class="btn-row" style="margin-top:14px">
+          <button class="btn btn-primary" id="exportAll">ดาวน์โหลดทั้งหมด</button>
+          <span class="spacer" style="flex:1"></span>
+          <button class="btn btn-ghost btn-sm" id="saveJson">บันทึกคดี (.json)</button>
+          <button class="btn btn-ghost btn-sm" id="openJson">เปิดไฟล์…</button>
+          <button class="btn btn-danger btn-sm" id="clearAll">ล้างคดี</button>
+        </div>
+      </div>
+      <details class="rules"><summary>ค่าคงที่ของสำนักงานและตัวเลือก</summary><div class="rules-bd">
+        <div class="grid2">
+          <div class="field"><div class="row-lbl"><label for="officePhone">โทรศัพท์สำนักงาน (บรรทัด “สำนักงานอยู่ที่”)</label><span class="auto-tag" data-tag="officePhone">auto</span><span class="fit" data-fit="officePhone"></span></div>
+            <input type="text" id="officePhone" data-hot="officePhone">
+            <div class="note">ไม่เปลี่ยนตามตัวทนาย ตั้งครั้งเดียว เก็บในเบราว์เซอร์นี้</div></div>
+          <div class="field"><div class="row-lbl"><label for="maxCond">บีบตัวอักษร (condensed) ได้ไม่เกิน</label></div>
+            <select id="maxCond"><option value="0">ไม่บีบ — เตือนอย่างเดียว</option><option value="10">0.5 pt</option><option value="15">0.75 pt</option><option value="20">1 pt</option></select>
+            <div class="note">ใช้เฉพาะช่องที่ยาวเกินบรรทัดจริง ๆ บีบเท่าที่จำเป็น และบอกในตารางด้านบน</div></div>
+        </div>
+        <label style="display:flex;gap:8px;align-items:center;font-size:.9em;color:var(--text)"><input type="checkbox" id="thaiDigits"> ใช้เลขไทย (อีเมลคงเป็นเลขอารบิก)</label>
+      </div></details>
+    </section>
+  </main>
+
+  <!-- ── Preview ─────────────────────────────────── -->
+  <aside class="pv">
+    <div class="pv-hd"><h3>ตัวอย่าง</h3><select id="pvDoc"></select><span class="pv-fit" id="pvFit"></span></div>
+    <div class="pv-body" id="pvBody"></div>
+    <div class="pv-list" id="pvList"></div>
+    <div class="pv-note">พื้นหลังคือแบบฟอร์มที่ Word วาดจากไฟล์ของสำนักงาน ตัวหนังสือวางตามตำแหน่งที่คำนวณจากความกว้างตัวอักษร TH SarabunPSK
+      ซึ่งตรงกับที่ Word จัดจริง — ไฟล์ .docx คือไฟล์ต้นฉบับที่แก้เฉพาะข้อความในช่อง</div>
+  </aside>
+</div>
+
+<footer>
+  <span class="cites">ป.วิ.พ. มาตรา ๖๐–๖๒ · แบบพิมพ์ศาล (๙) ใบแต่งทนายความ</span><br>
+  เครื่องมือช่วยงาน ไม่ใช่คำแนะนำทางกฎหมาย · ทำงานในเบราว์เซอร์ทั้งหมด ข้อมูลไม่ถูกส่งออกไปไหน
+</footer>
+
+<div class="dlg-bg" id="dlg"><div class="dlg"><h4 id="dlgTitle"></h4><div class="dlg-msg" id="dlgMsg"></div>
+  <div class="btn-row"><button class="btn btn-ghost" id="dlgNo">ยกเลิก</button><button class="btn btn-primary" id="dlgYes">ตกลง</button></div></div></div>
+<div id="toast"></div>
+<input type="file" id="filePick" accept=".json,application/json" style="display:none">
+
+<script id="poa-data" type="application/json">__POA_DATA__</script>
+<script>
+__POA_ENGINE__
+</script>
+<script>
+(function () {
+'use strict';
+
+/* ── Data baked in by _build/attorney-appointment/assemble.py ─────────────── */
+var D = JSON.parse(document.getElementById('poa-data').textContent);
+var ENG = POAEngine.makeEngine(D.widths);
+var TPL_XML = {};                 // tpl -> document.xml with markers (read once from the embedded .docx)
+var TPL_ZIP = {};
+
+var KEY = 'juratools-poa-v2', LAW_KEY = 'juratools-poa-lawyers-v2';
+var OLD_LAW_KEY = 'juratools-poa-lawyers-v1';
+var OFFICE_PHONE = '';                // set once under Export › ค่าคงที่ของสำนักงาน (kept in this browser only)
+var MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+var THD = '๐๑๒๓๔๕๖๗๘๙';
+
+/* ── State ─────────────────────────────────────────────────────────────────── */
+function uid() { return Math.random().toString(36).slice(2, 9); }
+function blankClient() { return { id: uid(), name: '', role: '', appointer: '', appointerRole: null, appointerSig: null, lawyers: [] }; }
+function blankState() {
+  return {
+    v: 2, tpl: 'PY', cur: 0, pvLawyer: null,
+    cse: { matter: '', blackNo: '', blackYear: '', redNo: '', redYear: '', court: '', caseType: 'แพ่ง',
+           dateIso: '', day: null, month: null, year: null,
+           partyA: '', roleA: 'โจทก์', partyB: '', roleB: 'จำเลย' },
+    clients: [blankClient()],
+    firm: { officePhone: null },
+    opts: { thaiDigits: true, maxCondense: 15 }
+  };
+}
+function blankLawyer() { return { key: '', name: '', idNo: '', licenseNo: '', phone: '', email: '' }; }
+var S = blankState();
+var LAW = [];
+
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(S)); localStorage.setItem(LAW_KEY, JSON.stringify(LAW)); } catch (e) {}
+}
+function load() {
+  var st = null, law = null;
+  try { st = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+  try { law = JSON.parse(localStorage.getItem(LAW_KEY) || 'null'); } catch (e) {}
+  if (st && st.v === 2) S = adoptState(st);
+  if (law && law.length) LAW = law.map(function (l) { return Object.assign(blankLawyer(), l); });
+  else {
+    // the first version kept the directory under -v1 with phone/email inside `cur`
+    var old = null;
+    try { old = JSON.parse(localStorage.getItem(OLD_LAW_KEY) || 'null'); } catch (e) {}
+    if (old && old.length) LAW = old.map(fromV1Lawyer);
+  }
+}
+function adoptState(st) {
+  var b = blankState();
+  var out = Object.assign(b, st);
+  out.cse = Object.assign(blankState().cse, st.cse || {});
+  out.firm = Object.assign(blankState().firm, st.firm || {});
+  out.opts = Object.assign(blankState().opts, st.opts || {});
+  out.clients = (st.clients && st.clients.length ? st.clients : [blankClient()]).map(function (c) { return Object.assign(blankClient(), c); });
+  if (out.tpl !== 'JDA' && out.tpl !== 'PY') out.tpl = 'PY';
+  out.cur = Math.min(Math.max(0, out.cur | 0), out.clients.length - 1);
+  return out;
+}
+function fromV1Lawyer(l) {
+  var cur = l.cur || {};
+  return Object.assign(blankLawyer(), { key: l.key || '', name: l.name || '', idNo: l.idNo || '', licenseNo: l.licenseNo || '',
+    phone: cur.tel && cur.tel !== '-' ? cur.tel : '', email: cur.email && cur.email !== '-' ? cur.email : '' });
+}
+
+/* ── Derivations (auto, always overridable) ──────────────────────────────── */
+function cur() { return S.clients[Math.min(S.cur, S.clients.length - 1)]; }
+function lawyerByKey(k) { for (var i = 0; i < LAW.length; i++) if (LAW[i].key === k) return LAW[i]; return null; }
+function norm(s) { return String(s || '').replace(/\s+/g, ' ').trim(); }
+function toArab(s) { return String(s || '').replace(/[๐-๙]/g, function (c) { return String(THD.indexOf(c)); }); }
+function yy(s) { var d = toArab(s).replace(/\D/g, ''); return d.length >= 3 ? d.slice(-2) : d; }
+
+function autoAppointerRole(c) {
+  var role = norm(c.role);
+  if (!role) return '';
+  if (norm(c.appointer) && norm(c.appointer) === norm(c.name)) return role;   // the client signs for itself
+  return 'ผู้รับมอบอำนาจ' + role;
+}
+function autoAppointerSig(c) {
+  var a = norm(c.appointer);
+  var m = a.match(/\sโดย\s*(.+)$/);          // "บริษัท … จำกัด โดยนาย… ผู้รับมอบอำนาจ" → "นาย… ผู้รับมอบอำนาจ"
+  return m ? m[1] : a;
+}
+function appointerRoleOf(c) { return c.appointerRole != null ? c.appointerRole : autoAppointerRole(c); }
+function appointerSigOf(c) { return c.appointerSig != null ? c.appointerSig : autoAppointerSig(c); }
+
+function autoDate() {
+  var iso = S.cse.dateIso;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return { day: '', month: '', year: '' };
+  var p = iso.split('-');
+  return { day: String(+p[2]), month: MONTHS[+p[1] - 1], year: String(+p[0] + 543).slice(-2) };
+}
+function dateOf(k) { return S.cse[k] != null ? S.cse[k] : autoDate()[k]; }
+function officePhone() { return S.firm.officePhone != null ? S.firm.officePhone : OFFICE_PHONE; }
+function courtOf() { return norm(S.cse.court).replace(/^ศาล\s*/, ''); }
+
+function valuesFor(c, l) {
+  var cs = S.cse; l = l || blankLawyer();
+  return {
+    blackNo: norm(cs.blackNo), blackYear: yy(cs.blackYear), redNo: norm(cs.redNo), redYear: yy(cs.redYear),
+    court: courtOf(), day: norm(dateOf('day')), month: norm(dateOf('month')), year: yy(dateOf('year')),
+    caseType: norm(cs.caseType), partyA: norm(cs.partyA), roleA: norm(cs.roleA), partyB: norm(cs.partyB), roleB: norm(cs.roleB),
+    appointer: norm(c.appointer), appointerRole: norm(appointerRoleOf(c)), appointerSig: norm(appointerSigOf(c)),
+    lawyerA: norm(l.name), lawyerB: norm(l.name), lawyerC: norm(l.name), lawyerD: norm(l.name), certifier: norm(l.name),
+    idNo: l.idNo, licenseNo: norm(l.licenseNo), phone: norm(l.phone), email1: norm(l.email), email2: norm(l.email),
+    officePhone: norm(officePhone()), client: norm(c.name), clientRole: norm(c.role)
+  };
+}
+function fillOpts() { return { thaiDigits: S.opts.thaiDigits !== false, condense: S.opts.maxCondense > 0, maxCondense: S.opts.maxCondense }; }
+function run(c, l) {
+  if (!TPL_XML[S.tpl]) return null;
+  return ENG.fill(TPL_XML[S.tpl], D.spec[S.tpl], valuesFor(c, l), fillOpts());
+}
+
+// Thai national ID check digit (mod 11)
+function idValid(s) {
+  var d = toArab(s).replace(/\D/g, '');
+  if (d.length !== 13) return false;
+  var t = 0; for (var i = 0; i < 12; i++) t += (+d[i]) * (13 - i);
+  return (11 - t % 11) % 10 === +d[12];
+}
+
+/* ── Documents: one per client per lawyer ────────────────────────────────── */
+function docs() {
+  var out = [];
+  S.clients.forEach(function (c, ci) {
+    (c.lawyers || []).forEach(function (k) { var l = lawyerByKey(k); if (l) out.push({ c: c, ci: ci, l: l }); });
+  });
+  return out;
+}
+function safe(s) { return String(s).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim(); }
+function fileName(d) {
+  var m = norm(S.cse.matter);
+  var who = norm(d.c.role) || norm(d.c.name) || 'ลูกความ';
+  return safe((m ? m + ' - ' : '') + 'ใบแต่งทนายความ - ' + who + ' ' + (d.l.key || d.l.name)) + '.docx';
+}
+var FIELD_TH = { blackNo: 'คดีดำ', blackYear: 'ปีคดีดำ', redNo: 'คดีแดง', redYear: 'ปีคดีแดง', court: 'ศาล', day: 'วันที่', month: 'เดือน',
+  year: 'ปี', caseType: 'ความ', partyA: 'คู่ความบรรทัดบน', roleA: 'ฐานะบรรทัดบน', partyB: 'คู่ความบรรทัดล่าง', roleB: 'ฐานะบรรทัดล่าง',
+  appointer: 'ข้าพเจ้า (ผู้แต่ง)', appointerRole: 'ฐานะผู้แต่ง', appointerSig: 'ชื่อใต้ลายมือชื่อผู้แต่ง',
+  lawyerA: 'ชื่อทนาย (ขอแต่งให้)', lawyerB: 'ชื่อทนาย (ยอมรับผิดชอบ)', lawyerC: 'ชื่อทนาย (หน้า ๒)', lawyerD: 'ชื่อทนาย (ลงนามหน้า ๒)',
+  certifier: 'ชื่อทนาย (ผู้รับรอง)', idNo: 'เลขประจำตัวประชาชน', licenseNo: 'เลขใบอนุญาต', phone: 'โทรศัพท์', email1: 'อีเมล',
+  email2: 'อีเมล (สำนักงาน)', officePhone: 'โทรศัพท์สำนักงาน', client: 'ขอรับเป็นทนายความของ', clientRole: 'ฐานะลูกความ' };
+function summarise(rep) {
+  var over = [], cond = [];
+  Object.keys(rep).forEach(function (id) {
+    var r = rep[id];
+    if (!r.fits) over.push(id); else if (r.condense) cond.push(id);
+  });
+  return { over: over, cond: cond, level: over.length ? 'over' : cond.length ? 'cond' : 'ok' };
+}
+function pt(tw) { return (Math.round(tw / 2) / 10).toFixed(1).replace(/\.0$/, ''); }
+
+/* ── Rendering: form ─────────────────────────────────────────────────────── */
+var $ = function (id) { return document.getElementById(id); };
+function setVal(el, v) { if (document.activeElement !== el && el.value !== v) el.value = v; }
+function get(path) { var p = path.split('.'); return S[p[0]][p[1]]; }
+
+function paintForm() {
+  document.querySelectorAll('[data-k]').forEach(function (el) { setVal(el, get(el.dataset.k) || ''); });
+  // date parts with auto/override
+  ['day', 'month', 'year'].forEach(function (k) {
+    var el = $(k), manual = S.cse[k] != null;
+    setVal(el, dateOf(k)); el.classList.toggle('is-auto', !manual);
+    tag(k, manual);
+  });
+  setVal($('dateIso'), S.cse.dateIso || '');
+  var c = cur();
+  document.querySelectorAll('[data-c]').forEach(function (el) { setVal(el, c[el.dataset.c] || ''); });
+  [['cApRole', 'appointerRole', appointerRoleOf(c)], ['cApSig', 'appointerSig', appointerSigOf(c)]].forEach(function (x) {
+    var manual = c[x[1]] != null;
+    setVal($(x[0]), x[2]); $(x[0]).classList.toggle('is-auto', !manual); tag(x[1], manual);
+  });
+  var opm = S.firm.officePhone != null;
+  setVal($('officePhone'), officePhone()); $('officePhone').classList.toggle('is-auto', !opm); tag('officePhone', opm);
+  $('thaiDigits').checked = S.opts.thaiDigits !== false;
+  $('maxCond').value = String(S.opts.maxCondense);
+  document.querySelectorAll('#tplTiles .tpl').forEach(function (b) { b.classList.toggle('on', b.dataset.tpl === S.tpl); });
+  var role = norm(c.role), hint = '';
+  if (/^จำเลย/.test(role) && S.tpl === 'PY') hint = 'ลูกความรายนี้เป็นฝ่ายจำเลย — ไฟล์ของสำนักงานฝ่ายจำเลยใช้แบบ JDA (“การถอนคำให้การ”) เลือกได้ตามดุลพินิจ';
+  if (/^โจทก์/.test(role) && S.tpl === 'JDA') hint = 'ลูกความรายนี้เป็นโจทก์ แต่แบบ JDA เขียนว่า “การถอนคำให้การ” — ตรวจว่าตั้งใจใช้แบบนี้';
+  $('tplHint').textContent = hint;
+  $('clientTitle').textContent = 'ลูกความรายที่ ' + POAEngine.toThai(S.cur + 1);
+  paintLawyerChips();
+}
+function tag(k, manual) {
+  var t = document.querySelector('[data-tag="' + k + '"]');
+  if (!t) return;
+  t.classList.toggle('manual', manual);
+  t.textContent = manual ? 'แก้เอง ↺' : 'auto';
+  t.title = manual ? 'กลับไปใช้ค่าอัตโนมัติ' : '';
+}
+function paintLawyerChips() {
+  var c = cur(), host = $('cLawyers');
+  host.innerHTML = LAW.length ? LAW.map(function (l, i) {
+    var on = c.lawyers.indexOf(l.key) >= 0;
+    return '<button class="chip' + (on ? ' on' : '') + '" data-lk="' + i + '">' + esc(l.key || '?') + ' · ' + esc(l.name || 'ไม่มีชื่อ') + '</button>';
+  }).join('') : '<span class="empty">ยังไม่มีทนายในทะเบียน — เพิ่มด้านล่าง หรือนำเข้าไฟล์ทะเบียน</span>';
+  $('cLawyersNote').textContent = c.lawyers.length ? 'ได้ ' + c.lawyers.length + ' ฉบับสำหรับลูกความรายนี้' : 'เลือกอย่างน้อยหนึ่งคน';
+}
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+function paintSidebar() {
+  var all = docs();
+  $('docCount').textContent = all.length + ' ฉบับ';
+  $('clList').innerHTML = S.clients.map(function (c, i) {
+    var chips = (c.lawyers || []).map(function (k) {
+      var l = lawyerByKey(k); if (!l) return '';
+      var r = run(c, l), lv = r ? summarise(r.report).level : 'ok';
+      return '<span class="chip on">' + esc(k) + '<span class="dot ' + lv + '"></span></span>';
+    }).join('');
+    return '<div class="cl' + (i === S.cur ? ' active' : '') + '" data-ci="' + i + '">' +
+      (S.clients.length > 1 ? '<button class="cl-del" data-del="' + i + '" title="ลบลูกความรายนี้">×</button>' : '') +
+      '<div class="cl-no">รายที่ ' + (i + 1) + '</div>' +
+      '<div class="cl-name">' + (norm(c.name) ? esc(c.name) : '<span class="empty">ยังไม่มีชื่อ</span>') + '</div>' +
+      '<div class="cl-role">' + esc(c.role || '') + '</div>' +
+      '<div class="cl-chips">' + (chips || '<span class="empty" style="font-size:.75em">ยังไม่เลือกทนาย</span>') + '</div></div>';
+  }).join('');
+}
+
+function paintLawyers() {
+  var open = {};
+  document.querySelectorAll('#lawList details[open]').forEach(function (d) { open[d.dataset.li] = 1; });
+  $('lawList').innerHTML = LAW.length ? LAW.map(function (l, i) {
+    var idOk = !l.idNo || idValid(l.idNo);
+    return '<details class="law" data-li="' + i + '"' + (open[i] || !l.name ? ' open' : '') + '><summary>' +
+      '<span class="law-key">' + esc(l.key || '?') + '</span><span class="law-name">' + (esc(l.name) || '<span class="empty">ชื่อทนาย</span>') + '</span>' +
+      '<span class="law-lic">' + (l.licenseNo ? 'ใบอนุญาต ' + esc(l.licenseNo) : '') + (idOk ? '' : ' · <b style="color:#b91c1c">เลขบัตรไม่ผ่าน</b>') + '</span></summary>' +
+      '<div class="law-bd"><div class="grid2">' +
+      lf(i, 'key', 'ชื่อย่อ (ต่อท้ายชื่อไฟล์)', 'KT', '') +
+      lf(i, 'name', 'ชื่อ–นามสกุล พร้อมคำนำหน้า', 'นาย ก. ตัวอย่าง', 'lawyerC') +
+      lf(i, 'idNo', 'เลขประจำตัวประชาชน (๑๓ หลัก)', '1-2345-67890-12-3', 'idNo', idOk ? '' : 'bad') +
+      lf(i, 'licenseNo', 'ใบอนุญาตให้เป็นทนายความเลขที่', '1234/2567', 'licenseNo') +
+      lf(i, 'phone', 'โทรศัพท์ (ส่วนตัว)', '08x-xxx-xxxx', 'phone') +
+      lf(i, 'email', 'ไปรษณีย์อิเล็กทรอนิกส์', 'ชื่อ@โดเมนสำนักงาน', 'email1') +
+      '</div><div class="btn-row" style="margin-top:12px;justify-content:flex-end"><button class="btn btn-danger btn-sm" data-ldel="' + i + '">ลบทนายคนนี้</button></div></div></details>';
+  }).join('') : '<p class="empty" style="margin:0">ยังไม่มีทนาย — กด “+ เพิ่มทนาย” หรือ “นำเข้า” ไฟล์ทะเบียน</p>';
+  paintLawyerFit();
+}
+function lf(i, k, label, ph, hot, cls) {
+  return '<div class="field"><div class="row-lbl"><label>' + label + '</label><span class="fit" data-lfit="' + i + ':' + k + '"></span></div>' +
+    '<input type="text" class="' + (cls || '') + '" data-lf="' + i + ':' + k + '"' + (hot ? ' data-hot="' + hot + '"' : '') +
+    ' value="' + esc(LAW[i][k]) + '" placeholder="' + esc(ph) + '"' + (k === 'email' ? ' spellcheck="false"' : '') + '></div>';
+}
+
+// fit badges: form inputs follow the previewed document; register rows use that lawyer
+function badge(el, r, ids) {
+  if (!el) return;
+  var worst = null;
+  ids.forEach(function (id) {
+    var x = r.report[id]; if (!x) return;
+    var lv = !x.fits ? 2 : x.condense ? 1 : 0;
+    if (!worst || lv > worst.lv) worst = { lv: lv, x: x };
+  });
+  if (!worst || worst.x.empty) { el.className = 'fit'; el.textContent = ''; el.title = ''; return; }
+  var x = worst.x;
+  var f = D.spec[S.tpl].filter(function (s) { return s.id === ids[0]; })[0];
+  if (worst.lv === 0 && f && f.policy === 'rtab') { el.className = 'fit'; el.textContent = ''; return; }   // right-aligned: its neighbour carries the fit
+  if (worst.lv === 2) { el.className = 'fit over'; el.textContent = x.note || ('เกิน ' + pt(x.need) + ' pt'); el.title = 'ยาวเกินบรรทัด — Word จะขึ้นบรรทัดใหม่ เอกสารอาจเกิน ๒ หน้า'; }
+  else if (worst.lv === 1) { el.className = 'fit cond'; el.textContent = 'บีบ ' + pt(x.condense) + ' pt'; el.title = 'condensed เฉพาะช่องนี้'; }
+  else { el.className = 'fit ok'; el.textContent = x.spare != null ? 'เหลือ ' + pt(x.spare) + ' pt' : 'ครบ'; el.title = ''; }
+}
+var FIT_MAP = { blackNo: ['blackNo'], blackYear: ['blackYear'], redNo: ['redNo'], redYear: ['redYear'], court: ['court'],
+  day: ['day'], month: ['month'], year: ['year'], caseType: ['caseType'], partyA: ['partyA'], partyB: ['partyB'],
+  appointer: ['appointer'], appointerRole: ['appointerRole'], appointerSig: ['appointerSig'], client: ['client', 'clientRole'],
+  officePhone: ['officePhone'] };
+function paintFit(r) {
+  document.querySelectorAll('[data-fit]').forEach(function (el) { if (r) badge(el, r, FIT_MAP[el.dataset.fit] || []); else el.textContent = ''; });
+}
+function paintLawyerFit() {
+  var c = cur();
+  LAW.forEach(function (l, i) {
+    var r = run(c, l); if (!r) return;
+    var m = { name: ['lawyerA', 'lawyerB', 'lawyerC', 'lawyerD', 'certifier'], idNo: ['idNo'], licenseNo: ['licenseNo'], phone: ['phone'], email: ['email1', 'email2'] };
+    Object.keys(m).forEach(function (k) { badge(document.querySelector('[data-lfit="' + i + ':' + k + '"]'), r, m[k]); });
+    var idEl = document.querySelector('[data-lfit="' + i + ':idNo"]');
+    if (idEl && l.idNo && !idValid(l.idNo) && r.report.idNo.fits) { idEl.className = 'fit over'; idEl.textContent = 'เลขตรวจสอบไม่ตรง'; }
+  });
+}
+
+function paintDocs() {
+  var all = docs();
+  var sel = $('pvDoc'), keep = sel.value;
+  var opts = all.map(function (d, i) { return '<option value="' + d.ci + ':' + esc(d.l.key) + '">' + esc(fileName(d).replace(/\.docx$/, '')) + '</option>'; });
+  var c = cur();
+  if (!all.some(function (d) { return d.ci === S.cur; })) opts.unshift('<option value="' + S.cur + ':">ลูกความรายที่ ' + (S.cur + 1) + ' (ยังไม่เลือกทนาย)</option>');
+  sel.innerHTML = opts.join('');
+  var want = S.cur + ':' + (S.pvLawyer && c.lawyers.indexOf(S.pvLawyer) >= 0 ? S.pvLawyer : (c.lawyers[0] || ''));
+  sel.value = want; if (sel.value !== want) sel.value = keep;
+  var anyOver = false, anyCond = false;
+  $('docRows').innerHTML = all.length ? all.map(function (d, i) {
+    var r = run(d.c, d.l), s = r ? summarise(r.report) : { level: 'ok', over: [], cond: [] };
+    anyOver = anyOver || s.level === 'over'; anyCond = anyCond || s.cond.length > 0;
+    var st = s.level === 'over' ? '<span class="stat over">เกินบรรทัด: ' + s.over.map(function (x) { return FIELD_TH[x] || x; }).join(', ') + '</span>'
+      : s.level === 'cond' ? '<span class="stat cond">บีบ: ' + s.cond.map(function (x) { return FIELD_TH[x] + ' ' + pt(r.report[x].condense) + ' pt'; }).join(', ') + '</span>'
+      : '<span class="stat ok">พอดี ๒ หน้า</span>';
+    return '<tr><td class="fn">' + esc(fileName(d)) + '</td><td>' + st + '</td><td style="text-align:right"><button class="btn btn-ghost btn-sm" data-dl="' + i + '">.docx</button></td></tr>';
+  }).join('') : '<tr><td colspan="3" class="empty">ยังไม่มีเอกสาร — ใส่ชื่อลูกความและเลือกทนายอย่างน้อยหนึ่งคน</td></tr>';
+  $('exportAll').disabled = !all.length;
+  $('exportAll').textContent = all.length > 1 ? 'ดาวน์โหลดทั้งหมด (' + all.length + ' ไฟล์, .zip)' : 'ดาวน์โหลด .docx';
+  var warns = [];
+  if (anyOver) warns.push('มีช่องที่ยาวเกินบรรทัด — ถ้าส่งออกเลย Word จะตัดขึ้นบรรทัดใหม่และเอกสารอาจเกิน ๒ หน้า ย่อข้อความในช่องสีแดงก่อน');
+  if (all.length && !norm(officePhone())) warns.push('ยังไม่ได้ตั้งโทรศัพท์สำนักงาน (หน้า ๒ บรรทัด “สำนักงานอยู่ที่”) — ตั้งครั้งเดียวที่ “ค่าคงที่ของสำนักงาน” ด้านล่าง หรือปล่อยว่างไว้เขียนเอง');
+  $('exportWarn').textContent = warns.join('  ·  ');
+}
+
+/* ── Rendering: preview ───────────────────────────────────────────────────── */
+var PT2PX = 96 / 72;
+function pvTarget() {
+  var v = $('pvDoc').value || (S.cur + ':'), p = v.split(':');
+  var c = S.clients[+p[0]] || cur();
+  return { c: c, l: lawyerByKey(p.slice(1).join(':')) };
+}
+function paintPreview() {
+  var body = $('pvBody');
+  if (!TPL_XML[S.tpl]) { body.innerHTML = '<p class="empty">กำลังเปิดแบบฟอร์ม… (ต้องต่ออินเทอร์เน็ตครั้งแรกเพื่อโหลด JSZip)</p>'; return; }
+  var t = pvTarget(), r = run(t.c, t.l);
+  paintFit(r);
+  var s = summarise(r.report);
+  var pf = $('pvFit');
+  pf.className = 'pv-fit ' + s.level;
+  pf.textContent = s.level === 'over' ? 'เกินบรรทัด ' + s.over.length + ' ช่อง' : s.level === 'cond' ? 'บีบ ' + s.cond.length + ' ช่อง' : 'พอดี';
+  $('pvList').innerHTML = s.over.map(function (id) { return '<div style="color:#b91c1c">● ' + FIELD_TH[id] + ' — เกิน ' + pt(r.report[id].need) + ' pt</div>'; }).join('') +
+    s.cond.map(function (id) { return '<div style="color:#b45309">● ' + FIELD_TH[id] + ' — condensed ' + pt(r.report[id].condense) + ' pt</div>'; }).join('');
+  var avail = body.clientWidth - 32;
+  var scale = Math.min(1.2, avail / (595.44 * PT2PX));
+  var W = 595.44 * PT2PX * scale, H = 841.68 * PT2PX * scale;
+  var lay = D.layout[S.tpl], spec = D.spec[S.tpl];
+  var html = '';
+  [1, 2].forEach(function (pg) {
+    var bg = pg === 1 ? D.bg[S.tpl + '1'] : D.bg.P2;
+    html += '<div class="pg-wrap" style="width:' + W + 'px;height:' + H + 'px"><div class="pg" style="transform:scale(' + scale + ')">' +
+      '<img alt="" src="data:image/png;base64,' + bg + '">';
+    spec.forEach(function (f) {
+      var L = lay[f.id]; if (!L || L.page !== pg) return;
+      var x = r.report[f.id];
+      if (f.kind === 'digits') {
+        var raw = toArab(t.l ? t.l.idNo : '').replace(/\D/g, '');
+        if (raw.length !== 13) return;
+        L.digits.forEach(function (dg, i) {
+          var ch = S.opts.thaiDigits !== false ? THD[+raw[i]] : raw[i];
+          html += '<span class="ov" data-f="idNo" style="left:' + dg[0] + 'pt;top:' + dg[1] + 'pt;height:' + (dg[2] - dg[1]) + 'pt;line-height:' + (dg[2] - dg[1]) + 'pt">' + ch + '</span>';
+        });
+        return;
+      }
+      if (!x || x.empty) return;
+      var txt = (f.prefix ? '(' : '') + x.text + (f.suffix ? ')' : '');
+      var cls = 'ov' + (f.u ? '' : ' mask') + (!x.fits ? ' over' : x.condense ? ' cond' : '');
+      html += '<span class="' + cls + '" data-f="' + f.id + '" data-w="' + (x.width / 20) + '" style="left:' + (L.ox + x.start / 20) + 'pt;top:' + L.y0 +
+        'pt;height:' + (L.y1 - L.y0) + 'pt;line-height:' + (L.y1 - L.y0) + 'pt">' + esc(txt) + '</span>';
+    });
+    html += '</div></div>';
+  });
+  body.innerHTML = html;
+  // squeeze each value to the width Word will give it (also absorbs a fallback font)
+  body.querySelectorAll('.ov[data-w]').forEach(function (el) {
+    var nat = el.offsetWidth, want = parseFloat(el.dataset.w) * PT2PX;
+    if (nat > 0 && want > 0) el.style.transform = 'scaleX(' + (want / nat).toFixed(4) + ')';
+  });
+  hot(document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.hot : null);
+}
+function hot(id) {
+  document.querySelectorAll('.ov.hot').forEach(function (e) { e.classList.remove('hot'); });
+  if (!id) return;
+  var ids = id === 'lawyerC' ? ['lawyerA', 'lawyerB', 'lawyerC', 'lawyerD', 'certifier'] : id === 'email1' ? ['email1', 'email2']
+    : id === 'client' ? ['client'] : [id];
+  var first = null;
+  ids.forEach(function (i) { document.querySelectorAll('.ov[data-f="' + i + '"]').forEach(function (e) { e.classList.add('hot'); first = first || e; }); });
+  if (first && $('app').dataset.view !== 'form') {
+    var b = $('pvBody'), er = first.getBoundingClientRect(), br = b.getBoundingClientRect();
+    if (er.top < br.top + 20 || er.bottom > br.bottom - 20) b.scrollTop += er.top - br.top - b.clientHeight / 3;
+  }
+}
+
+var pending = false;
+function refresh() {
+  if (pending) return;
+  pending = true;
+  var done = false, go = function () { if (done) return; done = true; pending = false; paintForm(); paintSidebar(); paintDocs(); paintPreview(); paintLawyerFit(); };
+  requestAnimationFrame(go); setTimeout(go, 120);     // a hidden tab pauses animation frames; never let a repaint stall
+}
+function refreshAll() { paintLawyers(); refresh(); }
+
+/* ── Export ──────────────────────────────────────────────────────────────── */
+function download(blob, name) {
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+}
+function buildDocx(d) {
+  var r = run(d.c, d.l);
+  return JSZip.loadAsync(D.tpl[S.tpl], { base64: true }).then(function (zip) {
+    zip.file('word/document.xml', r.xml);
+    return zip.generateAsync({ type: 'blob', compression: 'DEFLATE', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+  });
+}
+function overflowing(list) {
+  return list.filter(function (d) { var r = run(d.c, d.l); return r && summarise(r.report).level === 'over'; });
+}
+function exportDocs(list) {
+  if (!list.length) return;
+  var bad = overflowing(list);
+  var go = function () {
+    if (list.length === 1) return buildDocx(list[0]).then(function (b) { download(b, fileName(list[0])); toast('ดาวน์โหลด ' + fileName(list[0])); });
+    var z = new JSZip(), names = {};
+    return list.reduce(function (p, d) {
+      return p.then(function () { return buildDocx(d).then(function (b) {
+        var n = fileName(d), k = 2; while (names[n]) n = fileName(d).replace(/\.docx$/, ' (' + (k++) + ').docx'); names[n] = 1;
+        z.file(n, b); }); });
+    }, Promise.resolve()).then(function () { return z.generateAsync({ type: 'blob' }); })
+      .then(function (b) { var n = safe((norm(S.cse.matter) || 'ใบแต่งทนายความ') + ' - ใบแต่งทนายความ') + '.zip'; download(b, n); toast('ดาวน์โหลด ' + list.length + ' ไฟล์'); });
+  };
+  if (bad.length) confirmDlg('มีช่องยาวเกินบรรทัด', bad.length + ' ไฟล์มีข้อความยาวเกินบรรทัด Word จะตัดขึ้นบรรทัดใหม่และเอกสารอาจเกิน ๒ หน้า\n\nส่งออกต่อหรือกลับไปย่อข้อความก่อน?', 'ส่งออกต่อ', go);
+  else go();
+}
+
+/* ── Save / open ─────────────────────────────────────────────────────────── */
+function exportJson() {
+  var used = {};
+  S.clients.forEach(function (c) { c.lawyers.forEach(function (k) { used[k] = 1; }); });
+  var data = { tool: 'attorney-appointment', version: 2, savedAt: new Date().toISOString(),
+    state: { tpl: S.tpl, cse: S.cse, clients: S.clients, firm: S.firm, opts: S.opts },
+    lawyers: LAW.filter(function (l) { return used[l.key]; }) };
+  download(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), safe(norm(S.cse.matter) || 'ใบแต่งทนายความ') + '.poa.json');
+}
+function mergeLawyers(list) {
+  var added = 0, filled = 0;
+  (list || []).forEach(function (n) {
+    n = Object.assign(blankLawyer(), n);
+    var hit = LAW.filter(function (l) { return (n.key && l.key === n.key) || (n.name && norm(l.name) === norm(n.name)); })[0];
+    if (!hit) { LAW.push(n); added++; return; }
+    Object.keys(blankLawyer()).forEach(function (k) { if (!norm(hit[k]) && norm(n[k])) { hit[k] = n[k]; filled++; } });   // fill blanks, never overwrite
+  });
+  return { added: added, filled: filled };
+}
+function fromV1(o) {
+  // the first version's .poa.json: { cse, lawyers[with cur/off], appts[] }
+  var cse = o.cse || o.case || {};
+  var st = blankState();
+  Object.keys(st.cse).forEach(function (k) { if (cse[k] != null && k !== 'day' && k !== 'month' && k !== 'year') st.cse[k] = cse[k]; });
+  if (cse.dateAuto === false) { st.cse.day = cse.day || ''; st.cse.month = cse.month || ''; st.cse.year = cse.year || ''; }
+  st.cse.matter = o.matter || '';
+  var byId = {};
+  (o.lawyers || []).forEach(function (l) { byId[l.id] = l.key; });
+  var ap = o.appts || o.appointments || [];
+  st.clients = (ap.length ? ap : [{}]).map(function (a) {
+    var keys = (a.lawyers || []).concat((a.lawyerIds || []).map(function (id) { return byId[id]; })).filter(Boolean);
+    return Object.assign(blankClient(), { name: a.client || '', role: a.clientRole || '', appointer: a.appointer || '',
+      appointerRole: a.appointerAuto === false ? (a.appointerRole || '') : null,
+      appointerSig: a.sigAuto === false ? (a.appointerSig || '') : null, lawyers: keys });
+  });
+  st.tpl = ap.some(function (a) { return a.side === 'defendant'; }) ? 'JDA' : 'PY';
+  return { state: st, lawyers: (o.lawyers || []).map(fromV1Lawyer) };
+}
+function openFile(text) {
+  var o;
+  try { o = JSON.parse(text); } catch (e) { toast('อ่านไฟล์ไม่ได้ — ไม่ใช่ JSON'); return; }
+  if (o.tool === 'attorney-appointment-lawyers' || (o.lawyers && !o.state && !o.cse && !o.appts)) {
+    var m = mergeLawyers(o.lawyers); save(); refreshAll();
+    toast('ทะเบียนทนาย: เพิ่ม ' + m.added + ' คน · เติมช่องว่าง ' + m.filled + ' ช่อง'); return;
+  }
+  var inc = o.tool === 'attorney-appointment' && o.state ? { state: adoptState(Object.assign({ v: 2 }, o.state)), lawyers: o.lawyers || [] }
+    : (o.format === 'juratools-attorney-appointment' || o.cse || o.appts) ? fromV1(o) : null;
+  if (!inc) { toast('ไฟล์นี้ไม่ใช่ไฟล์ของเครื่องมือนี้'); return; }
+  var dirty = norm(S.cse.partyA) || norm(S.cse.blackNo) || S.clients.some(function (c) { return norm(c.name); });
+  var apply = function () {
+    S = adoptState(inc.state); var m = mergeLawyers(inc.lawyers); save(); refreshAll();
+    toast('เปิดคดีแล้ว' + (m.added ? ' · ทนายใหม่ ' + m.added + ' คน' : ''));
+  };
+  if (dirty) confirmDlg('เปิดไฟล์คดีแทนที่งานปัจจุบัน?', 'ข้อมูลคดีและลูกความที่กรอกอยู่จะถูกแทนด้วยไฟล์ที่เปิด\nทะเบียนทนายไม่ถูกลบ — ทนายในไฟล์จะเติมเฉพาะช่องที่ยังว่าง', 'เปิดไฟล์', apply);
+  else apply();
+}
+
+/* ── Dialog / toast ──────────────────────────────────────────────────────── */
+var dlgYes = null;
+function confirmDlg(title, msg, yes, fn) {
+  $('dlgTitle').textContent = title; $('dlgMsg').textContent = msg; $('dlgYes').textContent = yes || 'ตกลง';
+  dlgYes = fn; $('dlg').classList.add('on');
+}
+$('dlgNo').onclick = function () { $('dlg').classList.remove('on'); dlgYes = null; };
+$('dlgYes').onclick = function () { $('dlg').classList.remove('on'); var f = dlgYes; dlgYes = null; if (f) f(); };
+var tt = 0;
+function toast(m) { var t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(tt); tt = setTimeout(function () { t.classList.remove('on'); }, 2400); }
+
+/* ── Wiring ──────────────────────────────────────────────────────────────── */
+document.addEventListener('input', function (e) {
+  var el = e.target, d = el.dataset;
+  if (d.k) { var p = d.k.split('.'); S[p[0]][p[1]] = el.value; }
+  else if (d.ov) S.cse[d.ov] = el.value;
+  else if (d.c) cur()[d.c] = el.value;
+  else if (d.cov) cur()[d.cov] = el.value;
+  else if (d.lf) {
+    var q = d.lf.split(':'), l = LAW[+q[0]], old = l.key;
+    l[q[1]] = el.value;
+    if (q[1] === 'key' && old !== el.value) S.clients.forEach(function (c) { c.lawyers = c.lawyers.map(function (k) { return k === old ? el.value : k; }); });
+    var sum = el.closest('details').querySelector('summary');
+    sum.querySelector('.law-key').textContent = l.key || '?';
+    sum.querySelector('.law-name').textContent = l.name || 'ชื่อทนาย';
+    sum.querySelector('.law-lic').textContent = l.licenseNo ? 'ใบอนุญาต ' + l.licenseNo : '';
+    if (q[1] === 'idNo') el.classList.toggle('bad', !!l.idNo && !idValid(l.idNo));
+  }
+  else if (el.id === 'officePhone') S.firm.officePhone = el.value;
+  else if (el.id === 'dateIso') { S.cse.dateIso = el.value; S.cse.day = S.cse.month = S.cse.year = null; }
+  else return;
+  save(); refresh();
+});
+document.addEventListener('change', function (e) {
+  if (e.target.id === 'thaiDigits') { S.opts.thaiDigits = e.target.checked; save(); refresh(); }
+  if (e.target.id === 'maxCond') { S.opts.maxCondense = +e.target.value; save(); refresh(); }
+  if (e.target.id === 'pvDoc') { var p = e.target.value.split(':'); S.cur = +p[0]; S.pvLawyer = p.slice(1).join(':') || null; save(); refresh(); }
+  if (e.target.id === 'filePick') {
+    var f = e.target.files[0]; if (!f) return;
+    var rd = new FileReader(); rd.onload = function () { openFile(String(rd.result)); }; rd.readAsText(f); e.target.value = '';
+  }
+});
+document.addEventListener('focusin', function (e) { if (e.target.dataset && e.target.dataset.hot) hot(e.target.dataset.hot); });
+document.addEventListener('focusout', function () { hot(null); });
+document.addEventListener('click', function (e) {
+  var t = e.target.closest('button,[data-ci],.auto-tag'); if (!t) return;
+  var d = t.dataset;
+  if (t.classList.contains('auto-tag') && t.classList.contains('manual')) {
+    var k = d.tag;
+    if (k === 'day' || k === 'month' || k === 'year') S.cse[k] = null;
+    else if (k === 'officePhone') S.firm.officePhone = null;
+    else cur()[k] = null;
+    save(); refresh(); return;
+  }
+  if (d.tpl) { S.tpl = d.tpl; save(); refresh(); return; }
+  if (d.del != null) {
+    var i = +d.del, c = S.clients[i];
+    confirmDlg('ลบลูกความรายนี้?', (norm(c.name) || 'รายที่ ' + (i + 1)) + ' จะถูกลบออกจากคดีนี้', 'ลบ', function () {
+      S.clients.splice(i, 1); if (!S.clients.length) S.clients.push(blankClient()); S.cur = Math.min(S.cur, S.clients.length - 1); save(); refresh();
+    });
+    e.stopPropagation(); return;
+  }
+  if (d.ci != null && !d.del) { S.cur = +d.ci; S.pvLawyer = null; save(); refreshAll(); return; }
+  if (d.lk != null) {
+    var l = LAW[+d.lk], c2 = cur();
+    if (!l.key) { toast('ใส่ชื่อย่อของทนายก่อน'); return; }
+    var at = c2.lawyers.indexOf(l.key);
+    if (at >= 0) c2.lawyers.splice(at, 1); else { c2.lawyers.push(l.key); S.pvLawyer = l.key; }
+    save(); refresh(); return;
+  }
+  if (d.ldel != null) {
+    var li = +d.ldel, lw = LAW[li];
+    confirmDlg('ลบทนายออกจากทะเบียน?', (lw.name || lw.key || 'ทนาย') + ' จะหายจากทะเบียนในเครื่องนี้ และจากลูกความที่เลือกไว้', 'ลบ', function () {
+      S.clients.forEach(function (c) { c.lawyers = c.lawyers.filter(function (k) { return k !== lw.key; }); });
+      LAW.splice(li, 1); save(); refreshAll();
+    });
+    return;
+  }
+  if (d.dl != null) { exportDocs([docs()[+d.dl]]); return; }
+  if (d.view) {
+    $('app').dataset.view = d.view;
+    document.querySelectorAll('#viewSeg button').forEach(function (b) { b.classList.toggle('on', b === t); });
+    refresh(); return;
+  }
+  switch (t.id) {
+    case 'addClient': S.clients.push(Object.assign(blankClient(), { lawyers: cur().lawyers.slice() })); S.cur = S.clients.length - 1; save(); refreshAll(); break;
+    case 'dupClient': var cp = JSON.parse(JSON.stringify(cur())); cp.id = uid(); S.clients.splice(S.cur + 1, 0, cp); S.cur++; save(); refreshAll(); break;
+    case 'swapParties': var a = S.cse; var tA = a.partyA, tR = a.roleA; a.partyA = a.partyB; a.roleA = a.roleB; a.partyB = tA; a.roleB = tR; save(); refresh(); break;
+    case 'dateToday': var n = new Date(); S.cse.dateIso = n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0');
+      S.cse.day = S.cse.month = S.cse.year = null; save(); refresh(); break;
+    case 'dateClear': S.cse.dateIso = ''; S.cse.day = S.cse.month = S.cse.year = null; save(); refresh(); break;
+    case 'lawAdd': LAW.push(blankLawyer()); save(); refreshAll(); break;
+    case 'lawExport': download(new Blob([JSON.stringify({ tool: 'attorney-appointment-lawyers', version: 2, lawyers: LAW }, null, 2)], { type: 'application/json' }), 'ทะเบียนทนายความ.poa-lawyers.json'); break;
+    case 'lawImport': case 'openJson': $('filePick').click(); break;
+    case 'saveJson': exportJson(); break;
+    case 'exportAll': exportDocs(docs()); break;
+    case 'clearAll': confirmDlg('ล้างคดีนี้?', 'ข้อมูลคดีและลูกความทั้งหมดจะถูกล้าง (ทะเบียนทนายยังอยู่)', 'ล้าง', function () {
+      var keep = { tpl: S.tpl, opts: S.opts, firm: S.firm }; S = Object.assign(blankState(), keep); save(); refreshAll(); }); break;
+    case 'loadExample': loadExample(); break;
+  }
+});
+function loadExample() {
+  var go = function () {
+    var ks = LAW.filter(function (l) { return l.key; }).slice(0, 1).map(function (l) { return l.key; });
+    S = Object.assign(blankState(), { tpl: 'JDA', opts: S.opts, firm: S.firm });
+    S.cse = Object.assign(S.cse, { matter: 'ตัวอย่าง', blackNo: 'พ.1234', blackYear: '69', court: 'แพ่งกรุงเทพใต้', caseType: 'แพ่ง',
+      partyA: 'บริษัท ตัวอย่างการค้า จำกัด', roleA: 'โจทก์', partyB: 'บริษัท ทดลองพัฒนา จำกัด กับพวกรวม 3 คน', roleB: 'จำเลย' });
+    S.clients = [Object.assign(blankClient(), { name: 'บริษัท ทดลองพัฒนา จำกัด', role: 'จำเลยที่ 1',
+      appointer: 'นายสมมติ ตัวอย่าง', lawyers: ks })];
+    save(); refreshAll();
+  };
+  var dirty = norm(S.cse.partyA) || S.clients.some(function (c) { return norm(c.name); });
+  if (dirty) confirmDlg('ใส่ข้อมูลตัวอย่าง?', 'ข้อมูลคดีที่กรอกอยู่จะถูกแทนด้วยตัวอย่าง (ทะเบียนทนายยังอยู่)', 'ใส่ตัวอย่าง', go); else go();
+}
+window.addEventListener('resize', function () { refresh(); });
+
+/* ── Boot ────────────────────────────────────────────────────────────────── */
+if (/[?&]debug\b/.test(location.search)) window.__poa = { S: function () { return S; }, docs: docs, valuesFor: valuesFor, run: run, fillOpts: fillOpts, buildDocx: buildDocx };
+load();
+refreshAll();
+if (typeof JSZip === 'undefined') {
+  $('pvBody').innerHTML = '<p class="empty">โหลด JSZip ไม่ได้ — ต้องต่ออินเทอร์เน็ตเพื่อเปิดแบบฟอร์มและส่งออก .docx</p>';
+} else {
+  Promise.all(['JDA', 'PY'].map(function (k) {
+    return JSZip.loadAsync(D.tpl[k], { base64: true }).then(function (z) { TPL_ZIP[k] = z; return z.file('word/document.xml').async('string'); })
+      .then(function (x) { TPL_XML[k] = x; });
+  })).then(refreshAll);
+}
+})();
+</script>
+</body>
+</html>

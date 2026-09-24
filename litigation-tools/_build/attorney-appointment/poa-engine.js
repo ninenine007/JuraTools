@@ -1,0 +1,195 @@
+/* poa-engine — fills the firm's ใบแต่งทนายความ templates.
+ *
+ * The template's document.xml carries markers inside the ORIGINAL runs:
+ *   ⟦L<n>:id⟧  padding spaces before a value (one marker per padding run)
+ *   ⟦V:id⟧     the value
+ *   ⟦T<n>:id⟧  padding spaces after a value, before its tab
+ *   ⟦P:id⟧ ⟦S:id⟧  the "(" and ")" around a signature name
+ *   ⟦D<n>:id⟧  one digit of the ID number
+ * Filling swaps marker text for plain text, so every value inherits the <w:rPr>
+ * of the run that held the old value — underline, size, cs, w:lang.
+ *
+ * Padding is worked out from TH SarabunPSK advance widths so a value sits where
+ * the firm's own file put the old one (same centre, or same left edge).  A value
+ * too long for its blank is first given the least padding, then — only if it
+ * still does not fit — condensed (w:spacing on that one run, the same device
+ * the firm's own file uses on the ศาล line), never beyond opts.maxCondense.
+ * Anything still too long is reported, not silently wrapped.
+ */
+(function (root) {
+  'use strict';
+
+  var MARK = /[ัิ-ฺ็-๎]/;          // zero-width Thai marks
+  var CLUSTER_EXT = /[ัำิ-ฺ็-๎]/; // + SARA AM, which joins the cluster before it
+  var THAI_DIGITS = '๐๑๒๓๔๕๖๗๘๙';
+  var RIGHT_TAB = 9450;                                        // every right-aligned role sits on this stop
+
+  // How many times Word adds w:spacing across s: once per grapheme cluster,
+  // except clusters ending in a zero-width mark (กิ, ที่, ก์ get none).
+  // Measured in Word for Mac; see the build notes.
+  function spacingUnits(s) {
+    var n = 0;
+    for (var i = 0; i < s.length; i++) {
+      if (i + 1 < s.length && CLUSTER_EXT.test(s.charAt(i + 1))) continue;
+      if (!MARK.test(s.charAt(i))) n++;
+    }
+    return n;
+  }
+
+  function makeEngine(widths) {
+    function widthTw(s, sz, sp) {
+      var adv = 0;
+      for (var i = 0; i < s.length; i++) {
+        var c = s.charAt(i);
+        adv += (widths[c] != null ? widths[c] : 500);
+      }
+      return adv * sz / 100 + (sp || 0) * spacingUnits(s);
+    }
+    return {
+      widthTw: widthTw,
+      spacingUnits: spacingUnits,
+      fill: function (xml, spec, values, opts) { return fill(xml, spec, values, opts, widthTw); }
+    };
+  }
+
+  function toThai(s) { return String(s).replace(/[0-9]/g, function (d) { return THAI_DIGITS.charAt(+d); }); }
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function spaces(n) { return n > 0 ? new Array(n + 1).join(' ') : ''; }
+
+  // Distribute a padding width over the padding runs the way a person would with
+  // the cursor beside the value: the run next to the value grows or shrinks
+  // first; runs further away are only touched when that one runs out.
+  function distribute(slots, targetW) {
+    var counts = slots.map(function (s) { return s.n; });
+    if (!slots.length) return counts;
+    var diff = targetW - slotsW(slots, counts);
+    var last = slots.length - 1;
+    if (diff >= 0) { counts[last] += Math.round(diff / slots[last].w); return counts; }
+    for (var i = last; i >= 0 && diff < 0; i--) {
+      var take = Math.min(counts[i], Math.round(-diff / slots[i].w));
+      counts[i] -= take; diff += take * slots[i].w;
+    }
+    return counts;
+  }
+  function slotsW(slots, counts) { var w = 0; slots.forEach(function (s, i) { w += counts[i] * s.w; }); return w; }
+
+  // Set w:spacing on the run holding `marker` (inserted in schema order, before w:sz).
+  function condenseRun(xml, marker, val) {
+    var at = xml.indexOf(marker);
+    if (at < 0) return xml;
+    var rs = Math.max(xml.lastIndexOf('<w:r>', at), xml.lastIndexOf('<w:r ', at));
+    var ps = xml.indexOf('<w:rPr>', rs), pe = xml.indexOf('</w:rPr>', rs);
+    if (rs < 0 || ps < 0 || pe < 0 || ps > at || pe > at) return xml;
+    var rpr = xml.slice(ps, pe);
+    var tag = '<w:spacing w:val="' + val + '"/>';
+    if (/<w:spacing w:val="-?\d+"\/>/.test(rpr)) rpr = rpr.replace(/<w:spacing w:val="-?\d+"\/>/, tag);
+    else {
+      var k = rpr.search(/<w:(w|kern|position|sz|szCs|highlight|u|effect|bdr|shd|fitText|vertAlign|rtl|cs|em|lang)[ \/>]/);
+      rpr = k < 0 ? rpr + tag : rpr.slice(0, k) + tag + rpr.slice(k);
+    }
+    return xml.slice(0, ps) + rpr + xml.slice(pe);
+  }
+
+  function fill(xml, spec, values, opts, widthTw) {
+    opts = opts || {};
+    var thai = opts.thaiDigits !== false;
+    var allowCondense = opts.condense !== false;
+    var maxCondense = opts.maxCondense != null ? opts.maxCondense : 15;   // twips per unit (0.75 pt)
+    var report = {}, reps = {}, widthOf = {}, textOf = {};
+
+    spec.forEach(function (f) {
+      var v = values[f.id];
+      v = v == null ? '' : String(v).replace(/[\r\n\t]+/g, ' ');
+      if (thai && !f.latin) v = toThai(v);
+      if (opts.bg) v = '';
+      textOf[f.id] = v;
+      if (f.kind === 'text') widthOf[f.id] = opts.bg ? 0 : widthTw(v, f.sz, f.sp) + (f.prefixW || 0) + (f.suffixW || 0);
+    });
+
+    spec.forEach(function (f) {
+      if (f.kind === 'digits') {
+        var raw = String(values[f.id] || '').replace(/[๐-๙]/g, function (d) { return String(THAI_DIGITS.indexOf(d)); })
+                                            .replace(/[^0-9]/g, '');
+        if (opts.bg) raw = '';
+        var ok = raw.length === f.n || raw.length === 0;
+        for (var d = 0; d < f.n; d++) {
+          var ch = raw.length === f.n ? raw.charAt(d) : '';
+          reps['⟦D' + d + ':' + f.id + '⟧'] = ch ? (thai ? toThai(ch) : ch) : '';
+        }
+        report[f.id] = { fits: ok, empty: raw.length === 0, note: ok ? '' : 'ต้องครบ ' + f.n + ' หลัก' };
+        return;
+      }
+      var text = textOf[f.id];
+      var sw = f.lead.length ? f.lead[f.lead.length - 1].w : 73.44;
+      var lo = f.x0 + (f.origLead > 0 ? 1 : 0) * sw;          // keep at least one underlined space after the label
+      var limit = f.x1;
+      if (f.before) limit = f.x1 - widthOf[f.before] - sw;    // a right-aligned word follows on this line
+      var padded = f.policy === 'center' || f.policy === 'centerBlank' || f.policy === 'left';
+
+      function place(w) {
+        var start;
+        switch (f.policy) {
+          case 'center':      start = f.origCenter - w / 2; break;
+          case 'centerBlank': start = (f.x0 + f.x1) / 2 - w / 2; break;
+          case 'left':        start = f.origW > 0 ? f.origStart : f.x0 + (f.leftPad || 0) * sw; break;
+          case 'rtab':        start = RIGHT_TAB - w; break;
+          default:            start = f.jc === 'center' ? f.left + ((f.x1 - f.left) - w) / 2 : f.origStart;
+        }
+        if (padded) {
+          if (start + w > limit) start = limit - w;              // slide left to fit before the stop
+          if (start < lo) start = lo;
+        }
+        var counts = distribute(f.lead, start - f.x0);
+        var real = padded ? f.x0 + slotsW(f.lead, counts) : start;
+        var end = real + w;
+        var fits = f.policy === 'none' && f.jc === 'center' ? w <= (f.x1 - f.left) + 0.5 : end <= limit + 0.5;
+        return { counts: counts, start: real, end: end, fits: fits };
+      }
+
+      var w = widthOf[f.id];
+      var pl = place(w);
+      var condense = 0, need = 0;
+      if (!pl.fits) {
+        need = Math.ceil(pl.end - limit);
+        if (f.policy === 'none' && f.jc === 'center') need = Math.ceil(w - (f.x1 - f.left));
+        var units = spacingUnits(text);
+        if (allowCondense && units > 0 && f.policy !== 'rtab') {
+          var avail = padded ? limit - lo : (f.jc === 'center' ? f.x1 - f.left : limit - f.origStart);
+          var d = Math.ceil((w - avail) / units);
+          if (d > 0 && d <= maxCondense) {
+            condense = d;
+            w = w - d * units;
+            pl = place(w);
+          }
+        }
+      }
+      var tcounts = [];
+      if (f.trail && f.trail.length) {
+        var room = Math.max(0, Math.min(f.origEnd, limit - 1) - pl.end);
+        tcounts = distribute(f.trail.map(function (t) { return { n: 0, w: t.w }; }), room).map(function (c) { return Math.max(0, c); });
+        while (slotsW(f.trail, tcounts) + pl.end > limit && tcounts[tcounts.length - 1] > 0) tcounts[tcounts.length - 1]--;
+      }
+      f.lead.forEach(function (s, i) { reps['⟦L' + i + ':' + f.id + '⟧'] = spaces(pl.counts[i]); });
+      (f.trail || []).forEach(function (s, i) { reps['⟦T' + i + ':' + f.id + '⟧'] = spaces(tcounts[i] || 0); });
+      reps['⟦V:' + f.id + '⟧'] = esc(text);
+      reps['⟦P:' + f.id + '⟧'] = opts.bg ? '' : '(';
+      reps['⟦S:' + f.id + '⟧'] = opts.bg ? '' : ')';
+      if (condense) xml = condenseRun(xml, '⟦V:' + f.id + '⟧', (f.sp || 0) - condense);
+      report[f.id] = {
+        fits: pl.fits, condense: condense, need: pl.fits ? 0 : Math.ceil(pl.end - limit),
+        spare: Math.round(limit - pl.end), start: pl.start, end: pl.end, limit: limit, width: w, text: text,
+        page: f.page, empty: !text
+      };
+    });
+    var missing = [];
+    var out = xml.replace(/⟦[A-Z]\d*:[A-Za-z0-9]+⟧/g, function (m) {
+      if (Object.prototype.hasOwnProperty.call(reps, m)) return reps[m];
+      missing.push(m); return '';
+    });
+    return { xml: out, report: report, missing: missing };
+  }
+
+  var api = { makeEngine: makeEngine, toThai: toThai, spacingUnits: spacingUnits };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.POAEngine = api;
+})(this);

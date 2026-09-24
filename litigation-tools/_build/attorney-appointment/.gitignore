@@ -1,0 +1,11 @@
+# everything derived from the firm's real files stays local
+*.doc
+*_word.docx
+out/
+*.pdf
+*.png
+*_bbox.html
+bg_*.docx
+sent_*.docx
+sentinels.json
+leak.json

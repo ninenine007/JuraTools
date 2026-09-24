@@ -148,6 +148,7 @@
     .card[data-cat="labour"]    { --glow: 0 6px 24px rgba(8,145,178,0.14);  }
     .card[data-cat="finance"]   { --glow: 0 6px 24px rgba(79,70,229,0.14);  }
     .card[data-cat="corpus"]    { --glow: 0 6px 24px rgba(146,64,14,0.14); }
+    .card[data-cat="litigation"] { --glow: 0 6px 24px rgba(159,18,57,0.14); }
 
     .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
     .card-icon {
@@ -164,6 +165,7 @@
     .card[data-cat="labour"]    .card-icon { background: linear-gradient(145deg, #cffafe, #a5f3fc); }
     .card[data-cat="finance"]   .card-icon { background: linear-gradient(145deg, #e0e7ff, #c7d2fe); }
     .card[data-cat="corpus"]    .card-icon { background: linear-gradient(145deg, #f5e6d8, #e8cdb0); }
+    .card[data-cat="litigation"] .card-icon { background: linear-gradient(145deg, #ffe4e6, #fecdd3); }
 
     .card-badge {
       display: inline-flex; align-items: center;
@@ -296,7 +298,7 @@
       <span style="color:#d1d1d6">·</span>
       <span>🔒 No data sent anywhere</span>
       <span style="color:#d1d1d6">·</span>
-      <span>📦 32 tools · 6 collections</span>
+      <span>📦 48 tools · 8 collections</span>
     </div>
   </div>
 
@@ -398,6 +400,21 @@
             <a class="btn btn-open" href="corpus-tools/">Open →</a>
             <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/tree/main/corpus-tools" target="_blank" rel="noopener">Source</a>
             <button class="btn btn-copy" data-copy="corpus-tools/">Copy link</button>
+          </div>
+        </article>
+
+        <article class="card" data-cat="litigation" data-tags="litigation collection hub court form attorney appointment power of attorney counsel appointment docx export civil procedure code section 62 dispose of rights lawyer directory bar licence ใบแต่งทนายความ แบบพิมพ์ศาล แบบ 9 แต่งทนาย คำรับเป็นทนายความ ทนายความ ใบอนุญาตว่าความ คดีหมายเลขดำ คดีหมายเลขแดง ผู้รับมอบอำนาจ ผู้แต่งทนายความ ถอนฟ้อง ถอนคำให้การ ประนีประนอมยอมความ จำหน่ายสิทธิ ป.วิ.พ. มาตรา 62 ตำบล แขวง อำเภอ เขต ขีดเสีย เลขประจำตัวประชาชน">
+          <div class="card-head">
+            <div class="card-icon">⚖️</div>
+            <span class="card-badge badge-new">New</span>
+          </div>
+          <div class="card-sub">Collection</div>
+          <h3 class="card-title">Litigation Tools</h3>
+          <p class="card-desc">Court forms and the documents a case actually needs, launching with the <strong>Attorney Appointment</strong> (ใบแต่งทนายความ — แบบพิมพ์ศาล ๙): the firm's own JDA (defendant) and PY (plaintiff) precedents filled by typing into the original Word runs only — the s.62 wording, the office address and every format and language setting stay exactly as in the firm's file. Line widths are measured against TH SarabunPSK, so anything that would wrap past two pages is flagged before export. One form per client and per lawyer, exported together as a .zip, with a live preview.</p>
+          <div class="card-actions">
+            <a class="btn btn-open" href="litigation-tools/">Open →</a>
+            <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/tree/main/litigation-tools" target="_blank" rel="noopener">Source</a>
+            <button class="btn btn-copy" data-copy="litigation-tools/">Copy link</button>
           </div>
         </article>
 
@@ -512,6 +529,10 @@
       <div class="section-head-line"></div>
     </div>
     <div class="changelog">
+      <div class="cl-item">
+        <span class="cl-date">Sep 2026</span>
+        <span class="cl-text">Added <strong>Litigation Tools</strong> — a new collection for the documents a case needs, launching with the <strong>Attorney Appointment</strong> (ใบแต่งทนายความ — แบบพิมพ์ศาล ๙). The firm's own <strong>JDA</strong> (defendant, “การถอนคำให้การ”) and <strong>PY</strong> (plaintiff, “การถอนฟ้อง”) precedents, converted by Word itself and filled by typing into the original runs only — the s.62 wording, the office address, every format and Word-language setting stay as in the firm's file. Line widths are measured against TH SarabunPSK so anything that would wrap past two pages is flagged before export, with condensed spacing only as a last resort on that one value. One form per client and per lawyer, a live preview drawn over Word's own render of the form, and a lawyer register kept on your own machine.</span>
+      </div>
       <div class="cl-item">
         <span class="cl-date">Sep 2026</span>
         <span class="cl-text">Added <strong>Text to Speech</strong> to <strong>Utilities</strong> (แปลงข้อความเป็นเสียงพูด) — synthesize a downloadable speech file from typed or pasted text using Azure AI Speech neural voices, in Thai, English, and 140+ other languages, with speaking-rate and pitch control and MP3 or WAV output. Long text is split into sentence-aware chunks and stitched back into one file automatically. The one deliberate exception to "nothing leaves the machine": it calls the Azure REST API directly from the browser with an API key you supply yourself, kept only in this browser and never sent anywhere but Azure.</span>
