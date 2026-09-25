@@ -3,8 +3,8 @@ import { z } from 'zod';
 import { buildDocx, dutyOf, fileNameOf, normalizeTransfer, unresolved } from './transfer.mjs';
 import { registerDateTools } from './date-tools.mjs';
 import { buildPlainDocx, fileNameOfPlain, PLAIN_INPUT_SHAPE } from './plain-doc.mjs';
-import { buildDocx as buildPoaDocx, documentsOf, FIELD_TH, idValid } from './poa.mjs';
-import { buildPowerOfAttorney } from './power-of-attorney.mjs';
+import { attorneyAppointmentJob } from './poa.mjs';
+import { powerOfAttorneyJob } from './power-of-attorney.mjs';
 
 /* หนังสือมอบอำนาจให้ฟ้องคดี — the schema a model fills. The engine's fromInput()
    maps these keys onto the page's state, so the page and the server agree. The
@@ -63,7 +63,7 @@ const PWA_INPUT = {
 };
 
 /* ใบแต่งทนายความ — the schema a model fills. Keys are English for the caller;
-   they map one-to-one onto the page's own state (see toPoaState). The rules
+   they map one-to-one onto the page's own state (see toPoaState in poa.mjs). The rules
    in the descriptions are the guide's (litigation-tools/attorney-appointment.guide.md). */
 const POA_INPUT = {
   form: z.enum(['JDA', 'PY']).describe(
@@ -105,29 +105,6 @@ const POA_INPUT = {
   maxCondensePt: z.number().min(0).max(1).optional().describe('Largest character condensing allowed on a value that would otherwise wrap, in points. Default 0.75; 0 = never condense, only report')
 };
 
-const toPoaState = a => ({
-  state: {
-    tpl: a.form,
-    cse: {
-      matter: a.case?.matter ?? '', blackNo: a.case?.blackNo ?? '', blackYear: a.case?.blackYear ?? '',
-      redNo: a.case?.redNo ?? '', redYear: a.case?.redYear ?? '', court: a.case?.court ?? '',
-      caseType: a.case?.caseType ?? 'แพ่ง', dateIso: a.case?.date ?? '', day: null, month: null, year: null,
-      partyA: a.case?.partyTop ?? '', roleA: a.case?.partyTopRole ?? 'โจทก์',
-      partyB: a.case?.partyBottom ?? '', roleB: a.case?.partyBottomRole ?? 'จำเลย'
-    },
-    clients: (a.clients || []).map(c => ({
-      name: c.name, role: c.role, appointer: c.appointer ?? '',
-      appointerRole: c.appointerCapacity ?? null, appointerSig: c.signatureName ?? null, lawyers: c.lawyers || []
-    })),
-    firm: { officePhone: a.officePhone ?? null },
-    opts: { thaiDigits: true, maxCondense: Math.round((a.maxCondensePt ?? 0.75) * 20) }
-  },
-  lawyers: (a.lawyers || []).map(l => ({ key: l.key, name: l.name, idNo: l.idNumber ?? '', licenseNo: l.licenseNumber ?? '', phone: l.phone ?? '', email: l.email ?? '' }))
-});
-
-/* Blanks worth telling the lawyer about; the red number is normally empty. */
-const QUIET_BLANKS = new Set(['redNo', 'redYear']);
-const pt = tw => Math.round(tw / 2) / 10;
 
 const PLACEHOLDER_NOTE =
   'Write "(*)" for any value that is deliberately not settled yet — it is carried ' +
@@ -329,26 +306,14 @@ export function createMcpServer({ deliver, user = null }) {
       isDraft: z.literal(true)
     }
   }, async args => {
-    const { docs, unmatched, lawyers } = documentsOf(toPoaState(args));
+    const job = await attorneyAppointmentJob(args);
     const documents = [];
-    const blank = new Set();
-    for (const d of docs) {
-      const r = await buildPoaDocx(d);
-      const base = d.fileName.replace(/\.docx$/, '');
-      const delivery = await deliver(base, r.buffer);
-      r.blank.filter(id => !QUIET_BLANKS.has(id)).forEach(id => blank.add(FIELD_TH[id] || id));
-      const condensed = r.summary.cond.map(id => ({ field: id, label: FIELD_TH[id] || id, points: pt(r.report[id].condense) }));
-      const overflow = r.summary.over.map(id => ({ field: id, label: FIELD_TH[id] || id, overByPoints: pt(r.report[id].need || 0) }));
-      documents.push({
-        fileName: d.fileName, location: delivery.location, client: d.c.name, clientRole: d.c.role, lawyer: d.l.name,
-        fileSizeKB: Math.round(r.buffer.length / 1024),
-        fit: overflow.length ? 'overflow' : condensed.length ? 'condensed' : 'ok', condensed, overflow,
-        message: delivery.message
-      });
+    for (const { buffer, ...d } of job.documents) {
+      const delivery = await deliver(d.fileName.replace(/\.docx$/, ''), buffer);
+      documents.push({ ...d, location: delivery.location, message: delivery.message });
     }
-    const invalidIdNumbers = lawyers.filter(l => l.idNo && !idValid(l.idNo)).map(l => l.name || l.key);
-    const unmatchedLawyerKeys = [...new Set(unmatched.map(u => u.key))];
-    const wording = args.form === 'JDA' ? 'การถอนคำให้การ' : 'การถอนฟ้อง';
+    const { unmatchedLawyerKeys, invalidIdNumbers, withdrawalWording: wording } = job;
+    const blank = new Set(job.blankFields);
 
     if (user) {
       console.error(`[${new Date().toISOString()}] ${user} created ${documents.length} attorney appointment(s), form ${args.form}`);
@@ -406,13 +371,13 @@ export function createMcpServer({ deliver, user = null }) {
       isDraft: z.literal(true)
     }
   }, async args => {
-    const r = await buildPowerOfAttorney(args);
-    const base = (args.fileName && String(args.fileName).trim()) || r.fileName.replace(/\.docx$/, '');
-    const delivery = await deliver(base, r.buffer);
-    const d = r.derived.stamp, rep = r.report;
-    const fileSizeKB = Math.round(r.buffer.length / 1024);
+    const job = await powerOfAttorneyJob(args);
+    const base = job.baseName;
+    const delivery = await deliver(base, job.buffer);
+    const d = job.stamp, rep = job.report;
+    const fileSizeKB = job.fileSizeKB;
     if (user) {
-      console.error(`[${new Date().toISOString()}] ${user} created a power of attorney to sue: ${r.state.attorneys.length} attorney(s)`);
+      console.error(`[${new Date().toISOString()}] ${user} created a power of attorney to sue: ${d.attorneys} attorney(s)`);
     }
     const text = [
       `${delivery.message} (${fileSizeKB} KB).`,
@@ -427,7 +392,7 @@ export function createMcpServer({ deliver, user = null }) {
       content: [{ type: 'text', text }],
       structuredContent: {
         location: delivery.location, fileName: base + '.docx', fileSizeKB,
-        stampDuty: { scheduleItem: d.item, attorneys: d.attorneys, principals: d.principals, computedBaht: d.auto, printed: d.amount, overridden: d.overridden },
+        stampDuty: job.stampDuty,
         blankFields: rep.blank, invalidIdNumbers: rep.invalidIds, warnings: rep.warnings, isDraft: true
       }
     };

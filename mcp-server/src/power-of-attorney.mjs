@@ -32,3 +32,19 @@ export async function buildPowerOfAttorney(input) {
   const buffer = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
   return { buffer, xml: r.xml, state: r.state, derived: r.derived, report: r.report, fileName: PWAEngine.fileName(state) };
 }
+
+/* The MCP tool's work, shared by every server that runs this module (the
+   firm's Python MCP server runs it through Node): the document, its file name,
+   the stamp duty and what the lawyer must be told. */
+export async function powerOfAttorneyJob(args) {
+  const r = await buildPowerOfAttorney(args);
+  const d = r.derived.stamp;
+  return {
+    baseName: (args.fileName && String(args.fileName).trim()) || r.fileName.replace(/\.docx$/, ''),
+    buffer: r.buffer,
+    fileSizeKB: Math.round(r.buffer.length / 1024),
+    stamp: d,
+    stampDuty: { scheduleItem: d.item, attorneys: d.attorneys, principals: d.principals, computedBaht: d.auto, printed: d.amount, overridden: d.overridden },
+    report: r.report
+  };
+}

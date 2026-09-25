@@ -33,7 +33,17 @@ fileNameOf(S, {c, l})   // "<matter> - ใบแต่งทนายควา�
 idValid(s)              // Thai ID mod-11 check
 FIELD_TH                // Thai label per field id, for reporting overflow/blank fields
 loadPoa()               // → { D, xml:{JDA,PY}, engine }  (cached)
+toPoaState(args)        // the MCP tool's English keys → { state, lawyers }
+attorneyAppointmentJob(args)  // → { form, withdrawalWording, documents: [{ fileName, buffer, fit, condensed, overflow, … }],
+                              //     blankFields, unmatchedLawyerKeys, invalidIdNumbers }
 ```
+
+The job is the whole tool minus delivery: `create_attorney_appointment` here
+delivers each buffer and words the report, and the firm's Python MCP server
+(ninenine007/juraXjk-legal-doc-mcp) runs this same module through Node — it
+copies `poa.mjs`, `poa-engine.cjs` and the template with its
+`scripts/sync_juratools.py`. `src/power-of-attorney.mjs` exports
+`powerOfAttorneyJob(args)` on the same pattern.
 
 ## How filling works (and why the output is not distorted)
 

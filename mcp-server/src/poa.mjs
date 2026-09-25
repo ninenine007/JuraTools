@@ -222,3 +222,57 @@ export async function buildDocx(d) {
   zip.file('word/document.xml', r.xml);
   return { buffer: await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' }), ...r };
 }
+
+/* ── The MCP tool's work, shared by every server that runs this module ─────
+   The tool's input (English keys, schema in tools.mjs) → the page's state. */
+export const toPoaState = a => ({
+  state: {
+    tpl: a.form,
+    cse: {
+      matter: a.case?.matter ?? '', blackNo: a.case?.blackNo ?? '', blackYear: a.case?.blackYear ?? '',
+      redNo: a.case?.redNo ?? '', redYear: a.case?.redYear ?? '', court: a.case?.court ?? '',
+      caseType: a.case?.caseType ?? 'แพ่ง', dateIso: a.case?.date ?? '', day: null, month: null, year: null,
+      partyA: a.case?.partyTop ?? '', roleA: a.case?.partyTopRole ?? 'โจทก์',
+      partyB: a.case?.partyBottom ?? '', roleB: a.case?.partyBottomRole ?? 'จำเลย'
+    },
+    clients: (a.clients || []).map(c => ({
+      name: c.name, role: c.role, appointer: c.appointer ?? '',
+      appointerRole: c.appointerCapacity ?? null, appointerSig: c.signatureName ?? null, lawyers: c.lawyers || []
+    })),
+    firm: { officePhone: a.officePhone ?? null },
+    opts: { thaiDigits: true, maxCondense: Math.round((a.maxCondensePt ?? 0.75) * 20) }
+  },
+  lawyers: (a.lawyers || []).map(l => ({ key: l.key, name: l.name, idNo: l.idNumber ?? '', licenseNo: l.licenseNumber ?? '', phone: l.phone ?? '', email: l.email ?? '' }))
+});
+
+/* Blanks worth telling the lawyer about; the red number is normally empty. */
+const QUIET_BLANKS = new Set(['redNo', 'redYear']);
+const pt = tw => Math.round(tw / 2) / 10;
+
+/* One call → every document built, with what the lawyer must be told. Used by
+   create_attorney_appointment here and, through Node, by the firm's Python MCP
+   server (juraXjk-legal-doc-mcp), so both report the same thing. */
+export async function attorneyAppointmentJob(args) {
+  const { docs, unmatched, lawyers } = documentsOf(toPoaState(args));
+  const documents = [];
+  const blank = new Set();
+  for (const d of docs) {
+    const r = await buildDocx(d);
+    r.blank.filter(id => !QUIET_BLANKS.has(id)).forEach(id => blank.add(FIELD_TH[id] || id));
+    const condensed = r.summary.cond.map(id => ({ field: id, label: FIELD_TH[id] || id, points: pt(r.report[id].condense) }));
+    const overflow = r.summary.over.map(id => ({ field: id, label: FIELD_TH[id] || id, overByPoints: pt(r.report[id].need || 0) }));
+    documents.push({
+      fileName: d.fileName, buffer: r.buffer, client: d.c.name, clientRole: d.c.role, lawyer: d.l.name,
+      fileSizeKB: Math.round(r.buffer.length / 1024),
+      fit: overflow.length ? 'overflow' : condensed.length ? 'condensed' : 'ok', condensed, overflow
+    });
+  }
+  return {
+    form: args.form,
+    withdrawalWording: args.form === 'JDA' ? 'การถอนคำให้การ' : 'การถอนฟ้อง',
+    documents,
+    blankFields: [...blank],
+    unmatchedLawyerKeys: [...new Set(unmatched.map(u => u.key))],
+    invalidIdNumbers: lawyers.filter(l => l.idNo && !idValid(l.idNo)).map(l => l.name || l.key)
+  };
+}
