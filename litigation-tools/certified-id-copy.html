@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Certified ID Copy — JuraTools</title>
-<meta name="description" content="สำเนาบัตรประจำตัวประชาชน รับรองสำเนาถูกต้อง — straighten a scan or photo of the card to its true 85.6 × 54 mm size, burn in the “ใช้สำหรับ … เท่านั้น” band, add the certification block, and export an A4 PDF that prints at actual size. Runs entirely in your browser.">
+<meta name="description" content="สำเนาบัตรประจำตัวประชาชน รับรองสำเนาถูกต้อง — straighten a scan or photo of the card to its true 85.6 × 54 mm size, add the “ใช้สำหรับ … เท่านั้น” band and the certification block in TH SarabunPSK, and save an A4 Word .docx that prints at actual size. Runs entirely in your browser.">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 /* ── Tokens ──────────────────────────────────── */
 :root{
@@ -148,7 +149,7 @@ details.why li{margin-bottom:5px;}
 .pv-hd .tag{margin-left:auto;font-size:.72em;color:var(--muted);font-weight:600;}
 .pv-page{background:#e4e4e7;border-radius:10px;padding:12px;}
 #pageCanvas{display:block;width:100%;height:auto;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.12);}
-.pv-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px;}
+.pv-actions{display:grid;grid-template-columns:1fr;gap:8px;margin-top:12px;}
 .pv-note{font-size:.76em;color:#71717a;line-height:1.55;margin-top:10px;}
 .pv-note b{color:var(--heading);}
 
@@ -160,15 +161,6 @@ footer .cites{color:#71717a;}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;}}
 
-/* ── Print: only the rendered A4 page, at actual size ── */
-#printOut{display:none;}
-@media print{
-  @page{size:A4 portrait;margin:0;}
-  html,body{margin:0;padding:0;background:#fff;}
-  body > *:not(#printOut){display:none!important;}
-  #printOut{display:block;width:210mm;height:296.8mm;overflow:hidden;}
-  #printOut img{display:block;width:210mm;height:297mm;}
-}
 </style>
 </head>
 <body>
@@ -183,8 +175,8 @@ footer .cites{color:#71717a;}
 <header>
   <h1>Certified ID Copy</h1>
   <div class="th">สำเนาบัตรประจำตัวประชาชน — รับรองสำเนาถูกต้อง</div>
-  <p>นำภาพสแกนหรือภาพถ่ายบัตรจริงมาปรับมุมให้ตรงเป็นขนาดจริง 85.6 × 54 มม. (ISO/IEC 7810 ID-1) แล้วประทับข้อความ “ใช้สำหรับ … เท่านั้น” ลงในเนื้อภาพ
-    พร้อมช่องรับรองสำเนาถูกต้อง ออกเป็น PDF ขนาด A4 ที่พิมพ์ได้ขนาดจริง — เครื่องมือนี้ไม่สร้างหรือแก้ไขข้อมูลบนบัตร ใช้กับภาพบัตรจริงเท่านั้น</p>
+  <p>นำภาพสแกนหรือภาพถ่ายบัตรจริงมาปรับมุมให้ตรงเป็นขนาดจริง 85.6 × 54 มม. (ISO/IEC 7810 ID-1) แล้ววางข้อความ “ใช้สำหรับ … เท่านั้น” ทับบัตร
+    พร้อมช่องรับรองสำเนาถูกต้อง ออกเป็นไฟล์ Word (.docx) ขนาด A4 ที่พิมพ์ได้ขนาดจริง — เครื่องมือนี้ไม่สร้างหรือแก้ไขข้อมูลบนบัตร ใช้กับภาพบัตรจริงเท่านั้น</p>
   <span class="privacy">🔒 ภาพบัตรอยู่ในหน่วยความจำของเบราว์เซอร์นี้เท่านั้น — ไม่อัปโหลด ไม่บันทึกลงเครื่อง ปิดแท็บแล้วหายไป</span>
 </header>
 
@@ -241,7 +233,7 @@ footer .cites{color:#71717a;}
 
     <!-- ── 2. Restriction band ── -->
     <section class="card">
-      <div class="card-hd"><span class="step-n">2</span><h3>ข้อความกำกับการใช้</h3><span class="th">Restriction band — burned into the image</span></div>
+      <div class="card-hd"><span class="step-n">2</span><h3>ข้อความกำกับการใช้</h3><span class="th">Restriction band</span></div>
       <div class="card-bd">
         <div class="grid2">
           <div class="field">
@@ -277,10 +269,9 @@ footer .cites{color:#71717a;}
         </div>
         <label class="chk"><input type="checkbox" id="wmDate"> เพิ่มบรรทัดวันที่ในแถบข้อความ</label>
 
-        <div class="grid3" style="margin-top:6px">
+        <div class="grid2" style="margin-top:6px">
           <div class="field"><label for="wmAngle">มุมเอียง <span class="val" id="vAngle"></span></label><input type="range" id="wmAngle" min="-45" max="45" step="1"></div>
           <div class="field"><label for="wmSize">ขนาดอักษร <span class="val" id="vSize"></span></label><input type="range" id="wmSize" min="12" max="32" step="1"></div>
-          <div class="field"><label for="wmOpacity">ความเข้ม <span class="val" id="vOpacity"></span></label><input type="range" id="wmOpacity" min="30" max="100" step="5"></div>
         </div>
         <div class="grid2">
           <div class="field">
@@ -296,7 +287,7 @@ footer .cites{color:#71717a;}
             <label class="chk"><input type="checkbox" id="wmExtend"> ให้ข้อความยาวเลยขอบบัตร</label>
           </div>
         </div>
-        <div class="note">ข้อความถูกวาดลงในเนื้อภาพ (ไม่ใช่กล่องข้อความลอย) จึงลบหรือย้ายออกจาก PDF ไม่ได้ และเมื่อยาวเลยขอบบัตร การตัดเฉพาะภาพบัตรไปใช้ต่อจะเห็นรอยตัดของข้อความ</div>
+        <div class="note">ในไฟล์ Word ข้อความนี้เป็นกล่องข้อความหมุนเอียง ยึดตำแหน่งกับหน้ากระดาษ ขนาดอักษรจะถูกลดอัตโนมัติถ้ายาวเกินแถบ — เมื่อยาวเลยขอบบัตร การตัดเฉพาะภาพบัตรไปใช้ต่อจะเห็นรอยตัดของข้อความ</div>
       </div>
     </section>
 
@@ -331,7 +322,7 @@ footer .cites{color:#71717a;}
             <select id="pScale"><option value="100">100% ขนาดจริง</option><option value="125">125%</option><option value="150">150%</option></select>
           </div>
           <div class="field">
-            <label for="pFont">ฟอนต์</label>
+            <label for="pFont">ฟอนต์ในไฟล์ Word</label>
             <select id="pFont"></select>
           </div>
           <div class="field">
@@ -346,7 +337,6 @@ footer .cites{color:#71717a;}
           </div>
           <div>
             <label class="chk"><input type="checkbox" id="pGray"> ขาวดำ (แบบถ่ายเอกสาร)</label>
-            <label class="chk"><input type="checkbox" id="pRuler"> แถบวัด 50 มม. สำหรับทดสอบเครื่องพิมพ์</label>
           </div>
         </div>
         <div class="note" id="fontNote"></div>
@@ -357,10 +347,9 @@ footer .cites{color:#71717a;}
             <ol>
               <li><b>ภาพบัตรไม่ได้สัดส่วน</b> — ภาพที่วางใน Word มักครอบขอบเกินหรือถูกยืดเมื่อลากมุม บัตรจริงคือ 85.6 × 54 มม. (1.586 : 1) ที่นี่ปรับมุม 4 จุด (perspective) แล้ววาดออกมาที่ขนาดนั้นเสมอ</li>
               <li><b>ความละเอียดต่ำ</b> — ภาพจากหน้าเว็บ/แชตมัก 96 dpi พอขยายเป็นขนาดบัตรเหลือราว 150 dpi จึงเบลอ ที่นี่แสดง dpi จริงของภาพและเตือนเมื่อต่ำกว่า 200</li>
-              <li><b>กล่องข้อความลอยผูกกับย่อหน้า</b> — ใน Word ตำแหน่งขึ้นกับย่อหน้าและฟอนต์ เปิดเครื่องที่ไม่มี Cordia New ข้อความจะขยายหรือเลื่อน ที่นี่ทุกอย่างวางเป็นมิลลิเมตรบนหน้า A4 แล้ววาดเป็นภาพเดียว เปิดที่ไหนก็เหมือนกัน</li>
-              <li><b>ขนาดกระดาษ</b> — ไฟล์เดิมตั้งเป็น Letter (8.5 × 11 นิ้ว) พอพิมพ์ลง A4 เครื่องพิมพ์จะย่อให้พอดี บัตรจึงเล็กกว่าจริง ที่นี่เป็น A4 และ PDF กำหนดขนาดหน้าตายตัว</li>
-              <li><b>ลายน้ำลบออกได้</b> — กล่องข้อความใน Word ลบทิ้งแล้วเอาภาพบัตรไปใช้ต่อได้ ที่นี่ข้อความอยู่ในเนื้อภาพ</li>
-              <li><b>ตอนพิมพ์</b> — ต้องเลือก “ขนาดจริง / Actual size / 100%” ไม่ใช่ “Fit to page” ใช้แถบวัด 50 มม. ตรวจเครื่องพิมพ์ได้</li>
+              <li><b>กล่องข้อความลอยผูกกับย่อหน้า</b> — ใน Word ตำแหน่งขึ้นกับย่อหน้าและฟอนต์ เปิดเครื่องที่ไม่มี Cordia New ข้อความจะขยายหรือเลื่อน ที่นี่ทุกชิ้นยึดกับ<b>หน้ากระดาษ</b>เป็นมิลลิเมตร ไม่ยึดกับย่อหน้า และใช้ TH SarabunPSK ซึ่งมีในเครื่องทั่วไป</li>
+              <li><b>ขนาดกระดาษ</b> — ไฟล์เดิมตั้งเป็น Letter (8.5 × 11 นิ้ว) พอพิมพ์ลง A4 เครื่องพิมพ์จะย่อให้พอดี บัตรจึงเล็กกว่าจริง ที่นี่ตั้งเป็น A4</li>
+              <li><b>ตอนพิมพ์</b> — ต้องเลือก “ขนาดจริง / Actual size / 100%” ไม่ใช่ “Fit to page” </li>
             </ol>
           </div>
         </details>
@@ -377,12 +366,11 @@ footer .cites{color:#71717a;}
     <div class="pv-hd"><h3>ตัวอย่าง A4</h3><span class="tag" id="pvTag">210 × 297 มม.</span></div>
     <div class="pv-page"><canvas id="pageCanvas" aria-label="ตัวอย่างหน้ากระดาษ"></canvas></div>
     <div class="pv-actions">
-      <button class="btn btn-primary" id="btnPdf">⬇ PDF</button>
-      <button class="btn btn-ghost" id="btnPng">⬇ PNG</button>
-      <button class="btn btn-ghost" id="btnPrint">🖨 พิมพ์</button>
+      <button class="btn btn-primary" id="btnDocx">⬇ บันทึกเป็น Word (.docx)</button>
     </div>
     <div class="callout callout-amber" id="pvWarn"></div>
-    <div class="pv-note">PDF เป็นหน้า A4 หนึ่งหน้า ภาพ 300 dpi ไม่มีชื่อหรือข้อมูลบัตรใน metadata · ภาพต้นฉบับถูกวาดใหม่ ข้อมูล EXIF (เช่น ตำแหน่ง GPS จากมือถือ) จึงไม่ติดไปด้วย<br>
+    <div class="pv-note">ตัวอย่างนี้วาดด้วยฟอนต์ในเบราว์เซอร์ จึงเป็น<b>ภาพโดยประมาณ</b> — ในไฟล์ Word ข้อความเป็นตัวอักษรจริงในฟอนต์ที่เลือก ตำแหน่งทุกชิ้นยึดกับหน้ากระดาษเป็นมิลลิเมตร ไม่ยึดกับย่อหน้า จึงไม่เลื่อน<br>
+      ภาพบัตรในไฟล์เป็น PNG 300 dpi ที่วาดใหม่ ข้อมูล EXIF (เช่น ตำแหน่ง GPS จากมือถือ) จึงไม่ติดไปด้วย และไฟล์ไม่มีชื่อผู้เขียนใน metadata<br>
       ตอนพิมพ์ให้เลือก <b>ขนาดจริง / Actual size / 100%</b> — ถ้าเลือก “Fit to page” บัตรจะเล็กกว่าจริง</div>
   </aside>
 </div>
@@ -392,7 +380,6 @@ footer .cites{color:#71717a;}
   เครื่องมือช่วยงาน ไม่ใช่คำแนะนำทางกฎหมาย · ทำงานในเบราว์เซอร์ทั้งหมด ข้อมูลไม่ถูกส่งออกไปไหน
 </footer>
 
-<div id="printOut"><img id="printImg" alt=""></div>
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -411,15 +398,15 @@ footer .cites{color:#71717a;}
 
   // TH Sarabun faces are drawn small for their nominal size (16 pt TH Sarabun ≈ 12 pt Tahoma),
   // so every other face is scaled by 0.75 to keep Word-like sizes meaning the same thing.
+  // Fonts written into the .docx. TH Sarabun faces are drawn small for their nominal size
+  // (16 pt TH Sarabun ≈ 12 pt Tahoma), so the preview scales any stand-in face by 0.75.
   const FACES = [
-    { name: 'TH Sarabun New', factor: 1 },
-    { name: 'TH SarabunPSK', factor: 1 },
-    { name: 'Sarabun', factor: 0.75 },
-    { name: 'Tahoma', factor: 0.75 },
-    { name: 'Noto Sans Thai', factor: 0.75 },
-    { name: 'Leelawadee UI', factor: 0.75 },
-    { name: 'Thonburi', factor: 0.75 },
+    { name: 'TH SarabunPSK', word: 'TH SarabunPSK', factor: 1 },
+    { name: 'TH Sarabun New', word: 'TH Sarabun New', factor: 1 },
+    { name: 'Cordia New', word: 'Cordia New', factor: 1 },
+    { name: 'Angsana New', word: 'Angsana New', factor: 1 },
   ];
+  const STAND_INS = ['THSarabunPSK', 'THSarabunNew', 'Sarabun', 'Tahoma', 'Noto Sans Thai', 'Leelawadee UI', 'Thonburi'];
   const TH_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 
   const $ = (id) => document.getElementById(id);
@@ -429,9 +416,9 @@ footer .cites{color:#71717a;}
   const blankSide = () => ({ img: null, data: null, w: 0, h: 0, quad: null, masks: [], wm: true, ver: 0, cache: new Map() });
   const DEFAULTS = {
     purpose: 'ประกอบแนบท้ายพินัยกรรมของ',
-    wm: { angle: -28, size: 22, opacity: 85, color: '#111111', rules: true, extend: true, dateLine: false },
+    wm: { angle: -28, size: 22, color: '#111111', rules: true, extend: true, dateLine: false },
     cert: { on: true, heading: 'รับรองสำเนาถูกต้อง', align: 'right', sigLine: false, dateLine: false },
-    page: { scale: 100, font: 'auto', num: 'arabic', round: true, border: true, gray: false, ruler: false },
+    page: { scale: 100, font: 'TH SarabunPSK', num: 'arabic', round: true, border: true, gray: false },
   };
   const S = {
     side: 'front',
@@ -454,6 +441,7 @@ footer .cites{color:#71717a;}
     if (!st) return;
     if (typeof st.purpose === 'string') S.purpose = st.purpose;
     ['wm', 'cert', 'page'].forEach((k) => { if (st[k] && typeof st[k] === 'object') Object.assign(S[k], st[k]); });
+    if (!FACES.some((f) => f.name === S.page.font)) S.page.font = DEFAULTS.page.font;   // v1 stored 'auto' or browser faces
   }
 
   // ── Text helpers ──────────────────────────────────
@@ -489,12 +477,14 @@ footer .cites{color:#71717a;}
     });
   }
   const installed = FACES.map((f) => Object.assign({ ok: faceInstalled(f.name) }, f));
+  // The face the .docx names (always the selected one) and the face the preview can draw with.
   function activeFace() {
-    if (S.page.font !== 'auto') {
-      const f = installed.find((x) => x.name === S.page.font);
-      if (f && f.ok) return f;
-    }
-    return installed.find((x) => x.ok) || { name: 'sans-serif', factor: 0.75, ok: true, generic: true };
+    const want = FACES.find((f) => f.name === S.page.font) || FACES[0];
+    const inst = installed.find((f) => f.name === want.name);
+    if (inst && inst.ok) return inst;
+    const sub = STAND_INS.find(faceInstalled);
+    const tiny = sub && /^THSarabun/.test(sub);
+    return { name: sub || 'sans-serif', word: want.word, factor: tiny ? 1 : 0.75, generic: !sub, standIn: true };
   }
   function fontCss(px, bold) {
     const f = activeFace();
@@ -934,7 +924,6 @@ footer .cites{color:#71717a;}
     const cx = (card.x + card.w / 2) * pxmm, cy = (card.y + card.h / 2) * pxmm;
     x.save();
     x.translate(cx, cy); x.rotate(S.wm.angle * Math.PI / 180);
-    x.globalAlpha = S.wm.opacity / 100;
     x.fillStyle = S.wm.color; x.strokeStyle = S.wm.color;
     x.font = fontCss(m.fs, true); x.textAlign = 'center'; x.textBaseline = 'alphabetic';
     const inkTop = (m.lh - m.asc - m.desc) / 2 + m.asc;
@@ -989,22 +978,6 @@ footer .cites{color:#71717a;}
     return y / pxmm;
   }
 
-  function drawRuler(x, pxmm) {
-    const X = 20 * pxmm, Y = 284 * pxmm, L = 50 * pxmm;
-    x.save();
-    x.strokeStyle = '#111'; x.fillStyle = '#111'; x.lineWidth = Math.max(1, 0.25 * pxmm);
-    x.beginPath(); x.moveTo(X, Y); x.lineTo(X + L, Y);
-    for (let i = 0; i <= 50; i++) {
-      const t = (i % 10 === 0 ? 3 : i % 5 === 0 ? 2 : 1) * pxmm;
-      x.moveTo(X + i * pxmm, Y); x.lineTo(X + i * pxmm, Y - t);
-    }
-    x.stroke();
-    x.font = fontCss(10 * PT_MM * activeFace().factor * pxmm, false);
-    x.textBaseline = 'top';
-    x.fillText('50 มม. — วัดด้วยไม้บรรทัด ถ้าไม่ตรงให้พิมพ์ที่ขนาดจริง (100%)', X, Y + 1.5 * pxmm);
-    x.restore();
-  }
-
   // Draw the whole A4 page into ctx at pxmm pixels per millimetre.
   function drawPage(x, pxmm, preview) {
     x.setTransform(1, 0, 0, 1, 0, 0);
@@ -1031,7 +1004,6 @@ footer .cites{color:#71717a;}
     });
     let bottom = lowest;
     if (S.cert.on) bottom = drawCert(x, Math.max(lowest + 8, L.cards[L.cards.length - 1].y + L.ch + 12), pxmm);
-    if (S.page.ruler) drawRuler(x, pxmm);
     return { bottom };
   }
 
@@ -1076,36 +1048,152 @@ footer .cites{color:#71717a;}
     $('pvWarn').innerHTML = warns.map((w) => '⚠ ' + w).join('<br>');
   }
 
-  // ── Export ────────────────────────────────────────
-  function renderExport() {
-    const c = document.createElement('canvas');
-    c.width = Math.round(A4_W * EXPORT_PXMM); c.height = Math.round(A4_H * EXPORT_PXMM);
-    drawPage(c.getContext('2d'), EXPORT_PXMM, false);
-    return c;
-  }
-  const toBlob = (c, type, q) => new Promise((res) => c.toBlob(res, type, q));
+  // ── Export: Word .docx ────────────────────────────
+  // Every object is anchored to the PAGE at an absolute millimetre offset — never to a
+  // paragraph — so Word cannot move it when fonts or paragraph heights differ. Cards are
+  // pictures behind text; the restriction band and the certification are text boxes in
+  // real Thai text (TH SarabunPSK by default), so Word sets the type, not the browser.
+  const EMU_MM = 36000;
+  const emu = (mm) => Math.round(mm * EMU_MM);
+  const xe = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" ' +
+    'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ' +
+    'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" ' +
+    'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" ' +
+    'xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture" ' +
+    'xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" ' +
+    'xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" ' +
+    'xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" ' +
+    'xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" mc:Ignorable="w14 wp14"';
 
-  // Minimal one-page PDF: the page is a single JPEG (DCTDecode) drawn edge to edge
-  // on an A4 MediaBox. No /Info dictionary, so no name or title leaks into metadata.
-  function jpegToPdf(jpeg, pxW, pxH) {
-    const enc = new TextEncoder(), parts = [], offs = [];
-    let len = 0;
-    const put = (x) => { const b = typeof x === 'string' ? enc.encode(x) : x; parts.push(b); len += b.length; };
-    const W = (A4_W / 25.4 * 72).toFixed(2), H = (A4_H / 25.4 * 72).toFixed(2);
-    const content = 'q ' + W + ' 0 0 ' + H + ' 0 0 cm /Im0 Do Q\n';
-    put('%PDF-1.4\n'); put(new Uint8Array([37, 226, 227, 207, 211, 10]));
-    offs[1] = len; put('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
-    offs[2] = len; put('2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n');
-    offs[3] = len; put('3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + W + ' ' + H + '] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>\nendobj\n');
-    offs[4] = len; put('4 0 obj\n<< /Type /XObject /Subtype /Image /Width ' + pxW + ' /Height ' + pxH +
-      ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + jpeg.length + ' >>\nstream\n');
-    put(jpeg); put('\nendstream\nendobj\n');
-    offs[5] = len; put('5 0 obj\n<< /Length ' + enc.encode(content).length + ' >>\nstream\n' + content + 'endstream\nendobj\n');
-    const xref = len;
-    let t = 'xref\n0 6\n0000000000 65535 f \n';
-    for (let i = 1; i <= 5; i++) t += String(offs[i]).padStart(10, '0') + ' 00000 n \n';
-    put(t + 'trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF\n');
-    return new Blob(parts, { type: 'application/pdf' });
+  function wRun(text, o) {
+    const f = xe(o.font), sz = Math.round(o.size * 2);
+    return '<w:r><w:rPr><w:rFonts w:ascii="' + f + '" w:hAnsi="' + f + '" w:eastAsia="' + f + '" w:cs="' + f + '"/>' +
+      (o.bold ? '<w:b/><w:bCs/>' : '') + (o.color ? '<w:color w:val="' + o.color.replace('#', '') + '"/>' : '') +
+      '<w:sz w:val="' + sz + '"/><w:szCs w:val="' + sz + '"/><w:lang w:val="th-TH" w:bidi="th-TH"/></w:rPr>' +
+      '<w:t xml:space="preserve">' + xe(text) + '</w:t></w:r>';
+  }
+  function wPara(text, o) {
+    const bdr = o.rules ? '<w:pBdr><w:top w:val="single" w:sz="4" w:space="1" w:color="' + o.color.replace('#', '') + '"/>' +
+      '<w:bottom w:val="single" w:sz="4" w:space="1" w:color="' + o.color.replace('#', '') + '"/></w:pBdr>' : '';
+    return '<w:p><w:pPr>' + bdr + '<w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:jc w:val="center"/></w:pPr>' +
+      (text ? wRun(text, o) : '') + '</w:p>';
+  }
+  let docPr = 0;
+  function wAnchor(b, graphic, isShape) {
+    const id = ++docPr;
+    const drawing = '<w:drawing><wp:anchor distT="0" distB="0" distL="0" distR="0" simplePos="0" relativeHeight="' + (b.z || 1) + '" ' +
+      'behindDoc="' + (b.behind ? 1 : 0) + '" locked="1" layoutInCell="1" allowOverlap="1">' +
+      '<wp:simplePos x="0" y="0"/>' +
+      '<wp:positionH relativeFrom="page"><wp:posOffset>' + emu(b.x) + '</wp:posOffset></wp:positionH>' +
+      '<wp:positionV relativeFrom="page"><wp:posOffset>' + emu(b.y) + '</wp:posOffset></wp:positionV>' +
+      '<wp:extent cx="' + emu(b.w) + '" cy="' + emu(b.h) + '"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:wrapNone/>' +
+      '<wp:docPr id="' + id + '" name="' + xe(b.name) + '"/><wp:cNvGraphicFramePr/>' + graphic + '</wp:anchor></w:drawing>';
+    // Word writes text boxes inside mc:AlternateContent; do the same so every Word version opens it.
+    return '<w:r>' + (isShape ? '<mc:AlternateContent><mc:Choice Requires="wps">' + drawing + '</mc:Choice><mc:Fallback/></mc:AlternateContent>' : drawing) + '</w:r>';
+  }
+  function wPicture(b, rid) {
+    return wAnchor(b, '<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic>' +
+      '<pic:nvPicPr><pic:cNvPr id="0" name="' + xe(b.name) + '"/><pic:cNvPicPr><a:picLocks noChangeAspect="1"/></pic:cNvPicPr></pic:nvPicPr>' +
+      '<pic:blipFill><a:blip r:embed="' + rid + '"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>' +
+      '<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + emu(b.w) + '" cy="' + emu(b.h) + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>' +
+      '</pic:pic></a:graphicData></a:graphic>', false);
+  }
+  function wTextBox(b, paras) {
+    const rot = ((Math.round((b.rot || 0) * 60000) % 21600000) + 21600000) % 21600000;
+    return wAnchor(b, '<a:graphic><a:graphicData uri="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"><wps:wsp>' +
+      '<wps:cNvSpPr txBox="1"/><wps:spPr><a:xfrm rot="' + rot + '"><a:off x="0" y="0"/><a:ext cx="' + emu(b.w) + '" cy="' + emu(b.h) + '"/></a:xfrm>' +
+      '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/><a:ln><a:noFill/></a:ln></wps:spPr>' +
+      '<wps:txbx><w:txbxContent>' + paras + '</w:txbxContent></wps:txbx>' +
+      '<wps:bodyPr rot="0" vert="horz" wrap="square" lIns="0" tIns="0" rIns="0" bIns="0" anchor="ctr" anchorCtr="0"><a:noAutofit/></wps:bodyPr>' +
+      '</wps:wsp></a:graphicData></a:graphic>', true);
+  }
+
+  // Width of a line of text in mm at `pt` in the chosen Word font, estimated in the browser.
+  function textMm(text, pt, bold) {
+    measureCtx.font = fontCss(100, bold);
+    return measureCtx.measureText(text).width / 100 * pt * PT_MM * activeFace().factor;
+  }
+
+  // Page geometry in mm — shared by the .docx and nothing else, so what Word gets is exact.
+  function docxModel() {
+    const L = layout(), boxes = [];
+    let lowest = 0;
+    L.cards.forEach((c) => { lowest = Math.max(lowest, c.y + c.h); });
+    const bands = [];
+    L.cards.forEach((c) => {
+      const sd = S.sides[c.side];
+      if (!sd.img || !sd.wm) return;
+      const lines = bandLines();
+      if (!lines.length) return;
+      const w = Math.hypot(c.w, c.h) * (S.wm.extend ? 1.15 : 0.9);
+      let pt = S.wm.size * S.page.scale / 100;
+      const widest = Math.max(...lines.map((l) => textMm(l, pt, true)));
+      if (widest > w * 0.94) pt = Math.floor(pt * w * 0.94 / widest * 2) / 2;
+      const h = lines.length * pt * PT_MM * 1.25 + 3;
+      const cx = c.x + c.w / 2, cy = c.y + c.h / 2, t = Math.abs(S.wm.angle * Math.PI / 180);
+      lowest = Math.max(lowest, cy + w / 2 * Math.sin(t) + h / 2 * Math.cos(t));
+      bands.push({ x: cx - w / 2, y: cy - h / 2, w, h, rot: S.wm.angle, lines, pt });
+    });
+    const certY = Math.max(lowest + 6, L.cards[L.cards.length - 1].y + L.ch + 12);
+    return { cards: L.cards, bands, certY, boxes };
+  }
+
+  function cardPng(sd, c) {
+    const W = Math.round(c.w * EXPORT_PXMM), H = Math.round(c.h * EXPORT_PXMM);
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    drawCardAt(cv.getContext('2d'), sd, cardCanvas(sd, W, H), 0, 0, W, H, EXPORT_PXMM, false);
+    return new Promise((res) => cv.toBlob(res, 'image/png'));
+  }
+
+  async function buildDocx() {
+    const M = docxModel(), font = activeFace().word, zip = new JSZip();
+    docPr = 0;
+    const rels = [], runs = [];
+    let z = 10;
+    for (const c of M.cards) {
+      const sd = S.sides[c.side];
+      if (!sd.img) continue;
+      const rid = 'rIdImg' + (rels.length + 1), file = 'card-' + c.side + '.png';
+      zip.file('word/media/' + file, await cardPng(sd, c));
+      rels.push('<Relationship Id="' + rid + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/' + file + '"/>');
+      runs.push(wPicture({ x: c.x, y: c.y, w: c.w, h: c.h, behind: true, z: z++, name: file }, rid));
+    }
+    M.bands.forEach((b, i) => {
+      const o = { font, size: b.pt, bold: true, color: S.wm.color, rules: S.wm.rules };
+      runs.push(wTextBox(Object.assign({ z: 100 + i, name: 'Restriction ' + (i + 1) }, b), b.lines.map((l) => wPara(l, o)).join('')));
+    });
+    if (S.cert.on) {
+      const o = { font, size: 16 };
+      const name = S.name.trim();
+      const paras = [S.cert.heading, '', S.cert.sigLine ? '........................................' : '',
+        name ? '(          ' + name + '          )' : '(........................................)'];
+      if (S.cert.dateLine) paras.push(S.date ? 'วันที่ ' + thaiDate(S.date) : 'วันที่ ............................');
+      const w = 90, h = paras.length * 16 * PT_MM * 1.25 + 2;
+      const cx = S.cert.align === 'right' ? 148 : A4_W / 2;
+      runs.push(wTextBox({ x: cx - w / 2, y: M.certY, w, h, z: 200, name: 'Certification' }, paras.map((p) => wPara(p, o)).join('')));
+    }
+    const sz = 32, f = xe(font);
+    zip.file('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>' +
+      '<Default Extension="png" ContentType="image/png"/>' +
+      '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
+      '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>');
+    zip.file('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
+    zip.file('word/_rels/document.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      '<Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' + rels.join('') + '</Relationships>');
+    zip.file('word/styles.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
+      '<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="' + f + '" w:hAnsi="' + f + '" w:eastAsia="' + f + '" w:cs="' + f + '"/>' +
+      '<w:sz w:val="' + sz + '"/><w:szCs w:val="' + sz + '"/><w:lang w:val="th-TH" w:bidi="th-TH"/></w:rPr></w:rPrDefault>' +
+      '<w:pPrDefault><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>' +
+      '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style></w:styles>');
+    // A4, 20 mm margins; the single anchor paragraph carries every page-anchored object.
+    zip.file('word/document.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ' + NS + '><w:body>' +
+      '<w:p><w:pPr><w:spacing w:before="0" w:after="0"/></w:pPr>' + runs.join('') + '</w:p>' +
+      '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="709" w:footer="709" w:gutter="0"/></w:sectPr>' +
+      '</w:body></w:document>');
+    return zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
   }
 
   function fileStem() {
@@ -1119,38 +1207,12 @@ footer .cites{color:#71717a;}
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   }
-  function ready() {
-    if (S.sides.front.img || S.sides.back.img) return true;
-    toast('ยังไม่มีภาพบัตร — เพิ่มภาพหน้าบัตรก่อน');
-    return false;
+  async function exportDocx() {
+    if (!S.sides.front.img && !S.sides.back.img) { toast('ยังไม่มีภาพบัตร — เพิ่มภาพหน้าบัตรก่อน'); return; }
+    if (typeof JSZip === 'undefined') { toast('โหลดตัวสร้างไฟล์ Word ไม่ได้ — ต้องต่ออินเทอร์เน็ตครั้งแรกที่เปิดหน้านี้'); return; }
+    download(await buildDocx(), fileStem() + '.docx');
+    toast('บันทึก .docx แล้ว — พิมพ์จาก Word ที่ขนาดจริง (100%)');
   }
-  async function exportPdf() {
-    if (!ready()) return;
-    const c = renderExport();
-    const blob = await toBlob(c, 'image/jpeg', 0.92);
-    const pdf = jpegToPdf(new Uint8Array(await blob.arrayBuffer()), c.width, c.height);
-    download(pdf, fileStem() + '.pdf');
-    toast('บันทึก PDF แล้ว — พิมพ์ที่ขนาดจริง (100%)');
-  }
-  async function exportPng() {
-    if (!ready()) return;
-    download(await toBlob(renderExport(), 'image/png'), fileStem() + '.png');
-  }
-  let printUrl = null;
-  async function printPage() {
-    if (!ready()) return;
-    const blob = await toBlob(renderExport(), 'image/png');
-    if (printUrl) URL.revokeObjectURL(printUrl);
-    printUrl = URL.createObjectURL(blob);
-    const img = $('printImg');
-    img.src = printUrl;
-    await img.decode().catch(() => {});
-    window.print();
-  }
-  window.addEventListener('afterprint', () => {
-    $('printImg').removeAttribute('src');
-    if (printUrl) { URL.revokeObjectURL(printUrl); printUrl = null; }
-  });
 
   // ── UI wiring ─────────────────────────────────────
   function toast(msg) {
@@ -1187,30 +1249,28 @@ footer .cites{color:#71717a;}
   }
   function paintControls() {
     $('fName').value = S.name; $('fDate').value = S.date; $('fPurpose').value = S.purpose;
-    $('wmAngle').value = S.wm.angle; $('wmSize').value = S.wm.size; $('wmOpacity').value = S.wm.opacity;
+    $('wmAngle').value = S.wm.angle; $('wmSize').value = S.wm.size;
     $('wmColor').value = S.wm.color; $('wmRules').checked = S.wm.rules; $('wmExtend').checked = S.wm.extend; $('wmDate').checked = S.wm.dateLine;
     $('cHeading').value = S.cert.heading; $('cAlign').value = S.cert.align; $('cOn').checked = S.cert.on;
     $('cSig').checked = S.cert.sigLine; $('cDate').checked = S.cert.dateLine;
     $('pScale').value = String(S.page.scale); $('pNum').value = S.page.num; $('pRound').checked = S.page.round;
-    $('pBorder').checked = S.page.border; $('pGray').checked = S.page.gray; $('pRuler').checked = S.page.ruler;
+    $('pBorder').checked = S.page.border; $('pGray').checked = S.page.gray;
     $('pFont').value = S.page.font;
     paintValues();
   }
   function paintValues() {
     $('vAngle').textContent = S.wm.angle + '°';
     $('vSize').textContent = S.wm.size + ' pt';
-    $('vOpacity').textContent = S.wm.opacity + '%';
     const f = activeFace();
-    $('fontNote').innerHTML = 'ฟอนต์ที่ใช้จริง: <b>' + (f.generic ? 'ฟอนต์ระบบ' : f.name) + '</b>' +
-      (f.factor === 1 ? ' (ขนาด pt เท่ากับใน Word)' : ' — ไม่พบ TH Sarabun ในเครื่องนี้ ขนาดถูกปรับให้ใกล้เคียง') +
-      ' · ข้อความถูกวาดเป็นภาพใน PDF แล้ว เครื่องที่เปิดไฟล์ไม่ต้องมีฟอนต์นี้';
+    $('fontNote').innerHTML = 'ไฟล์ Word จะใช้ <b>' + f.word + '</b> — เปิดด้วยเครื่องที่มีฟอนต์นี้ (Windows และ Mac ที่ลง Office มีมาให้)' +
+      (f.standIn ? ' · เครื่องนี้ไม่มีฟอนต์นี้ ตัวอย่างด้านขวาจึงใช้ ' + (f.generic ? 'ฟอนต์ระบบ' : f.name) + ' แทน หน้าตาจะต่างจากใน Word' : '');
   }
   function paintAll() { paintSide(); paintLines(); paintValues(); schedulePage(); }
   function paintAfterEdit() { drawResult(false); schedulePage(); }
 
   function buildFontSelect() {
-    $('pFont').innerHTML = '<option value="auto">อัตโนมัติ</option>' + installed.map((f) =>
-      '<option value="' + f.name + '"' + (f.ok ? '' : ' disabled') + '>' + f.name + (f.ok ? '' : ' (ไม่มีในเครื่อง)') + '</option>').join('');
+    $('pFont').innerHTML = installed.map((f) =>
+      '<option value="' + f.name + '">' + f.name + (f.ok ? '' : ' (ไม่มีในเครื่องนี้ — ตัวอย่างจะใช้ฟอนต์แทน)') + '</option>').join('');
   }
 
   // side tabs
@@ -1286,15 +1346,13 @@ footer .cites{color:#71717a;}
     if (obj === 'page' && (key === 'gray' || key === 'round' || key === 'border')) drawResult(false);
     schedulePage();
   });
-  bind('wmAngle', 'wm', 'angle', Number); bind('wmSize', 'wm', 'size', Number); bind('wmOpacity', 'wm', 'opacity', Number);
+  bind('wmAngle', 'wm', 'angle', Number); bind('wmSize', 'wm', 'size', Number);
   bind('wmColor', 'wm', 'color'); bind('wmRules', 'wm', 'rules'); bind('wmExtend', 'wm', 'extend'); bind('wmDate', 'wm', 'dateLine');
   bind('cAlign', 'cert', 'align'); bind('cOn', 'cert', 'on'); bind('cSig', 'cert', 'sigLine'); bind('cDate', 'cert', 'dateLine');
   bind('pScale', 'page', 'scale', Number); bind('pFont', 'page', 'font'); bind('pNum', 'page', 'num');
-  bind('pRound', 'page', 'round'); bind('pBorder', 'page', 'border'); bind('pGray', 'page', 'gray'); bind('pRuler', 'page', 'ruler');
+  bind('pRound', 'page', 'round'); bind('pBorder', 'page', 'border'); bind('pGray', 'page', 'gray');
 
-  $('btnPdf').addEventListener('click', exportPdf);
-  $('btnPng').addEventListener('click', exportPng);
-  $('btnPrint').addEventListener('click', printPage);
+  $('btnDocx').addEventListener('click', exportDocx);
   $('btnClearAll').addEventListener('click', () => {
     if (!confirm('ล้างภาพบัตรทั้งสองด้าน ชื่อ วันที่ และข้อความที่แก้เอง? (การตั้งค่ารูปแบบยังอยู่)')) return;
     S.sides = { front: blankSide(), back: blankSide() };
@@ -1307,7 +1365,7 @@ footer .cites{color:#71717a;}
   window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(() => { if (cur().img) { drawEditor(); drawResult(false); } schedulePage(); }, 120); });
 
   // Test hook: the page's pure pieces, for tests/certified-id-copy.test.mjs.
-  window.__idCopy = { homography, warp, jpegToPdf, thaiDate, autoLine, bandLines, S, layout, renderExport, loadFile };
+  window.__idCopy = { homography, warp, thaiDate, autoLine, bandLines, S, layout, buildDocx, loadFile };
 
   load();
   buildFontSelect();

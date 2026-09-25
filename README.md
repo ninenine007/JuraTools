@@ -15,7 +15,7 @@ Tools are grouped into collections, each with its own hub page:
 | `tax-tools/` | Thai Tax Tools — personal income tax, share transfer & swap tax (CIT/WHT on moving shares between companies), land sale tax comparison, stamp duty, withholding tax |
 | `labour-tools/` | Thai Labour Law Tools — termination payment suite on shared `labour-core.js`/`.css` |
 | `finance-tools/` | Finance Tools — time value of money (PV, FV, NPV, PMT) on an interactive cash-flow timeline |
-| `litigation-tools/` | Litigation Tools — court forms for a live case: the Attorney Appointment (ใบแต่งทนายความ, form ๙) filled and exported as Word, one per client and per lawyer, with a lawyer directory kept on your own machine; the Certified ID Copy (สำเนาบัตรประชาชน รับรองสำเนาถูกต้อง) straightened to true card size and exported as an A4 PDF |
+| `litigation-tools/` | Litigation Tools — court forms for a live case: the Attorney Appointment (ใบแต่งทนายความ, form ๙) filled and exported as Word, one per client and per lawyer, with a lawyer directory kept on your own machine; the Certified ID Copy (สำเนาบัตรประชาชน รับรองสำเนาถูกต้อง) straightened to true card size and saved as an A4 Word .docx |
 | `corpus-tools/` | Corpus Tools — Contract Concordance (KWIC, clause library, collocations, wordlist) over a corpus built locally from your own contracts |
 | `utilities/` | Utilities — Thai line formatting, baht text, text sanitizer, subtitle converter, pro-rata allocation, rounding lab, percentages |
 | `tools/` | Local scripts — `srv-to-paragraphs`, and `contract-corpus` (the Python pipeline that builds the corpus file for Corpus Tools) |

@@ -20,8 +20,9 @@ function extract(name) {
   return script.slice(start, i + 1);
 }
 
-test('self-contained: no external scripts, styles or fetches, and the script parses', () => {
-  assert.doesNotMatch(html, /<(?:script|link)[^>]+https?:\/\//i);
+test('no network beyond the house JSZip, and the script parses', () => {
+  const ext = [...html.matchAll(/<(?:script|link)[^>]+https?:\/\/[^"']+/gi)].map((m) => m[0]);
+  assert.deepEqual(ext, ['<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js']);
   assert.doesNotMatch(script, /\bfetch\(|XMLHttpRequest|WebSocket|sendBeacon/);
   assert.doesNotThrow(() => new vm.Script(script));
 });
@@ -33,8 +34,13 @@ test('client data never reaches storage: only style settings are saved', () => {
   assert.equal((script.match(/localStorage\.setItem/g) || []).length, 1);
 });
 
-test('the PDF carries no /Info dictionary (no name or title in metadata)', () => {
-  assert.doesNotMatch(extract('jpegToPdf'), /\/Info|\/Title|\/Author/);
+test('the .docx anchors everything to the page and writes no core properties', () => {
+  const build = extract('buildDocx');
+  assert.doesNotMatch(build, /docProps|core\.xml/);
+  assert.match(extract('wAnchor'), /positionH relativeFrom="page"[\s\S]*positionV relativeFrom="page"/);
+  assert.doesNotMatch(script, /relativeFrom="(?:paragraph|column)"/);
+  assert.match(build, /w:w="11906" w:h="16838"/);          // A4 in twips
+  assert.match(script, /name: 'TH SarabunPSK', word: 'TH SarabunPSK'/);
 });
 
 test('homography maps the output rectangle onto the chosen quad', () => {
@@ -50,11 +56,11 @@ test('homography maps the output rectangle onto the chosen quad', () => {
   });
 });
 
-test('card is warped to ISO/IEC 7810 ID-1 and the page is A4 at 300 dpi', () => {
+test('card is warped to ISO/IEC 7810 ID-1 and embedded at 300 dpi, 1 mm = 36000 EMU', () => {
   assert.match(script, /CARD_W = 85\.6, CARD_H = 54/);
   assert.match(script, /A4_W = 210, A4_H = 297/);
   assert.match(script, /EXPORT_PXMM = 300 \/ 25\.4/);
-  assert.match(html, /@page\{size:A4 portrait;margin:0;\}/);
+  assert.match(script, /EMU_MM = 36000/);
 });
 
 test('controls the script reads are present and IDs are unique', () => {
