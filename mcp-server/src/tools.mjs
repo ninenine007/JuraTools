@@ -4,6 +4,63 @@ import { buildDocx, dutyOf, fileNameOf, normalizeTransfer, unresolved } from './
 import { registerDateTools } from './date-tools.mjs';
 import { buildPlainDocx, fileNameOfPlain, PLAIN_INPUT_SHAPE } from './plain-doc.mjs';
 import { buildDocx as buildPoaDocx, documentsOf, FIELD_TH, idValid } from './poa.mjs';
+import { buildPowerOfAttorney } from './power-of-attorney.mjs';
+
+/* หนังสือมอบอำนาจให้ฟ้องคดี — the schema a model fills. The engine's fromInput()
+   maps these keys onto the page's state, so the page and the server agree. The
+   rules in the descriptions are the guide's (litigation-tools/power-of-attorney.guide.md). */
+const PWA_INPUT = {
+  matter: z.string().optional().describe('Short matter name, used only in the file name, e.g. "บริษัท ก - [คดีนาย ข]"'),
+  place: z.string().optional().describe('ทำที่ — where the grantor signs, as an address line (usually the grantor\'s own office or home). Printed right after the fixed words "ทำที่". Leave out if not known'),
+  date: z.string().optional().describe('Date of signing, YYYY-MM-DD; printed as "16 ธันวาคม 2567". Leave out to keep the line blank for handwriting — never guess a date'),
+  grantor: z.object({
+    type: z.enum(['company', 'individual']).describe('ผู้มอบอำนาจ: a juristic person ("company") or one or more natural persons ("individual")'),
+    company: z.object({
+      name: z.string().describe('Full registered name, e.g. "บริษัท ตัวอย่าง จำกัด" — printed in bold'),
+      incorporation: z.string().optional().describe('Leave out for the template\'s "นิติบุคคลจัดตั้งขึ้นถูกต้องตามกฎหมายแห่งราชอาณาจักรไทย"; a foreign company says where it is incorporated'),
+      registrationNumber: z.string().optional().describe('ทะเบียนนิติบุคคลเลขที่ (13 digits)'),
+      headOfficeAddress: z.string().optional().describe('สำนักงานแห่งใหญ่ — the address from "เลขที่" on (the words "สำนักงานแห่งใหญ่ตั้งอยู่ ณ เลขที่" are added)'),
+      directors: z.array(z.object({
+        name: z.string().describe('Director who signs, with title, e.g. "นายสมมุติ ใจดี"'),
+        idNumber: z.string().optional().describe('Only if the user wants directors\' ID numbers printed')
+      })).optional().describe('The authorised directors who sign for the company, as the company affidavit requires'),
+      authorityWording: z.string().optional().describe('Leave out for "กรรมการผู้มีอำนาจลงลายมือชื่อและประทับตราสำคัญกระทำการแทนได้"; use the affidavit\'s own wording when two must sign together'),
+      descriptionOverride: z.string().optional().describe('Replaces everything after the bold company name up to (“ผู้มอบอำนาจ”). Use only when the composed text will not do')
+    }).optional(),
+    persons: z.array(z.object({
+      name: z.string().describe('With title, e.g. "นายสมชาย ใจดี" — printed in bold'),
+      idType: z.enum(['id', 'passport']).optional().describe('"id" (default) prints บัตรประจำตัวประชาชนเลขที่; "passport" prints หนังสือเดินทางเลขที่'),
+      idNumber: z.string().optional(),
+      address: z.string().optional().describe('ภูมิลำเนา — from "เลขที่" on'),
+      descriptionOverride: z.string().optional().describe('Replaces the text after this person\'s bold name')
+    })).optional().describe('For type "individual": everyone who grants the power, in order'),
+    capacity: z.string().optional().describe('Individuals only — words after (“ผู้มอบอำนาจ”), e.g. "ในฐานะส่วนตัว และในฐานะผู้แทนโดยชอบธรรมของเด็กชาย… บัตรประจำตัวประชาชนเลขที่ … ภูมิลำเนาอยู่ ณ …"')
+  }).describe('ผู้มอบอำนาจ'),
+  attorneys: z.array(z.object({
+    name: z.string().describe('ผู้รับมอบอำนาจ, with title'),
+    idNumber: z.string().optional().describe('13-digit Thai national ID; printed "1 2345 67890 12 3" and checked against its check digit')
+  })).min(1).describe('The attorneys-in-fact, in the order of the table. They act "ร่วมกัน และ/หรือ แยกกัน" — the wording is fixed'),
+  matterFacts: z.object({
+    counterparty: z.string().describe('คู่กรณี — who will be sued, exactly as named in the contract or complaint; several joined with " และ/หรือ ". The template reads "…ที่เกี่ยวข้องกับ[counterparty] (“คู่กรณี”)"'),
+    courts: z.array(z.string()).describe('Courts where the case will be filed, each starting with "ศาล", e.g. ["ศาลแพ่ง", "ศาลอาญา"]. Used in the narrative and, without the first "ศาล", in clause 1 ("…ต่อศาล[แพ่ง ศาลอาญา] หรือศาลสถิตยุติธรรมอื่นใดที่มีเขตอำนาจ")'),
+    otherBodies: z.array(z.string()).optional().describe('Regulators or agencies also to be approached, e.g. ["แพทยสภา"]. Printed in the narrative only; give them their own power in extraClauses'),
+    cause: z.string().describe('What gives rise to the claim, reading on from "อันเนื่องมาจาก": the legal relationship with its document and date, then the breach, e.g. "นิติสัมพันธ์ตามสัญญาซื้อขายสินค้า ระหว่างผู้มอบอำนาจและคู่กรณี ลงวันที่ 1 มีนาคม 2569 หากแต่คู่กรณีผิดสัญญาไม่ชำระราคาสินค้าดังกล่าว". No full stop'),
+    definedTerm: z.string().describe('Short defined term for the cause, without quotes, e.g. "การผิดสัญญา" or "การทำละเมิด". Printed as (“…”) after the narrative, and in clauses 1 and 6'),
+    narrativeOverride: z.string().optional().describe('Replaces the whole stretch between (“คู่กรณี”) and (“definedTerm”), which is otherwise composed as "ต่อ[courts otherBodies] หรือศาลสถิตยุติธรรมที่มีเขตอำนาจ องค์กร หน่วยงานของรัฐ และ/หรือ พนักงานเจ้าหน้าที่ตลอดจนบุคคลที่เกี่ยวข้องอื่นใด อันเนื่องมาจาก[cause]". Must start with "ต่อ"'),
+    clause1CourtsOverride: z.string().optional().describe('Replaces the courts in clause 1, after the printed "ต่อศาล", e.g. "แพ่ง ศาลอาญา"')
+  }).describe('The matter. Draft it from the user\'s facts in the firm\'s style; never invent a name, number, date or amount — write "(*)" where it is missing (printed highlighted)'),
+  extraClauses: z.array(z.object({
+    afterClause: z.number().int().min(0).max(8).describe('Insert after fixed clause n (0 = before clause 1). Numbering follows automatically'),
+    text: z.string().describe('The clause, starting "ให้มีอำนาจ…"')
+  })).optional().describe('Powers the eight fixed clauses do not give — e.g. filing complaints with a regulator in otherBodies. The fixed clauses are: 1 sue the counterparty; 2 conduct proceedings and dispose of rights; 3 appoint lawyers (CPC s.62); 4 sign documents and certify translations; 5 negotiate and settle; 6 give statements about the cause; 7 anything necessary; 8 appoint sub-attorneys'),
+  witnesses: z.array(z.string()).optional().describe('Witness names; "" leaves a line to write in. Default two blank witnesses'),
+  signaturesOnNextPage: z.boolean().optional().describe('Default true: print "-ส่วนที่เหลือของหน้านี้เจตนาเว้นว่างไว้ ผู้มอบอำนาจ และผู้รับมอบอำนาจลงนามในหน้าถัดไป-" and start the signature table on a new page, so no signature block is split across pages'),
+  stampDuty: z.object({
+    principals: z.number().int().min(1).optional().describe('How many separate principals the duty is counted for (Revenue Code s.108). Default: 1 for a company, the number of persons for individuals'),
+    amountOverride: z.string().optional().describe('The baht figure printed in "-ติดอากรแสตมป์ … บาท-" if it must differ from the computed one')
+  }).optional(),
+  fileName: z.string().optional().describe('Override the file name (without .docx)')
+};
 
 /* ใบแต่งทนายความ — the schema a model fills. Keys are English for the caller;
    they map one-to-one onto the page's own state (see toPoaState). The rules
@@ -319,6 +376,59 @@ export function createMcpServer({ deliver, user = null }) {
         form: args.form, withdrawalWording: wording,
         documents: documents.map(({ message, ...d }) => d),
         blankFields: [...blank], unmatchedLawyerKeys, invalidIdNumbers, isDraft: true
+      }
+    };
+  });
+
+  server.registerTool('create_power_of_attorney', {
+    title: 'Create หนังสือมอบอำนาจให้ฟ้องคดี (power of attorney to sue)',
+    description:
+      'Fill the firm\'s own power-of-attorney-to-sue template and return one .docx. The fixed wording — the opening, the ' +
+      '"ร่วมกัน และ/หรือ แยกกัน" grant, the eight powers and the ratification — is the firm\'s, untouched; this tool types ' +
+      'only the grantor, the attorneys, the counterparty, the courts, the cause and its defined term, and any added clauses ' +
+      'into the template\'s own Word runs. The signature table is laid out from the firm\'s rows for any number of signers, ' +
+      'and the stamp duty (schedule item 7: 30 baht per attorney acting separately) is computed and printed. ' +
+      'Draft the matter from the user\'s facts; leave out what is not in them rather than guessing — blanks and invalid ID ' +
+      'numbers are reported. The result is a draft for a lawyer to check — say so when reporting it.',
+    inputSchema: PWA_INPUT,
+    outputSchema: {
+      location: z.string().describe('A local file path from the stdio server, or a one-time download URL from the HTTP server'),
+      fileName: z.string(),
+      fileSizeKB: z.number(),
+      stampDuty: z.object({
+        scheduleItem: z.string().describe('ลักษณะแห่งตราสาร 7(ข) or 7(ค)'),
+        attorneys: z.number(), principals: z.number(), computedBaht: z.number(),
+        printed: z.string().describe('The figure printed in the document'), overridden: z.boolean()
+      }),
+      blankFields: z.array(z.string()).describe('Parts left empty (Thai labels)'),
+      invalidIdNumbers: z.array(z.string()).describe('People whose 13-digit ID fails the Thai check digit'),
+      warnings: z.array(z.string()),
+      isDraft: z.literal(true)
+    }
+  }, async args => {
+    const r = await buildPowerOfAttorney(args);
+    const base = (args.fileName && String(args.fileName).trim()) || r.fileName.replace(/\.docx$/, '');
+    const delivery = await deliver(base, r.buffer);
+    const d = r.derived.stamp, rep = r.report;
+    const fileSizeKB = Math.round(r.buffer.length / 1024);
+    if (user) {
+      console.error(`[${new Date().toISOString()}] ${user} created a power of attorney to sue: ${r.state.attorneys.length} attorney(s)`);
+    }
+    const text = [
+      `${delivery.message} (${fileSizeKB} KB).`,
+      `Stamp duty: ${d.overridden ? d.amount + ' baht printed (computed ' + d.auto + ')' : d.auto + ' baht'} — schedule item ${d.item}, ` +
+        `${d.attorneys} attorney${d.attorneys > 1 ? 's' : ''} × 30 baht` + (d.principals > 1 ? ` × ${d.principals} principals (s.108)` : '') + '.',
+      rep.blank.length ? `Left blank: ${rep.blank.join(', ')}.` : '',
+      rep.invalidIds.length ? `ID number fails the check digit for: ${rep.invalidIds.join(', ')} — check it.` : '',
+      ...rep.warnings,
+      'Draft only — have a lawyer check it against the instructions and the documents before it is signed.'
+    ].filter(Boolean).join('\n');
+    return {
+      content: [{ type: 'text', text }],
+      structuredContent: {
+        location: delivery.location, fileName: base + '.docx', fileSizeKB,
+        stampDuty: { scheduleItem: d.item, attorneys: d.attorneys, principals: d.principals, computedBaht: d.auto, printed: d.amount, overridden: d.overridden },
+        blankFields: rep.blank, invalidIdNumbers: rep.invalidIds, warnings: rep.warnings, isDraft: true
       }
     };
   });

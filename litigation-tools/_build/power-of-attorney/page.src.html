@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Power of Attorney to Sue — JuraTools</title>
+<meta name="description" content="Fill the firm's own หนังสือมอบอำนาจให้ฟ้องคดี and export Word .docx. The fixed wording is the firm's template, untouched; the grantor, attorneys, counterparty and cause are typed into the original Word runs. Signature table laid out for any number of signers; stamp duty worked out under schedule item 7.">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{
+  --primary:#9f1239; --primary-dark:#881337;
+  --bg:#f7f6f7; --card:#fff; --text:#3f3f46; --heading:#18181b;
+  --border:#e7e5e7; --muted:#a1a1aa; --hover-gray:#f4f4f5;
+  --success:#0d9488; --danger:#dc2626; --amber:#b45309;
+  --shadow:0 1px 2px rgba(24,24,27,.04), 0 4px 12px -4px rgba(24,24,27,.07);
+  --c-tpl:#9f1239; --c-case:#be123c; --c-party:#7c3aed; --c-appt:#0891b2;
+  --c-law:#2563eb; --c-out:#059669; --c-sig:#b45309;
+}
+*{box-sizing:border-box;}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","Noto Sans Thai",sans-serif;
+  -webkit-font-smoothing:antialiased;background:var(--bg);color:var(--text);margin:0;font-size:14px;}
+
+/* ── Nav ─────────────────────────────────────── */
+.nav{position:sticky;top:0;z-index:200;height:52px;display:flex;align-items:center;gap:12px;padding:0 24px;
+  background:rgba(247,246,247,.88);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);
+  border-bottom:1px solid var(--border);}
+.nav a{color:inherit;text-decoration:none;}
+.nav-brand{display:flex;align-items:center;gap:9px;user-select:none;}
+.nav-icon{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;
+  background:linear-gradient(145deg,#2979ff,#1565c0);font-size:15px;
+  box-shadow:0 2px 6px rgba(41,121,255,.4), inset 0 1px 0 rgba(255,255,255,.2);}
+.nav-wordmark{font-size:15px;font-weight:700;letter-spacing:-.4px;color:var(--heading);}
+.nav-sep{color:#d4d4d8;}
+.nav-current{font-size:15px;font-weight:600;color:#71717a;}
+.nav-back{margin-left:auto;font-size:13px;font-weight:500;color:#3f3f46;background:rgba(0,0,0,.05);
+  border:1px solid rgba(0,0,0,.09);padding:6px 12px;border-radius:9px;}
+.nav-back:hover{background:rgba(0,0,0,.09);}
+@media(max-width:620px){.nav-current,.nav-sep{display:none;}}
+
+/* ── Layout ──────────────────────────────────── */
+.app{display:flex;gap:20px;max-width:1800px;margin:0 auto;padding:20px 24px 72px;align-items:flex-start;}
+.app[data-view="form"] .pv{display:none;}
+.app[data-view="preview"] .sidebar,.app[data-view="preview"] .main{display:none;}
+.app[data-view="preview"] .pv{width:auto;min-width:0;flex:1;max-height:none;position:static;}
+.sidebar{width:236px;min-width:236px;background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:16px;position:sticky;top:72px;box-shadow:var(--shadow);max-height:calc(100vh - 92px);overflow-y:auto;}
+.main{flex:1 1 440px;min-width:0;display:flex;flex-direction:column;gap:16px;}
+@media(max-width:1100px){.app{flex-direction:column;align-items:stretch;}
+  .sidebar{width:auto;min-width:0;position:static;max-height:none;}
+  .pv{width:auto!important;min-width:0!important;position:static!important;max-height:none!important;}}
+
+/* ── Sidebar ─────────────────────────────────── */
+.side-head h2{margin:0 0 2px;font-size:1.02em;color:var(--heading);}
+.sidebar .hint{font-size:.78em;color:var(--muted);margin:0 0 12px;line-height:1.45;}
+.jump{display:flex;flex-direction:column;gap:2px;margin:6px 0 14px;}
+.jump a{font-size:.82em;color:#52525b;text-decoration:none;padding:5px 8px;border-radius:7px;display:flex;align-items:center;gap:7px;}
+.jump a:hover{background:var(--hover-gray);}
+.jump .dot{width:7px;height:7px;border-radius:50%;background:#e4e4e7;flex-shrink:0;}
+.jump .dot.ok{background:#10b981;} .jump .dot.warn{background:#f59e0b;}
+.side-sec{font-size:.72em;font-weight:700;letter-spacing:.05em;color:var(--muted);text-transform:uppercase;margin:14px 0 6px;}
+.side-actions{display:flex;flex-direction:column;gap:6px;}
+.side-actions .btn{justify-content:center;}
+
+/* ── Cards ───────────────────────────────────── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;scroll-margin-top:70px;}
+.card-hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:13px 18px;border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg,#fdfdfd,#f8f8f9);}
+.card-hd .ico{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:13px;flex-shrink:0;
+  background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-line);}
+.card-hd h3{margin:0;font-size:.94em;color:var(--heading);font-weight:700;}
+.card-hd .th{font-weight:500;color:var(--muted);font-size:.88em;margin-left:-4px;}
+.card-hd .spacer{margin-left:auto;}
+.card-bd{padding:16px 18px 18px;}
+.acc-tpl{--accent:var(--c-tpl);--accent-soft:#fff1f2;--accent-line:#fecdd3;}
+.acc-case{--accent:var(--c-case);--accent-soft:#fff1f2;--accent-line:#fecdd3;}
+.acc-party{--accent:var(--c-party);--accent-soft:#f5f3ff;--accent-line:#ddd6fe;}
+.acc-appt{--accent:var(--c-appt);--accent-soft:#ecfeff;--accent-line:#a5f3fc;}
+.acc-law{--accent:var(--c-law);--accent-soft:#eff6ff;--accent-line:#bfdbfe;}
+.acc-out{--accent:var(--c-out);--accent-soft:#ecfdf5;--accent-line:#a7f3d0;}
+.acc-sig{--accent:var(--c-sig);--accent-soft:#fffbeb;--accent-line:#fde68a;}
+
+/* ── Type tiles ──────────────────────────────── */
+.tpls{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+@media(max-width:900px){.tpls{grid-template-columns:1fr 1fr;}}
+.tpl{border:1.5px solid var(--border);border-radius:12px;padding:10px 12px;background:#fff;text-align:left;font-family:inherit;color:inherit;}
+.tpl.on{border-color:var(--primary);background:#fff7f8;box-shadow:0 0 0 3px rgba(159,18,57,.08);}
+.tpl.off{opacity:.55;}
+.tpl-name{font-weight:700;color:var(--heading);font-size:.88em;}
+.tpl-src{font-size:.73em;color:var(--muted);margin-top:3px;line-height:1.4;}
+.tpl-badge{display:inline-block;font-size:.66em;font-weight:700;border-radius:999px;padding:1px 7px;margin-top:6px;}
+.tpl.on .tpl-badge{color:#fff;background:var(--primary);}
+.tpl.off .tpl-badge{color:#71717a;background:#f4f4f5;border:1px solid var(--border);}
+
+/* ── Fields ──────────────────────────────────── */
+label{display:block;font-size:.77em;font-weight:600;color:#71717a;margin:0;}
+input[type=text],input[type=date],input[type=number],select,textarea{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;
+  font-family:inherit;font-size:.92em;color:var(--text);background:#fff;transition:border-color .12s, box-shadow .12s;}
+textarea{resize:vertical;line-height:1.55;min-height:62px;}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(159,18,57,.11);}
+input::placeholder,textarea::placeholder{color:#d4d4d8;}
+.is-auto{color:#71717a!important;background:#fcfcfd!important;}
+input.bad{border-color:#fca5a5;background:#fff7f7;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.grid3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:14px;}
+@media(max-width:640px){.grid2,.grid3{grid-template-columns:1fr;}}
+.field{margin-bottom:14px;}
+.field:last-child{margin-bottom:0;}
+.note{font-size:.72em;color:var(--muted);margin-top:4px;line-height:1.45;}
+.row-lbl{display:flex;align-items:center;gap:6px;margin-bottom:5px;min-height:18px;flex-wrap:wrap;}
+.auto-tag{font-size:.66em;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--muted);background:#f4f4f5;border:1px solid var(--border);border-radius:999px;padding:1px 7px;cursor:default;}
+.auto-tag.manual{color:var(--amber);background:#fffbeb;border-color:#fde68a;cursor:pointer;}
+.auto-tag.manual::after{content:" · reset";}
+.ctx{font-family:'Cordia New','CordiaUPC','TH Sarabun New','Sarabun','Noto Sans Thai',serif;font-size:1.18em;line-height:1.45;
+  color:#71717a;background:#fafafa;border:1px dashed var(--border);border-radius:8px;padding:6px 10px;margin-bottom:6px;}
+.ctx b{color:var(--heading);font-weight:600;background:#fef9c3;border-radius:3px;padding:0 2px;}
+
+/* ── Lists ───────────────────────────────────── */
+.lst{display:flex;flex-direction:column;gap:8px;}
+.li{display:grid;gap:8px;align-items:center;}
+.li.att{grid-template-columns:26px 1fr 170px 18px auto;}
+.li.dir{grid-template-columns:26px 1fr 170px auto;}
+.li.one{grid-template-columns:26px 1fr auto;}
+@media(max-width:640px){.li.att,.li.dir{grid-template-columns:22px 1fr auto;}.li.att .idc,.li.dir .idc{grid-column:2/3;}}
+.li .no{font-size:.8em;font-weight:700;color:var(--muted);text-align:right;}
+.li .ok-dot{width:9px;height:9px;border-radius:50%;background:#e4e4e7;justify-self:center;}
+.li .ok-dot.ok{background:#10b981;} .li .ok-dot.bad{background:#ef4444;}
+.ib{display:flex;gap:2px;}
+.ib button{border:none;background:none;color:#a1a1aa;cursor:pointer;font-size:.95em;padding:3px 5px;border-radius:6px;line-height:1;}
+.ib button:hover{background:var(--hover-gray);color:var(--heading);}
+.ib button.x:hover{color:var(--danger);background:#fef2f2;}
+.person{border:1px solid var(--border);border-radius:11px;padding:12px 13px;background:#fcfcfd;margin-bottom:10px;}
+.person-hd{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.person-hd b{font-size:.84em;color:var(--heading);}
+
+/* ── Clauses ─────────────────────────────────── */
+.cls{display:flex;flex-direction:column;}
+.cl-fixed{display:flex;gap:10px;align-items:baseline;font-size:.84em;color:#71717a;padding:6px 10px;border-radius:8px;background:#fafafa;border:1px solid #f1f1f3;}
+.cl-no{font-weight:700;color:#52525b;min-width:22px;}
+.cl-add{align-self:flex-start;margin:4px 0 4px 32px;font-size:.74em;font-weight:600;color:#a1a1aa;background:none;border:1px dashed #e4e4e7;
+  border-radius:7px;padding:2px 9px;cursor:pointer;font-family:inherit;}
+.cl-add:hover{color:var(--c-appt);border-color:#a5f3fc;background:#ecfeff;}
+.cl-extra{display:flex;gap:10px;align-items:flex-start;padding:6px 0 6px 10px;border-left:3px solid #67e8f9;margin:2px 0;}
+.cl-extra textarea{min-height:70px;}
+
+/* ── Buttons ─────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:8px 14px;border-radius:9px;font-size:.86em;
+  font-weight:600;font-family:inherit;cursor:pointer;border:1px solid transparent;transition:.13s;white-space:nowrap;text-decoration:none;}
+.btn-primary{background:var(--primary);color:#fff;box-shadow:0 1px 4px rgba(159,18,57,.32);}
+.btn-primary:hover{background:var(--primary-dark);}
+.btn-primary:disabled{background:#d4d4d8;box-shadow:none;cursor:default;}
+.btn-ghost{background:#fff;color:#3f3f46;border-color:var(--border);}
+.btn-ghost:hover{background:var(--hover-gray);}
+.btn-soft{background:#f4f4f5;color:#52525b;border-color:var(--border);}
+.btn-soft:hover{background:#e7e5e7;}
+.btn-danger{background:#fff;color:var(--danger);border-color:#fecaca;}
+.btn-danger:hover{background:#fef2f2;}
+.btn-sm{padding:5px 10px;font-size:.8em;}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.seg{display:inline-flex;background:#f4f4f5;border:1px solid var(--border);border-radius:9px;padding:2px;gap:2px;}
+.seg button{border:none;background:none;font-family:inherit;font-size:.8em;font-weight:600;color:#71717a;
+  padding:5px 11px;border-radius:7px;cursor:pointer;}
+.seg button.on{background:#fff;color:var(--heading);box-shadow:0 1px 2px rgba(0,0,0,.08);}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;}
+.chip{font-size:.74em;font-weight:600;border-radius:6px;padding:2px 8px;border:1px solid var(--border);
+  background:#f4f4f5;color:#52525b;cursor:pointer;font-family:inherit;}
+.chip:hover{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8;}
+.check{display:flex;gap:9px;align-items:flex-start;font-size:.86em;color:var(--text);cursor:pointer;line-height:1.5;}
+.check input{margin-top:3px;}
+
+details.rules{border-top:1px solid var(--border);}
+details.rules>summary{cursor:pointer;padding:11px 18px;font-size:.8em;font-weight:600;color:#71717a;list-style:none;}
+details.rules>summary::-webkit-details-marker{display:none;}
+details.rules>summary::before{content:"▸ ";color:var(--muted);}
+details.rules[open]>summary::before{content:"▾ ";}
+details.rules .rules-bd{padding:0 18px 16px;font-size:.82em;line-height:1.65;color:#52525b;}
+details.rules .rules-bd p{margin:0 0 9px;}
+details.rules .rules-bd b{color:var(--heading);}
+.warn{display:flex;gap:9px;align-items:flex-start;font-size:.82em;line-height:1.5;border-radius:10px;padding:9px 12px;margin-top:12px;flex-direction:column;}
+.warn.amber{background:#fffbeb;border:1px solid #fde68a;color:#92400e;}
+.warn.rose{background:#fff1f2;border:1px solid #fecdd3;color:#9f1239;}
+.warn.slate{background:#f8fafc;border:1px solid #e2e8f0;color:#475569;}
+.warn.green{background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;}
+.warn:empty{display:none;}
+
+/* ── Stamp duty ──────────────────────────────── */
+.duty{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;font-size:.86em;align-items:baseline;}
+.duty dt{color:#71717a;}
+.duty dd{margin:0;color:var(--heading);font-weight:600;}
+.duty-total{font-size:1.6em;font-weight:800;color:var(--c-out);letter-spacing:-.5px;}
+
+/* ── Signature map ───────────────────────────── */
+.sigmap{display:flex;flex-direction:column;gap:4px;margin-top:10px;max-width:420px;}
+.sigmap .r{display:grid;grid-template-columns:1fr 1fr;gap:4px;}
+.sigmap .c{border:1px solid var(--border);border-radius:6px;padding:4px 7px;font-size:.72em;color:#52525b;background:#fafafa;text-align:center;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sigmap .c.full{grid-column:1/3;}
+.sigmap .c.g{background:#f5f3ff;border-color:#ddd6fe;} .sigmap .c.a{background:#eff6ff;border-color:#bfdbfe;} .sigmap .c.w{background:#fffbeb;border-color:#fde68a;}
+.sigmap .c.co{background:#fff;font-weight:700;}
+
+/* ── Preview ─────────────────────────────────── */
+.pv{width:620px;min-width:460px;position:sticky;top:72px;max-height:calc(100vh - 92px);
+  background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);
+  display:flex;flex-direction:column;overflow:hidden;}
+.pv-hd{display:flex;align-items:center;gap:9px;padding:10px 14px;border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg,#fdfdfd,#f8f8f9);flex-wrap:wrap;}
+.pv-hd h3{margin:0;font-size:.9em;color:var(--heading);}
+.pv-pages{font-size:.74em;font-weight:700;border-radius:999px;padding:2px 9px;color:#475569;background:#f8fafc;border:1px solid #e2e8f0;}
+.pv-body{overflow:auto;padding:16px;background:#e7e5e8;flex:1;}
+.pv-note{font-size:.74em;color:var(--muted);padding:9px 14px;border-top:1px solid var(--border);background:#fafafa;line-height:1.5;}
+.pg-wrap{margin:0 auto 14px;box-shadow:0 2px 10px rgba(0,0,0,.16);background:#fff;position:relative;overflow:hidden;}
+.pg{position:absolute;left:0;top:0;width:595.3pt;height:841.9pt;transform-origin:0 0;background:#fff;}
+.pg-body{position:absolute;left:72pt;top:72pt;width:451.3pt;}
+.pg-foot{position:absolute;left:72pt;width:451.3pt;top:797pt;text-align:center;font-size:13pt;}
+/* the document, drawn from its own document.xml */
+.doc{font-family:'Cordia New','CordiaUPC','TH Sarabun New','THSarabunNew','Sarabun','Noto Sans Thai',serif;font-size:14pt;color:#000;line-height:1.24;}
+.doc .wp{white-space:pre-wrap;word-break:normal;overflow-wrap:break-word;}
+.doc .tab{display:inline-block;white-space:pre;height:1em;vertical-align:-.18em;}
+.doc .tab.u{text-decoration:none;border-bottom:.6pt solid currentColor;}
+.doc .u{text-decoration:underline;}
+.doc table{border-collapse:collapse;table-layout:fixed;margin-left:-5.4pt;}
+.doc td{padding:0 5.4pt;vertical-align:top;}
+.doc table.bd td{border:.5pt solid #000;}
+.pv.show-v .doc .val{background:rgba(250,204,21,.38);border-radius:2px;}
+.measure{position:absolute;left:-10000px;top:0;visibility:hidden;}
+
+/* ── Dialog & toast ──────────────────────────── */
+.dlg-bg{position:fixed;inset:0;background:rgba(24,24,27,.38);display:none;align-items:center;justify-content:center;z-index:600;padding:20px;}
+.dlg-bg.on{display:flex;}
+.dlg{background:#fff;border-radius:14px;max-width:520px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);padding:18px 20px;max-height:90vh;overflow:auto;}
+.dlg.wide{max-width:720px;}
+.dlg h4{margin:0 0 8px;color:var(--heading);font-size:1em;}
+.dlg .dlg-msg{font-size:.86em;line-height:1.6;color:#52525b;margin-bottom:16px;white-space:pre-line;}
+.dlg .btn-row{justify-content:flex-end;}
+#toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(14px);opacity:0;
+  background:#18181b;color:#fff;font-size:.86em;font-weight:500;padding:10px 18px;border-radius:11px;
+  box-shadow:0 6px 24px rgba(0,0,0,.3);pointer-events:none;transition:.22s;z-index:700;max-width:88vw;text-align:center;}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
+footer{text-align:center;font-size:.79em;color:var(--muted);line-height:1.7;padding:0 24px 40px;}
+.empty{color:#a1a1aa;font-style:italic;font-size:.86em;}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <a class="nav-brand" href="../index.html"><div class="nav-icon">⚖️</div><span class="nav-wordmark">JuraTools</span></a>
+  <span class="nav-sep">/</span><a class="nav-current" href="index.html">Litigation Tools</a>
+  <span class="nav-sep">/</span><span class="nav-current">Power of Attorney</span>
+  <a class="nav-back" href="index.html">← All</a>
+</nav>
+
+<div class="app" id="app" data-view="split">
+
+  <aside class="sidebar">
+    <div class="side-head"><h2>หนังสือมอบอำนาจ</h2></div>
+    <p class="hint">ให้ฟ้องคดี — ข้อความคงที่เป็นแบบของสำนักงานทุกตัวอักษร กรอกเฉพาะส่วนที่เปลี่ยนตามเรื่อง</p>
+    <nav class="jump" id="jump">
+      <a href="#c-sign"><span class="dot" data-dot="sign"></span>ทำที่ · วันที่</a>
+      <a href="#c-grantor"><span class="dot" data-dot="grantor"></span>ผู้มอบอำนาจ</a>
+      <a href="#c-att"><span class="dot" data-dot="att"></span>ผู้รับมอบอำนาจ</a>
+      <a href="#c-matter"><span class="dot" data-dot="matter"></span>เรื่องที่มอบอำนาจ</a>
+      <a href="#c-clauses"><span class="dot" data-dot="clauses"></span>ข้ออำนาจ</a>
+      <a href="#c-sig"><span class="dot" data-dot="sig"></span>ช่องลงนาม</a>
+      <a href="#c-duty"><span class="dot" data-dot="duty"></span>อากรแสตมป์</a>
+      <a href="#c-out"><span class="dot" data-dot="out"></span>ส่งออก</a>
+    </nav>
+    <div class="side-sec">View</div>
+    <div class="seg" id="viewSeg">
+      <button data-view="form">ฟอร์ม</button>
+      <button data-view="split" class="on">แบ่งจอ</button>
+      <button data-view="preview">ตัวอย่าง</button>
+    </div>
+    <div class="side-sec">File</div>
+    <div class="side-actions">
+      <button class="btn btn-primary" id="exportDocx">⬇ ส่งออก .docx</button>
+      <button class="btn btn-ghost btn-sm" id="saveJson">บันทึกไฟล์งาน (.json)</button>
+      <button class="btn btn-ghost btn-sm" id="openJson">เปิดไฟล์งาน / JSON จาก AI</button>
+      <button class="btn btn-soft btn-sm" id="loadExample">ใส่ตัวอย่าง (สมมุติ)</button>
+      <button class="btn btn-danger btn-sm" id="clearAll">ล้างทั้งหมด</button>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- 0 · Type -->
+    <section class="card acc-tpl">
+      <div class="card-hd"><div class="ico">📄</div><h3>Document type</h3><span class="th">ประเภทหนังสือมอบอำนาจ</span></div>
+      <div class="card-bd">
+        <div class="tpls">
+          <div class="tpl on"><div class="tpl-name">ให้ฟ้องคดี</div><div class="tpl-src">ฟ้องและดำเนินคดีแพ่ง/อาญากับคู่กรณี</div><span class="tpl-badge">ใช้อยู่</span></div>
+          <div class="tpl off"><div class="tpl-name">มอบอำนาจช่วง</div><div class="tpl-src">ผู้รับมอบอำนาจมอบต่อในคดีที่มีอยู่แล้ว</div><span class="tpl-badge">ยังไม่เปิด</span></div>
+          <div class="tpl off"><div class="tpl-name">แจ้งความร้องทุกข์</div><div class="tpl-src">ต่อพนักงานสอบสวนให้ดำเนินคดีอาญา</div><span class="tpl-badge">ยังไม่เปิด</span></div>
+          <div class="tpl off"><div class="tpl-name">ขอเอกสาร / พยานหลักฐาน</div><div class="tpl-src">ยื่นคำขอ รับเอกสาร ในคดีที่มีอยู่</div><span class="tpl-badge">ยังไม่เปิด</span></div>
+        </div>
+      </div>
+      <details class="rules"><summary>อะไรคงที่ อะไรเปลี่ยนได้</summary><div class="rules-bd">
+        <p><b>ข้อความคงที่</b> คือส่วนที่ไฮไลต์เหลืองไว้ในไฟล์ต้นแบบของสำนักงาน (ฉบับผู้มอบเป็นบริษัท และฉบับผู้มอบเป็นบุคคลธรรมดา) — หัวเรื่อง
+        ถ้อยคำเปิด “ซึ่งต่อไปในหนังสือฉบับนี้จะเรียกว่า…” ข้ออำนาจทั้ง ๘ ข้อ และข้อความปิดท้าย คงไว้ทุกตัวอักษร ไฮไลต์เป็นหมายเหตุของผู้ใช้ จึงไม่ติดไปในเอกสาร</p>
+        <p><b>วิธีเติมข้อความ</b> เหมือนวางเคอร์เซอร์ในข้อความเดิมแล้วพิมพ์ทับ — ข้อความใหม่อยู่ใน run เดิมของ Word จึงได้ฟอนต์ ขนาด ตัวหนา
+        และการตั้งค่าเดิมทุกอย่าง อักษรไทยเป็น complex script และอักษรละติน/ตัวเลขไม่เป็น แบบเดียวกับที่ Word ตั้งเองตอนพิมพ์
+        ช่องว่างคั่นที่ไฟล์ต้นแบบพิมพ์แยกไว้ (บางช่องเป็นตัวหนา) คงไว้ตามเดิม ข้อที่เพิ่มใช้ย่อหน้าของข้อที่เพิ่มในไฟล์ต้นแบบบุคคลธรรมดา (ข้อ ๔ เรื่องแพทยสภา)</p>
+        <p><b>ตารางลงนาม</b> ใช้แถวของไฟล์ต้นแบบเอง: ผู้มอบอำนาจคนเดียวเต็มแถวกึ่งกลาง ที่เหลือแถวละสองคน คนเดียวที่เหลือเต็มแถว
+        ชื่อในวงเล็บจัดกึ่งกลางใต้เส้นลงชื่อ (ระยะวัดจาก Word — ไฟล์ต้นแบบตั้งด้วยมือทีละแถว)</p>
+        <p><b>ท้ายกระดาษ</b> “หน้า … ของ …” ในไฟล์ต้นแบบพิมพ์จำนวนหน้าไว้เอง (ต้องแก้ทุกครั้ง) — เปลี่ยนเป็นฟิลด์จำนวนหน้าของ Word ในรูปแบบเดิม</p>
+        <p><b>คำที่แก้</b> ในข้อความที่เครื่องมือเขียนให้เอง (บรรยายศาล/หน่วยงาน) ใช้ “องค์กร” แทน “องค์กรณ์” ในไฟล์เดิม
+        ส่วนข้อความคงที่ยังคง “พนักงานเจ้าหนาที่” และ “ร้องข้อ” (ข้อ ๔) ตามต้นฉบับทุกตัวอักษร</p>
+      </div></details>
+    </section>
+
+    <!-- 1 · Signing -->
+    <section class="card acc-case" id="c-sign">
+      <div class="card-hd"><div class="ico">📍</div><h3>Signing</h3><span class="th">ทำที่ · วันที่</span></div>
+      <div class="card-bd">
+        <div class="field">
+          <div class="row-lbl"><label for="matter">ชื่อเรื่อง (ใช้ตั้งชื่อไฟล์เท่านั้น)</label></div>
+          <input type="text" id="matter" data-p="matter" placeholder="เช่น บริษัท ก - [คดีนาย ข]">
+        </div>
+        <div class="field">
+          <div class="row-lbl"><label for="place">ทำที่</label></div>
+          <textarea id="place" data-p="place" rows="2" placeholder="สถานที่ลงนาม เช่น ที่ตั้งสำนักงานของผู้มอบอำนาจ"></textarea>
+          <div class="note">พิมพ์ต่อจากคำว่า “ทำที่” ในไฟล์ต้นแบบ (บล็อกชิดขวา)</div>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <div class="row-lbl"><label for="dateIso">วันที่</label></div>
+            <div class="btn-row"><input type="date" id="dateIso" data-p="dateIso" style="max-width:180px">
+              <button class="btn btn-soft btn-sm" id="dateToday">วันนี้</button>
+              <button class="btn btn-soft btn-sm" id="dateClear">เว้นว่าง</button></div>
+          </div>
+          <div class="field">
+            <div class="row-lbl"><label for="dateText">ข้อความวันที่ในเอกสาร</label><span class="auto-tag" data-reset="dateText">auto</span></div>
+            <input type="text" id="dateText" data-ov="dateText" placeholder="เว้นว่างไว้เขียนเอง">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2 · Grantor -->
+    <section class="card acc-party" id="c-grantor">
+      <div class="card-hd"><div class="ico">🏢</div><h3>Grantor</h3><span class="th">ผู้มอบอำนาจ</span>
+        <span class="spacer"></span>
+        <div class="seg" id="gtSeg"><button data-gt="company">นิติบุคคล</button><button data-gt="individual">บุคคลธรรมดา</button></div></div>
+      <div class="card-bd" id="grantorBody"></div>
+    </section>
+
+    <!-- 3 · Attorneys -->
+    <section class="card acc-law" id="c-att">
+      <div class="card-hd"><div class="ico">👥</div><h3>Attorneys</h3><span class="th">ผู้รับมอบอำนาจ — ร่วมกัน และ/หรือ แยกกัน</span></div>
+      <div class="card-bd">
+        <div class="lst" id="attList"></div>
+        <div class="btn-row" style="margin-top:10px">
+          <button class="btn btn-ghost btn-sm" id="attAdd">+ เพิ่มผู้รับมอบอำนาจ</button>
+          <span class="note" id="regNote"></span>
+        </div>
+        <datalist id="peopleList"></datalist>
+        <div class="warn rose" id="attWarn"></div>
+      </div>
+    </section>
+
+    <!-- 4 · Matter -->
+    <section class="card acc-appt" id="c-matter">
+      <div class="card-hd"><div class="ico">⚖️</div><h3>The matter</h3><span class="th">เรื่องที่มอบอำนาจให้ฟ้อง</span>
+        <span class="spacer"></span><button class="btn btn-soft btn-sm" id="aiBrief">✦ ให้ AI ช่วยเขียน</button></div>
+      <div class="card-bd">
+        <div class="field">
+          <div class="row-lbl"><label for="counterparty">คู่กรณี</label></div>
+          <div class="ctx">…ตลอดจนดำเนินการทางกฎหมายใด ๆ ที่เกี่ยวข้องกับ<b>[คู่กรณี]</b> (“คู่กรณี”) …</div>
+          <textarea id="counterparty" data-p="facts.counterparty" rows="2" placeholder="ชื่อบุคคล/นิติบุคคลที่จะฟ้อง — หลายรายคั่นด้วย “และ/หรือ”"></textarea>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <div class="row-lbl"><label>ศาลที่จะฟ้อง</label></div>
+            <div class="lst" id="forumList"></div>
+            <button class="btn btn-ghost btn-sm" id="forumAdd" style="margin-top:8px">+ ศาล</button>
+          </div>
+          <div class="field">
+            <div class="row-lbl"><label>องค์กร/หน่วยงานอื่น (ถ้ามี)</label></div>
+            <div class="lst" id="bodyList"></div>
+            <button class="btn btn-ghost btn-sm" id="bodyAdd" style="margin-top:8px">+ หน่วยงาน</button>
+            <div class="note">เช่น แพทยสภา หรือหน่วยงานกำกับที่จะร้องเรียนด้วย — ขึ้นในย่อหน้าบรรยายเท่านั้น (ข้อ ๑ ใช้เฉพาะศาล)</div>
+          </div>
+        </div>
+        <div class="field">
+          <div class="row-lbl"><label for="cause">เหตุที่ฟ้อง</label></div>
+          <div class="ctx">… อันเนื่องมาจาก<b>[เหตุ]</b> (“[ชื่อเรียก]”)</div>
+          <textarea id="cause" data-p="facts.cause" rows="3" placeholder="นิติสัมพันธ์/ข้อเท็จจริงที่ทำให้เกิดสิทธิฟ้อง เช่น สัญญาอะไร ลงวันที่เท่าไร และคู่กรณีผิดสัญญาอย่างไร"></textarea>
+        </div>
+        <div class="field">
+          <div class="row-lbl"><label for="term">ชื่อเรียกเหตุ</label></div>
+          <input type="text" id="term" data-p="facts.term" placeholder="เช่น การผิดสัญญา">
+          <div class="chips" id="termChips"></div>
+          <div class="note">ใช้สามที่: ในวงเล็บ (“…”) ท้ายย่อหน้าบรรยาย, ข้อ ๑ “…ในผลเสียหายจาก<b>[ชื่อเรียก]</b>ของคู่กรณี” และข้อ ๖ “…ที่เกี่ยวกับ<b>[ชื่อเรียก]</b> ทั้งคดีอาญา…”</div>
+        </div>
+        <div class="field">
+          <div class="row-lbl"><label for="claim">ย่อหน้าบรรยาย (ตั้งแต่หลัง “คู่กรณี” ถึงก่อนชื่อเรียก)</label><span class="auto-tag" data-reset="claim">auto</span></div>
+          <textarea id="claim" data-ov="claim" rows="4"></textarea>
+          <div class="note">ประกอบให้จาก ศาล + หน่วยงาน + เหตุ ตามรูปแบบในไฟล์ต้นแบบ — แก้เองได้ทั้งย่อหน้า (Enter = ขึ้นบรรทัดใหม่แบบเดียวกับที่ผู้ร่างเคาะไว้ในไฟล์เดิม)</div>
+        </div>
+        <div class="field">
+          <div class="row-lbl"><label for="court">ศาลในข้อ ๑</label><span class="auto-tag" data-reset="court">auto</span></div>
+          <div class="ctx">๑. ให้มีอำนาจในการยื่นฟ้องและดำเนินคดีแพ่งและอาญากับคู่กรณีต่อศาล<b>[…]</b> หรือศาลสถิตยุติธรรมอื่นใดที่มีเขตอำนาจ…</div>
+          <input type="text" id="court" data-ov="court">
+          <div class="note">ต่อจากคำว่า “ต่อศาล” ที่พิมพ์ไว้แล้ว — จึงตัด “ศาล” ตัวแรกออก เช่น “แพ่ง ศาลอาญา”</div>
+        </div>
+        <details class="rules" style="margin:4px -18px -18px"><summary>ตัวอย่างการบรรยาย (สมมุติ) — กดเพื่อใส่</summary><div class="rules-bd" id="examples"></div></details>
+      </div>
+    </section>
+
+    <!-- 5 · Clauses -->
+    <section class="card acc-appt" id="c-clauses">
+      <div class="card-hd"><div class="ico">📜</div><h3>Powers</h3><span class="th">ข้ออำนาจ — ๘ ข้อคงที่ เพิ่มข้อได้ตรงไหนก็ได้</span></div>
+      <div class="card-bd">
+        <div class="cls" id="clauseList"></div>
+        <div class="chips" id="clauseSnips" style="margin-top:10px"></div>
+      </div>
+    </section>
+
+    <!-- 6 · Signatures -->
+    <section class="card acc-sig" id="c-sig">
+      <div class="card-hd"><div class="ico">✍️</div><h3>Signatures</h3><span class="th">ช่องลงนาม</span></div>
+      <div class="card-bd">
+        <div class="grid2">
+          <div class="field">
+            <div class="row-lbl"><label>พยาน</label></div>
+            <div class="lst" id="witList"></div>
+            <button class="btn btn-ghost btn-sm" id="witAdd" style="margin-top:8px">+ พยาน</button>
+            <div class="note">เว้นชื่อว่างได้ — จะพิมพ์เป็น “(______)” ให้เขียนเอง</div>
+          </div>
+          <div class="field">
+            <label class="check"><input type="checkbox" id="sigNewPage" data-cb="sigNewPage">
+              <span>ขึ้นหน้าใหม่ก่อนช่องลงนาม<br><span class="note">พิมพ์ “-ส่วนที่เหลือของหน้านี้เจตนาเว้นว่างไว้ ผู้มอบอำนาจ และผู้รับมอบอำนาจลงนามในหน้าถัดไป-” แล้วขึ้นหน้าใหม่ ตามไฟล์ต้นแบบบุคคลธรรมดา — ช่องลงนามจะไม่ถูกตัดข้ามหน้า</span></span></label>
+            <div class="sigmap" id="sigMap"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7 · Stamp duty -->
+    <section class="card acc-out" id="c-duty">
+      <div class="card-hd"><div class="ico">🧾</div><h3>Stamp duty</h3><span class="th">อากรแสตมป์ — ลักษณะแห่งตราสาร ๗ ใบมอบอำนาจ</span>
+        <span class="spacer"></span><a class="btn btn-soft btn-sm" id="dutyLink" target="_blank" rel="noopener">↗ เครื่องคำนวณอากรแสตมป์</a></div>
+      <div class="card-bd">
+        <div class="grid2">
+          <div>
+            <div class="duty-total" id="dutyTotal">—</div>
+            <dl class="duty" id="dutyTable"></dl>
+          </div>
+          <div>
+            <div class="field">
+              <div class="row-lbl"><label for="principals">นับผู้มอบอำนาจแยกกันกี่ราย</label><span class="auto-tag" data-reset="principals">auto</span></div>
+              <input type="number" min="1" step="1" id="principals" data-ov="principals">
+              <div class="note">หมายเหตุท้ายลักษณะ ๗: ผู้มอบหลายคนที่มิได้เป็นผู้มีอำนาจร่วมกัน มอบในตราสารฉบับเดียว คิดตามรายผู้มอบ (ม.108) — ค่าตั้งต้นนับบุคคลธรรมดาทุกคนแยกกัน (ตัวเลขที่ปลอดภัยกว่า)
+              ถ้าเป็นผู้มีสิทธิร่วมกันจริง ทนายปรับเป็น 1 ได้ · บริษัทหนึ่งแห่งนับหนึ่งราย แม้กรรมการลงนามหลายคน</div>
+            </div>
+            <div class="field">
+              <div class="row-lbl"><label for="stampAmt">ข้อความ “ติดอากรแสตมป์ … บาท”</label><span class="auto-tag" data-reset="stampAmt">auto</span></div>
+              <input type="text" id="stampAmt" data-ov="stampAmt">
+            </div>
+          </div>
+        </div>
+        <div class="warn slate" id="dutyNote"></div>
+      </div>
+    </section>
+
+    <!-- 8 · Export -->
+    <section class="card acc-out" id="c-out">
+      <div class="card-hd"><div class="ico">⬇</div><h3>Export</h3><span class="th">ส่งออก</span></div>
+      <div class="card-bd">
+        <div class="field"><div class="row-lbl"><label>ชื่อไฟล์</label></div>
+          <div id="fileName" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.84em;color:#52525b;word-break:break-all"></div></div>
+        <div class="btn-row"><button class="btn btn-primary" id="exportDocx2">⬇ ส่งออก .docx</button>
+          <button class="btn btn-ghost btn-sm" id="saveJson2">บันทึกไฟล์งาน (.json)</button></div>
+        <div class="warn amber" id="reportBox"></div>
+        <div class="warn green" id="okBox"></div>
+      </div>
+    </section>
+  </main>
+
+  <aside class="pv" id="pv">
+    <div class="pv-hd"><h3>ตัวอย่างเอกสาร</h3><span class="pv-pages" id="pvPages"></span><span class="spacer" style="margin-left:auto"></span>
+      <label class="check" style="font-size:.78em"><input type="checkbox" id="showVals" checked>ไฮไลต์ส่วนที่เติม</label></div>
+    <div class="pv-body" id="pvBody"></div>
+    <div class="pv-note">วาดจาก document.xml ที่จะส่งออกจริง แต่การตัดบรรทัดและตัดหน้าเป็นค่าประมาณ (เบราว์เซอร์ไม่ใช่ Word และอาจไม่มีฟอนต์ Cordia New) — ดูผลจริงใน Word</div>
+  </aside>
+</div>
+
+<footer>
+  JuraTools · Litigation Tools · หนังสือมอบอำนาจให้ฟ้องคดี — draft only; a lawyer checks every document before it is signed.<br>
+  Everything stays in this browser. Stamp duty: Revenue Code, stamp duty schedule item 7 (ใบมอบอำนาจ); section 108.
+</footer>
+
+<div class="dlg-bg" id="dlg"><div class="dlg"><h4 id="dlgTitle"></h4><div class="dlg-msg" id="dlgMsg"></div>
+  <div class="btn-row"><button class="btn btn-ghost" id="dlgNo">ยกเลิก</button><button class="btn btn-primary" id="dlgYes">ตกลง</button></div></div></div>
+<div class="dlg-bg" id="aiDlg"><div class="dlg wide"><h4>ให้ AI ช่วยเขียนส่วนที่เปลี่ยนตามเรื่อง</h4>
+  <div class="dlg-msg">๑. คัดลอกคำสั่งด้านล่างไปวางใน AI ที่ใช้ (Claude, ChatGPT …) พร้อมข้อเท็จจริงของเรื่อง
+๒. นำ JSON ที่ AI ตอบกลับมาวางในช่องที่สอง แล้วกด “ใช้ข้อความนี้” — จะเติมคู่กรณี ศาล หน่วยงาน เหตุ ชื่อเรียก และข้อที่เพิ่ม
+ถ้าเชื่อม AI กับ MCP server ของ JuraTools ไว้ ให้ใช้เครื่องมือ create_power_of_attorney ได้เลย</div>
+  <textarea id="aiPrompt" rows="9" readonly style="font-size:.78em"></textarea>
+  <div class="btn-row" style="margin:8px 0 14px;justify-content:flex-start"><button class="btn btn-soft btn-sm" id="aiCopy">คัดลอกคำสั่ง</button></div>
+  <textarea id="aiPaste" rows="6" placeholder='วาง JSON ที่ AI ตอบกลับ เช่น {"counterparty": "...", "courts": ["ศาลแพ่ง"], ...}' style="font-size:.8em"></textarea>
+  <div class="btn-row" style="margin-top:12px"><button class="btn btn-ghost" id="aiClose">ปิด</button><button class="btn btn-primary" id="aiApply">ใช้ข้อความนี้</button></div>
+</div></div>
+<div id="toast"></div>
+<input type="file" id="filePick" accept=".json,application/json" style="display:none">
+<div class="doc measure" id="measure"></div>
+
+<script id="pwa-data" type="application/json">__PWA_DATA__</script>
+<script>
+__PWA_ENGINE__
+</script>
+<script>
+(function () {
+'use strict';
+
+/* ── Data baked in by _build/power-of-attorney/assemble.py ────────────────── */
+var D = JSON.parse(document.getElementById('pwa-data').textContent);
+var E = PWAEngine;
+var KEY = 'juratools-pwa-v1', PEOPLE_KEY = 'juratools-pwa-people-v1';
+var POA_LAW_KEY = 'juratools-poa-lawyers-v2';        // the attorney-appointment tool's lawyer register, read only
+var CALC = '../tax-tools/thai-stamp-duty-calculator.html';
+var $ = function (id) { return document.getElementById(id); };
+var S = E.blankState();
+var PEOPLE = [];                                      // [{name, idNo}] typed here before; this browser only
+
+/* ── Storage ─────────────────────────────────────────────────────────────── */
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(S)); localStorage.setItem(PEOPLE_KEY, JSON.stringify(PEOPLE)); } catch (e) {}
+}
+function load() {
+  var st = null, pp = null;
+  try { st = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+  try { pp = JSON.parse(localStorage.getItem(PEOPLE_KEY) || 'null'); } catch (e) {}
+  S = E.adoptState(st || {});
+  PEOPLE = Array.isArray(pp) ? pp : [];
+}
+function norm(s) { return String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+function digits(s) { return String(s || '').replace(/[๐-๙]/g, function (c) { return '๐๑๒๓๔๕๖๗๘๙'.indexOf(c); }).replace(/\D/g, ''); }
+function getPath(p) { return p.split('.').reduce(function (o, k) { return o == null ? o : o[k]; }, S); }
+function setPath(p, v) {
+  var ks = p.split('.'), o = S;
+  for (var i = 0; i < ks.length - 1; i++) o = o[ks[i]];
+  o[ks[ks.length - 1]] = v;
+}
+function setVal(el, v) { if (el && document.activeElement !== el && el.value !== v) el.value = v; }
+
+/* Everyone this browser has seen, for the name lists: this tool's own register
+   first, then the attorney-appointment tool's lawyers (names and IDs only). */
+function people() {
+  var out = PEOPLE.slice(), seen = {};
+  out.forEach(function (p) { seen[norm(p.name)] = 1; });
+  try {
+    (JSON.parse(localStorage.getItem(POA_LAW_KEY) || '[]') || []).forEach(function (l) {
+      if (l && norm(l.name) && !seen[norm(l.name)]) { out.push({ name: l.name, idNo: l.idNo || '' }); seen[norm(l.name)] = 1; }
+    });
+  } catch (e) {}
+  return out;
+}
+function remember(name, idNo) {
+  name = norm(name); if (!name || digits(idNo).length !== 13 || !E.idValid(idNo)) return;
+  var hit = PEOPLE.filter(function (p) { return norm(p.name) === name; })[0];
+  if (hit) hit.idNo = digits(idNo); else PEOPLE.push({ name: name, idNo: digits(idNo) });
+}
+
+/* ── Painting: lists are rebuilt on add/remove; typing only refreshes the rest ── */
+function li(cls, i, inner, n) {
+  return '<div class="li ' + cls + '"><span class="no">' + (i + 1) + '.</span>' + inner +
+    '<span class="ib"><button data-mv="' + n + ':' + i + ':-1" title="ขึ้น">↑</button><button data-mv="' + n + ':' + i + ':1" title="ลง">↓</button>' +
+    '<button class="x" data-rm="' + n + ':' + i + '" title="ลบ">×</button></span></div>';
+}
+function paintGrantor() {
+  var g = S.grantor, h = '';
+  document.querySelectorAll('#gtSeg button').forEach(function (b) { b.classList.toggle('on', b.dataset.gt === g.type); });
+  if (g.type === 'company') {
+    var c = g.company;
+    h += '<div class="field"><div class="row-lbl"><label>ชื่อนิติบุคคล (ตัวหนาในเอกสาร)</label></div><input type="text" data-p="grantor.company.name" placeholder="บริษัท … จำกัด"></div>' +
+      '<div class="grid2"><div class="field"><div class="row-lbl"><label>ทะเบียนนิติบุคคลเลขที่</label></div><input type="text" data-p="grantor.company.regNo" placeholder="0105…"></div>' +
+      '<div class="field"><div class="row-lbl"><label>สถานะการจัดตั้ง</label></div><input type="text" data-p="grantor.company.incorporation"></div></div>' +
+      '<div class="field"><div class="row-lbl"><label>สำนักงานแห่งใหญ่ตั้งอยู่ ณ</label></div><textarea rows="2" data-p="grantor.company.address" placeholder="เลขที่ … ถนน … แขวง/ตำบล … เขต/อำเภอ … จังหวัด …"></textarea></div>' +
+      '<div class="field"><div class="row-lbl"><label>กรรมการผู้ลงนาม</label><span class="spacer" style="margin-left:auto"></span>' +
+      '<label class="check" style="font-size:.95em"><input type="checkbox" data-cb="grantor.company.directorIds"> ใส่เลขบัตรประชาชนกรรมการ</label></div>' +
+      '<div class="lst">' + c.directors.map(function (d, i) {
+        return li('dir', i, '<input type="text" data-p="grantor.company.directors.' + i + '.name" placeholder="นาย …">' +
+          '<input class="idc" type="text" data-p="grantor.company.directors.' + i + '.idNo" placeholder="เลขบัตร (ถ้าใส่)"' + (c.directorIds ? '' : ' disabled') + '>', 'dir');
+      }).join('') + '</div><button class="btn btn-ghost btn-sm" data-add="dir" style="margin-top:8px">+ กรรมการ</button></div>' +
+      '<div class="field"><div class="row-lbl"><label>อำนาจกรรมการ</label></div><input type="text" data-p="grantor.company.authority"></div>' +
+      '<div class="field"><div class="row-lbl"><label>ข้อความหลังชื่อบริษัท</label><span class="auto-tag" data-reset="coDetail">auto</span></div>' +
+      '<div class="ctx">โดยหนังสือฉบับนี้ <b>[ชื่อบริษัท]</b> <b>[ข้อความนี้]</b> (“ผู้มอบอำนาจ”) ขอมอบอำนาจให้บุคคลที่มีรายนามดังต่อไปนี้</div>' +
+      '<textarea rows="3" data-ov="coDetail"></textarea></div>';
+  } else {
+    h += g.persons.map(function (p, i) {
+      return '<div class="person"><div class="person-hd"><b>ผู้มอบอำนาจ ' + (i + 1) + '</b><span class="spacer" style="margin-left:auto"></span>' +
+        (g.persons.length > 1 ? '<span class="ib"><button class="x" data-rm="person:' + i + '" title="ลบ">×</button></span>' : '') + '</div>' +
+        '<div class="field"><div class="row-lbl"><label>ชื่อ (ตัวหนาในเอกสาร)</label></div><input type="text" data-p="grantor.persons.' + i + '.name" list="peopleList" placeholder="นาย/นาง/นางสาว …"></div>' +
+        '<div class="grid3"><div class="field"><div class="row-lbl"><label>เลขที่</label></div><input type="text" data-p="grantor.persons.' + i + '.idNo" placeholder="13 หลัก"></div>' +
+        '<div class="field"><div class="row-lbl"><label>ประเภท</label></div><select data-p="grantor.persons.' + i + '.idType"><option value="id">บัตรประชาชน</option><option value="passport">หนังสือเดินทาง</option></select></div><div></div></div>' +
+        '<div class="field"><div class="row-lbl"><label>ภูมิลำเนาอยู่ ณ</label></div><textarea rows="2" data-p="grantor.persons.' + i + '.address" placeholder="เลขที่ … ถนน … ตำบล … อำเภอ … จังหวัด …"></textarea></div>' +
+        '<div class="field"><div class="row-lbl"><label>ข้อความหลังชื่อ</label><span class="auto-tag" data-reset="pDetail:' + i + '">auto</span></div>' +
+        '<textarea rows="2" data-ov="pDetail:' + i + '"></textarea></div></div>';
+    }).join('') +
+      '<button class="btn btn-ghost btn-sm" data-add="person">+ ผู้มอบอำนาจร่วม</button>' +
+      '<div class="field" style="margin-top:14px"><div class="row-lbl"><label>ในฐานะ (ถ้ามี)</label></div>' +
+      '<div class="ctx">…ภูมิลำเนาอยู่ ณ … (“ผู้มอบอำนาจ”) <b>[เช่น ในฐานะส่วนตัว และในฐานะผู้แทนโดยชอบธรรมของ…]</b> ขอมอบอำนาจให้บุคคลที่มีรายนามดังต่อไปนี้</div>' +
+      '<textarea rows="3" data-p="grantor.capacity"></textarea></div>';
+  }
+  $('grantorBody').innerHTML = h;
+}
+function paintLists() {
+  $('attList').innerHTML = S.attorneys.map(function (a, i) {
+    return li('att', i, '<input type="text" data-p="attorneys.' + i + '.name" list="peopleList" placeholder="ชื่อ-นามสกุล">' +
+      '<input class="idc" type="text" data-p="attorneys.' + i + '.idNo" placeholder="เลขบัตรประชาชน 13 หลัก">' +
+      '<span class="ok-dot" data-iddot="' + i + '"></span>', 'att');
+  }).join('');
+  $('forumList').innerHTML = S.facts.forums.map(function (f, i) {
+    return li('one', i, '<input type="text" data-p="facts.forums.' + i + '" placeholder="ศาลแพ่ง / ศาลจังหวัด…">', 'forum');
+  }).join('');
+  $('bodyList').innerHTML = S.facts.bodies.map(function (f, i) {
+    return li('one', i, '<input type="text" data-p="facts.bodies.' + i + '" placeholder="เช่น แพทยสภา">', 'body');
+  }).join('') || '<span class="empty">ไม่มี</span>';
+  $('witList').innerHTML = S.witnesses.map(function (w, i) {
+    return li('one', i, '<input type="text" data-p="witnesses.' + i + '" list="peopleList" placeholder="(เว้นว่างได้)">', 'wit');
+  }).join('') || '<span class="empty">ไม่มีพยาน</span>';
+  $('peopleList').innerHTML = people().map(function (p) { return '<option value="' + esc(p.name) + '">'; }).join('');
+  paintClauses();
+}
+function paintClauses() {
+  var h = '', n = 0;
+  var extras = function (k) {
+    S.extraClauses.forEach(function (c, i) {
+      if (c.after !== k) return;
+      h += '<div class="cl-extra"><span class="cl-no">' + (++n) + '.</span><textarea data-p="extraClauses.' + i + '.text" placeholder="ให้มีอำนาจ…"></textarea>' +
+        '<span class="ib"><button data-cmv="' + i + ':-1" title="ขึ้น">↑</button><button data-cmv="' + i + ':1" title="ลง">↓</button><button class="x" data-rm="clause:' + i + '" title="ลบ">×</button></span></div>';
+    });
+    h += '<button class="cl-add" data-cadd="' + k + '">+ เพิ่มข้อตรงนี้</button>';
+  };
+  extras(0);
+  E.CLAUSES.forEach(function (t, k) {
+    h += '<div class="cl-fixed"><span class="cl-no">' + (++n) + '.</span><span>' + esc(t) + '</span></div>';
+    extras(k + 1);
+  });
+  $('clauseList').innerHTML = h;
+}
+
+/* Values of every input, from S; auto fields show the composed text in grey. */
+function paintValues() {
+  document.querySelectorAll('[data-p]').forEach(function (el) {
+    var v = getPath(el.dataset.p);
+    if (el.tagName === 'SELECT') { if (el.value !== v) el.value = v; } else setVal(el, v == null ? '' : String(v));
+  });
+  document.querySelectorAll('[data-cb]').forEach(function (el) { el.checked = !!getPath(el.dataset.cb); });
+  var V = derived();
+  ov('dateText', S.dateText, E.thaiDate(S.dateIso));
+  ov('claim', S.facts.claim, E.claimAuto(S.facts));
+  ov('court', S.facts.court, E.courtAuto(S.facts));
+  var duty = V.stamp;
+  ov('principals', S.stamp.principals, String(duty.principals));
+  ov('stampAmt', S.stamp.amount, String(duty.auto));
+  if (S.grantor.type === 'company') ov('coDetail', S.grantor.company.detail, E.companyDetail(Object.assign({}, S.grantor.company, { detail: null })));
+  else S.grantor.persons.forEach(function (p, i) { ov('pDetail:' + i, p.detail, E.personDetail(Object.assign({}, p, { detail: null }))); });
+}
+function ov(key, manual, auto) {
+  var el = document.querySelector('[data-ov="' + key + '"]'), tag = document.querySelector('[data-reset="' + key + '"]');
+  if (!el) return;
+  var isManual = manual != null;
+  setVal(el, isManual ? String(manual) : auto);
+  el.classList.toggle('is-auto', !isManual);
+  if (tag) { tag.classList.toggle('manual', isManual); tag.textContent = isManual ? 'แก้เอง' : 'auto'; }
+}
+function setOv(key, v) {
+  if (key === 'dateText') S.dateText = v;
+  else if (key === 'claim') S.facts.claim = v;
+  else if (key === 'court') S.facts.court = v;
+  else if (key === 'principals') S.stamp.principals = v === '' ? null : v;
+  else if (key === 'stampAmt') S.stamp.amount = v === '' ? null : v;
+  else if (key === 'coDetail') S.grantor.company.detail = v;
+  else if (key.indexOf('pDetail:') === 0) S.grantor.persons[+key.split(':')[1]].detail = v;
+}
+
+var CACHE = null;
+function derived() { return E.derive(E.adoptState(S)); }
+function built() { if (!CACHE) CACHE = E.build(D, S); return CACHE; }
+
+function paintStatus() {
+  var r = built(), V = r.derived, rep = r.report;
+  // attorney ID dots
+  S.attorneys.forEach(function (a, i) {
+    var el = document.querySelector('[data-iddot="' + i + '"]'); if (!el) return;
+    var d = digits(a.idNo);
+    el.className = 'ok-dot' + (d.length === 13 ? (E.idValid(d) ? ' ok' : ' bad') : '');
+    el.title = d.length === 13 ? (E.idValid(d) ? 'เลขบัตรถูกต้องตามหลักตรวจ' : 'เลขบัตรไม่ผ่านหลักตรวจ (หลักที่ ๑๓)') : '';
+  });
+  $('attWarn').innerHTML = rep.invalidIds.length ? 'เลขบัตรไม่ผ่านหลักตรวจของ: ' + rep.invalidIds.map(esc).join(', ') : '';
+  $('regNote').textContent = people().length ? 'พิมพ์ชื่อเพื่อเลือกจากรายชื่อที่เคยกรอก (' + people().length + ' คน, เก็บในเบราว์เซอร์นี้)' : '';
+  // term chips
+  $('termChips').innerHTML = ['การผิดสัญญา', 'การทำละเมิด', 'การผิดนัดชำระหนี้', 'การประเมินภาษี', 'ข้อพิพาท'].map(function (t) {
+    return '<button class="chip" data-term="' + esc(t) + '">' + esc(t) + '</button>'; }).join('');
+  // signature map
+  paintSigMap(V);
+  // duty
+  var d = V.stamp;
+  $('dutyTotal').textContent = d.amount + ' บาท';
+  $('dutyTable').innerHTML =
+    '<dt>ลักษณะแห่งตราสาร</dt><dd>' + d.item + (d.attorneys > 1 ? ' — มอบให้หลายคนต่างคนต่างกระทำการ (ร่วมกัน และ/หรือ แยกกัน)' : ' — มอบให้คนเดียวกระทำการมากกว่าครั้งเดียว') + '</dd>' +
+    '<dt>อัตรา</dt><dd>' + (d.attorneys > 1 ? '30 บาท × ผู้รับมอบอำนาจ ' + d.attorneys + ' คน' : '30 บาท') + '</dd>' +
+    '<dt>ผู้มอบอำนาจ</dt><dd>' + d.principals + ' ราย' + (d.principals > 1 ? ' — คิดแยกรายละ ' + (30 * d.attorneys) + ' บาท' : '') + '</dd>' +
+    '<dt>คำนวณได้</dt><dd>' + d.auto + ' บาท' + (d.overridden ? ' · พิมพ์ในเอกสาร: ' + esc(d.amount) : '') + '</dd>';
+  $('dutyNote').innerHTML = 'ผู้เสียอากร: ผู้มอบอำนาจ · ผู้ขีดฆ่า: ผู้รับมอบอำนาจ · “ร่วมกัน และ/หรือ แยกกัน” เสียในอัตราสูงสุดตาม ๗(ค) คือคนละ ๓๐ บาท ' +
+    '(ฎ.7275/2543, ฎ.4932/2549) — ปิดไม่ครบ ใช้เป็นพยานหลักฐานไม่ได้ (ม.118) และผู้รับมอบอำนาจไม่มีอำนาจฟ้องแทน (ฎ.10222/2558) ' +
+    '· ข้อยกเว้น (๑) ของลักษณะ ๗ ใช้กับใบแต่งทนายและใบมอบอำนาจที่ทนายให้เสมียน ไม่ใช่หนังสือฉบับนี้' +
+    (d.overridden ? '<br><b>ข้อความในเอกสารแก้เองเป็น ' + esc(d.amount) + '</b> — ตัวเลขที่คำนวณได้คือ ' + d.auto + ' บาท' : '');
+  $('dutyLink').href = CALC + '#duty=' + encodeURIComponent(JSON.stringify({ source: 'power-of-attorney', rows: dutyRows(d) }));
+  // report
+  $('fileName').textContent = E.fileName(S);
+  var msgs = [];
+  if (rep.blank.length) msgs.push('ยังว่าง: ' + rep.blank.map(esc).join(' · '));
+  if (rep.invalidIds.length) msgs.push('เลขบัตรไม่ผ่านหลักตรวจ: ' + rep.invalidIds.map(esc).join(', '));
+  rep.warnings.forEach(function (w) { msgs.push(esc(w)); });
+  $('reportBox').innerHTML = msgs.map(function (m) { return '<div>' + m + '</div>'; }).join('');
+  $('okBox').innerHTML = msgs.length ? '' : 'ครบทุกช่อง — ร่างนี้ยังต้องให้ทนายตรวจก่อนลงนาม';
+  // sidebar dots
+  var dot = function (k, ok, warn) { var el = document.querySelector('[data-dot="' + k + '"]'); if (el) el.className = 'dot' + (ok ? ' ok' : warn ? ' warn' : ''); };
+  var has = function (s) { return rep.blank.some(function (b) { return b.indexOf(s) >= 0; }); };
+  dot('sign', V.place && V.date, true);
+  dot('grantor', !has('ผู้มอบอำนาจ') && !has('บริษัท') && !has('ทะเบียน') && !has('สำนักงาน') && !has('กรรมการ'), true);
+  dot('att', !has('ผู้รับมอบอำนาจ') && !rep.invalidIds.length, true);
+  dot('matter', !has('คู่กรณี') && !has('เหตุ') && !has('ชื่อเรียก') && !has('ศาล'), true);
+  dot('clauses', true); dot('sig', true); dot('duty', true); dot('out', !msgs.length, true);
+}
+/* The calculator takes the instrument as rows it already knows: 7(c) counts the
+   appointees; with several principals, one row per principal (section 108). */
+function dutyRows(d) {
+  var rows = [];
+  for (var i = 0; i < d.principals; i++) {
+    rows.push(d.attorneys > 1
+      ? { variantId: 'poa-separate-persons', count: String(d.attorneys), customName: 'หนังสือมอบอำนาจให้ฟ้องคดี' + (d.principals > 1 ? ' (ผู้มอบรายที่ ' + (i + 1) + ')' : ''), note: 'ผู้รับมอบอำนาจ ' + d.attorneys + ' คน ร่วมกัน และ/หรือ แยกกัน' }
+      : { variantId: 'poa-more-than-once', count: '1', customName: 'หนังสือมอบอำนาจให้ฟ้องคดี' + (d.principals > 1 ? ' (ผู้มอบรายที่ ' + (i + 1) + ')' : ''), note: 'ผู้รับมอบอำนาจ 1 คน' });
+  }
+  return rows;
+}
+function paintSigMap(V) {
+  var rows = [], g = S.grantor;
+  var pairs = function (names, cls, firstFull) {
+    for (var i = 0; i < names.length; i += 2) {
+      if (i + 1 < names.length) rows.push([[cls, names[i]], [cls, names[i + 1]]]);
+      else rows.push([[cls + ' full', names[i]]]);
+    }
+  };
+  var signers = V.grantorSigners.length ? V.grantorSigners : [''];
+  if (g.type === 'company') {
+    rows.push([['co full', V.companyName || 'ชื่อบริษัท']]);
+    if (signers.length === 1) rows[0].push(['g full', signers[0] || 'กรรมการ']); else pairs(signers.map(function (n) { return n || 'กรรมการ'; }), 'g');
+  } else if (signers.length === 1) rows.push([['g full', signers[0] || 'ผู้มอบอำนาจ']]);
+  else pairs(signers.map(function (n) { return n || 'ผู้มอบอำนาจ'; }), 'g');
+  pairs(V.attorneys.map(function (a) { return a.name || 'ผู้รับมอบอำนาจ'; }), 'a');
+  pairs(S.witnesses.map(function (w) { return norm(w) || 'พยาน'; }), 'w');
+  $('sigMap').innerHTML = rows.map(function (r) {
+    return '<div class="r">' + r.map(function (c) { return '<div class="c ' + c[0] + '" title="' + esc(c[1]) + '">' + esc(c[1]) + '</div>'; }).join('') + '</div>';
+  }).join('');
+}
+
+/* ── Preview: the filled document.xml, drawn as pages ─────────────────────── */
+var WNS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+function kids(el, n) { var o = []; if (!el) return o; for (var c = el.firstChild; c; c = c.nextSibling) if (c.localName === n && c.namespaceURI === WNS) o.push(c); return o; }
+function kid(el, n) { return kids(el, n)[0] || null; }
+function wa(el, a) { return el ? el.getAttributeNS(WNS, a) : null; }
+function pt(tw) { return (parseInt(tw, 10) || 0) / 20; }
+var JC = { center: 'center', right: 'right', both: 'justify', thaiDistribute: 'justify', distribute: 'justify', left: 'left', start: 'left' };
+
+function drawRun(r, into, state) {
+  var rp = kid(r, 'rPr'), cls = [];
+  var style = '';
+  if (rp) {
+    var b = kid(rp, 'b'), i = kid(rp, 'i'), u = kid(rp, 'u'), col = kid(rp, 'color'), hl = kid(rp, 'highlight'), spc = kid(rp, 'spacing');
+    if (b && wa(b, 'val') !== '0' && wa(b, 'val') !== 'false') style += 'font-weight:700;';
+    if (i && wa(i, 'val') !== '0' && wa(i, 'val') !== 'false') style += 'font-style:italic;';
+    if (u && wa(u, 'val') !== 'none') cls.push('u');
+    if (col && wa(col, 'val') && wa(col, 'val') !== 'auto') style += 'color:#' + wa(col, 'val') + ';';
+    if (hl) style += 'background:' + (wa(hl, 'val') === 'yellow' ? '#ff0' : wa(hl, 'val')) + ';';
+    if (spc) style += 'letter-spacing:' + pt(wa(spc, 'val')) + 'pt;';
+  }
+  if (r.getAttribute('data-v')) cls.push('val');
+  for (var c = r.firstChild; c; c = c.nextSibling) {
+    var n = c.localName;
+    if (n === 't') { var s = document.createElement('span'); s.textContent = c.textContent; s.className = cls.join(' '); s.style.cssText = style; into.appendChild(s); }
+    else if (n === 'tab') { var t = document.createElement('span'); t.className = 'tab ' + cls.join(' '); t.style.cssText = style; t.textContent = ' '; into.appendChild(t); }
+    else if (n === 'br') { if (wa(c, 'type') === 'page') state.pageBreak = true; else into.appendChild(document.createElement('br')); }
+  }
+}
+function drawPara(p, nums) {
+  var ppr = kid(p, 'pPr'), div = document.createElement('div');
+  div.className = 'wp';
+  var jc = ppr && kid(ppr, 'jc'), ind = ppr && kid(ppr, 'ind'), sp = ppr && kid(ppr, 'spacing'), st = ppr && kid(ppr, 'pStyle'), np = ppr && kid(ppr, 'numPr');
+  var before = 0, after = 8, line = 259 / 240;
+  if (st && wa(st, 'val') === 'ListParagraph') { /* the style's own indent is always overridden in this template */ }
+  if (sp) {
+    if (wa(sp, 'before') != null && wa(sp, 'before') !== '') before = pt(wa(sp, 'before'));
+    if (wa(sp, 'after') != null && wa(sp, 'after') !== '') after = pt(wa(sp, 'after'));
+    if (wa(sp, 'line') && (wa(sp, 'lineRule') || 'auto') === 'auto') line = (+wa(sp, 'line')) / 240;
+  }
+  var left = 0, right = 0, first = 0;
+  if (ind) { left = pt(wa(ind, 'left') || wa(ind, 'start')); right = pt(wa(ind, 'right') || wa(ind, 'end')); first = wa(ind, 'hanging') ? -pt(wa(ind, 'hanging')) : pt(wa(ind, 'firstLine')); }
+  div.style.cssText = 'padding-top:' + before + 'pt;padding-bottom:' + after + 'pt;margin-left:' + left + 'pt;margin-right:' + right + 'pt;text-indent:' + first + 'pt;' +
+    'text-align:' + (JC[jc && wa(jc, 'val')] || 'left') + ';line-height:' + (1.24 * line).toFixed(3) + ';';
+  if (np) {
+    var id = wa(kid(np, 'numId'), 'val'); nums[id] = (nums[id] || 0) + 1;
+    var s = document.createElement('span'); s.textContent = nums[id] + '.'; div.appendChild(s);
+    var t = document.createElement('span'); t.className = 'tab'; t.textContent = ' '; div.appendChild(t);
+  }
+  var state = {};
+  var walk = function (el) { for (var c = el.firstChild; c; c = c.nextSibling) { if (c.localName === 'r') drawRun(c, div, state); else if (c.localName === 'hyperlink' || c.localName === 'ins' || c.localName === 'smartTag') walk(c); } };
+  walk(p);
+  if (!div.textContent) div.appendChild(document.createTextNode('​'));
+  var stops = [];
+  if (ppr && kid(ppr, 'tabs')) kids(kid(ppr, 'tabs'), 'tab').forEach(function (t) { stops.push(pt(wa(t, 'pos'))); });
+  div._tabs = { stops: stops, centred: (jc && wa(jc, 'val')) === 'center', left: left };
+  div._pageBreak = !!state.pageBreak;
+  return div;
+}
+/* Word's tabs: to the paragraph's own stops, then every 36 pt from the column edge. */
+function layoutTabs(div) {
+  var tabs = div.querySelectorAll('.tab');
+  if (!tabs.length) return;
+  var info = div._tabs || { stops: [] };
+  if (info.centred) { tabs.forEach(function (t) { t.style.width = '36pt'; }); return; }
+  var PX = 96 / 72, base = div.getBoundingClientRect().left - info.left * PX;
+  tabs.forEach(function (t) {
+    t.style.width = '0';
+    var x = (t.getBoundingClientRect().left - base) / PX;
+    var next = info.stops.filter(function (s) { return s > x + 0.5; })[0];
+    if (next == null) next = (Math.floor((x + 0.5) / 36) + 1) * 36;
+    t.style.width = Math.max(1, next - x) + 'pt';
+  });
+}
+function drawTable(tbl, nums) {
+  var t = document.createElement('table');
+  var tp = kid(tbl, 'tblPr'), bd = tp && kid(tp, 'tblBorders'), top = bd && kid(bd, 'top');
+  if (top && wa(top, 'val') && wa(top, 'val') !== 'none' && wa(top, 'val') !== 'nil') t.className = 'bd';
+  var grid = kids(kid(tbl, 'tblGrid'), 'gridCol').map(function (g) { return pt(wa(g, 'w')); });
+  var cg = document.createElement('colgroup');
+  grid.forEach(function (w) { var c = document.createElement('col'); c.style.width = w + 'pt'; cg.appendChild(c); });
+  t.appendChild(cg);
+  t.style.width = grid.reduce(function (a, b) { return a + b; }, 0) + 'pt';
+  kids(tbl, 'tr').forEach(function (tr) {
+    var row = document.createElement('tr');
+    var trh = kid(kid(tr, 'trPr'), 'trHeight');
+    if (trh) row.style.height = pt(wa(trh, 'val')) + 'pt';
+    kids(tr, 'tc').forEach(function (tc) {
+      var td = document.createElement('td'), pr = kid(tc, 'tcPr');
+      var span = pr && kid(pr, 'gridSpan'); if (span) td.colSpan = +wa(span, 'val');
+      var shd = pr && kid(pr, 'shd'); if (shd && wa(shd, 'fill') && !/^(auto|FFFFFF)$/i.test(wa(shd, 'fill'))) td.style.background = '#' + wa(shd, 'fill');
+      kids(tc, 'p').forEach(function (p) { td.appendChild(drawPara(p, nums)); });
+      row.appendChild(td);
+    });
+    t.appendChild(row);
+  });
+  return t;
+}
+var PAGE_H = 697.9, PX = 96 / 72;   // text height of an A4 page with 1-inch margins, in pt
+function clip(el, top, height) {
+  var w = document.createElement('div'), c = el.cloneNode(true);
+  w.style.cssText = 'overflow:hidden;height:' + height + 'px;';
+  c.style.marginTop = (-top) + 'px';
+  w.appendChild(c);
+  return w;
+}
+function paintPreview() {
+  var body = $('pvBody');
+  if (!D.frags) return;
+  var xml = E.build(D, S, { mark: true }).xml;
+  var doc = new DOMParser().parseFromString(xml, 'application/xml');
+  var b = doc.getElementsByTagNameNS(WNS, 'body')[0];
+  var m = $('measure'); m.innerHTML = ''; m.style.width = '451.3pt';
+  var nums = {}, blocks = [];
+  for (var c = b.firstChild; c; c = c.nextSibling) {
+    if (c.localName === 'p') blocks.push(drawPara(c, nums));
+    else if (c.localName === 'tbl') blocks.push(drawTable(c, nums));
+  }
+  blocks.forEach(function (el) { m.appendChild(el); });
+  m.querySelectorAll('.wp').forEach(layoutTabs);
+  // pack into pages: paragraphs whole, tables row by row
+  var pages = [[]], used = 0;
+  var room = function (h) { if (used + h > PAGE_H * PX && used > 0) { pages.push([]); used = 0; } used += h; };
+  blocks.forEach(function (el) {
+    if (el.tagName === 'TABLE') {
+      var rows = Array.prototype.slice.call(el.rows), cur = null;
+      rows.forEach(function (r) {
+        var h = r.getBoundingClientRect().height;
+        var before = pages.length;
+        room(h);
+        if (!cur || pages.length !== before) { cur = el.cloneNode(false); cur.appendChild(el.querySelector('colgroup').cloneNode(true)); pages[pages.length - 1].push(cur); }
+        cur.appendChild(r);
+      });
+    } else {
+      var h = el.getBoundingClientRect().height, left = PAGE_H * PX - used;
+      var cs = getComputedStyle(el), lh = parseFloat(cs.lineHeight), padT = parseFloat(cs.paddingTop), padB = parseFloat(cs.paddingBottom);
+      var lines = Math.round((h - padT - padB) / lh), fit = Math.floor((left - padT) / lh);
+      /* Word splits a paragraph across the page, keeping two lines on each side */
+      if (h > left && used > 0 && lines >= 4 && fit >= 2 && lines - fit >= 2) {
+        var cut = padT + fit * lh;
+        pages[pages.length - 1].push(clip(el, 0, cut));
+        pages.push([clip(el, cut, h - cut)]); used = h - cut;
+      } else {
+        room(h);
+        pages[pages.length - 1].push(el);
+      }
+      if (el._pageBreak) { pages.push([]); used = 0; }
+    }
+  });
+  if (!pages[pages.length - 1].length && pages.length > 1) pages.pop();
+  var w = body.clientWidth - 32, scale = Math.min(1, w / (595.3 * PX));
+  body.innerHTML = '';
+  pages.forEach(function (els, i) {
+    var wrap = document.createElement('div'); wrap.className = 'pg-wrap';
+    wrap.style.width = (595.3 * PX * scale) + 'px'; wrap.style.height = (841.9 * PX * scale) + 'px';
+    var pg = document.createElement('div'); pg.className = 'pg doc'; pg.style.transform = 'scale(' + scale + ')';
+    var bd = document.createElement('div'); bd.className = 'pg-body';
+    els.forEach(function (e) { bd.appendChild(e); });
+    var ft = document.createElement('div'); ft.className = 'pg-foot'; ft.textContent = 'หน้า ' + (i + 1) + ' ของ ' + pages.length;
+    pg.appendChild(bd); pg.appendChild(ft); wrap.appendChild(pg); body.appendChild(wrap);
+  });
+  $('pvPages').textContent = 'ประมาณ ' + pages.length + ' หน้า';
+}
+
+/* ── Refresh ─────────────────────────────────────────────────────────────── */
+var pvTimer = 0;
+function refresh() {
+  CACHE = null;
+  paintValues(); paintStatus();
+  clearTimeout(pvTimer);
+  if ($('app').dataset.view !== 'form') pvTimer = setTimeout(paintPreview, 120);
+}
+function refreshAll() { paintGrantor(); paintLists(); refresh(); }
+
+/* ── Export ──────────────────────────────────────────────────────────────── */
+function download(blob, name) {
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+}
+function exportDocx() {
+  if (typeof JSZip === 'undefined') { toast('โหลด JSZip ไม่ได้ — ต้องต่ออินเทอร์เน็ตเพื่อส่งออก .docx'); return; }
+  var r = E.build(D, S);
+  if (r.leftover.length) { toast('มีเครื่องหมายค้างในเอกสาร: ' + r.leftover.join(' ')); return; }
+  var go = function () {
+    S.attorneys.forEach(function (a) { remember(a.name, a.idNo); }); save();
+    JSZip.loadAsync(D.tpl, { base64: true }).then(function (zip) {
+      zip.file('word/document.xml', r.xml);
+      return zip.generateAsync({ type: 'blob', compression: 'DEFLATE', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    }).then(function (b) { download(b, E.fileName(S)); toast('ดาวน์โหลด ' + E.fileName(S)); });
+  };
+  var rep = r.report;
+  if (rep.blank.length || rep.invalidIds.length)
+    confirmDlg('ยังมีช่องที่ควรตรวจ', (rep.blank.length ? 'ยังว่าง: ' + rep.blank.join(' · ') + '\n' : '') +
+      (rep.invalidIds.length ? 'เลขบัตรไม่ผ่านหลักตรวจ: ' + rep.invalidIds.join(', ') + '\n' : '') + '\nส่งออกเป็นร่างต่อหรือไม่?', 'ส่งออกต่อ', go);
+  else go();
+}
+function exportJson() {
+  var data = { tool: 'power-of-attorney', kind: 'litigation', version: 1, savedAt: new Date().toISOString(), state: S };
+  download(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), E.fileName(S).replace(/\.docx$/, '') + '.pwa.json');
+}
+/* A saved file, or what an AI returns: the MCP tool's input (English keys), or
+   just the matter facts from the AI brief. */
+function openFile(text) {
+  var o;
+  try { o = JSON.parse(text); } catch (e) { toast('อ่านไม่ได้ — ไม่ใช่ JSON'); return; }
+  var st = null, facts = false;
+  if (o && o.tool === 'power-of-attorney' && o.state) st = E.adoptState(o.state);
+  else if (o && (o.grantor && o.grantor.type || o.matterFacts)) st = E.fromInput(o);
+  else if (o && o.input && (o.input.grantor || o.input.matterFacts)) st = E.fromInput(o.input);
+  else if (o && (o.counterparty != null || o.cause != null || o.definedTerm != null || o.courts)) facts = true;
+  if (facts) { applyFacts(o); return; }
+  if (!st) { toast('ไฟล์นี้ไม่ใช่ไฟล์ของเครื่องมือนี้'); return; }
+  var apply = function () { S = st; save(); refreshAll(); toast('เปิดไฟล์แล้ว'); };
+  if (dirty()) confirmDlg('เปิดไฟล์แทนงานปัจจุบัน?', 'ข้อมูลที่กรอกอยู่จะถูกแทนด้วยไฟล์ที่เปิด', 'เปิดไฟล์', apply); else apply();
+}
+function applyFacts(o) {
+  var f = S.facts;
+  if (o.counterparty != null) f.counterparty = o.counterparty;
+  if (Array.isArray(o.courts) && o.courts.length) f.forums = o.courts.slice();
+  if (Array.isArray(o.otherBodies)) f.bodies = o.otherBodies.slice();
+  if (o.cause != null) f.cause = o.cause;
+  if (o.definedTerm != null) f.term = o.definedTerm;
+  if (o.narrativeOverride != null) f.claim = o.narrativeOverride; else f.claim = null;
+  if (o.clause1CourtsOverride != null) f.court = o.clause1CourtsOverride; else f.court = null;
+  if (Array.isArray(o.extraClauses)) S.extraClauses = o.extraClauses.map(function (c) { return { after: Math.max(0, Math.min(8, parseInt(c.afterClause, 10) || 0)), text: c.text || '' }; });
+  save(); refreshAll(); toast('เติมเรื่องที่มอบอำนาจจาก JSON แล้ว — ตรวจทุกช่องก่อนส่งออก');
+}
+function dirty() { return !!(norm(S.facts.counterparty) || S.attorneys.some(function (a) { return norm(a.name); }) || norm(S.grantor.company.name) || S.grantor.persons.some(function (p) { return norm(p.name); })); }
+
+/* ── The AI brief ────────────────────────────────────────────────────────── */
+function aiPrompt() {
+  var V = derived();
+  return [
+    'You are drafting the case-specific parts of a Thai "หนังสือมอบอำนาจให้ฟ้องคดี" (power of attorney to sue) from a law firm\'s fixed template. Write in formal Thai legal drafting style. Reply with ONE JSON object only.',
+    '',
+    'The template reads (your parts in [brackets]; everything else is fixed and must not be repeated):',
+    '  "…ในการฟ้องร้องดำเนินคดีทั้งทางแพ่งและอาญา ตลอดจนดำเนินการทางกฎหมายใด ๆ ที่เกี่ยวข้องกับ[counterparty] (“คู่กรณี”) ต่อ[courts, otherBodies] หรือศาลสถิตยุติธรรมที่มีเขตอำนาจ องค์กร หน่วยงานของรัฐ และ/หรือ พนักงานเจ้าหน้าที่ตลอดจนบุคคลที่เกี่ยวข้องอื่นใด อันเนื่องมาจาก[cause] (“[definedTerm]”)"',
+    '  Clause 1: "ให้มีอำนาจในการยื่นฟ้องและดำเนินคดีแพ่งและอาญากับคู่กรณีต่อศาล[courts] หรือศาลสถิตยุติธรรมอื่นใดที่มีเขตอำนาจ เพื่อขอให้ศาลมีคำพิพากษาหรือคำสั่งให้คู่กรณีรับผิดต่อผู้มอบอำนาจในผลเสียหายจาก[definedTerm]ของคู่กรณี …"',
+    '  Clause 6: "ให้มีอำนาจกระทำการหรือดำเนินการในฐานะตัวแทนของผู้มอบอำนาจในการให้การ เป็นพยาน ให้ถ้อยคำ … ที่เกี่ยวกับ[definedTerm] ทั้งคดีอาญา …"',
+    'Fixed clauses 1–8: ' + E.CLAUSES.map(function (c, i) { return (i + 1) + ') ' + c; }).join(' '),
+    '',
+    'JSON keys:',
+    '  "counterparty": who will be sued, as named in the documents; several joined with " และ/หรือ ".',
+    '  "courts": array of courts, each starting with "ศาล", e.g. ["ศาลแพ่ง", "ศาลอาญา"].',
+    '  "otherBodies": array of regulators or agencies that will also receive complaints (e.g. "แพทยสภา"); [] if none.',
+    '  "cause": the legal relationship and what went wrong, with dates and document numbers, reading on from "อันเนื่องมาจาก" (e.g. "นิติสัมพันธ์ตามสัญญา… ลงวันที่ … หากแต่คู่กรณีผิดสัญญาไม่ชำระหนี้ดังกล่าว"). Do not end with a full stop.',
+    '  "definedTerm": a short name for the cause without quotes, e.g. "การผิดสัญญา", "การทำละเมิด".',
+    '  "extraClauses": [] or [{ "afterClause": 0-8, "text": "ให้มีอำนาจ…" }] for powers the fixed clauses do not give (e.g. filing complaints with a regulator named in otherBodies).',
+    'Never invent a name, ID number, date or amount that is not in the facts — write "(*)" where a detail is missing.',
+    '',
+    'Facts so far (from the form):',
+    '  grantor: ' + (S.grantor.type === 'company' ? (V.companyName || '(not given)') : V.grantorSigners.filter(Boolean).join(', ') || '(not given)'),
+    '  counterparty: ' + (norm(S.facts.counterparty) || '(not given)'),
+    '  courts: ' + (S.facts.forums.filter(norm).join(', ') || '(not given)'),
+    '  cause: ' + (norm(S.facts.cause) || '(not given)'),
+    '',
+    'Facts of the matter:',
+    '  <paste the facts, the contract or the complaint here>'
+  ].join('\n');
+}
+
+/* ── Examples (fictional) ────────────────────────────────────────────────── */
+var EXAMPLES = [
+  { t: 'ผิดสัญญา — ไม่ชำระราคา', f: { counterparty: 'บริษัท ตัวอย่างการค้า จำกัด', forums: ['ศาลแพ่ง'], bodies: [],
+      cause: 'นิติสัมพันธ์ตามสัญญาซื้อขายสินค้า ระหว่างผู้มอบอำนาจและคู่กรณี ลงวันที่ 1 มีนาคม 2569 หากแต่คู่กรณีผิดสัญญาไม่ชำระราคาสินค้าดังกล่าว', term: 'การผิดสัญญา' } },
+  { t: 'ละเมิด — ทรัพย์สินเสียหาย', f: { counterparty: 'นายสมมุติ ทดลองขับ', forums: ['ศาลแพ่ง', 'ศาลอาญา'], bodies: [],
+      cause: 'การที่คู่กรณีขับรถยนต์โดยประมาทเป็นเหตุให้ชนทรัพย์สินของผู้มอบอำนาจเสียหาย เมื่อวันที่ 5 มกราคม 2569 ซึ่งถือเป็นการทำละเมิดต่อผู้มอบอำนาจ', term: 'การทำละเมิด' } },
+  { t: 'ละเมิด + ร้องเรียนหน่วยงานกำกับ', f: { counterparty: 'ผู้ได้รับใบอนุญาตประกอบกิจการสถานพยาบาลคลินิกตัวอย่าง และ/หรือ นายแพทย์สมมุติ ใจดี', forums: ['ศาลแพ่ง'], bodies: ['แพทยสภา', 'กรมสนับสนุนบริการสุขภาพ'],
+      cause: 'การให้บริการทางการแพทย์ของคู่กรณีที่ไม่เป็นไปตามมาตรฐานวิชาชีพ จนเป็นเหตุให้ผู้มอบอำนาจได้รับความเสียหาย ซึ่งถือเป็นการทำละเมิดต่อผู้มอบอำนาจ', term: 'การทำละเมิด' },
+    x: [{ after: 3, text: 'ให้มีอำนาจในการยื่นคำร้อง คำขอ ข้อร้องเรียน หนังสือ หรือเอกสารใด ๆ ต่อแพทยสภา กรมสนับสนุนบริการสุขภาพ องค์กร และ/หรือ หน่วยงานของรัฐที่เกี่ยวข้องให้ดำเนินการใด ๆ กับคู่กรณี ตามที่กฎหมาย อำนาจ หน้าที่ และ/หรือ วัตถุประสงค์ในการจัดตั้งของหน่วยงานนั้น ๆ กำหนดให้ทำได้' }] },
+  { t: 'ผิดนัดชำระหนี้ตามใบสั่งซื้อ', f: { counterparty: 'บริษัท ทดลองพัฒนา จำกัด (มหาชน)', forums: ['ศาลแพ่ง'], bodies: [],
+      cause: 'การที่คู่กรณีผิดนัดไม่ชำระราคาสินค้าตามใบสั่งซื้อสินค้าเลขที่ PO-0001 ถึง PO-0006 รวมเป็นเงินทั้งสิ้น 250,000 บาท (สองแสนห้าหมื่นบาทถ้วน) พร้อมดอกเบี้ยในอัตราที่กฎหมายกำหนด', term: 'การผิดนัดชำระหนี้' } }
+];
+var SNIPPETS = [
+  { t: 'ร้องเรียนหน่วยงานกำกับ', x: 'ให้มีอำนาจในการยื่นคำร้อง คำขอ ข้อร้องเรียน หนังสือ หรือเอกสารใด ๆ ต่อ(*) และ/หรือ หน่วยงานของรัฐที่เกี่ยวข้องให้ดำเนินการใด ๆ กับคู่กรณี ตามที่กฎหมาย อำนาจ หน้าที่ และ/หรือ วัตถุประสงค์ในการจัดตั้งของหน่วยงานนั้น ๆ กำหนดให้ทำได้' },
+  { t: 'อำนาจอื่นที่จำเป็น', x: 'ให้มีอำนาจอื่นใดเท่าที่จำเป็น สมควร และเกี่ยวข้องกับการดำเนินการต่าง ๆ ที่ได้รับมอบหมายข้างต้น' }
+];
+function paintExamples() {
+  $('examples').innerHTML = EXAMPLES.map(function (e, i) {
+    return '<p><button class="chip" data-ex="' + i + '">' + esc(e.t) + '</button> ' + esc(e.f.counterparty) + ' — ' + esc(e.f.cause.slice(0, 90)) + '…</p>';
+  }).join('') + '<p class="note">ชื่อและเลขทั้งหมดในตัวอย่างเป็นข้อมูลสมมุติ</p>';
+  $('clauseSnips').innerHTML = '<span class="note" style="margin:3px 4px 0 0">ข้อสำเร็จรูป (ใส่ท้ายรายการ):</span>' + SNIPPETS.map(function (s, i) {
+    return '<button class="chip" data-snip="' + i + '">+ ' + esc(s.t) + '</button>'; }).join('');
+}
+function loadExample() {
+  var go = function () {
+    S = E.blankState();
+    S.matter = 'ตัวอย่าง';
+    S.place = 'เลขที่ 99 ถนนสมมุติ แขวงตัวอย่าง เขตทดลอง กรุงเทพมหานคร 10000';
+    var n = new Date(); S.dateIso = n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0');
+    S.grantor.company = Object.assign(S.grantor.company, { name: 'บริษัท ตัวอย่างอุตสาหกรรม จำกัด', regNo: '0105500000000',
+      address: '99 ถนนสมมุติ แขวงตัวอย่าง เขตทดลอง กรุงเทพมหานคร', directors: [{ name: 'นายสมมุติ ผู้บริหาร', idNo: '' }] });
+    S.attorneys = [{ name: 'นายทนาย หนึ่ง', idNo: '' }, { name: 'นางสาวทนาย สอง', idNo: '' }, { name: 'นายทนาย สาม', idNo: '' }];
+    S.facts = Object.assign(S.facts, EXAMPLES[0].f, { claim: null, court: null });
+    S.witnesses = ['', ''];
+    save(); refreshAll();
+  };
+  if (dirty()) confirmDlg('ใส่ข้อมูลตัวอย่าง?', 'ข้อมูลที่กรอกอยู่จะถูกแทนด้วยตัวอย่าง (ข้อมูลสมมุติ)', 'ใส่ตัวอย่าง', go); else go();
+}
+
+/* ── Dialog / toast ──────────────────────────────────────────────────────── */
+var dlgYes = null;
+function confirmDlg(title, msg, yes, fn) {
+  $('dlgTitle').textContent = title; $('dlgMsg').textContent = msg; $('dlgYes').textContent = yes || 'ตกลง';
+  dlgYes = fn; $('dlg').classList.add('on');
+}
+$('dlgNo').onclick = function () { $('dlg').classList.remove('on'); dlgYes = null; };
+$('dlgYes').onclick = function () { $('dlg').classList.remove('on'); var f = dlgYes; dlgYes = null; if (f) f(); };
+var tt = 0;
+function toast(m) { var t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(tt); tt = setTimeout(function () { t.classList.remove('on'); }, 2600); }
+
+/* ── Wiring ──────────────────────────────────────────────────────────────── */
+document.addEventListener('input', function (e) {
+  var el = e.target, d = el.dataset;
+  if (d.p) {
+    var v = el.value;
+    setPath(d.p, v);
+    if (/^attorneys\.\d+\.name$/.test(d.p) || /^grantor\.persons\.\d+\.name$/.test(d.p)) {   // a known name brings its ID
+      var hit = people().filter(function (p) { return norm(p.name) === norm(v); })[0];
+      var idp = d.p.replace(/name$/, 'idNo');
+      if (hit && hit.idNo && !norm(getPath(idp))) { setPath(idp, hit.idNo); var idEl = document.querySelector('[data-p="' + idp + '"]'); if (idEl) idEl.value = hit.idNo; }
+    }
+  } else if (d.ov) setOv(d.ov, el.value);
+  else return;
+  save(); refresh();
+});
+document.addEventListener('change', function (e) {
+  var el = e.target, d = el.dataset;
+  if (d.cb) { setPath(d.cb, el.checked); save(); if (d.cb === 'grantor.company.directorIds') paintGrantor(); refresh(); }
+  if (d.p && el.tagName === 'SELECT') { setPath(d.p, el.value); save(); refresh(); }
+  if (el.id === 'showVals') $('pv').classList.toggle('show-v', el.checked);
+});
+function listOf(n) {
+  return { att: S.attorneys, dir: S.grantor.company.directors, person: S.grantor.persons, forum: S.facts.forums,
+           body: S.facts.bodies, wit: S.witnesses, clause: S.extraClauses }[n];
+}
+document.addEventListener('click', function (e) {
+  var t = e.target.closest('button,[data-reset]'); if (!t) return;
+  var d = t.dataset;
+  if (d.reset != null) { if (!t.classList.contains('manual')) return; setOv(d.reset, null); save(); refresh(); return; }
+  if (d.view) {
+    $('app').dataset.view = d.view;
+    document.querySelectorAll('#viewSeg button').forEach(function (b) { b.classList.toggle('on', b === t); });
+    refresh(); return;
+  }
+  if (d.gt) { S.grantor.type = d.gt; save(); refreshAll(); return; }
+  if (d.rm) {
+    var p = d.rm.split(':'), L = listOf(p[0]);
+    L.splice(+p[1], 1);
+    if (!L.length && (p[0] === 'att' || p[0] === 'dir' || p[0] === 'person' || p[0] === 'forum')) L.push(p[0] === 'forum' ? '' : p[0] === 'att' ? { name: '', idNo: '' } : p[0] === 'dir' ? { name: '', idNo: '' } : E.blankState().grantor.persons[0]);
+    save(); refreshAll(); return;
+  }
+  if (d.mv) {
+    var q = d.mv.split(':'), M = listOf(q[0]), i = +q[1], j = i + (+q[2]);
+    if (j < 0 || j >= M.length) return;
+    var x = M[i]; M[i] = M[j]; M[j] = x; save(); refreshAll(); return;
+  }
+  if (d.add) {
+    if (d.add === 'dir') S.grantor.company.directors.push({ name: '', idNo: '' });
+    if (d.add === 'person') S.grantor.persons.push(E.blankState().grantor.persons[0]);
+    save(); refreshAll(); return;
+  }
+  if (d.cadd != null) { S.extraClauses.push({ after: +d.cadd, text: '' }); save(); refreshAll();
+    var tas = document.querySelectorAll('[data-p^="extraClauses."]'); var last = document.querySelector('[data-p="extraClauses.' + (S.extraClauses.length - 1) + '.text"]'); if (last) last.focus(); return; }
+  if (d.cmv) {
+    // move an added clause one slot up or down past a fixed clause
+    var r = d.cmv.split(':'), c = S.extraClauses[+r[0]];
+    c.after = Math.max(0, Math.min(E.CLAUSES.length, c.after + (+r[1]))); save(); refreshAll(); return;
+  }
+  if (d.term != null) { S.facts.term = d.term; save(); refresh(); return; }
+  if (d.ex != null) {
+    var ex = EXAMPLES[+d.ex];
+    var put = function () { Object.assign(S.facts, JSON.parse(JSON.stringify(ex.f)), { claim: null, court: null });
+      if (ex.x) S.extraClauses = S.extraClauses.concat(ex.x.map(function (c) { return Object.assign({}, c); }));
+      save(); refreshAll(); toast('ใส่ตัวอย่างแล้ว — แก้ให้ตรงกับเรื่องจริง'); };
+    if (norm(S.facts.counterparty) || norm(S.facts.cause)) confirmDlg('แทนที่เรื่องที่กรอกอยู่?', 'คู่กรณี ศาล เหตุ และชื่อเรียกจะถูกแทนด้วยตัวอย่าง', 'แทนที่', put); else put();
+    return;
+  }
+  if (d.snip != null) { S.extraClauses.push({ after: E.CLAUSES.length - 1, text: SNIPPETS[+d.snip].x }); save(); refreshAll(); return; }
+  switch (t.id) {
+    case 'attAdd': S.attorneys.push({ name: '', idNo: '' }); save(); refreshAll(); break;
+    case 'forumAdd': S.facts.forums.push(''); save(); refreshAll(); break;
+    case 'bodyAdd': S.facts.bodies.push(''); save(); refreshAll(); break;
+    case 'witAdd': S.witnesses.push(''); save(); refreshAll(); break;
+    case 'dateToday': var n = new Date(); S.dateIso = n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0'); S.dateText = null; save(); refresh(); break;
+    case 'dateClear': S.dateIso = ''; S.dateText = null; save(); refresh(); break;
+    case 'exportDocx': case 'exportDocx2': exportDocx(); break;
+    case 'saveJson': case 'saveJson2': exportJson(); break;
+    case 'openJson': $('filePick').click(); break;
+    case 'loadExample': loadExample(); break;
+    case 'clearAll': confirmDlg('ล้างทั้งหมด?', 'ข้อมูลในฟอร์มทั้งหมดจะถูกล้าง (รายชื่อที่จำไว้ยังอยู่)', 'ล้าง', function () { S = E.blankState(); save(); refreshAll(); }); break;
+    case 'aiBrief': $('aiPrompt').value = aiPrompt(); $('aiPaste').value = ''; $('aiDlg').classList.add('on'); break;
+    case 'aiClose': $('aiDlg').classList.remove('on'); break;
+    case 'aiCopy': $('aiPrompt').select(); try { navigator.clipboard.writeText($('aiPrompt').value).then(function () { toast('คัดลอกคำสั่งแล้ว'); }, function () { document.execCommand('copy'); toast('คัดลอกคำสั่งแล้ว'); }); } catch (x) { document.execCommand('copy'); toast('คัดลอกคำสั่งแล้ว'); } break;
+    case 'aiApply':
+      var txt = $('aiPaste').value, s = txt.indexOf('{'), en = txt.lastIndexOf('}');
+      if (s < 0 || en < s) { toast('ไม่พบ JSON ในข้อความที่วาง'); break; }
+      $('aiDlg').classList.remove('on'); openFile(txt.slice(s, en + 1)); break;
+  }
+});
+$('filePick').addEventListener('change', function () {
+  var f = this.files[0]; if (!f) return;
+  var r = new FileReader(); r.onload = function () { openFile(String(r.result)); }; r.readAsText(f, 'utf-8');
+  this.value = '';
+});
+window.addEventListener('resize', function () { clearTimeout(pvTimer); pvTimer = setTimeout(paintPreview, 150); });
+
+/* ── Boot ────────────────────────────────────────────────────────────────── */
+if (/[?&]debug\b/.test(location.search)) window.__pwa = { S: function () { return S; }, E: E, D: D, build: function () { return E.build(D, S); } };
+load();
+$('pv').classList.add('show-v');
+paintExamples();
+refreshAll();
+})();
+</script>
+</body>
+</html>

@@ -3,12 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "MCP server exposing the JuraTools document generators (share documents, ใบแต่งทนายความ, plain .docx, date tools) as callable tools",
+  "description": "MCP server exposing the JuraTools document generators (share documents, ใบแต่งทนายความ, หนังสือมอบอำนาจให้ฟ้องคดี, plain .docx, date tools) as callable tools",
   "scripts": {
     "sync-templates": "node scripts/extract-templates.mjs",
     "start": "node src/server.mjs",
     "start:http": "node src/http.mjs",
-    "test": "node test/smoke.mjs && node test/dates-clear-days.mjs && node test/dates-gm-notice.mjs && node test/dates-ccc-time.mjs && node test/plain-doc.mjs && node test/poa.mjs && node test/mcp.mjs && node test/mcp-poa.mjs && node test/mcp-dates.mjs && node test/mcp-plain-doc.mjs && node test/http.mjs"
+    "test": "node test/smoke.mjs && node test/dates-clear-days.mjs && node test/dates-gm-notice.mjs && node test/dates-ccc-time.mjs && node test/plain-doc.mjs && node test/poa.mjs && node test/mcp.mjs && node test/pwa.mjs && node test/mcp-poa.mjs && node test/mcp-pwa.mjs && node test/mcp-dates.mjs && node test/mcp-plain-doc.mjs && node test/http.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

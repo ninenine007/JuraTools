@@ -1,0 +1,10 @@
+{
+  "matter": "measure",
+  "place": "กรุงเทพมหานคร",
+  "dateIso": "2026-01-02",
+  "grantor": { "type": "individual", "persons": [{ "name": "นายทดสอบ ตัวอย่าง" }] },
+  "attorneys": [{ "name": "นายหนึ่ง ทดสอบ" }, { "name": "นายสอง ทดสอบ" }, { "name": "นายสาม ทดสอบ" }],
+  "facts": { "counterparty": "นายคู่กรณี สมมุติ", "forums": ["ศาลแพ่ง"], "cause": "สัญญาสมมุติ", "term": "การผิดสัญญา" },
+  "witnesses": ["นายพยาน หนึ่ง", "นายพยาน สอง"],
+  "sigNewPage": true
+}

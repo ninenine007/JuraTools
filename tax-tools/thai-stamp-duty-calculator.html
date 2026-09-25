@@ -722,6 +722,7 @@ const StampDutyApp = (() => {
           canceller: "ผู้รับมอบอำนาจ",
           notes: [
             "If there are multiple principals who are not jointly authorized and they appoint in one instrument, calculate by each principal under section 108.",
+            "Appointees joined by \"และ/หรือ\" (jointly and/or severally) are charged at the higher rate of 7(c), per appointee (Supreme Court 7275/2543, 4932/2549); an under-stamped power cannot be used in evidence (s.118) and the appointee has no authority to sue on it (10222/2558).",
             "Exemptions listed for certain lawyer, animal-transfer, receipt-of-money, and cooperative powers of attorney."
           ]
         })
@@ -1495,6 +1496,7 @@ const StampDutyApp = (() => {
       console.warn("Unable to read the imported instrument", error);
     }
     window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    importSource = payload && IMPORT_SOURCES[payload.source] ? payload.source : "share-transfer";
     const incoming = (payload && Array.isArray(payload.rows) ? payload.rows : [])
       .filter((row) => row && variantIndex.has(row.variantId))
       .map((row) => ({ ...defaultRow(), ...row, id: cryptoId() }));
@@ -1508,10 +1510,16 @@ const StampDutyApp = (() => {
     return true;
   }
 
+  /* Which tool sent the rows; a payload without "source" is the share transfer instrument's. */
+  const IMPORT_SOURCES = {
+    "share-transfer": "Imported from the share transfer instrument (นำเข้าจากตราสารการโอนหุ้น)",
+    "power-of-attorney": "Imported from the power of attorney to sue (นำเข้าจากหนังสือมอบอำนาจให้ฟ้องคดี)"
+  };
+  let importSource = "share-transfer";
   function settleImport() {
     renderRows();
     saveState();
-    updateSaveStatus("Imported from the share transfer instrument (นำเข้าจากตราสารการโอนหุ้น)");
+    updateSaveStatus(IMPORT_SOURCES[importSource]);
   }
 
   function loadState() {
