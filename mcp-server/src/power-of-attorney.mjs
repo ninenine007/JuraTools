@@ -1,5 +1,5 @@
 /* หนังสือมอบอำนาจให้ฟ้องคดี · Power of attorney to sue
-   The browser tool ../litigation-tools/power-of-attorney.html is the source of
+   The browser tool ../document-automation/power-of-attorney.html is the source of
    truth. This module runs its engine (src/pwa-engine.cjs) on its data
    (templates/power-of-attorney.json), both copied verbatim by
    `npm run sync-templates`, so a document produced here and one exported there

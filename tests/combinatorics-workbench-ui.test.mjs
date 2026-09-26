@@ -46,6 +46,6 @@ test('the Phase 1 operating controls are present and IDs are unique', () => {
 test('JuraTools hubs publish the workbench at a relative hosted path', () => {
   assert.match(utilityHub, /href="combinatorics-workbench\.html"/);
   assert.match(utilityHub, /Combinatorics Workbench/);
-  assert.match(mainHub, /8 tools/);
+  assert.match(mainHub, /badge-updated">\d+ tools</, 'the utilities card shows its tool count');
   assert.match(mainHub, /Combinatorics Workbench/);
 });

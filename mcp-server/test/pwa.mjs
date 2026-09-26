@@ -8,7 +8,7 @@ import JSZip from 'jszip';
 import { buildPowerOfAttorney, loadPwa, PWAEngine as E } from '../src/power-of-attorney.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const html = await readFile(join(here, '..', '..', 'litigation-tools', 'power-of-attorney.html'), 'utf8');
+const html = await readFile(join(here, '..', '..', 'document-automation', 'power-of-attorney.html'), 'utf8');
 const D = await loadPwa();
 
 /* ── the server builds what the page builds ─────────────────────── */

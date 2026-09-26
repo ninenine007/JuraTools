@@ -9,7 +9,7 @@ import JSZip from 'jszip';
 import { documentsOf, fillDocument, buildDocx, valuesFor, normalize, idValid, loadPoa } from '../src/poa.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const PAGE = join(here, '..', '..', 'litigation-tools', 'attorney-appointment.html');
+const PAGE = join(here, '..', '..', 'document-automation', 'attorney-appointment.html');
 const html = await readFile(PAGE, 'utf8');
 const { D } = await loadPoa();
 

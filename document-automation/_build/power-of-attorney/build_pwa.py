@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the template for litigation-tools/power-of-attorney.html
+"""Build the template for document-automation/power-of-attorney.html
 (หนังสือมอบอำนาจให้ฟ้องคดี) from the firm's two highlighted precedents.
 
     company.docx     the company-grantor precedent — the base document

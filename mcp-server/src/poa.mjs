@@ -1,10 +1,10 @@
 /* (๙) ใบแต่งทนายความ · Attorney Appointment, v2
-   The browser tool ../litigation-tools/attorney-appointment.html is the source
+   The browser tool ../document-automation/attorney-appointment.html is the source
    of truth. This module runs its engine (src/poa-engine.cjs, copied verbatim by
    `npm run sync-templates`) on its embedded templates (templates/
    attorney-appointment.json), and mirrors the page's own glue — adoptState,
    valuesFor, docs, fileName — line for line from
-   ../litigation-tools/_build/attorney-appointment/page.src.html. A document
+   ../document-automation/_build/attorney-appointment/page.src.html. A document
    produced here and one exported there are the same document, or this module
    is wrong; test/poa.mjs runs the page's own functions against this one.
 

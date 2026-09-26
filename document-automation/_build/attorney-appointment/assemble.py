@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Assemble litigation-tools/attorney-appointment.html from the build outputs.
+"""Assemble document-automation/attorney-appointment.html from the build outputs.
 
 Inlines: poa-engine.js, spec + layout (geometry only — the old values are
 stripped), TH SarabunPSK advance widths, the two marker templates (.docx,

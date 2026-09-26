@@ -20,7 +20,7 @@ for n in bg_JDA bg_PY sent_JDA sent_PY; do osascript topdf.applescript $W/$n.doc
 pdftoppm -r 144 -png bg_JDA.pdf bg_JDA_144; pdftoppm -r 144 -png bg_PY.pdf bg_PY_144
 pdftotext -bbox sent_JDA.pdf sent_JDA_bbox.html; pdftotext -bbox sent_PY.pdf sent_PY_bbox.html
 python3 extract_layout.py             # -> out/layout.json
-python3 assemble.py <repo>/litigation-tools/attorney-appointment.html <local>/leak.json
+python3 assemble.py <repo>/document-automation/attorney-appointment.html <local>/leak.json
 ```
 
 Regression: `node test-fill.js JDA orig refill.docx` (set `POA_ORIG_ID` to the

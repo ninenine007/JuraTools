@@ -8,7 +8,7 @@ import { powerOfAttorneyJob } from './power-of-attorney.mjs';
 
 /* หนังสือมอบอำนาจให้ฟ้องคดี — the schema a model fills. The engine's fromInput()
    maps these keys onto the page's state, so the page and the server agree. The
-   rules in the descriptions are the guide's (litigation-tools/power-of-attorney.guide.md). */
+   rules in the descriptions are the guide's (document-automation/power-of-attorney.guide.md). */
 const PWA_INPUT = {
   matter: z.string().optional().describe('Short matter name, used only in the file name, e.g. "บริษัท ก - [คดีนาย ข]"'),
   place: z.string().optional().describe('ทำที่ — where the grantor signs, as an address line (usually the grantor\'s own office or home). Printed right after the fixed words "ทำที่". Leave out if not known'),
@@ -64,7 +64,7 @@ const PWA_INPUT = {
 
 /* ใบแต่งทนายความ — the schema a model fills. Keys are English for the caller;
    they map one-to-one onto the page's own state (see toPoaState in poa.mjs). The rules
-   in the descriptions are the guide's (litigation-tools/attorney-appointment.guide.md). */
+   in the descriptions are the guide's (document-automation/attorney-appointment.guide.md). */
 const POA_INPUT = {
   form: z.enum(['JDA', 'PY']).describe(
     'Which of the firm\'s two precedents to fill. "JDA" is the defendant-side file, whose authority clause reads ' +

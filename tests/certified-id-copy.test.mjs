@@ -3,8 +3,8 @@ import fs from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
 
-const html = fs.readFileSync(new URL('../litigation-tools/certified-id-copy.html', import.meta.url), 'utf8');
-const hub = fs.readFileSync(new URL('../litigation-tools/index.html', import.meta.url), 'utf8');
+const html = fs.readFileSync(new URL('../document-automation/certified-id-copy.html', import.meta.url), 'utf8');
+const hub = fs.readFileSync(new URL('../document-automation/index.html', import.meta.url), 'utf8');
 const mainHub = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const script = html.match(/<script>([\s\S]*)<\/script>/)[1];
 
@@ -69,7 +69,7 @@ test('controls the script reads are present and IDs are unique', () => {
   for (const id of script.matchAll(/\$\('([A-Za-z0-9]+)'\)/g)) assert.ok(ids.includes(id[1]), '#' + id[1] + ' exists');
 });
 
-test('registered in the litigation hub and the root index', () => {
+test('registered in the document automation hub and the root index', () => {
   assert.match(hub, /href="certified-id-copy\.html"/);
   assert.match(mainHub, /Certified ID Copy/);
   assert.match(mainHub, /รับรองสำเนาถูกต้อง/);

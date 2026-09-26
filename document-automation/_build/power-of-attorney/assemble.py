@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Assemble litigation-tools/power-of-attorney.html from the build outputs.
+"""Assemble document-automation/power-of-attorney.html from the build outputs.
 
-    python3 assemble.py <workdir> <repo>/litigation-tools/power-of-attorney.html <leak.json>
+    python3 assemble.py <workdir> <repo>/document-automation/power-of-attorney.html <leak.json>
 
 Inlines pwa-engine.js, the fragments (out/frags.json), the measured signature
 geometry (out/geom.json) and the package (out/tpl.docx, base64) into

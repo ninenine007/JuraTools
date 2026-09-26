@@ -14,7 +14,7 @@ is tested, and the MCP tool `create_attorney_appointment` is registered in
 | Piece | File | State |
 |---|---|---|
 | Templates, field spec, font widths | `templates/attorney-appointment.json` | **done** — `{spec, widths, tpl:{JDA,PY}}` copied from the page's `<script id="poa-data">` by `npm run sync-templates` (preview-only `layout`/`bg` left behind) |
-| Fill engine | `src/poa-engine.cjs` | **done** — the page's inline engine, copied verbatim by the same script (source: `../litigation-tools/_build/attorney-appointment/poa-engine.js`). Never edit it here |
+| Fill engine | `src/poa-engine.cjs` | **done** — the page's inline engine, copied verbatim by the same script (source: `../document-automation/_build/attorney-appointment/poa-engine.js`). Never edit it here |
 | Glue | `src/poa.mjs` | **done** — mirrors `adoptState`, `valuesFor`, `docs`, `fileName`, `summarise` from `_build/attorney-appointment/page.src.html` |
 | Test | `test/poa.mjs` | **done**, in `npm test` — fictional data only; see below |
 | MCP tool registration | `src/tools.mjs` | **done** — `create_attorney_appointment`; English keys mapped onto the page state by `toPoaState`; round-trip test `test/mcp-poa.mjs` |
@@ -54,7 +54,7 @@ copies `poa.mjs`, `poa-engine.cjs` and the template with its
   firm's own file put the old one. A value too long for its blank gets the
   least padding, then `w:spacing` on that one run (up to `opts.maxCondense`,
   default 15 = 0.75 pt), then is **reported** as over — never silently wrapped.
-- See `../litigation-tools/_build/attorney-appointment/README.md` for the build.
+- See `../document-automation/_build/attorney-appointment/README.md` for the build.
 
 What `test/poa.mjs` checks, on both templates:
 
@@ -74,7 +74,7 @@ a visual check in Word.
 
 ## The shape a caller sends
 
-The v2 `.poa.json` of `../litigation-tools/attorney-appointment.guide.md` §3,
+The v2 `.poa.json` of `../document-automation/attorney-appointment.guide.md` §3,
 unchanged — the guide is the specification:
 
 ```jsonc
@@ -150,7 +150,7 @@ Option 1 first; add the zip only if the HTTP answer turns out unreadable.
 
 - **The browser tool is the source of truth.** If `src/poa.mjs` and the page
   disagree, the page is right — and `test/poa.mjs` should already be failing.
-- **Re-run `npm run sync-templates`** whenever `litigation-tools/attorney-appointment.html`
+- **Re-run `npm run sync-templates`** whenever `document-automation/attorney-appointment.html`
   is rebuilt; commit `templates/attorney-appointment.json` and `src/poa-engine.cjs`
   together with it.
 - **No real lawyer or client data** in tests, fixtures or docs — fictional values

@@ -1,6 +1,6 @@
 # Design brief — Attorney Appointment (v2)
 
-For a visual pass on `litigation-tools/attorney-appointment.html`. Restyle freely;
+For a visual pass on `document-automation/attorney-appointment.html`. Restyle freely;
 keep the contract below so the file can be merged back without breaking logic.
 
 ## Edit the source, not the page
@@ -67,5 +67,5 @@ on overlays `.ov`, `.ov.mask` (white box: value not underlined in Word),
 ## Free to change
 
 Colours, the card chrome, spacing, typography outside `.pg`, the template tiles'
-look, the sidebar, the export table. Accent for litigation-tools is burgundy
+look, the sidebar, the export table. Accent for the court forms is burgundy
 `#9f1239`.

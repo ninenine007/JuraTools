@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Document Automation — JuraTools</title>
+  <meta name="description" content="The firm's own documents, filled from what changes and exported as Word — the (๙) ใบแต่งทนายความ, the หนังสือมอบอำนาจให้ฟ้องคดี, and a certified ID-card copy. Runs entirely in your browser. By Kornrawee Chanchom." />
+  <style>
+    /* ── Reset & Tokens ───────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", "Noto Sans Thai", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      color: #1c1c1e;
+      min-height: 100vh;
+      background: #f2f2f7;
+      background-image:
+        radial-gradient(ellipse 1100px 700px at 10% 0%,   rgba(254,205,211,0.5)  0%, transparent 60%),
+        radial-gradient(ellipse  700px 700px at 95% 10%,  rgba(253,230,138,0.34) 0%, transparent 55%),
+        radial-gradient(ellipse  800px 600px at 0%  90%,  rgba(254,226,226,0.38) 0%, transparent 55%),
+        radial-gradient(ellipse  900px 500px at 100% 95%, rgba(251,207,232,0.3) 0%, transparent 55%);
+    }
+    a { color: inherit; text-decoration: none; }
+
+    /* ── Sticky Nav ───────────────────────────────── */
+    .nav {
+      position: sticky; top: 0; z-index: 200;
+      height: 52px;
+      display: flex; align-items: center; gap: 12px;
+      padding: 0 24px;
+      background: rgba(242,242,247,0.82);
+      backdrop-filter: blur(24px) saturate(200%);
+      -webkit-backdrop-filter: blur(24px) saturate(200%);
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+    }
+    .nav-brand { display: flex; align-items: center; gap: 9px; flex-shrink: 0; user-select: none; }
+    .nav-icon {
+      width: 30px; height: 30px; border-radius: 7px; flex-shrink: 0;
+      background: linear-gradient(145deg, #2979ff, #1565c0);
+      display: grid; place-items: center; font-size: 15px;
+      box-shadow: 0 2px 6px rgba(41,121,255,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    .nav-wordmark { font-size: 15px; font-weight: 700; letter-spacing: -0.4px; color: #1c1c1e; }
+    .nav-sep { color: #c7c7cc; font-size: 15px; }
+    .nav-current { font-size: 15px; font-weight: 600; color: #6e6e73; }
+    .nav-back {
+      margin-left: auto;
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 13px; font-weight: 500; color: #3c3c43;
+      background: rgba(0,0,0,0.055); border: 1px solid rgba(0,0,0,0.1);
+      padding: 6px 12px; border-radius: 9px;
+      transition: background .14s;
+    }
+    .nav-back:hover { background: rgba(0,0,0,0.09); }
+
+    /* ── Hero ─────────────────────────────────────── */
+    .hero { padding: 56px 24px 28px; text-align: center; max-width: 680px; margin: 0 auto; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(159,18,57,0.09); border: 1px solid rgba(159,18,57,0.2);
+      border-radius: 999px; padding: 4px 12px;
+      font-size: 12px; font-weight: 600; color: #9f1239;
+      margin-bottom: 18px;
+    }
+    .hero-dot { width: 6px; height: 6px; border-radius: 50%; background: #9f1239; animation: pulse 2.5s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.55;transform:scale(.8)} }
+    .hero h1 {
+      font-size: clamp(34px, 5vw, 48px);
+      font-weight: 800; letter-spacing: -1.5px; line-height: 1.08;
+      background: linear-gradient(135deg, #1c1c1e 0%, #9f1239 55%, #b45309 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      margin-bottom: 12px;
+    }
+    .hero p { font-size: 16px; color: #6e6e73; line-height: 1.55; max-width: 500px; margin: 0 auto 18px; }
+    .hero-meta { display: flex; justify-content: center; align-items: center; gap: 14px; font-size: 13px; color: #aeaeb2; flex-wrap: wrap; }
+    .hero-meta span { display: flex; align-items: center; gap: 5px; }
+
+    /* ── Content ──────────────────────────────────── */
+    .content { max-width: 920px; margin: 0 auto; padding: 16px 24px 64px; }
+    .grid { display: grid; gap: 14px; grid-template-columns: repeat(2, 1fr); }
+    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: rgba(255,255,255,0.82);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.9);
+      border-radius: 18px; padding: 22px;
+      display: flex; flex-direction: column; gap: 10px;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.07);
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+    .card.live:hover { transform: translateY(-2px); box-shadow: 0 1px 1px rgba(0,0,0,0.04), 0 10px 32px rgba(0,0,0,0.11), 0 6px 24px rgba(159,18,57,0.13); }
+
+    .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+    .card-icon {
+      width: 48px; height: 48px; border-radius: 12px; flex-shrink: 0;
+      display: grid; place-items: center; font-size: 24px;
+      background: linear-gradient(145deg, #ffe4e6, #fecdd3);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.7);
+    }
+    .card-badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .badge-live { background: rgba(52,199,89,0.13);  color: #1a7a35; border: 1px solid rgba(52,199,89,.22); }
+    .card-sub { font-size: 12px; color: #aeaeb2; font-weight: 500; letter-spacing: .1px; text-transform: uppercase; margin-top: 2px; }
+    .card-title { font-size: 16px; font-weight: 700; letter-spacing: -.3px; line-height: 1.25; color: #1c1c1e; margin-top: -2px; }
+    .card-th { font-size: 12.5px; color: #8e8e93; font-weight: 500; margin-top: -6px; }
+    .card-desc { font-size: 13px; color: #6e6e73; line-height: 1.6; flex: 1; }
+
+    .card-actions { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 6px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.06); }
+    .btn { display: inline-flex; align-items: center; gap: 4px; padding: 8px 16px; border-radius: 9px; font-size: 13px; font-weight: 500; font-family: inherit; cursor: pointer; border: none; transition: all .14s; white-space: nowrap; }
+    .btn-open { background: #9f1239; color: #fff; box-shadow: 0 1px 4px rgba(159,18,57,.38), inset 0 1px 0 rgba(255,255,255,.18); }
+    .btn-open:hover { background: #881337; box-shadow: 0 3px 10px rgba(159,18,57,.45); }
+    .btn-source { background: rgba(0,0,0,0.055); color: #3c3c43; border: 1px solid rgba(0,0,0,0.1); }
+    .btn-source:hover { background: rgba(0,0,0,0.09); }
+
+    .footer { text-align: center; margin-top: 40px; font-size: 12px; color: #c7c7cc; }
+  </style>
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav class="nav">
+    <a class="nav-brand" href="../index.html">
+      <div class="nav-icon">⚖️</div>
+      <span class="nav-wordmark">JuraTools</span>
+    </a>
+    <span class="nav-sep">/</span>
+    <span class="nav-current">Document Automation</span>
+    <a class="nav-back" href="../index.html">← All tools</a>
+  </nav>
+
+  <!-- ── Hero ── -->
+  <div class="hero">
+    <div class="hero-badge">
+      <span class="hero-dot"></span> Runs entirely in your browser
+    </div>
+    <h1>Document Automation</h1>
+    <p>เอกสารอัตโนมัติ — แบบของสำนักงานเอง กรอกเฉพาะเนื้อหา ได้ไฟล์ Word ที่รูปแบบเหมือนต้นฉบับ พร้อมตรวจและลงนาม</p>
+    <div class="hero-meta">
+      <span>📄 แบบพิมพ์ศาล · เอกสารคดี</span>
+      <span style="color:#d1d1d6">·</span>
+      <span>🔒 No data sent anywhere</span>
+    </div>
+  </div>
+
+  <!-- ── Tool Grid ── -->
+  <div class="content">
+    <div class="grid">
+
+      <!-- Attorney Appointment -->
+      <article class="card live">
+        <div class="card-head">
+          <div class="card-icon">✍️</div>
+          <span class="card-badge badge-live">Live</span>
+        </div>
+        <div class="card-sub">Court form (๙)</div>
+        <h3 class="card-title">Attorney Appointment — form (๙)</h3>
+        <p class="card-th">ใบแต่งทนายความ — แบบพิมพ์ศาล (๙)</p>
+        <p class="card-desc">Fill the firm's own form and export Word <strong>.docx</strong>. Two precedents used exactly as they are — <strong>JDA</strong> for a defendant (“การถอนคำให้การ”) and <strong>PY</strong> for a plaintiff (“การถอนฟ้อง”); the s.62 wording and the office address on the back page are never touched. Each value is typed into the original Word run, so font, underline and language stay as they were, and padded to sit where the firm's file had it. Widths are measured against TH SarabunPSK, so a line that would wrap — and push the form past two pages — is flagged before export; condensed spacing is used only as a last resort, on that one value. One form per client and per lawyer, a live page preview, and a lawyer register kept on your own machine.</p>
+        <div class="card-actions">
+          <a class="btn btn-open" href="attorney-appointment.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/document-automation/attorney-appointment.html" target="_blank" rel="noopener">Source</a>
+        </div>
+      </article>
+
+      <!-- Certified ID Copy -->
+      <article class="card live">
+        <div class="card-head">
+          <div class="card-icon">🪪</div>
+          <span class="card-badge badge-live">Live</span>
+        </div>
+        <div class="card-sub">Supporting document</div>
+        <h3 class="card-title">Certified ID Copy</h3>
+        <p class="card-th">สำเนาบัตรประจำตัวประชาชน — รับรองสำเนาถูกต้อง</p>
+        <p class="card-desc">Drop in a scan or phone photo of the real card, drag four corners and it is straightened to its true <strong>85.6 × 54 mm</strong> (ISO/IEC 7810 ID-1) — no stretched or squashed cards. The “ใช้สำหรับ … เท่านั้น” band is set at the original’s −28° over each card; the certification block, optional date, and black-out bars for religion or the laser code follow. Saves a one-page <strong>A4 Word .docx</strong> in TH SarabunPSK, every card, band and signature block anchored to the page in millimetres so Word cannot shift it, with a warning when the source scan is too low-resolution. Images and names are never stored.</p>
+        <div class="card-actions">
+          <a class="btn btn-open" href="certified-id-copy.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/document-automation/certified-id-copy.html" target="_blank" rel="noopener">Source</a>
+        </div>
+      </article>
+
+      <!-- Power of Attorney to Sue -->
+      <article class="card live">
+        <div class="card-head">
+          <div class="card-icon">📜</div>
+          <span class="card-badge badge-live">Live</span>
+        </div>
+        <div class="card-sub">Litigation document</div>
+        <h3 class="card-title">Power of Attorney to Sue</h3>
+        <p class="card-th">หนังสือมอบอำนาจให้ฟ้องคดี</p>
+        <p class="card-desc">The firm's own template, filled and exported as Word <strong>.docx</strong>. The fixed wording — the grant “ร่วมกัน และ/หรือ แยกกัน”, the eight powers and the ratification — is never touched; the grantor (a company or individuals), the attorneys, the counterparty, the courts and the cause are typed into the template's original runs. Add clauses anywhere in the list. The signature table is built from the firm's own rows for any number of signers — pairs, with the odd one out across the full width, names centred on their lines. Stamp duty is worked out under schedule item <strong>7(ค)</strong> — 30 baht per attorney — and handed to the stamp-duty calculator. A live preview, fictional examples, and a brief to have an AI draft the matter; also available to AI as the MCP tool <code>create_power_of_attorney</code>.</p>
+        <div class="card-actions">
+          <a class="btn btn-open" href="power-of-attorney.html">Open →</a>
+          <a class="btn btn-source" href="https://github.com/ninenine007/JuraTools/blob/main/document-automation/power-of-attorney.html" target="_blank" rel="noopener">Source</a>
+        </div>
+      </article>
+
+    </div>
+
+    <div class="footer">
+      © 2026 Kornrawee Chanchom &nbsp;—&nbsp; JuraTools · Document Automation
+    </div>
+  </div>
+
+</body>
+</html>

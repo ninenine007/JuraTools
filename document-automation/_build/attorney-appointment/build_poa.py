@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the two ใบแต่งทนายความ templates for litigation-tools/attorney-appointment.html.
+"""Build the two ใบแต่งทนายความ templates for document-automation/attorney-appointment.html.
 
 Input : the firm's two precedents, converted .doc -> .docx by Microsoft Word itself
         (jda_word.docx = the JDA file, defendant side; py_word.docx = the PY file,
