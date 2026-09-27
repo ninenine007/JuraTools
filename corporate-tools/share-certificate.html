@@ -470,6 +470,22 @@ input.is-auto{background:#fcfdfe;color:#475569;}
             </div>
           </div>
         </div>
+
+        <div class="act" style="margin-top:4px">
+          <div class="act-hd">
+            <span class="ico">↔</span> บีบตัวอักษรชื่อบริษัท · Condense the company name
+            <span style="margin-left:auto"><button class="use" id="hdrCondToggle">off</button></span>
+          </div>
+          <p class="sect-note" style="margin-bottom:0">The company name at the head of every certificate is one centred line in Thai
+            and one in English. A name too long for its line is squeezed into it — Word's “Condensed by”, in points, each line apart.
+            Leave this off unless the name actually overruns.</p>
+          <div id="hdrCondBox" hidden style="margin-top:12px">
+            <div class="grid2">
+              <div class="field num"><label>ไทย · Thai line — pt</label><input type="text" data-c="co.hdrCondTh" placeholder="0"></div>
+              <div class="field num"><label>English line — pt</label><input type="text" data-c="co.hdrCondEn" placeholder="0"></div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -1036,7 +1052,11 @@ function blankState(){
     id:'b'+Date.now()+Math.random().toString(36).slice(2,6),
     co:{th:'', en:'', short:'', shortAuto:true, ord:'', pref:'-', par:'',
         cap:'', capAuto:true, issue:'', asOf:'', asOfAuto:true,
-        pad:'', padAuto:true, firstNo:'1', sealDayEn:false},
+        pad:'', padAuto:true, firstNo:'1', sealDayEn:false,
+        /* the company name at the head of the certificate is one centred line
+           each; a long name is squeezed rather than wrapped — Word's
+           "Condensed by", in points, Thai and English apart */
+        hdrCondOn:false, hdrCondTh:'', hdrCondEn:''},
     /* modeAuto: how many sign follows how many names are filled in — one
        name, one signer on the left (the firm's rule). The buttons override. */
     dirs:{mode:'two', slot:'left', l:'', r:'', modeAuto:true},
@@ -1306,6 +1326,11 @@ const condTwips = v => {
   const n = Number(String(v == null ? '' : v).trim());
   return Number.isFinite(n) && n > 0 ? Math.round(n * 20) : 0;
 };
+const HDR_CONDENSE_OF = {CO_HDR_TH:'hdrCondTh', CO_HDR_EN:'hdrCondEn'};
+const condFor = (c, k) => HDR_CONDENSE_OF[k]
+  ? (state.co.hdrCondOn ? condTwips(state.co[HDR_CONDENSE_OF[k]]) : 0)
+  : (c.condOn ? condTwips(c[CONDENSE_OF[k]]) : 0);
+
 function withCondense(rprInner, tw){
   if(!tw) return rprInner;
   const node = `<w:spacing w:val="-${tw}"/>`;
@@ -1346,6 +1371,23 @@ function fillToken(xml, token, value, strike, cond){
 /* The template's document.xml, unzipped once and reused — the live preview
    re-fills it on every keystroke, so it must not pay for a zip round trip. */
 let TEMPLATE_XML = null, PAGE_UNIT = null, DOC_HEAD = null, DOC_TAIL = null;
+/* The company name at the head of the certificate was placed with a tab stop,
+   so it sat left of the middle and a long name ran off to the right. The firm
+   corrected it by hand (Sep 2026): tabs and the trailing space deleted, the
+   paragraph centred with no first-line indent. Done here, on the template's
+   own paragraph, so every certificate gets it. */
+function centreHeader(unit){
+  const i = unit.indexOf('{{CO_HDR_TH}}');
+  if(i === -1) return unit;
+  const s = unit.lastIndexOf('<w:p ', i), e = unit.indexOf('</w:p>', i) + 6;
+  if(s === -1 || e < 6) return unit;
+  let p = unit.slice(s, e);
+  p = p.replace(/<w:r(?: [^>]*)?><w:rPr>(?:(?!<\/w:r>).)*?<\/w:rPr><w:tab ?\/><\/w:r>/g, '')
+       .replace(/<w:r(?: [^>]*)?><w:rPr>(?:(?!<\/w:r>).)*?<\/w:rPr><w:t xml:space="preserve"> <\/w:t><\/w:r>(?=<\/w:p>)/, '')
+       .replace(/(<w:spacing [^>]*\/>)/, '$1<w:ind w:firstLine="0" /><w:jc w:val="center" />');
+  return unit.slice(0, s) + p + unit.slice(e);
+}
+
 async function templateXml(){
   if(TEMPLATE_XML === null){
     const zip = await JSZip.loadAsync(TEMPLATE_B64, {base64:true});
@@ -1356,7 +1398,7 @@ async function templateXml(){
     const e = TEMPLATE_XML.indexOf('<w:sectPr');
     if(s === -1 || e === -1) throw new Error('template layout not recognised');
     DOC_HEAD  = TEMPLATE_XML.slice(0, s);
-    PAGE_UNIT = TEMPLATE_XML.slice(s, e);
+    PAGE_UNIT = centreHeader(TEMPLATE_XML.slice(s, e));
     DOC_TAIL  = TEMPLATE_XML.slice(e);
   }
   return TEMPLATE_XML;
@@ -1387,7 +1429,7 @@ function fillPage(c){
   if(!L.lbl) for(const t of ['SIGL_X','SIGL_NAME']) xml = dropCellBorders(xml, t);
   if(!R.lbl) for(const t of ['SIGR_X','SIGR_NAME']) xml = dropCellBorders(xml, t);
   for(const [k,v] of Object.entries(vals))
-    xml = fillToken(xml, k, v, strike.has(k), c.condOn ? condTwips(c[CONDENSE_OF[k]]) : 0);
+    xml = fillToken(xml, k, v, strike.has(k), condFor(c, k));
   return xml;
 }
 
@@ -3313,7 +3355,7 @@ document.querySelectorAll('[data-c]').forEach(el=>{
    because none of them ever reaches the page. Nor do the two condensing
    amounts: they are how a value is printed, not a value. */
 const NO_PH = new Set(['co.short','co.asOf','co.pad','co.firstNo','fileName',
-                       'condTh','condEn']);
+                       'condTh','condEn','co.hdrCondTh','co.hdrCondEn']);
 /* A date input rejects "(*)", so a marked date has to be shown as plain text;
    this remembers which fields are dates so render() can switch them back. */
 document.querySelectorAll('input[data-f],input[data-c]').forEach(el=>{ el.dataset.type0 = el.type; });
@@ -3396,6 +3438,12 @@ document.getElementById('sealDay').addEventListener('click', e=>{
 
 /* Switching the historical block on seeds it from the company block, so only
    what actually changed has to be retyped. */
+document.getElementById('hdrCondToggle').addEventListener('click', ()=>{
+  const co = state.co;
+  co.hdrCondOn = !co.hdrCondOn;
+  if(co.hdrCondOn && !co.hdrCondTh && !co.hdrCondEn){ co.hdrCondTh = '0.5'; co.hdrCondEn = '0.5'; }
+  save(); render();
+});
 document.getElementById('condToggle').addEventListener('click', ()=>{
   const c = cur();
   c.condOn = !c.condOn;
@@ -3639,6 +3687,11 @@ function render(){
   document.querySelectorAll('#dirSlot button').forEach(b=> b.classList.toggle('on', b.dataset.slot === state.dirs.slot));
   document.querySelectorAll('#sealDay button').forEach(b=> b.classList.toggle('on', (b.dataset.seal === '1') === !!state.co.sealDayEn));
 
+  const hc = document.getElementById('hdrCondToggle');
+  hc.textContent = state.co.hdrCondOn ? 'on' : 'off';
+  hc.style.cssText = state.co.hdrCondOn
+    ? 'color:#a16207;background:#fef9c3;border-color:#fcd34d;font-weight:700' : '';
+  document.getElementById('hdrCondBox').hidden = !state.co.hdrCondOn;
   const ct = document.getElementById('condToggle');
   ct.textContent = c.condOn ? 'on' : 'off';
   ct.style.cssText = c.condOn
