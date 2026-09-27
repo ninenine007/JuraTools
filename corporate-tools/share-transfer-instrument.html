@@ -1956,7 +1956,10 @@ function dossierApply(d){
     if(rt.count != null && rt.count !== '') t.sh.count = groupDigits(rt.count) || String(rt.count);
     set(t.sh, 'from', rt.from); set(t.sh, 'to', rt.to);
     if(rt.par != null && rt.par !== '') t.sh.par = groupDigits(rt.par) || String(rt.par);
-    set(t.sh, 'paidUp', rt.paidUp || dco.par || dco.paidUp);
+    /* a percentage — the company's par and paid-up are baht a share, so they
+       are no stand-in for it; a transfer that does not say keeps the 100 % a
+       new one starts with */
+    set(t.sh, 'paidUp', rt.paidUp);
     if(rt.price != null && rt.price !== ''){
       t.sh.price = groupDigits(rt.price) || String(rt.price); t.sh.priceAuto = false;
     }
