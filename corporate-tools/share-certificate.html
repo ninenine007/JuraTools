@@ -486,6 +486,7 @@ input.is-auto{background:#fcfdfe;color:#475569;}
           <div class="choice" id="dirMode">
             <button data-mode="two">Two directors jointly · ลงนามร่วมกัน</button>
             <button data-mode="one">One director alone · ลงนามคนเดียว</button>
+            <button data-mode="auto" title="One name filled in → one signer on the left; two → both sign">Auto · ตามจำนวนชื่อ</button>
           </div>
         </div>
         <div class="field" id="slotField" hidden>
@@ -1036,7 +1037,9 @@ function blankState(){
     co:{th:'', en:'', short:'', shortAuto:true, ord:'', pref:'-', par:'',
         cap:'', capAuto:true, issue:'', asOf:'', asOfAuto:true,
         pad:'', padAuto:true, firstNo:'1', sealDayEn:false},
-    dirs:{mode:'two', slot:'left', l:'', r:''},
+    /* modeAuto: how many sign follows how many names are filled in — one
+       name, one signer on the left (the firm's rule). The buttons override. */
+    dirs:{mode:'two', slot:'left', l:'', r:'', modeAuto:true},
     certs:[blankCert()], active:0, people:[], fileName:'', fileAuto:true,
     /* sections of a dossier this tool does not own, held so they go back out
        untouched rather than being dropped on the way through */
@@ -1153,9 +1156,17 @@ function autoHCap(c){
 const coAt = c => c.histOn
   ? {cap: c.hCapAuto ? autoHCap(c) : c.hCap, ord: c.hOrd, pref: c.hPref}
   : {cap: capital(), ord: state.co.ord, pref: state.co.pref};
+/* the company's signers as they will print: with modeAuto, one name filled in
+   means one signer on the left, otherwise two */
+function dirsNow(){
+  const d = state.dirs;
+  if(!d.modeAuto) return d;
+  const named = [d.l, d.r].filter(v => String(v || '').trim()).length;
+  return named === 1 ? {...d, mode:'one', slot:'left'} : {...d, mode:'two'};
+}
 const dirsAt = c => c.histOn
   ? {mode: c.hMode, slot: c.hSlot, l: c.hL, r: c.hR}
-  : state.dirs;
+  : dirsNow();
 
 /* "EXAMPLE CO., LTD." → "Hug And Heal". The firm's own file names shorten
    further ("Exampl"), which is why this stays editable. */
@@ -3370,7 +3381,9 @@ document.getElementById('certType').addEventListener('click', e=>{
 });
 document.getElementById('dirMode').addEventListener('click', e=>{
   const b = e.target.closest('button'); if(!b) return;
-  state.dirs.mode = b.dataset.mode; save(); render();
+  if(b.dataset.mode === 'auto') state.dirs.modeAuto = true;
+  else { state.dirs.modeAuto = false; state.dirs.mode = b.dataset.mode; }
+  save(); render();
 });
 document.getElementById('dirSlot').addEventListener('click', e=>{
   const b = e.target.closest('button'); if(!b) return;
@@ -3397,7 +3410,7 @@ document.getElementById('histToggle').addEventListener('click', ()=>{
   if(c.histOn && !c.hOrd){
     c.hOrd = state.co.ord; c.hPref = state.co.pref;
     c.hCapAuto = true; c.hCap = '';
-    c.hMode = state.dirs.mode; c.hSlot = state.dirs.slot;
+    c.hMode = dirsNow().mode; c.hSlot = dirsNow().slot;
     c.hL = state.dirs.l; c.hR = state.dirs.r;
   }
   save(); render();
@@ -3621,7 +3634,8 @@ function render(){
   });
 
   document.querySelectorAll('#certType button').forEach(b=> b.classList.toggle('on', b.dataset.type === (c.type||'ordinary')));
-  document.querySelectorAll('#dirMode button').forEach(b=> b.classList.toggle('on', b.dataset.mode === state.dirs.mode));
+  document.querySelectorAll('#dirMode button').forEach(b=> b.classList.toggle('on', state.dirs.modeAuto ? b.dataset.mode === 'auto'
+                                                                                       : b.dataset.mode === state.dirs.mode));
   document.querySelectorAll('#dirSlot button').forEach(b=> b.classList.toggle('on', b.dataset.slot === state.dirs.slot));
   document.querySelectorAll('#sealDay button').forEach(b=> b.classList.toggle('on', (b.dataset.seal === '1') === !!state.co.sealDayEn));
 
@@ -3645,8 +3659,8 @@ function render(){
   document.querySelectorAll('#histMode button').forEach(b=> b.classList.toggle('on', b.dataset.hmode === c.hMode));
   document.querySelectorAll('#histSlot button').forEach(b=> b.classList.toggle('on', b.dataset.hslot === c.hSlot));
   document.getElementById('histSlotField').hidden = c.hMode !== 'one';
-  document.getElementById('slotField').hidden = state.dirs.mode !== 'one';
-  const one = state.dirs.mode === 'one';
+  document.getElementById('slotField').hidden = state.dirs.modeAuto || state.dirs.mode !== 'one';
+  const one = dirsNow().mode === 'one' && !state.dirs.modeAuto;
   document.getElementById('dirLField').style.opacity = one && state.dirs.slot === 'right' ? '.4' : '';
   document.getElementById('dirRField').style.opacity = one && state.dirs.slot === 'left'  ? '.4' : '';
 
@@ -3783,7 +3797,8 @@ function adoptBook(s){
   const k = {
     ...b, ...s,
     co:{...b.co, ...(s.co||{})},
-    dirs:{...b.dirs, ...(s.dirs||{})},
+    /* a draft saved before modeAuto existed keeps the count it had chosen */
+    dirs:{...b.dirs, ...(s.dirs||{}), modeAuto: !!(s.dirs && s.dirs.modeAuto)},
     certs:(s.certs || []).map(c => ({...blankCert(), ...c})),
     people: Array.isArray(s.people) ? s.people : [],
     /* absent in files written before transfers were kept */
