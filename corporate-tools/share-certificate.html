@@ -1066,10 +1066,21 @@ function setPath(o,p,v){ const ks=p.split('.'), last=ks.pop(); ks.reduce((a,k)=>
    which is the house rule for this toolset. */
 const idxOf = c => state.certs.indexOf(c);
 
+/* One past the highest number used above it — the register counts the same way
+   (nextCertNo), so a list that does not start at no. 1, or has a gap, numbers a
+   new certificate as the book will. A certificate whose number is not known yet
+   is taken to hold the next one. */
 function autoNo(c){
   const first = intOf(state.co.firstNo);
   const i = idxOf(c);
-  return first === null || i < 0 ? '' : String(first + i);
+  if(first === null || i < 0) return '';
+  let hi = first - 1;
+  for(let j = 0; j < i; j++){
+    const p = state.certs[j];
+    const n = p.noAuto ? hi + 1 : intOf(p.no);
+    hi = n === null ? hi + 1 : Math.max(hi, n);
+  }
+  return String(hi + 1);
 }
 const certNo = c => c.noAuto ? autoNo(c) : c.no;
 
@@ -1201,7 +1212,7 @@ function sigSlots(c){
   const d = dirsAt(c);
   const filled = n => ({lbl:DIR_TH, x:'X', en:DIR_EN, name:n});
   const empty  = {lbl:'', x:'', en:'', name:''};
-  if(d.mode === 'one') return d.slot === 'right' ? [empty, filled(d.r || d.l)] : [filled(d.l), empty];
+  if(d.mode === 'one') return d.slot === 'right' ? [empty, filled(d.r || d.l)] : [filled(d.l || d.r), empty];
   return [filled(d.l), filled(d.r)];
 }
 
@@ -1261,6 +1272,9 @@ function tokensFor(c){
 const ORD_TOKENS  = ['TY1_ORD_TH','TY1_ORD_EN','TY2_ORD_TH','TY2_ORD_EN'];
 const PREF_TOKENS = ['TY1_PREF_TH','TY1_PREF_EN','TY2_PREF_TH','TY2_PREF_EN'];
 const strikeSet = c => new Set(c.type === 'preferred' ? ORD_TOKENS : PREF_TOKENS);
+/* Whatever a file or a sheet calls it — "preferred", "preference", บุริมสิทธิ —
+   a certificate holds one of the two words strikeSet knows. */
+const shareTypeOf = v => /pref|บุริม/i.test(String(v == null ? '' : v)) ? 'preferred' : 'ordinary';
 
 /* ── docx generation ──────────────────────────────────────────── */
 /* w:rPr children are order-sensitive. highlight (28) and cs (39) come after
@@ -1839,7 +1853,7 @@ async function importXlsx(file){
       const no = get(r,0);
       if(no){ c.no = no; c.noAuto = false; }
       c.group = get(r,1) || '-';
-      c.type = /pref|บุริม/i.test(get(r,2)) ? 'preferred' : 'ordinary';
+      c.type = shareTypeOf(get(r,2));
       c.holderTh = get(r,3); c.holderEn = get(r,4);
       c.addrTh = get(r,5);   c.addrEn = get(r,6);
       const n = get(r,7);
@@ -1869,8 +1883,10 @@ async function importXlsx(file){
     }
     if(!made.length) throw new Error('no filled rows found');
     state.certs = made; state.active = 0;
+    const fromDir = fillCertsFromPeople(made);
     save(); render();
-    toast(`✓ Loaded ${made.length} certificate${made.length===1?'':'s'} from Excel`);
+    toast(`✓ Loaded ${made.length} certificate${made.length===1?'':'s'} from Excel` +
+          (fromDir ? ` · ${fromDir} completed from the person directory` : ''));
   }catch(e){ toast('Excel: ' + e.message); console.error(e); }
 }
 
@@ -2122,8 +2138,20 @@ function xferRecord(){
     price: numOf(document.getElementById('xfPrice').value),
     /* tfeNo picks the transferee's own certificate out of madeNos, so a later
        correction knows which of them carries their name */
-    par: certPar(c), srcNo: certNo(c), mergedNo:'', madeNos:[], tfeNo:''
+    par: certPar(c), paid: certPaid(c), srcNo: certNo(c), mergedNo:'', madeNos:[], tfeNo:''
   };
+}
+
+/* Paid-up as a percentage of par, which is how the instrument states it — and
+   its stamp duty is worked out on the paid-up value, so a partly paid
+   certificate must not arrive as 100 %. A record kept before `paid` was noted
+   reads it off the certificate the shares came from. */
+function paidUpPct(r){
+  let paid = r.paid;
+  if(paid === undefined){ const src = xferCerts(r).src; paid = src ? certPaid(src) : r.par; }
+  if(isPlaceholder(paid) || isPlaceholder(r.par)) return PLACEHOLDER;
+  const pd = numOf(paid), pv = numOf(r.par);
+  return pd === null || !pv ? '100' : String(Math.round(pd / pv * 10000) / 100);
 }
 
 /* Everything the instrument tool needs, in its own field names. */
@@ -2134,7 +2162,7 @@ function xferPayload(rec){
     tfr:{...r.tfr, date:r.date},
     tfe:{...r.tfe, date:r.date},
     sh:{count:groupOrDash(String(r.moving)), from:String(r.from), to:String(r.to),
-        par:r.par, paidUp:'100',
+        par:r.par, paidUp:paidUpPct(r),
         price: r.price === null || r.price === undefined ? '' : groupOrDash(String(r.price * r.moving)),
         /* so the instrument can write the share numbers the same width the
            certificates do — it has no capital of its own to derive it from */
@@ -2265,7 +2293,7 @@ code fence ไม่มีคอมเมนต์ใน JSON บันทึก
   "certs": [
     {
       "no":       "1",
-      "type":     "ordinary",                // ordinary | preference
+      "type":     "ordinary",                // ordinary | preferred
       "holderTh": "นายสมชาย ใจดี",
       "holderEn": "MR. SOMCHAI JAIDEE",
       "addrTh":   "99/1 ถนนสุขุมวิท …",
@@ -2300,6 +2328,26 @@ code fence ไม่มีคอมเมนต์ใน JSON บันทึก
   ]
 }
 \`\`\`
+
+### แถวที่รับเข้าและโอนออกในบรรทัดเดียวกัน (\`"kind": "both"\`)
+
+สมุดทะเบียนบางเล่มเขียนการได้หุ้นมากับการโอนหุ้นนั้นต่อไว้ในบรรทัดเดียว (เช่น
+จองซื้อหุ้นเพิ่มทุนแล้วโอนให้ผู้อื่นในวันเดียวกัน) ฝั่งรับเข้าใช้คีย์เดียวกับแถว \`in\`
+ฝั่งโอนออกใส่ \`outCert\` / \`outShares\` เหมือนแถว \`out\` ส่วนวันที่ ผู้รับโอน และ
+ถ้อยคำของฝั่งโอนออก อยู่ใน \`out\`
+
+\`\`\`json
+{ "kind": "both", "date": "2020-01-10",
+  "refCert": "-", "certNo": "9", "shares": "2000", "shareFrom": "10001",
+  "outCert": "10", "outShares": "2000",
+  "out": { "date": "2020-01-10",
+           "counterTh": "นางสาวมาลี รักไทย",
+           "counterEn": "MISS MALEE RAKTHAI" } }
+\`\`\`
+
+\`out.date\` ไม่ใส่ก็ได้ = วันเดียวกับฝั่งรับเข้า · ถ้อยคำที่เขียนเองของฝั่งโอนออกใส่
+\`out.descTh\` / \`out.descEn\` · ถ้าต้นทางเขียนการรับกับการโอนไว้คนละบรรทัด ให้แยกเป็น
+แถว \`in\` กับแถว \`out\` ตามต้นทาง อย่ารวมเอง
 
 ---
 
@@ -2428,6 +2476,14 @@ code fence ไม่มีคอมเมนต์ใน JSON บันทึก
 สมุดทะเบียน → \`register\` ส่วนที่ไม่ได้เป็นเจ้าของจะถูกเก็บไว้ใน \`carry\` และเขียน
 กลับออกไปเหมือนเดิมทุกตัวอักษร เปิดไฟล์เดียวกันวนครบทั้งสามเครื่องมือแล้วข้อมูล
 ต้องไม่หาย
+
+\`co\` เป็นของร่วมกัน แต่ละเครื่องมือเขียนเฉพาะฟิลด์ที่ตัวเองถืออยู่ ฟิลด์ที่ไม่รู้จัก
+(เช่น \`dirL\` ที่ผ่านสมุดทะเบียน) เก็บไว้ใน \`carry.co\` แล้วเขียนกลับออกไปเหมือนเดิม
+และค่าที่เครื่องมือเพียงแต่สันนิษฐาน (สมุดทะเบียนถือว่า \`par\` เท่ากับค่าหุ้นที่ชำระแล้ว ·
+ใบหุ้นกับตราสารถือว่า \`paidUp\` เท่ากับ \`par\`) จะไม่ทับค่าที่ไฟล์ระบุมา
+
+เครื่องมือใบหุ้นเขียน \`no\` \`from\` \`to\` และ \`issue\` ของใบหุ้นทุกใบเป็นค่าที่คำนวณแล้ว
+ไฟล์จึงไม่ขึ้นกับลำดับของใบหุ้นในรายการ
 `;
 /* GUIDE_MD:END */
 
@@ -2446,6 +2502,23 @@ const DOS_C_FIELDS = ['no','group','type','holderTh','holderEn','addrTh','addrEn
 const dosNum = v => isPlaceholder(v) ? String(v).trim() : String(v || '').replace(/,/g, '');
 const dosPut = (o, k, v) => { if(v !== '' && v != null) o[k] = v; };
 
+/* The company block is shared by the three tools and each knows only part of
+   it, so the file's own `co` is kept (in `carry.co`) and written back around
+   this tool's fields: what this tool holds it writes, and a field it leaves
+   blank here stays blank; what it only assumes — paid-up taken to equal par —
+   gives way to what the file said; a field it does not know at all goes back
+   out exactly as it came in. */
+const DOS_CO_OWN   = ['nameTh','th','nameEn','en','par','ord','pref','cap','regShares','dirL','dirR'];
+const DOS_CO_GUESS = ['paidUp'];
+function dosCo(mine){
+  const had = (state.carry && state.carry.co) || {};
+  DOS_CO_GUESS.forEach(k => { if(had[k] !== '' && had[k] != null) mine[k] = had[k]; });
+  Object.entries(had).forEach(([k, v]) => {
+    if(!(k in mine) && !DOS_CO_OWN.includes(k) && !DOS_CO_GUESS.includes(k)) mine[k] = v;
+  });
+  return mine;
+}
+
 function dossierPack(){
   const out = {format:DOSSIER_FORMAT, v:1, at:new Date().toISOString(),
                from:'ทะเบียนใบหุ้น'};
@@ -2461,17 +2534,24 @@ function dossierPack(){
   dosPut(out.co, 'regShares',
          String((intOf(c.ord) || 0) + (intOf(c.pref) || 0) || ''));
   dosPut(out.co, 'dirL', state.dirs.l); dosPut(out.co, 'dirR', state.dirs.r);
+  dosCo(out.co);
 
   out.people = (state.people || []).map(p => {
     const o = {}; PERSON_FIELDS.forEach(k => dosPut(o, k, p[k])); return o;
   });
 
   /* what a certificate is, rather than how this tool draws it: the auto flags
-     and the condensing are settings, and a dossier is not where they live */
+     and the condensing are settings, and a dossier is not where they live. The
+     number, the share numbers and the issue date are written as this tool
+     works them out — left to be worked out again, they would depend on where
+     the certificate sits in the list, and the issue date on a default the
+     file does not carry. */
+  const worked = {no:certNo, from:certFrom, to:certTo, issue:certIssue};
   out.certs = (state.certs || []).map(ct => {
     const o = {};
     DOS_C_FIELDS.forEach(k => {
-      const v = ['count','par','paid','from','to'].includes(k) ? dosNum(ct[k]) : ct[k];
+      const raw = worked[k] ? worked[k](ct) : ct[k];
+      const v = ['count','par','paid','from','to'].includes(k) ? dosNum(raw) : raw;
       dosPut(o, k, v);
     });
     return o;
@@ -2487,8 +2567,16 @@ function dossierApply(d){
   take('par', dco.par || dco.paidUp);
   take('ord', dco.ord || dco.regShares);
   take('pref', dco.pref);
+  /* One director named means one signature, on the left — the firm's rule, and
+     an empty slot with its ruled line reads as a signature never given. Only
+     when the names arrive with the file: a choice already made here stands. */
+  const hadDirs = !!(String(state.dirs.l || '').trim() || String(state.dirs.r || '').trim());
   if(dco.dirL && !state.dirs.l) state.dirs.l = String(dco.dirL);
   if(dco.dirR && !state.dirs.r) state.dirs.r = String(dco.dirR);
+  const named = [state.dirs.l, state.dirs.r].filter(v => String(v || '').trim()).length;
+  if(!hadDirs && named === 1 && state.dirs.mode === 'two'){
+    state.dirs.mode = 'one'; state.dirs.slot = 'left';
+  }
 
   let added = 0, filled = 0;
   (d.people || []).forEach(p => {
@@ -2510,6 +2598,7 @@ function dossierApply(d){
       ct[k] = ['count','par','paid'].includes(k)
         ? (groupDigits(v) || String(v)) : String(v);
     });
+    if(rc.type != null && rc.type !== '') ct.type = shareTypeOf(rc.type);
     /* anything the file states is stated, not computed */
     if(rc.no != null && rc.no !== '')     ct.noAuto = false;
     if(rc.from != null && rc.from !== '') ct.fromAuto = false;
@@ -2523,9 +2612,32 @@ function dossierApply(d){
 
   state.carry = {};
   Object.entries(d).forEach(([k, v]) => { if(!DOS_OWN.includes(k)) state.carry[k] = v; });
+  /* the file's company block, whole — see dosCo */
+  if(dco && typeof dco === 'object' && !Array.isArray(dco)) state.carry.co = dco;
 
   save(); render();
-  return {added, filled, certs: certs.length};
+  return {added, filled, certs: certs.length, made: certs};
+}
+
+/* A certificate prints its holder's name and address, and a file often gives
+   them once, under people. A blank on a certificate is completed from the
+   person of the same name — never written over. Done when a file or a sheet is
+   opened, not when printing: a certificate keeps the address it was issued
+   with, even after the person's entry is later changed. */
+function fillCertsFromPeople(certs){
+  let n = 0;
+  certs.forEach(ct => {
+    const th = nameKey(ct.holderTh), en = nameKey(ct.holderEn);
+    if(!th && !en) return;
+    const p = state.people.find(x => (th && nameKey(x.nameTh) === th) || (en && nameKey(x.nameEn) === en));
+    if(!p) return;
+    let got = false;
+    [['holderTh','nameTh'], ['holderEn','nameEn'], ['addrTh','addrTh'], ['addrEn','addrEn']].forEach(([ck, pk]) => {
+      if(!String(ct[ck] || '').trim() && String(p[pk] || '').trim()){ ct[ck] = String(p[pk]).trim(); got = true; }
+    });
+    if(got) n++;
+  });
+  return n;
 }
 
 /* Where the arriving file disagrees with what is already here — named, because
@@ -2597,7 +2709,10 @@ async function dossierOpen(text){
   ];
   if(!await ask('Open company dossier', lines.join('\n\n'), 'Open')) return;
   const r = dossierApply(d);
-  toast(`✓ Opened — ${r.certs} certificate(s) · ${r.added} new people · ${r.filled} filled in`);
+  const fromDir = fillCertsFromPeople(r.made);
+  if(fromDir){ save(); render(); }
+  toast(`✓ Opened — ${r.certs} certificate(s) · ${r.added} new people · ${r.filled} filled in` +
+        (fromDir ? ` · ${fromDir} certificate(s) completed from people` : ''));
 }
 
 function shareRead(){
@@ -2971,7 +3086,7 @@ function importIssue(){
     const made = list.map(c => {
       const n = blankCert();
       n.noAuto = false;   n.no = String(c.no || '');
-      if(c.type === 'preferred') n.type = 'preferred';
+      n.type = shareTypeOf(c.type);
       n.holderTh = c.nameTh || ''; n.holderEn = c.nameEn || '';
       n.addrTh = c.addrTh || '';   n.addrEn = c.addrEn || '';
       n.count = groupDigits(String(c.count || ''));
