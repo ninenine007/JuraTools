@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Form อ.ส.4 for a Share Transfer Instrument — JuraTools</title>
+<meta name="description" content="For share transfer instruments only: fill the Revenue Department's own form อ.ส.4 (แบบขอเสียอากรแสตมป์เป็นตัวเงิน) and download it as a PDF that stays editable. The RD's file stays exactly as published — values are added in an incremental update, Thai shaped properly — and the stamp duty is worked out under schedule items 2 and 23 and section 113.">
+<style>
+:root{
+  --primary:#9f1239; --primary-dark:#881337;
+  --bg:#f7f6f7; --card:#fff; --text:#3f3f46; --heading:#18181b;
+  --border:#e7e5e7; --muted:#a1a1aa; --hover-gray:#f4f4f5;
+  --success:#0d9488; --danger:#dc2626; --amber:#b45309;
+  --shadow:0 1px 2px rgba(24,24,27,.04), 0 4px 12px -4px rgba(24,24,27,.07);
+  --c-xfer:#9f1239; --c-party:#7c3aed; --c-pay:#be123c; --c-file:#0891b2;
+  --c-sig:#b45309; --c-out:#059669; --c-opt:#475569;
+}
+*{box-sizing:border-box;}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","Noto Sans Thai",sans-serif;
+  -webkit-font-smoothing:antialiased;background:var(--bg);color:var(--text);margin:0;font-size:14px;}
+
+/* ── Nav ─────────────────────────────────────── */
+.nav{position:sticky;top:0;z-index:200;height:52px;display:flex;align-items:center;gap:12px;padding:0 24px;
+  background:rgba(247,246,247,.88);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);
+  border-bottom:1px solid var(--border);}
+.nav a{color:inherit;text-decoration:none;}
+.nav-brand{display:flex;align-items:center;gap:9px;user-select:none;}
+.nav-icon{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;
+  background:linear-gradient(145deg,#2979ff,#1565c0);font-size:15px;
+  box-shadow:0 2px 6px rgba(41,121,255,.4), inset 0 1px 0 rgba(255,255,255,.2);}
+.nav-wordmark{font-size:15px;font-weight:700;letter-spacing:-.4px;color:var(--heading);}
+.nav-sep{color:#d4d4d8;}
+.nav-current{font-size:15px;font-weight:600;color:#71717a;}
+.nav-back{margin-left:auto;font-size:13px;font-weight:500;color:#3f3f46;background:rgba(0,0,0,.05);
+  border:1px solid rgba(0,0,0,.09);padding:6px 12px;border-radius:9px;}
+.nav-back:hover{background:rgba(0,0,0,.09);}
+@media(max-width:620px){.nav-current,.nav-sep{display:none;}}
+
+/* ── Layout ──────────────────────────────────── */
+.app{display:flex;gap:20px;max-width:1800px;margin:0 auto;padding:20px 24px 72px;align-items:flex-start;}
+.app[data-view="form"] .pv{display:none;}
+.app[data-view="preview"] .sidebar,.app[data-view="preview"] .main{display:none;}
+.app[data-view="preview"] .pv{width:auto;min-width:0;flex:1;max-height:none;position:static;}
+.app[data-view="preview"] .pg-wrap{max-width:900px;}
+.sidebar{width:236px;min-width:236px;background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:16px;position:sticky;top:72px;box-shadow:var(--shadow);max-height:calc(100vh - 92px);overflow-y:auto;}
+.main{flex:1 1 440px;min-width:0;display:flex;flex-direction:column;gap:16px;}
+@media(max-width:1100px){.app{flex-direction:column;align-items:stretch;}
+  .sidebar{width:auto;min-width:0;position:static;max-height:none;}
+  .pv{width:auto!important;min-width:0!important;position:static!important;max-height:none!important;}}
+
+/* ── Sidebar ─────────────────────────────────── */
+.side-head h2{margin:0 0 2px;font-size:1.02em;color:var(--heading);}
+.sidebar .hint{font-size:.78em;color:var(--muted);margin:0 0 12px;line-height:1.45;}
+.jump{display:flex;flex-direction:column;gap:2px;margin:6px 0 14px;}
+.jump a{font-size:.82em;color:#52525b;text-decoration:none;padding:5px 8px;border-radius:7px;display:flex;align-items:center;gap:7px;}
+.jump a:hover{background:var(--hover-gray);}
+.jump .dot{width:7px;height:7px;border-radius:50%;background:#e4e4e7;flex-shrink:0;}
+.jump .dot.ok{background:#10b981;} .jump .dot.warn{background:#f59e0b;}
+.side-sec{font-size:.72em;font-weight:700;letter-spacing:.05em;color:var(--muted);text-transform:uppercase;margin:14px 0 6px;}
+.side-actions{display:flex;flex-direction:column;gap:6px;}
+.side-actions .btn{justify-content:center;}
+.side-total{font-size:1.5em;font-weight:800;color:var(--c-out);letter-spacing:-.5px;margin:2px 0 0;}
+.side-total small{font-size:.5em;font-weight:600;color:var(--muted);letter-spacing:0;}
+
+/* ── Cards ───────────────────────────────────── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;scroll-margin-top:70px;}
+.card-hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:13px 18px;border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg,#fdfdfd,#f8f8f9);}
+.card-hd .ico{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:13px;flex-shrink:0;
+  background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-line);}
+.card-hd h3{margin:0;font-size:.94em;color:var(--heading);font-weight:700;}
+.card-hd .th{font-weight:500;color:var(--muted);font-size:.88em;margin-left:-4px;}
+.card-hd .spacer{margin-left:auto;}
+.card-bd{padding:16px 18px 18px;}
+.acc-xfer{--accent:var(--c-xfer);--accent-soft:#fff1f2;--accent-line:#fecdd3;}
+.acc-party{--accent:var(--c-party);--accent-soft:#f5f3ff;--accent-line:#ddd6fe;}
+.acc-pay{--accent:var(--c-pay);--accent-soft:#fff1f2;--accent-line:#fecdd3;}
+.acc-file{--accent:var(--c-file);--accent-soft:#ecfeff;--accent-line:#a5f3fc;}
+.acc-sig{--accent:var(--c-sig);--accent-soft:#fffbeb;--accent-line:#fde68a;}
+.acc-out{--accent:var(--c-out);--accent-soft:#ecfdf5;--accent-line:#a7f3d0;}
+.acc-opt{--accent:var(--c-opt);--accent-soft:#f8fafc;--accent-line:#e2e8f0;}
+
+/* ── Fields ──────────────────────────────────── */
+label{display:block;font-size:.77em;font-weight:600;color:#71717a;margin:0;}
+input[type=text],input[type=date],input[type=month],input[type=number],select,textarea{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;
+  font-family:inherit;font-size:.92em;color:var(--text);background:#fff;transition:border-color .12s, box-shadow .12s;}
+textarea{resize:vertical;line-height:1.55;min-height:58px;}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(159,18,57,.11);}
+input::placeholder,textarea::placeholder{color:#d4d4d8;}
+input:disabled{background:#f4f4f5;color:#a1a1aa;}
+.is-auto{color:#71717a!important;background:#fcfcfd!important;}
+input.bad{border-color:#fca5a5;background:#fff7f7;}
+.num{font-variant-numeric:tabular-nums;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px 12px;}
+@media(max-width:760px){.grid4{grid-template-columns:1fr 1fr;}}
+@media(max-width:560px){.grid2,.grid3,.grid4{grid-template-columns:1fr;}}
+.field{margin-bottom:14px;}
+.field:last-child{margin-bottom:0;}
+.note{font-size:.72em;color:var(--muted);margin-top:4px;line-height:1.45;}
+.row-lbl{display:flex;align-items:center;gap:6px;margin-bottom:5px;min-height:18px;flex-wrap:wrap;}
+.auto-tag{font-size:.66em;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--muted);background:#f4f4f5;border:1px solid var(--border);border-radius:999px;padding:1px 7px;cursor:default;}
+.auto-tag.manual{color:var(--amber);background:#fffbeb;border-color:#fde68a;cursor:pointer;}
+.auto-tag.manual::after{content:" · reset";}
+.tin-dot{width:9px;height:9px;border-radius:50%;background:#e4e4e7;display:inline-block;}
+.tin-dot.ok{background:#10b981;} .tin-dot.bad{background:#ef4444;}
+.addr-box{border:1px dashed var(--border);border-radius:10px;padding:10px 12px 12px;background:#fcfcfd;margin-top:8px;}
+.addr-box .grid4 label{font-weight:500;}
+.addr-box input{padding:6px 8px;font-size:.86em;}
+.addr-box input.ov{border-color:#fde68a;background:#fffdf5;}
+.sub-hd{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;}
+.sub-hd b{font-size:.8em;color:var(--heading);}
+.link-btn{border:none;background:none;color:var(--primary);font-family:inherit;font-size:.74em;font-weight:600;cursor:pointer;padding:0;}
+.link-btn:hover{text-decoration:underline;}
+
+/* ── Buttons ─────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:8px 14px;border-radius:9px;font-size:.86em;
+  font-weight:600;font-family:inherit;cursor:pointer;border:1px solid transparent;transition:.13s;white-space:nowrap;text-decoration:none;}
+.btn-primary{background:var(--primary);color:#fff;box-shadow:0 1px 4px rgba(159,18,57,.32);}
+.btn-primary:hover{background:var(--primary-dark);}
+.btn-primary:disabled{background:#d4d4d8;box-shadow:none;cursor:default;}
+.btn-ghost{background:#fff;color:#3f3f46;border-color:var(--border);}
+.btn-ghost:hover{background:var(--hover-gray);}
+.btn-soft{background:#f4f4f5;color:#52525b;border-color:var(--border);}
+.btn-soft:hover{background:#e7e5e7;}
+.btn-danger{background:#fff;color:var(--danger);border-color:#fecaca;}
+.btn-danger:hover{background:#fef2f2;}
+.btn-sm{padding:5px 10px;font-size:.8em;}
+.btn.copied{background:#ecfdf5;color:#047857;border-color:#a7f3d0;}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.seg{display:inline-flex;background:#f4f4f5;border:1px solid var(--border);border-radius:9px;padding:2px;gap:2px;flex-wrap:wrap;}
+.seg button{border:none;background:none;font-family:inherit;font-size:.8em;font-weight:600;color:#71717a;
+  padding:5px 11px;border-radius:7px;cursor:pointer;}
+.seg button.on{background:#fff;color:var(--heading);box-shadow:0 1px 2px rgba(0,0,0,.08);}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;}
+.chip{font-size:.74em;font-weight:600;border-radius:6px;padding:2px 8px;border:1px solid var(--border);
+  background:#f4f4f5;color:#52525b;cursor:pointer;font-family:inherit;}
+.chip:hover{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8;}
+.check{display:flex;gap:9px;align-items:flex-start;font-size:.86em;color:var(--text);cursor:pointer;line-height:1.5;font-weight:400;}
+.check input{margin-top:3px;}
+.pay-opts{display:flex;flex-direction:column;gap:8px;}
+.pay-opt{display:flex;gap:10px;align-items:flex-start;border:1.5px solid var(--border);border-radius:11px;padding:10px 12px;cursor:pointer;background:#fff;}
+.pay-opt.on{border-color:var(--primary);background:#fff7f8;box-shadow:0 0 0 3px rgba(159,18,57,.07);}
+.pay-opt b{display:block;font-size:.86em;color:var(--heading);}
+.pay-opt span{display:block;font-size:.76em;color:#71717a;line-height:1.5;margin-top:2px;}
+
+details.rules{border-top:1px solid var(--border);}
+details.rules>summary{cursor:pointer;padding:11px 18px;font-size:.8em;font-weight:600;color:#71717a;list-style:none;}
+details.rules>summary::-webkit-details-marker{display:none;}
+details.rules>summary::before{content:"▸ ";color:var(--muted);}
+details.rules[open]>summary::before{content:"▾ ";}
+details.rules .rules-bd{padding:0 18px 16px;font-size:.82em;line-height:1.65;color:#52525b;}
+details.rules .rules-bd p{margin:0 0 9px;}
+details.rules .rules-bd b{color:var(--heading);}
+.warn{display:flex;gap:4px;align-items:flex-start;font-size:.82em;line-height:1.5;border-radius:10px;padding:9px 12px;margin-top:12px;flex-direction:column;}
+.warn.amber{background:#fffbeb;border:1px solid #fde68a;color:#92400e;}
+.warn.rose{background:#fff1f2;border:1px solid #fecdd3;color:#9f1239;}
+.warn.slate{background:#f8fafc;border:1px solid #e2e8f0;color:#475569;}
+.warn.green{background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;}
+.warn:empty{display:none;}
+.warn b{font-weight:700;}
+
+/* ── Stamp duty ──────────────────────────────── */
+.duty{display:grid;grid-template-columns:auto 1fr;gap:5px 16px;font-size:.86em;align-items:baseline;margin:0;}
+.duty dt{color:#71717a;}
+.duty dd{margin:0;color:var(--heading);font-weight:600;font-variant-numeric:tabular-nums;}
+.duty dd small{font-weight:400;color:#a1a1aa;}
+.duty-total{font-size:1.7em;font-weight:800;color:var(--c-out);letter-spacing:-.5px;font-variant-numeric:tabular-nums;}
+.ov-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;}
+@media(max-width:560px){.ov-grid{grid-template-columns:1fr;}}
+
+/* ── Preview ─────────────────────────────────── */
+.pv{width:620px;min-width:460px;position:sticky;top:72px;max-height:calc(100vh - 92px);
+  background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);
+  display:flex;flex-direction:column;overflow:hidden;}
+.pv-hd{display:flex;align-items:center;gap:9px;padding:10px 14px;border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg,#fdfdfd,#f8f8f9);flex-wrap:wrap;}
+.pv-hd h3{margin:0;font-size:.9em;color:var(--heading);}
+.pv-pages{font-size:.74em;font-weight:700;border-radius:999px;padding:2px 9px;color:#475569;background:#f8fafc;border:1px solid #e2e8f0;}
+.pv-body{overflow:auto;padding:16px;background:#e7e5e8;flex:1;}
+.pv-note{font-size:.74em;color:var(--muted);padding:9px 14px;border-top:1px solid var(--border);background:#fafafa;line-height:1.5;}
+.pg-wrap{margin:0 auto 14px;box-shadow:0 2px 10px rgba(0,0,0,.16);background:#fff;}
+.pg-cap{font-size:.74em;font-weight:700;color:#52525b;margin:0 auto 6px;}
+.pg{position:relative;width:100%;aspect-ratio:595.276/841.89;background:#fff;}
+.pg img,.pg svg{position:absolute;left:0;top:0;width:100%;height:100%;}
+.pg .hl{fill:rgba(250,204,21,.28);}
+.pv:not(.show-v) .pg .hl{display:none;}
+.pv-loading{padding:40px 10px;text-align:center;color:#71717a;font-size:.86em;}
+
+/* ── Dialog & toast ──────────────────────────── */
+.dlg-bg{position:fixed;inset:0;background:rgba(24,24,27,.38);display:none;align-items:center;justify-content:center;z-index:600;padding:20px;}
+.dlg-bg.on{display:flex;}
+.dlg{background:#fff;border-radius:14px;max-width:560px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);padding:18px 20px;max-height:90vh;overflow:auto;}
+.dlg h4{margin:0 0 8px;color:var(--heading);font-size:1em;}
+.dlg .dlg-msg{font-size:.86em;line-height:1.6;color:#52525b;margin-bottom:16px;white-space:pre-line;}
+.dlg .btn-row{justify-content:flex-end;}
+.pick{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+.pick button{text-align:left;border:1px solid var(--border);border-radius:9px;background:#fff;padding:8px 11px;font-family:inherit;font-size:.84em;cursor:pointer;color:var(--text);}
+.pick button:hover{border-color:var(--primary);background:#fff7f8;}
+.pick small{display:block;color:var(--muted);font-size:.86em;margin-top:2px;}
+#toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(14px);opacity:0;
+  background:#18181b;color:#fff;font-size:.86em;font-weight:500;padding:10px 18px;border-radius:11px;
+  box-shadow:0 6px 24px rgba(0,0,0,.3);pointer-events:none;transition:.22s;z-index:700;max-width:88vw;text-align:center;}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
+footer{text-align:center;font-size:.79em;color:var(--muted);line-height:1.7;padding:0 24px 40px;}
+footer .cites{color:#71717a;}
+
+@media print{
+  .nav,.sidebar,.main,.pv-hd,.pv-note,footer,#toast{display:none!important;}
+  body{background:#fff;}
+  .app{display:block;padding:0;}
+  .pv{display:block!important;position:static!important;width:auto!important;max-height:none!important;border:none;box-shadow:none;}
+  .pv-body{background:#fff;padding:0;overflow:visible;}
+  .pg-wrap{box-shadow:none;margin:0;break-after:page;width:100%!important;max-width:none!important;}
+  .pg-cap{display:none;}
+  .pg .hl{display:none;}
+  @page{size:A4;margin:0;}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;}}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <a class="nav-brand" href="../index.html"><div class="nav-icon">⚖️</div><span class="nav-wordmark">JuraTools</span></a>
+  <span class="nav-sep">/</span><a class="nav-current" href="index.html">Document Automation</a>
+  <span class="nav-sep">/</span><span class="nav-current">อ.ส.4 — Share Transfer Instrument</span>
+  <a class="nav-back" href="index.html">← All</a>
+</nav>
+
+<div class="app" id="app" data-view="split">
+
+  <aside class="sidebar">
+    <div class="side-head"><h2>แบบ อ.ส.4 — ตราสารการโอนหุ้น</h2></div>
+    <p class="hint">แบบขอเสียอากรแสตมป์เป็นตัวเงิน <b>เฉพาะตราสารการโอนหุ้น</b> (ลักษณะแห่งตราสาร 2 และคู่ฉบับ 23) — ไฟล์ PDF ของกรมสรรพากรเอง กรอกค่าให้ ไม่แตะแบบฟอร์ม</p>
+    <div class="side-total" id="sideTotal">—</div>
+    <nav class="jump" id="jump">
+      <a href="#c-xfer"><span class="dot" data-dot="xfer"></span>การโอนหุ้น</a>
+      <a href="#c-tfr"><span class="dot" data-dot="tfr"></span>ผู้โอน</a>
+      <a href="#c-tfe"><span class="dot" data-dot="tfe"></span>ผู้รับโอน</a>
+      <a href="#c-pay"><span class="dot" data-dot="pay"></span>ผู้เสียอากร</a>
+      <a href="#c-file"><span class="dot" data-dot="file"></span>การยื่นแบบ</a>
+      <a href="#c-sig"><span class="dot" data-dot="sig"></span>ผู้ลงนาม</a>
+      <a href="#c-duty"><span class="dot" data-dot="duty"></span>อากรแสตมป์</a>
+      <a href="#c-out"><span class="dot" data-dot="out"></span>ส่งออก</a>
+    </nav>
+    <div class="side-sec">View</div>
+    <div class="seg" id="viewSeg">
+      <button data-view="form">ฟอร์ม</button>
+      <button data-view="split" class="on">แบ่งจอ</button>
+      <button data-view="preview">ตัวอย่าง</button>
+    </div>
+    <div class="side-sec">File</div>
+    <div class="side-actions">
+      <button class="btn btn-primary" data-act="download" id="dlSide">⬇ ดาวน์โหลด PDF (แก้ไขได้)</button>
+      <button class="btn btn-ghost btn-sm" data-act="downloadPrint" id="dlSideP">⬇ PDF พร้อมพิมพ์</button>
+      <button class="btn btn-ghost btn-sm" data-act="fromSti">นำเข้าจากตราสารการโอนหุ้น</button>
+      <button class="btn btn-ghost btn-sm" data-act="open">เปิดไฟล์งาน / แฟ้มบริษัท / JSON</button>
+      <button class="btn btn-ghost btn-sm" data-act="paste">วาง JSON จาก AI</button>
+      <button class="btn btn-ghost btn-sm" data-act="saveJson">บันทึกไฟล์งาน (.json)</button>
+      <button class="btn btn-ghost btn-sm" data-act="copy" id="copyBtn">คัดลอกสรุป</button>
+      <button class="btn btn-soft btn-sm" data-act="example">ใส่ตัวอย่าง (สมมุติ)</button>
+      <button class="btn btn-danger btn-sm" data-act="clear">ล้างทั้งหมด</button>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- 1 · The transfer -->
+    <section class="card acc-xfer" id="c-xfer">
+      <div class="card-hd"><div class="ico">📄</div><h3>The transfer</h3><span class="th">ตราสารการโอนหุ้นที่ขอเสียอากร</span></div>
+      <div class="card-bd">
+        <div class="warn slate" style="margin:0 0 14px">ใช้ทำ อ.ส.4 <b>เฉพาะตราสารการโอนหุ้น</b> (ลักษณะแห่งตราสาร 2 — โอนหุ้น และ 23 — คู่ฉบับ) ไม่ใช้กับตราสารอื่น เช่น สัญญาเช่า จ้างทำของ กู้ยืม
+          หรือใบมอบอำนาจ ซึ่งอัตรา ผู้เสียอากร และกำหนดเวลาต่างกัน — แบบเดียวกันสำหรับตราสารอื่นต่อยอดจากเครื่องมือนี้ได้ แต่ยังไม่ได้ทำ</div>
+        <div class="grid3">
+          <div class="field"><div class="row-lbl"><label for="insDate">ลงวันที่ (วันทำตราสาร)</label></div>
+            <input type="date" id="insDate" data-p="instrument.date"></div>
+          <div class="field"><div class="row-lbl"><label for="insDesc">ลักษณะตราสาร</label></div>
+            <input type="text" id="insDesc" data-p="instrument.description" placeholder="ตราสารการโอนหุ้น"></div>
+          <div class="field"><div class="row-lbl"><label for="copies">จำนวนคู่ฉบับ</label></div>
+            <input type="number" id="copies" min="0" max="20" step="1" data-p="counterparts" placeholder="1"></div>
+        </div>
+        <div class="grid3">
+          <div class="field"><div class="row-lbl"><label for="shCount">จำนวนหุ้นที่โอน</label></div>
+            <input type="text" inputmode="numeric" class="num" id="shCount" data-p="shares.count" placeholder="เช่น 1000"></div>
+          <div class="field"><div class="row-lbl"><label for="shPar">มูลค่าหุ้นละ (บาท)</label></div>
+            <input type="text" inputmode="decimal" class="num amt" id="shPar" data-p="shares.par" placeholder="เช่น 100"></div>
+          <div class="field"><div class="row-lbl"><label for="shPaid">ชำระแล้ว (%)</label></div>
+            <input type="text" inputmode="decimal" class="num" id="shPaid" data-p="shares.paidUp" placeholder="100"></div>
+        </div>
+        <div class="field">
+          <div class="row-lbl"><label for="shPrice">ราคาตามตราสาร (บาท)</label>
+            <span class="seg" id="priceSeg" style="margin-left:6px"><button data-pm="total" class="on">ราคารวม</button><button data-pm="perShare">ต่อหุ้น</button></span></div>
+          <input type="text" inputmode="decimal" class="num amt" id="shPrice" data-p="shares.price" placeholder="ว่างไว้ถ้าตราสารไม่ระบุราคา — อากรคิดจากมูลค่าหุ้นที่ชำระแล้ว">
+          <div class="note">อากรคิดจากราคาในตราสารหรือมูลค่าหุ้นที่ชำระแล้ว แล้วแต่อย่างใดจะมากกว่า (ลักษณะแห่งตราสาร 2) — ช่อง “มูลค่าของตราสาร” ในแบบจะใส่ค่าที่ใช้คิดอากรนี้</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2 · Transferor -->
+    <section class="card acc-party" id="c-tfr">
+      <div class="card-hd"><div class="ico">👤</div><h3>Transferor</h3><span class="th">ผู้โอน — ผู้ต้องเสียอากรตามลักษณะแห่งตราสาร 2</span></div>
+      <div class="card-bd" data-party="tfr"></div>
+    </section>
+
+    <!-- 3 · Transferee -->
+    <section class="card acc-party" id="c-tfe">
+      <div class="card-hd"><div class="ico">👤</div><h3>Transferee</h3><span class="th">ผู้รับโอน</span></div>
+      <div class="card-bd" data-party="tfe"></div>
+    </section>
+
+    <!-- 4 · Who pays -->
+    <section class="card acc-pay" id="c-pay">
+      <div class="card-hd"><div class="ico">⚖️</div><h3>Who pays</h3><span class="th">ผู้เสียอากร และจำนวนแบบที่ยื่น</span></div>
+      <div class="card-bd">
+        <div class="pay-opts" id="payOpts">
+          <div class="pay-opt" data-payer="transferor"><input type="radio" name="payer"><div><b>ผู้โอนเสียทั้งต้นฉบับและคู่ฉบับ — แบบเดียว</b>
+            <span>ที่สำนักงานทำตลอด ตรงกับตัวอย่างที่ 2 ในคู่มือกรมสรรพากร (สัญญากำหนดให้ฝ่ายเดียวเสียอากรทั้งหมด) · ผู้เสียอากร = ผู้โอน, คู่สัญญา = ผู้รับโอน</span></div></div>
+          <div class="pay-opt" data-payer="transferee"><input type="radio" name="payer"><div><b>ผู้รับโอนเสียทั้งหมด — แบบเดียว</b>
+            <span>เช่น ผู้โอนเป็นบริษัทต่างประเทศไม่มีเลขผู้เสียภาษี หรือตกลงให้ผู้ซื้อรับภาระอากร · ผู้เสียอากร = ผู้รับโอน, คู่สัญญา = ผู้โอน</span></div></div>
+          <div class="pay-opt" data-payer="split"><input type="radio" name="payer"><div><b>แยก 2 แบบ ตามตารางตราสารของกรมสรรพากร</b>
+            <span>ผู้โอนยื่นแบบสำหรับต้นฉบับ (ข้อ 2) · ผู้รับโอนยื่นอีกแบบสำหรับคู่ฉบับ (ข้อ 23 — มีคู่สัญญาอีกฝ่าย ฝ่ายนั้นเป็นผู้เสียอากรคู่ฉบับ) · ได้ PDF 2 ไฟล์</span></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5 · Filing -->
+    <section class="card acc-file" id="c-file">
+      <div class="card-hd"><div class="ico">🏛️</div><h3>Filing</h3><span class="th">สำนักงานที่ยื่น · วันที่ยื่น · เงินเพิ่มอากร · การสลักหลัง</span></div>
+      <div class="card-bd">
+        <div class="grid2">
+          <div class="field"><div class="row-lbl"><label for="office">สำนักงานสรรพากรพื้นที่สาขา</label></div>
+            <input type="text" id="office" data-p="office" list="officeList" placeholder="เช่น บางรัก">
+            <datalist id="officeList"></datalist>
+            <div class="note">พิมพ์เฉพาะชื่อสาขา — คำว่า “สำนักงานสรรพากรพื้นที่สาขา” พิมพ์อยู่ในแบบแล้ว</div></div>
+          <div class="field"><div class="row-lbl"><label>วันที่ยื่นแบบ</label>
+            <span class="seg" id="fileSeg" style="margin-left:6px"><button data-fm="date" class="on">วันที่</button><button data-fm="month">เดือน/ปี</button><button data-fm="none">เว้นไว้</button></span></div>
+            <input type="date" id="fileDate" data-p="filing.date">
+            <input type="month" id="fileMonth" data-p="filing.month" style="display:none">
+            <div class="note" id="fileNote"></div></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><div class="row-lbl"><label for="surMode">เงินเพิ่มอากร (มาตรา 113 / 114)</label><span class="auto-tag" data-reset="surMode">auto</span></div>
+            <select id="surMode"></select>
+            <div class="note" id="surNote"></div></div>
+          <div class="field"><div class="row-lbl"><label>การยื่นตราสารเพื่อสลักหลัง</label></div>
+            <label class="check"><input type="checkbox" id="endorse" data-cb="endorse.submitted"> ได้ยื่นตราสารมาเพื่อให้ทำการสลักหลังด้วยแล้ว</label>
+            <input type="text" id="endorseWhy" data-p="endorse.reason" placeholder="ไม่ได้ยื่นตราสารเพื่อให้ทำการสลักหลังเพราะ …" style="margin-top:6px;display:none"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6 · Signature -->
+    <section class="card acc-sig" id="c-sig">
+      <div class="card-hd"><div class="ico">✍️</div><h3>Signature</h3><span class="th">ลงชื่อ … ผู้เสียอากร ( … ) ตำแหน่ง</span></div>
+      <div class="card-bd">
+        <div class="grid2">
+          <div class="field"><div class="row-lbl"><label for="signName">ชื่อในวงเล็บใต้ลายมือชื่อ</label><span class="auto-tag" data-reset="signName">auto</span></div>
+            <input type="text" id="signName" list="peopleList">
+            <div class="note" id="signNote">ค่าตั้งต้น: ชื่อผู้เสียอากรเมื่อเป็นบุคคลธรรมดา — ถ้าเป็นบริษัท ใส่ชื่อกรรมการผู้ลงนาม หรือผู้รับมอบอำนาจที่ไปยื่นแทน</div></div>
+          <div class="field"><div class="row-lbl"><label for="signPos">ตำแหน่ง</label></div>
+            <input type="text" id="signPos" data-p="signer.position">
+            <div class="chips"><button class="chip" data-pos="กรรมการผู้มีอำนาจ">กรรมการผู้มีอำนาจ</button><button class="chip" data-pos="ผู้รับมอบอำนาจ">ผู้รับมอบอำนาจ</button><button class="chip" data-pos="">ว่าง</button></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7 · Stamp duty -->
+    <section class="card acc-out" id="c-duty">
+      <div class="card-hd"><div class="ico">🧾</div><h3>Stamp duty</h3><span class="th">อากรแสตมป์ — ลักษณะแห่งตราสาร 2 และ 23</span>
+        <span class="spacer"></span><a class="btn btn-soft btn-sm" id="dutyLink" target="_blank" rel="noopener">↗ เครื่องคำนวณอากรแสตมป์</a></div>
+      <div class="card-bd">
+        <div class="grid2">
+          <div>
+            <div class="duty-total" id="dutyTotal">—</div>
+            <dl class="duty" id="dutyTable"></dl>
+          </div>
+          <div class="ov-grid">
+            <div class="field"><div class="row-lbl"><label for="ovValue">มูลค่าของตราสาร (บาท)</label><span class="auto-tag" data-reset="value">auto</span></div>
+              <input type="text" inputmode="decimal" class="num amt" id="ovValue" data-ov="value"></div>
+            <div class="field"><div class="row-lbl"><label for="ovDutyO">อากรต้นฉบับ</label><span class="auto-tag" data-reset="dutyOriginal">auto</span></div>
+              <input type="text" inputmode="numeric" class="num" id="ovDutyO" data-ov="dutyOriginal"></div>
+            <div class="field"><div class="row-lbl"><label for="ovDutyC">อากรคู่ฉบับ</label><span class="auto-tag" data-reset="dutyCounterpart">auto</span></div>
+              <input type="text" inputmode="numeric" class="num" id="ovDutyC" data-ov="dutyCounterpart"></div>
+            <div class="field"><div class="row-lbl"><label for="ovSurO">เงินเพิ่ม — ต้นฉบับ / คู่ฉบับ</label><span class="auto-tag" data-reset="sur">auto</span></div>
+              <div class="grid2" style="gap:6px"><input type="text" inputmode="numeric" class="num" id="ovSurO" data-ov="surOriginal"><input type="text" inputmode="numeric" class="num" id="ovSurC" data-ov="surCounterpart"></div></div>
+          </div>
+        </div>
+        <div class="warn slate" id="dutyNote"></div>
+      </div>
+      <details class="rules"><summary>หลักการคำนวณและกฎหมายที่ใช้</summary><div class="rules-bd">
+        <p><b>ลักษณะแห่งตราสาร 2 — โอนใบหุ้น</b> ทุกจำนวนเงิน 1,000 บาท หรือเศษของ 1,000 บาท 1 บาท คิดตามราคาหุ้นที่ชำระแล้ว หรือตามราคาที่ระบุไว้ในตราสาร แล้วแต่อย่างใดจะมากกว่า ผู้ต้องเสียอากร = ผู้โอน
+          — เศษของพันบาทปัดขึ้นเสมอ (2,845,316.40 บาท = อากร 2,846 บาท ไม่ใช่ 2,845.32)</p>
+        <p><b>ลักษณะแห่งตราสาร 23 — คู่ฉบับ</b> ต้นฉบับเสียอากรไม่เกิน 5 บาท 1 บาท เกิน 5 บาท 5 บาท ต่อคู่ฉบับหนึ่งฉบับ ตามตารางตราสารของกรมสรรพากร ถ้ามีคู่สัญญาอีกฝ่าย ฝ่ายนั้นเป็นผู้เสียอากรคู่ฉบับ —
+          การให้ฝ่ายเดียวเสียทั้งหมดในแบบเดียวคือตัวอย่างที่ 2 ของคู่มือการกรอกแบบ อ.ส.4</p>
+        <p><b>กำหนดเวลา</b> ตราสารนอกจากลักษณะ 1, 4 และ 28(ค) ยื่นก่อนกระทำหรือในทันทีที่ทำตราสาร (คู่มือ อ.ส.4) · <b>มาตรา 113</b> ชำระเองเกินกำหนด: ภายใน 15 วัน ไม่มีเงินเพิ่ม,
+          เกิน 15 วันแต่ไม่เกิน 90 วัน 2 เท่าหรือ 4 บาท, เกิน 90 วัน 5 เท่าหรือ 10 บาท แล้วแต่อย่างใดจะมากกว่า (ต่อตราสารแต่ละฉบับ) · <b>มาตรา 114</b> เจ้าพนักงานตรวจพบ: 6 เท่า/1 เท่า หรือ 25 บาท
+          — ค่าตั้งต้นเลือกจากวันทำตราสารกับวันยื่นแบบ เปลี่ยนเองได้</p>
+        <p><b>ช่อง “สำหรับเจ้าหน้าที่”</b> สคริปต์ในแบบของกรมฯ ไม่คำนวณอะไรเลย มีแค่จัดรูปแบบตัวเลข — ค่าอากร เงินเพิ่ม รวมเงิน ในแบบนี้จึงคำนวณจากหน้านี้ (สำนักงานกรอกไว้ให้เจ้าหน้าที่ตรวจตามแนวที่ทำมา)
+          ช่องอัตราอากรเว้นไว้ให้เจ้าหน้าที่</p>
+      </div></details>
+    </section>
+
+    <!-- 8 · Filling style -->
+    <section class="card acc-opt" id="c-opt">
+      <div class="card-hd"><div class="ico">⚙️</div><h3>Filling style</h3><span class="th">รูปแบบการกรอก — ค่าตั้งต้นตามแบบที่สำนักงานยื่นจริง ส่วนที่ไม่แน่นอนตามคู่มือกรมสรรพากร</span></div>
+      <div class="card-bd">
+        <div class="grid2">
+          <div>
+            <label class="check"><input type="checkbox" data-opt="dashes"> ใส่ “-” ในช่องที่อยู่ที่ไม่มี (สำนักงาน)</label>
+            <label class="check"><input type="checkbox" data-opt="centre"> จัดข้อความสั้นให้อยู่กลางบรรทัด (สำนักงาน)</label>
+            <label class="check"><input type="checkbox" data-opt="officerColumns"> กรอกช่องสำหรับเจ้าหน้าที่: ค่าอากร เงินเพิ่ม รวมเงิน (สำนักงาน)</label>
+          </div>
+          <div>
+            <label class="check"><input type="checkbox" data-opt="itemDots"> เขียนข้อเป็น “2.” “23.” (คู่มือกรมฯ)</label>
+            <label class="check"><input type="checkbox" data-opt="totalCount"> ใส่รวมจำนวนตราสาร (คู่มือกรมฯ)</label>
+            <label class="check"><input type="checkbox" data-opt="counterpartZero"> มูลค่าแถวคู่ฉบับใส่ 0.00 (สำนักงาน — คู่มือเว้นว่าง)</label>
+            <label class="check"><input type="checkbox" data-opt="noTinZeros"> ไม่มีเลขผู้เสียภาษีไทย พิมพ์ 0 0000 00000 00 0 (สำนักงาน)</label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 9 · Export -->
+    <section class="card acc-out" id="c-out">
+      <div class="card-hd"><div class="ico">⬇</div><h3>Export</h3><span class="th">ส่งออก PDF</span></div>
+      <div class="card-bd">
+        <div class="field"><div class="row-lbl"><label for="fileName">ชื่อไฟล์</label><span class="auto-tag" data-reset="fileName">auto</span></div>
+          <input type="text" id="fileName"></div>
+        <div id="fileList" class="note" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#52525b;word-break:break-all"></div>
+        <div class="btn-row" style="margin-top:10px"><button class="btn btn-primary" data-act="download" id="dlMain">⬇ ดาวน์โหลด PDF (แก้ไขได้)</button>
+          <button class="btn btn-ghost" data-act="downloadPrint" id="dlMainP">⬇ PDF พร้อมพิมพ์</button>
+          <button class="btn btn-ghost btn-sm" data-act="saveJson">บันทึกไฟล์งาน (.json)</button></div>
+        <div class="note" style="margin-top:6px">แก้ไขได้ (ค่าเริ่มต้น) = แบบของกรมฯ ที่ช่องกรอกยังอยู่ครบและกรอกค่าไว้แล้ว เปิดใน Acrobat แก้ต่อได้ทุกช่อง ·
+          พร้อมพิมพ์ = ข้อความอยู่บนหน้าเอกสาร เปิดโปรแกรมไหนก็เหมือนกัน แต่แก้ในช่องไม่ได้ — ใช้เมื่อจะพิมพ์จาก Preview/Safari ของ Mac
+          (Preview วาดช่องกรอกใหม่เอง ตัวเลขไม่มีจุลภาค เป็นกับไฟล์ที่กรอกด้วย Acrobat ทุกไฟล์)</div>
+        <div class="warn rose" id="errBox"></div>
+        <div class="warn amber" id="warnBox"></div>
+        <div class="warn slate" id="blankBox"></div>
+        <div class="warn green" id="noteBox"></div>
+      </div>
+      <details class="rules"><summary>ไฟล์ที่ได้คืออะไร</summary><div class="rules-bd">
+        <p><b>แบบของกรมสรรพากรเอง ไม่แตะเลย</b> — ไฟล์ OS4_150861.pdf ที่ดาวน์โหลดจาก rd.go.th ทุกไบต์อยู่ครบเป็นส่วนต้นของไฟล์ที่ได้ ทั้งสองแบบ
+          สิ่งที่เพิ่มต่อท้ายเป็น incremental update ของมาตรฐาน PDF</p>
+        <p><b>PDF แก้ไขได้ (ค่าเริ่มต้น)</b> — ช่องทุกช่องยังเป็นช่องกรอกของแบบ ใส่ค่าและภาพข้อความของแต่ละช่องไว้ เปิดใน Acrobat แล้วแก้ช่องไหนก็ได้
+          สคริปต์จัดรูปแบบตัวเลขและเลขผู้เสียภาษีของกรมฯ ยังทำงาน (Acrobat วาดช่องที่แก้ใหม่ด้วยฟอนต์ของมันเอง) · Acrobat และ Chrome แสดงตามตัวอย่างนี้
+          ส่วน Preview/Safari ของ Mac และ iPhone จะวาดช่องใหม่เองจากค่า (ฟอนต์ของ Mac ตัวเลขไม่มีจุลภาค) — เป็นกับไฟล์ที่กรอกด้วย Acrobat ทุกไฟล์</p>
+        <p><b>PDF พร้อมพิมพ์</b> — ข้อความวาดลงบนหน้าเอกสาร (สตรีมเนื้อหาของกรมฯ ทั้ง 8 ชุดไม่แตะ เพิ่มชุดที่ 9 ต่อท้าย) และไม่มีช่องกรอกเหลือ เหมือนสั่ง “พิมพ์เป็น PDF” จาก Acrobat
+          ทุกโปรแกรมแสดงเหมือนกัน รวมถึง Preview/Safari — ใช้เมื่อจะพิมพ์จาก Mac หรือส่งให้คนที่ไม่มี Acrobat</p>
+        <p><b>ภาษาไทย</b> — จัดวางวรรณยุกต์ สระบน สระล่าง ด้วย HarfBuzz (ตัวเดียวกับที่เบราว์เซอร์ใช้) ฟอนต์ Noto Sans Thai Looped (SIL Open Font License) ขนาดเทียบให้สูงเท่าตัวอักษรในแบบที่สำนักงานยื่นจริง</p>
+      </div></details>
+    </section>
+  </main>
+
+  <aside class="pv show-v" id="pv">
+    <div class="pv-hd"><h3>ตัวอย่างแบบ อ.ส.4</h3><span class="pv-pages" id="pvPages"></span><span class="spacer" style="margin-left:auto"></span>
+      <label class="check" style="font-size:.78em"><input type="checkbox" id="showVals" checked>ไฮไลต์ช่องที่กรอก</label></div>
+    <div class="pv-body" id="pvBody"><div class="pv-loading">กำลังโหลดตัวจัดวางอักษรไทย…</div></div>
+    <div class="pv-note">วาดจากตำแหน่งตัวอักษรชุดเดียวกับที่เขียนลง PDF — ตัวอย่างนี้คือสิ่งที่จะพิมพ์ออกมา</div>
+  </aside>
+</div>
+
+<footer>
+  <span class="cites">เฉพาะตราสารการโอนหุ้น · ประมวลรัษฎากร มาตรา 103, 113, 114; บัญชีอัตราอากรแสตมป์ ลักษณะแห่งตราสาร 2 และ 23; แบบ อ.ส.4 และคู่มือการกรอก (กรมสรรพากร, 15 ส.ค. 2561); ตารางตราสารสำหรับการยื่นแบบขอเสียอากรแสตมป์เป็นตัวเงิน</span><br>
+  Reference tool only — not legal advice; a lawyer checks the form before it is signed. Runs entirely in your browser.
+</footer>
+
+<div class="dlg-bg" id="dlg"><div class="dlg"><h4 id="dlgTitle"></h4><div class="dlg-msg" id="dlgMsg"></div>
+  <div class="pick" id="dlgPick"></div>
+  <div class="btn-row"><button class="btn btn-ghost" id="dlgNo">ยกเลิก</button><button class="btn btn-primary" id="dlgYes">ตกลง</button></div></div></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="filePick" accept=".json,application/json" style="display:none">
+<datalist id="peopleList"></datalist>
+
+<script id="os4-data" type="application/json">__OS4_DATA__</script>
+<script>
+__HB_JS__
+</script>
+<script>
+__HBJS_JS__
+</script>
+<script>
+__OS4_ENGINE__
+</script>
+<script>
+(function () {
+'use strict';
+
+/* ── Data baked in by _build/os4/assemble.py ─────────────────────────────── */
+const D = JSON.parse(document.getElementById('os4-data').textContent);
+const E = OS4Engine;
+const KEY = 'juratools-os4-v1', OFFICE_KEY = 'juratools-os4-offices-v1';
+const SHARE_KEY = 'jt-corp-share', STI_KEY = 'jt-share-transfer-instrument';
+const CALC = '../tax-tools/thai-stamp-duty-calculator.html';
+const $ = id => document.getElementById(id);
+const PAGE_W = 595.276, PAGE_H = 841.89;
+const PARTS = E.ADDRESS_PARTS, LABELS = E.ADDRESS_LABELS;
+
+function bytes(b64) { const s = atob(b64); const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; }
+const norm = s => String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const digits = s => String(s || '').replace(/[๐-๙]/g, c => '๐๑๒๓๔๕๖๗๘๙'.indexOf(c)).replace(/\D/g, '');
+const money = n => n === null || n === undefined || n === '' ? '—' : Number(n).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+
+/* ── State ─────────────────────────────────────────────────────────────── */
+function blankParty() { return { name: '', tin: '', noTin: false, branch: '', addrLine: '', addr: {} }; }
+function blank() {
+  return {
+    v: 1,
+    instrument: { date: '', description: '', number: '' },
+    counterparts: '1',
+    shares: { count: '', par: '', paidUp: '100', price: '', priceMode: 'total' },
+    tfr: blankParty(), tfe: blankParty(),
+    payer: 'transferor',
+    office: '',
+    filing: { mode: 'date', date: '', month: '' },
+    surMode: null,
+    endorse: { submitted: true, reason: '' },
+    signer: { name: null, position: '' },
+    ov: { value: null, dutyOriginal: null, dutyCounterpart: null, surOriginal: null, surCounterpart: null },
+    options: {},
+    fileName: null
+  };
+}
+let S = blank();
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+function load() {
+  let st = null;
+  try { st = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+  return st && st.v === 1 ? adopt(st) : null;
+}
+/* A state from storage or a file, laid over a blank one so a key added later is never missing. */
+function adopt(st) {
+  const b = blank();
+  const out = Object.assign(b, st);
+  ['instrument', 'shares', 'filing', 'endorse', 'signer', 'ov'].forEach(k => { out[k] = Object.assign(blank()[k], st[k] || {}); });
+  out.tfr = Object.assign(blankParty(), st.tfr || {}); out.tfe = Object.assign(blankParty(), st.tfe || {});
+  out.tfr.addr = Object.assign({}, (st.tfr || {}).addr); out.tfe.addr = Object.assign({}, (st.tfe || {}).addr);
+  out.options = Object.assign({}, st.options);
+  return out;
+}
+const getPath = p => p.split('.').reduce((o, k) => o == null ? o : o[k], S);
+function setPath(p, v) { const ks = p.split('.'), last = ks.pop(); ks.reduce((o, k) => o[k], S)[last] = v; }
+function setVal(el, v) { if (el && document.activeElement !== el && el.value !== v) el.value = v; }
+
+/* ── From the page to the engine ───────────────────────────────────────── */
+function split(who) { return E.splitAddress(S[who].addrLine); }
+/* A box typed into wins; the others follow the line. */
+function addrOf(who) {
+  const sp = split(who).parts, ov = S[who].addr, out = {};
+  PARTS.forEach(k => { out[k] = ov[k] !== undefined ? ov[k] : sp[k]; });
+  return out;
+}
+const amt = v => String(v == null ? '' : v).replace(/,/g, '');
+function toInput(draft) {
+  const party = who => ({
+    name: S[who].name, tin: S[who].noTin ? 'none' : S[who].tin, foreign: S[who].noTin,
+    branch: S[who].branch, address: addrOf(who)
+  });
+  const sh = { count: S.shares.count, parValue: amt(S.shares.par), paidUpPercent: S.shares.paidUp || '100' };
+  if (S.shares.priceMode === 'perShare') sh.pricePerShare = amt(S.shares.price); else sh.price = amt(S.shares.price);
+  const opt = S.options;
+  const input = {
+    office: S.office,
+    filingDate: S.filing.mode === 'date' ? S.filing.date : S.filing.mode === 'month' ? S.filing.month : null,
+    transferor: party('tfr'), transferee: party('tfe'),
+    payer: S.payer,
+    instrument: { date: S.instrument.date, description: S.instrument.description, number: S.instrument.number },
+    counterparts: S.counterparts === '' ? 1 : S.counterparts,
+    shares: sh,
+    value: S.ov.value === null ? undefined : amt(S.ov.value),
+    duty: { original: S.ov.dutyOriginal === null ? undefined : S.ov.dutyOriginal, counterpart: S.ov.dutyCounterpart === null ? undefined : S.ov.dutyCounterpart },
+    surcharge: { mode: S.surMode || undefined, original: S.ov.surOriginal === null ? undefined : S.ov.surOriginal, counterpart: S.ov.surCounterpart === null ? undefined : S.ov.surCounterpart },
+    endorsement: { submitted: S.endorse.submitted, reason: S.endorse.reason },
+    signer: { name: S.signer.name === null ? undefined : S.signer.name, position: S.signer.position },
+    options: {
+      dashes: opt.dashes !== false, centre: opt.centre !== false, officerColumns: opt.officerColumns !== false,
+      itemDots: opt.itemDots !== false, totalCount: opt.totalCount !== false,
+      counterpartValue: opt.counterpartZero === false ? 'blank' : 'zero', noTin: opt.noTinZeros === false ? 'blank' : 'zeros'
+    },
+    fileName: S.fileName || undefined
+  };
+  if (draft) input.draft = true;
+  return input;
+}
+/* An input as the MCP tool takes it (or a hand-off from another page) → this page's state. */
+function fromInput(o) {
+  const st = blank();
+  const party = (p, into) => {
+    p = p || {};
+    into.name = norm(p.name || p.nameTh || p.nameThai || p.nameEn || p.nameEnglish);
+    const t = String(p.tin || p.taxId || p.idNo || '');
+    into.noTin = !!p.foreign || /^(none|-|ไม่มี)$/i.test(t.trim()) || /^0+$/.test(digits(t));
+    into.tin = into.noTin ? '' : (digits(t).length === 13 ? E.tinFormat(digits(t)) : t);
+    into.branch = p.branch || '';
+    const a = p.address !== undefined ? p.address : (p.addressThai || p.addrTh || p.addressEnglish || p.addrEn);
+    if (typeof a === 'string') into.addrLine = a;
+    else if (a && typeof a === 'object') PARTS.forEach(k => { if (a[k] !== undefined && a[k] !== null) into.addr[k] = String(a[k]); });
+  };
+  party(o.transferor, st.tfr); party(o.transferee, st.tfe);
+  const ins = o.instrument || {};
+  st.instrument.date = ins.date || ''; st.instrument.description = ins.description || ''; st.instrument.number = ins.number || '';
+  const sh = o.shares || {};
+  st.shares.count = sh.count != null ? String(sh.count) : '';
+  st.shares.par = sh.parValue != null ? String(sh.parValue) : (sh.par != null ? String(sh.par) : '');
+  st.shares.paidUp = sh.paidUpPercent != null ? String(sh.paidUpPercent) : '100';
+  if (sh.pricePerShare != null && sh.pricePerShare !== '') { st.shares.priceMode = 'perShare'; st.shares.price = String(sh.pricePerShare); }
+  else if (sh.price != null) st.shares.price = String(sh.price);
+  if (o.counterparts != null) st.counterparts = String(o.counterparts);
+  if (o.payer) st.payer = o.payer;
+  if (o.office) st.office = o.office;
+  if (o.filingDate) {
+    const f = String(o.filingDate);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(f)) { st.filing.mode = 'date'; st.filing.date = f; }
+    else if (/^\d{4}-\d{2}$/.test(f)) { st.filing.mode = 'month'; st.filing.month = f; }
+  }
+  if (o.value != null) st.ov.value = String(o.value);
+  if (o.duty) { if (o.duty.original != null) st.ov.dutyOriginal = String(o.duty.original); if (o.duty.counterpart != null) st.ov.dutyCounterpart = String(o.duty.counterpart); }
+  if (o.surcharge) { st.surMode = o.surcharge.mode || null;
+    if (o.surcharge.original != null) st.ov.surOriginal = String(o.surcharge.original); if (o.surcharge.counterpart != null) st.ov.surCounterpart = String(o.surcharge.counterpart); }
+  if (o.endorsement) { st.endorse.submitted = o.endorsement.submitted !== false; st.endorse.reason = o.endorsement.reason || ''; }
+  if (o.signer) { if (o.signer.name != null) st.signer.name = o.signer.name; st.signer.position = o.signer.position || ''; }
+  if (o.options) {
+    const op = o.options;
+    ['dashes', 'centre', 'officerColumns', 'itemDots', 'totalCount'].forEach(k => { if (op[k] === false) st.options[k] = false; });
+    if (op.counterpartValue === 'blank') st.options.counterpartZero = false;
+    if (op.noTin === 'blank') st.options.noTinZeros = false;
+  }
+  if (o.fileName) st.fileName = String(o.fileName).replace(/\.pdf$/i, '');
+  return st;
+}
+
+/* ── People: the share tools' directory, read only ─────────────────────── */
+function people() {
+  const out = [], seen = {};
+  const add = p => {
+    const name = norm(p.nameTh || p.th || p.nameEn || p.en || p.name);
+    if (!name || seen[name]) return;
+    seen[name] = 1;
+    out.push({ name, idNo: digits(p.idNo), idType: p.idType || '', addr: norm(p.addrTh || p.addrEn || '') });
+  };
+  try { const pack = JSON.parse(localStorage.getItem(SHARE_KEY) || 'null'); if (pack && Array.isArray(pack.people)) pack.people.forEach(add); } catch (e) {}
+  try { const st = JSON.parse(localStorage.getItem(STI_KEY) || 'null'); if (st && Array.isArray(st.parties)) st.parties.forEach(add); } catch (e) {}
+  return out;
+}
+/* Picking a known name fills what is still blank — never what was typed. */
+function fillFromDirectory(who) {
+  const hit = people().filter(p => p.name === norm(S[who].name))[0];
+  if (!hit) return false;
+  let n = 0;
+  if (!S[who].tin && !S[who].noTin && hit.idNo.length === 13 && hit.idType !== 'passport') { S[who].tin = hit.idNo; n++; }
+  if (!S[who].addrLine && hit.addr) { S[who].addrLine = hit.addr; n++; }
+  return n;
+}
+function offices() { try { return JSON.parse(localStorage.getItem(OFFICE_KEY) || '[]') || []; } catch (e) { return []; } }
+function rememberOffice(o) {
+  o = norm(o); if (!o) return;
+  const list = [o].concat(offices().filter(x => x !== o)).slice(0, 20);
+  try { localStorage.setItem(OFFICE_KEY, JSON.stringify(list)); } catch (e) {}
+}
+
+/* ── Party cards ───────────────────────────────────────────────────────── */
+function partyHtml(who) {
+  const boxes = PARTS.map(k => `<div><label for="${who}-a-${k}">${LABELS[k]}</label><input type="text" id="${who}-a-${k}" data-addr="${who}.${k}"></div>`).join('');
+  return `
+    <div class="grid2">
+      <div class="field"><div class="row-lbl"><label for="${who}-name">ชื่อ (พร้อมคำนำหน้า / ชื่อนิติบุคคล)</label></div>
+        <input type="text" id="${who}-name" data-p="${who}.name" list="peopleList" placeholder="${who === 'tfr' ? 'เช่น นายสมชาย ใจดี' : 'เช่น บริษัท ตัวอย่าง จำกัด'}">
+        <div class="note">ชาวต่างประเทศที่ชื่อเป็นภาษาอังกฤษ ให้พิมพ์ตัวใหญ่ (คู่มือ อ.ส.4)</div></div>
+      <div class="field"><div class="row-lbl"><label for="${who}-tin">เลขประจำตัวผู้เสียภาษีอากร</label><span class="tin-dot" id="${who}-tinDot"></span><span class="note" id="${who}-tinMsg" style="margin:0"></span></div>
+        <div class="grid2" style="grid-template-columns:2fr 1fr;gap:8px">
+          <input type="text" inputmode="numeric" class="num" id="${who}-tin" data-p="${who}.tin" placeholder="13 หลัก">
+          <input type="text" inputmode="numeric" class="num" id="${who}-branch" data-p="${who}.branch" placeholder="สาขาที่" title="สาขาที่ — 00000 = สำนักงานใหญ่; ว่างไว้ตามที่สำนักงานทำ"></div>
+        <label class="check" style="margin-top:6px;font-size:.78em"><input type="checkbox" data-cb="${who}.noTin"> ไม่มีเลขผู้เสียภาษีไทย (เช่น นิติบุคคลต่างประเทศ)</label></div>
+    </div>
+    <div class="field"><div class="row-lbl"><label for="${who}-addr">ที่อยู่ (บรรทัดเดียว)</label><button class="link-btn" data-act="clearAddr" data-who="${who}">ล้างช่องที่แก้เอง</button></div>
+      <textarea id="${who}-addr" data-p="${who}.addrLine" rows="2" placeholder="เช่น 10/5 ซอยสมมุติ 3 ถนนตัวอย่าง แขวงทดสอบ เขตทดลอง กรุงเทพมหานคร 10500"></textarea>
+      <div class="addr-box"><div class="sub-hd"><b>ช่องในแบบ</b><span class="note" style="margin:0">แยกจากบรรทัดข้างบนให้อัตโนมัติ — พิมพ์ทับช่องใดก็ได้ (ช่องที่แก้เองเป็นสีเหลือง)</span></div>
+        <div class="grid4">${boxes}</div>
+        <div class="warn amber" id="${who}-rest"></div></div></div>`;
+}
+
+/* ── Plan and paint ────────────────────────────────────────────────────── */
+let R = null;           // the renderer — after HarfBuzz has loaded
+let PLAN = null, ERR = null;
+function plan() {
+  ERR = null;
+  try { PLAN = E.plan(toInput(true)); }
+  catch (e) { PLAN = null; ERR = e.input ? e.message : String(e && e.message || e); }
+  return PLAN;
+}
+
+function paintValues() {
+  const grouped = v => { const [i, f] = String(v).replace(/,/g, '').split('.'); return /^\d+$/.test(i) ? i.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (f !== undefined ? '.' + f : '') : String(v); };
+  document.querySelectorAll('[data-p]').forEach(el => {
+    const v = getPath(el.dataset.p) == null ? '' : String(getPath(el.dataset.p));
+    setVal(el, el.classList.contains('amt') && v ? grouped(v) : v);
+  });
+  document.querySelectorAll('[data-cb]').forEach(el => { el.checked = !!getPath(el.dataset.cb); });
+  document.querySelectorAll('[data-opt]').forEach(el => { el.checked = S.options[el.dataset.opt] !== false; });
+  document.querySelectorAll('#priceSeg button').forEach(b => b.classList.toggle('on', b.dataset.pm === S.shares.priceMode));
+  document.querySelectorAll('#fileSeg button').forEach(b => b.classList.toggle('on', b.dataset.fm === S.filing.mode));
+  $('fileDate').style.display = S.filing.mode === 'date' ? '' : 'none';
+  $('fileMonth').style.display = S.filing.mode === 'month' ? '' : 'none';
+  $('fileNote').textContent = S.filing.mode === 'none' ? 'วันที่ เดือน ปี เว้นว่างไว้เขียนเองตอนยื่น' : S.filing.mode === 'month' ? 'พิมพ์เดือนและปี เว้นวันที่ไว้เขียนเอง' : '';
+  document.querySelectorAll('#payOpts .pay-opt').forEach(o => { const on = o.dataset.payer === S.payer; o.classList.toggle('on', on); o.querySelector('input').checked = on; });
+  $('endorseWhy').style.display = S.endorse.submitted ? 'none' : '';
+  ['tfr', 'tfe'].forEach(who => {
+    $(who + '-tin').disabled = S[who].noTin;
+    const sp = split(who), ov = S[who].addr;
+    PARTS.forEach(k => {
+      const el = $(`${who}-a-${k}`), manual = ov[k] !== undefined;
+      setVal(el, manual ? ov[k] : sp.parts[k]);
+      el.classList.toggle('ov', manual); el.classList.toggle('is-auto', !manual && !!sp.parts[k]);
+    });
+    $(who + '-rest').innerHTML = sp.rest.length ? 'ใส่ลงช่องไม่ได้: “' + sp.rest.map(esc).join('”, “') + '” — พิมพ์ลงช่องที่ถูกต้องเอง' : '';
+    const d = digits(S[who].tin), dot = $(who + '-tinDot'), msg = $(who + '-tinMsg');
+    dot.className = 'tin-dot' + (S[who].noTin || !d ? '' : d.length === 13 && E.tinValid(d) ? ' ok' : ' bad');
+    msg.textContent = S[who].noTin ? (S.options.noTinZeros === false ? 'เว้นว่าง' : 'พิมพ์ 0 0000 00000 00 0')
+      : !d ? '' : d.length !== 13 ? d.length + ' หลัก' : E.tinValid(d) ? E.tinFormat(d) : 'เลขตรวจสอบไม่ตรง';
+  });
+  paintOv();
+}
+function ovRow(key, el, auto, manual) {
+  const tag = document.querySelector(`[data-reset="${key}"]`);
+  const isManual = manual !== null && manual !== undefined;
+  setVal(el, isManual ? String(manual) : (auto == null ? '' : String(auto)));
+  el.classList.toggle('is-auto', !isManual);
+  if (tag) { tag.classList.toggle('manual', isManual); tag.textContent = isManual ? 'manual' : 'auto'; }
+}
+function paintOv() {
+  const d = PLAN && PLAN.stampDuty;
+  const grp = v => v == null ? '' : String(v).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  ovRow('value', $('ovValue'), d && d.basisBaht ? grp(d.basisBaht.split('.')[0]) + (d.basisBaht.includes('.') ? '.' + d.basisBaht.split('.')[1] : '') : '', S.ov.value);
+  ovRow('dutyOriginal', $('ovDutyO'), d && d.worked.original, S.ov.dutyOriginal);
+  ovRow('dutyCounterpart', $('ovDutyC'), d && d.worked.counterpart, S.ov.dutyCounterpart);
+  const f = PLAN && PLAN.forms;
+  const autoSur = which => { if (!d || d.worked.original === null) return ''; const m = E.SURCHARGE_MODES[d.surchargeMode]; const base = which === 'o' ? (S.ov.dutyOriginal !== null ? +S.ov.dutyOriginal : d.worked.original) : (S.ov.dutyCounterpart !== null ? +S.ov.dutyCounterpart : d.worked.counterpart); return !base || !m.mult ? 0 : Math.max(m.mult * base, m.min); };
+  ovRow('sur', $('ovSurO'), autoSur('o'), S.ov.surOriginal);
+  setVal($('ovSurC'), S.ov.surCounterpart !== null ? String(S.ov.surCounterpart) : String(autoSur('c')));
+  $('ovSurC').classList.toggle('is-auto', S.ov.surCounterpart === null);
+  if (S.ov.surCounterpart !== null) { const tag = document.querySelector('[data-reset="sur"]'); tag.classList.add('manual'); tag.textContent = 'manual'; }
+  // surcharge mode select
+  const sel = $('surMode');
+  if (!sel.options.length) sel.innerHTML = Object.keys(E.SURCHARGE_MODES).map(k => `<option value="${k}">${esc(E.SURCHARGE_MODES[k].label)}</option>`).join('');
+  const mode = d ? d.surchargeMode : (S.surMode || 'normal');
+  if (document.activeElement !== sel) sel.value = mode;
+  const tag = document.querySelector('[data-reset="surMode"]');
+  tag.classList.toggle('manual', !!S.surMode); tag.textContent = S.surMode ? 'manual' : 'auto';
+  $('surNote').textContent = E.SURCHARGE_MODES[mode].law;
+  // signer
+  const auto = f && f.length ? f.map(x => x.signer).filter(Boolean).join(' / ') : '';
+  ovRow('signName', $('signName'), S.signer.name === null ? (f && f.length === 1 ? f[0].signer : auto) : '', S.signer.name);
+  // file name
+  const base = f && f.length ? f[0].fileName.replace(/( \((ต้นฉบับ|คู่ฉบับ)\))?\.pdf$/, '') : '';
+  ovRow('fileName', $('fileName'), base, S.fileName);
+}
+
+function paintDuty() {
+  const d = PLAN && PLAN.stampDuty;
+  const grp = s => s == null ? '—' : String(s).replace(/^(\d+)/, m => m.replace(/\B(?=(\d{3})+(?!\d))/g, ','));
+  if (!d || d.worked.original === null) {
+    $('dutyTotal').textContent = '—'; $('sideTotal').innerHTML = '—';
+    $('dutyTable').innerHTML = '<dt>ยังคำนวณไม่ได้</dt><dd><small>ใส่ราคา หรือจำนวนหุ้นกับมูลค่าหุ้นละ</small></dd>';
+    $('dutyNote').innerHTML = '';
+  } else {
+    const rows = [];
+    if (d.paidUpValueBaht) rows.push(['มูลค่าหุ้นที่ชำระแล้ว', grp(d.paidUpValueBaht) + ` <small>(${esc(S.shares.count)} × ${esc(S.shares.par)} × ${esc(S.shares.paidUp || '100')}%)</small>`]);
+    if (d.priceBaht) rows.push(['ราคาตามตราสาร', grp(d.priceBaht)]);
+    rows.push(['ฐานคำนวณ (ค่าที่มากกว่า)', grp(d.basisBaht) + (d.basisFrom === 'given' ? ' <small>(กำหนดเอง)</small>' : d.basisFrom === 'paidUp' ? ' <small>(มูลค่าหุ้นที่ชำระแล้ว)</small>' : ' <small>(ราคา)</small>')]);
+    rows.push(['อากรต้นฉบับ (ข้อ 2)', grp(d.dutyOnOriginalBaht) + ' <small>(1 บาท ต่อทุก 1,000 หรือเศษ)</small>']);
+    if (d.duplicates) rows.push([`อากรคู่ฉบับ (ข้อ 23) × ${d.duplicates}`, grp(d.dutyOnDuplicateBaht) + ` <small>(${d.dutyOnOriginalBaht <= 5 ? '1' : '5'} บาทต่อฉบับ)</small>`]);
+    rows.push(['เงินเพิ่มอากร', grp(d.surchargeBaht)]);
+    $('dutyTable').innerHTML = rows.map(r => `<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('');
+    $('dutyTotal').textContent = grp(d.totalBaht) + ' บาท';
+    $('sideTotal').innerHTML = grp(d.totalBaht) + ' <small>บาท · อากร' + (d.surchargeBaht ? ' + เงินเพิ่ม' : '') + '</small>';
+    const payer = { transferor: 'ผู้โอนเสียทั้งหมด', transferee: 'ผู้รับโอนเสียทั้งหมด', split: 'แยก 2 แบบ' }[S.payer];
+    $('dutyNote').innerHTML = `ผู้เสียอากร: <b>${payer}</b>` + (PLAN.forms.length > 1 ? PLAN.forms.map(f => ` · ${esc(f.payer || '—')} ${grp(f.total.payable)} บาท`).join('') : '');
+  }
+  // the calculator, for a second opinion or several instruments at once
+  const paid = d && d.paidUpValueBaht, price = d && d.priceBaht;
+  $('dutyLink').href = CALC + '#duty=' + encodeURIComponent(JSON.stringify({ rows: [{ variantId: 'share-transfer',
+    amount: paid || '', secondaryAmount: price || '', count: '1', includeCounterpart: +S.counterparts !== 0, counterpartCount: String(S.counterparts || 1),
+    customName: 'ตราสารการโอนหุ้น · ' + [S.tfr.name, S.tfe.name].filter(Boolean).join(' → '), note: 'จากแบบ อ.ส.4' }] }));
+}
+
+function paintReport() {
+  $('errBox').innerHTML = ERR ? '<b>ยังสร้างแบบไม่ได้</b>' + esc(ERR) : '';
+  const P = PLAN;
+  $('warnBox').innerHTML = P && P.warnings.length ? '<b>ตรวจก่อนลงนาม</b>' + P.warnings.map(w => '<div>' + esc(w) + '</div>').join('') : '';
+  $('blankBox').innerHTML = P && P.blank.length ? '<b>ยังว่าง — จะเว้นไว้ในแบบ</b><div>' + P.blank.map(esc).join(' · ') + '</div>' : '';
+  $('noteBox').innerHTML = P && P.notes.length ? P.notes.map(n => '<div>' + esc(n) + '</div>').join('') : '';
+  $('fileList').innerHTML = P ? P.forms.map(f => esc(f.fileName)).join('<br>') : '';
+  const ready = !!(P && R && !ERR);
+  const two = P && P.forms.length > 1 ? ' (2 ไฟล์)' : '';
+  ['dlSide', 'dlMain'].forEach(id => { $(id).disabled = !ready; $(id).textContent = '⬇ ดาวน์โหลด PDF (แก้ไขได้)' + two; });
+  ['dlSideP', 'dlMainP'].forEach(id => { $(id).disabled = !ready; $(id).textContent = '⬇ PDF พร้อมพิมพ์' + two; });
+  const dot = (k, ok, warn) => { const el = document.querySelector(`[data-dot="${k}"]`); if (el) el.className = 'dot' + (ok ? ' ok' : warn ? ' warn' : ''); };
+  const blankHas = s => !!(P && P.blank.some(b => b.indexOf(s) >= 0));
+  const d = P && P.stampDuty;
+  dot('xfer', S.instrument.date && d && d.worked.original !== null, S.instrument.date || S.shares.count || S.shares.price);
+  ['tfr', 'tfe'].forEach(w => { const p = S[w]; const ok = p.name && (p.noTin || E.tinValid(digits(p.tin))) && (p.addrLine || Object.keys(p.addr).length); dot(w, ok, p.name || p.tin || p.addrLine); });
+  dot('pay', true); dot('file', S.office && S.filing.mode !== 'none' && !blankHas('วันที่ยื่นแบบ'), S.office || S.filing.date);
+  dot('sig', P && !blankHas('ผู้ลงนาม'), false); dot('duty', d && d.worked.original !== null, false);
+  dot('out', ready && P.blank.length === 0 && !P.warnings.length, ready);
+}
+
+/* ── Preview: the RD's form under the very glyphs the PDF will carry ───── */
+function paintPreview() {
+  const body = $('pvBody');
+  if (!R) return;
+  if (!PLAN) { body.innerHTML = '<div class="pv-loading">' + esc(ERR || '') + '</div>'; $('pvPages').textContent = ''; return; }
+  const used = new Set();
+  const pages = PLAN.forms.map(form => {
+    const L = R.layoutForm(form);
+    const parts = [];
+    Object.keys(L.fields).forEach(n => {
+      const def = D.fieldmap.fields[n], lf = L.fields[n], [x1, y1, x2, y2] = def.rect;
+      parts.push(`<rect class="hl" x="${x1}" y="${PAGE_H - y2}" width="${x2 - x1}" height="${y2 - y1}" rx="1"/>`);
+      const s = lf.size / 1000;
+      lf.glyphs.forEach(g => {
+        used.add(g.g);
+        parts.push(`<use href="#og${g.g}" transform="translate(${(x1 + g.x).toFixed(2)} ${(PAGE_H - y1 - g.y).toFixed(2)}) scale(${s.toFixed(5)} ${(-s).toFixed(5)})"/>`);
+      });
+    });
+    Object.keys(form.radios).forEach(gname => {
+      const kid = D.fieldmap.radios[gname].kids.filter(k => k.state === String(form.radios[gname]))[0];
+      if (!kid) return;
+      const [x1, y1, x2, y2] = kid.rect, w = x2 - x1, h = y2 - y1;
+      parts.push(`<path d="M${x1 + w * .2} ${PAGE_H - y1 - h * .5} L${x1 + w * .42} ${PAGE_H - y1 - h * .24} L${x1 + w * .82} ${PAGE_H - y1 - h * .82}" fill="none" stroke="#111" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>`);
+    });
+    return { form, svg: parts.join('') };
+  });
+  const defs = [...used].map(g => `<path id="og${g}" d="${R.glyphPath(g)}"/>`).join('');
+  body.innerHTML = `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>${defs}</defs></svg>` + pages.map((p, i) => `
+    ${pages.length > 1 ? `<div class="pg-cap">แบบที่ ${i + 1} — ${p.form.role === 'original' ? 'ต้นฉบับ (ข้อ 2)' : 'คู่ฉบับ (ข้อ 23)'} · ผู้เสียอากร ${esc(p.form.payer || '—')}</div>` : ''}
+    <div class="pg-wrap"><div class="pg"><img src="${D.bg}" alt="แบบ อ.ส.4 ของกรมสรรพากร">
+      <svg viewBox="0 0 ${PAGE_W} ${PAGE_H}" preserveAspectRatio="none" fill="#404040">${p.svg}</svg></div></div>`).join('');
+  $('pvPages').textContent = pages.length > 1 ? '2 แบบ' : '1 หน้า';
+}
+
+let timer = null;
+function refresh(now) {
+  clearTimeout(timer);
+  const go = () => { plan(); paintValues(); paintDuty(); paintReport(); paintPreview(); };
+  if (now) go(); else timer = setTimeout(go, 60);
+}
+function refreshAll() {
+  $('peopleList').innerHTML = people().map(p => `<option value="${esc(p.name)}">`).join('');
+  $('officeList').innerHTML = offices().map(o => `<option value="${esc(o)}">`).join('');
+  refresh(true);
+}
+
+/* ── Files ─────────────────────────────────────────────────────────────── */
+function download(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+}
+function exportPdf(fillable) {
+  let P;
+  try { P = E.plan(toInput(false)); } catch (e) { toast(e.input ? 'ยังขาด: ' + e.message : String(e.message || e)); refresh(true); return; }
+  const go = () => {
+    rememberOffice(S.office);
+    const name = f => fillable ? f.fileName : f.fileName.replace(/\.pdf$/, ' (print-ready).pdf');
+    P.forms.forEach((f, i) => setTimeout(() => download(new Blob([R.pdf(f, null, { flatten: !fillable })], { type: 'application/pdf' }), name(f)), i * 400));
+    toast('ดาวน์โหลด ' + P.forms.map(name).join(' และ '));
+  };
+  if (P.blank.length || P.warnings.length) confirmDlg('ดาวน์โหลดทั้งที่ยังไม่ครบ?', [
+    P.warnings.length ? 'ตรวจ: ' + P.warnings.join(' · ') : '',
+    P.blank.length ? 'ช่องที่จะเว้นว่าง: ' + P.blank.join(' · ') : ''].filter(Boolean).join('\n\n'), 'ดาวน์โหลด', go);
+  else go();
+}
+function exportJson() {
+  const out = { tool: 'os4-share-transfer', version: 1, savedAt: new Date().toISOString(), state: S, input: toInput(false) };
+  const base = (PLAN && PLAN.forms[0] ? PLAN.forms[0].fileName.replace(/\.pdf$/, '') : 'OS4');
+  download(new Blob([JSON.stringify(out, null, 1)], { type: 'application/json' }), base + '.os4.json');
+}
+function dirty() { return !!(S.tfr.name || S.tfe.name || S.shares.count || S.shares.price || S.instrument.date); }
+/* Replace the form — asking first when something is already typed. */
+function replaceWith(st, what) {
+  const put = () => { S = st; save(); refreshAll(); toast(what); };
+  if (dirty()) confirmDlg('แทนที่ข้อมูลที่กรอกอยู่?', `จะใส่ข้อมูลจาก${what.replace(/^เปิด|^นำเข้า/, '')} แทนการโอน ผู้โอน ผู้รับโอน ที่อยู่ในฟอร์มตอนนี้ (สำนักงานสรรพากรที่จำไว้ยังอยู่)`, 'แทนที่', put);
+  else put();
+}
+/* A saved page state, an MCP-style input (e.g. from ChatGPT), or a company dossier. */
+function openText(text) {
+  let o;
+  try { o = JSON.parse(text); } catch (e) { toast('ไม่ใช่ไฟล์ JSON'); return; }
+  if (o && (o.tool === 'os4-share-transfer' || o.tool === 'os4-stamp-duty') && o.state) return replaceWith(adopt(o.state), 'เปิดไฟล์งานแล้ว');
+  if (o && o.format === 'juratools-corporate-dossier') return pickTransfer(dossierTransfers(o), 'แฟ้มบริษัท');
+  if (o && (o.transferor || o.transferee)) return replaceWith(fromInput(o), 'เปิดข้อมูลจาก JSON แล้ว');
+  toast('ไม่รู้จักไฟล์นี้ — ต้องเป็นไฟล์งาน อ.ส.4, แฟ้มบริษัท (.dossier.json) หรือข้อมูลแบบเดียวกับเครื่องมือ create_os4');
+}
+function tinFor(people, name) {
+  const p = (people || []).filter(x => norm(x.nameTh || x.nameEn) === norm(name))[0];
+  return p && digits(p.idNo).length === 13 && p.idType !== 'passport' ? digits(p.idNo) : '';
+}
+function dossierTransfers(o) {
+  return (o.transfers || []).map(t => ({
+    label: `${t.date || '—'} · ${t.tfrTh || t.tfrEn || '—'} → ${t.tfeTh || t.tfeEn || '—'}`,
+    sub: [t.count && t.count + ' หุ้น', t.from && t.to && `หมายเลข ${t.from}-${t.to}`, t.price && 'ราคา ' + money(amt(t.price))].filter(Boolean).join(' · '),
+    input: {
+      transferor: { name: t.tfrTh || t.tfrEn, tin: tinFor(o.people, t.tfrTh || t.tfrEn), address: t.tfrAddrTh || t.tfrAddrEn || '' },
+      transferee: { name: t.tfeTh || t.tfeEn, tin: tinFor(o.people, t.tfeTh || t.tfeEn), address: t.tfeAddrTh || t.tfeAddrEn || '' },
+      instrument: { date: t.date || '' },
+      shares: { count: t.count, parValue: t.par || (o.co && o.co.par), paidUpPercent: t.paidUp || '100', price: t.price }
+    }
+  }));
+}
+/* The Share Transfer Instrument page's own work, from this browser. */
+function stiTransfers() {
+  let st = null;
+  try { st = JSON.parse(localStorage.getItem(STI_KEY) || 'null'); } catch (e) {}
+  if (!st || !Array.isArray(st.transfers)) return [];
+  const dir = st.parties || [];
+  return st.transfers.filter(t => t && (t.tfr.nameTh || t.tfr.nameEn || t.tfe.nameTh || t.tfe.nameEn)).map(t => {
+    const nm = p => p.nameTh || p.nameEn;
+    const count = digits(t.sh.count), par = amt(t.sh.par);
+    const price = t.sh.priceAuto ? (count && par ? String(+par * +count) : '') : (/\(\*\)/.test(t.sh.price) ? '' : amt(t.sh.price));
+    return {
+      label: `${t.tfr.date || t.tfe.date || '—'} · ${nm(t.tfr) || '—'} → ${nm(t.tfe) || '—'}`,
+      sub: [t.co && (t.co.th || t.co.en), count && count + ' หุ้น', price && 'ราคา ' + money(price)].filter(Boolean).join(' · '),
+      input: {
+        transferor: { name: nm(t.tfr), tin: tinFor(dir, nm(t.tfr)), address: t.tfr.addrTh || t.tfr.addrEn || '' },
+        transferee: { name: nm(t.tfe), tin: tinFor(dir, nm(t.tfe)), address: t.tfe.addrTh || t.tfe.addrEn || '' },
+        instrument: { date: t.tfr.date || t.tfe.date || '' },
+        shares: { count, parValue: par, paidUpPercent: t.sh.paidUp || '100', price }
+      }
+    };
+  });
+}
+function pickTransfer(list, from) {
+  if (!list.length) { toast(from === 'แฟ้มบริษัท' ? 'แฟ้มนี้ยังไม่มีรายการโอน (transfers)' : 'ยังไม่มีตราสารในหน้า Share Transfer Instrument ของเบราว์เซอร์นี้'); return; }
+  const take = x => replaceWith(Object.assign(fromInput(x.input), { office: S.office, filing: S.filing }), 'นำเข้าจาก' + from + 'แล้ว');
+  if (list.length === 1) return take(list[0]);
+  $('dlgTitle').textContent = 'เลือกการโอน';
+  $('dlgMsg').textContent = `${from}มี ${list.length} รายการ — เลือกรายการที่จะทำแบบ อ.ส.4`;
+  $('dlgPick').innerHTML = list.map((x, i) => `<button data-pick="${i}">${esc(x.label)}<small>${esc(x.sub)}</small></button>`).join('');
+  $('dlgYes').style.display = 'none';
+  $('dlg').classList.add('on');
+  PICK = i => { closeDlg(); take(list[i]); };
+}
+let PICK = null;
+
+/* A hand-off from another page: #os4=<the tool's input as JSON>. */
+function takeHash() {
+  const m = /^#os4=(.*)$/.exec(location.hash || '');
+  if (!m) return false;
+  history.replaceState(null, '', location.pathname + location.search);
+  let o = null;
+  try { o = JSON.parse(decodeURIComponent(m[1])); } catch (e) { toast('ลิงก์ส่งต่อข้อมูลไม่สมบูรณ์'); return false; }
+  replaceWith(Object.assign(fromInput(o), { office: S.office, filing: S.filing }), 'รับข้อมูลจากตราสารการโอนหุ้นแล้ว');
+  return true;
+}
+
+/* ── Summary to copy ───────────────────────────────────────────────────── */
+function summary() {
+  const d = PLAN && PLAN.stampDuty;
+  if (!d || d.worked.original === null) return '';
+  const g = s => String(s).replace(/^(\d+)/, m => m.replace(/\B(?=(\d{3})+(?!\d))/g, ','));
+  const lines = [
+    `อ.ส.4 — ${S.instrument.description || 'ตราสารการโอนหุ้น'} ลงวันที่ ${S.instrument.date ? E.thaiDate(E.parseDate(S.instrument.date)) : '(ยังไม่ระบุ)'}`,
+    `ผู้โอน ${S.tfr.name || '—'} → ผู้รับโอน ${S.tfe.name || '—'}`,
+    `ฐานคำนวณ ${g(d.basisBaht)} บาท (${d.basisFrom === 'paidUp' ? 'มูลค่าหุ้นที่ชำระแล้ว' : d.basisFrom === 'given' ? 'กำหนดเอง' : 'ราคาตามตราสาร'})`,
+    `อากรต้นฉบับ (ข้อ 2) ${g(d.dutyOnOriginalBaht)} บาท` + (d.duplicates ? ` · คู่ฉบับ (ข้อ 23) ${g(d.dutyOnDuplicateBaht)} บาท` : ''),
+    d.surchargeBaht ? `เงินเพิ่มอากร ${g(d.surchargeBaht)} บาท (${E.SURCHARGE_MODES[d.surchargeMode].label})` : 'ไม่มีเงินเพิ่มอากร',
+    `รวมชำระ ${g(d.totalBaht)} บาท — ผู้เสียอากร: ${PLAN.forms.map(f => f.payer || '—').join(' / ')}`,
+    S.office ? `ยื่น ณ สำนักงานสรรพากรพื้นที่สาขา${S.office}` : ''
+  ];
+  return lines.filter(Boolean).join('\n');
+}
+
+/* ── Example (fictional) ───────────────────────────────────────────────── */
+const EXAMPLE = {
+  office: 'บางรัก', filingDate: '2026-03-02',
+  transferor: { name: 'นายสมมุติ ตัวอย่าง', tin: '1234567890121', address: '10 ซอยสมมุติ 3 ถนนตัวอย่าง แขวงทดสอบ เขตทดลอง กรุงเทพมหานคร 10500' },
+  transferee: { name: 'บริษัท ตัวอย่าง โฮลดิ้งส์ จำกัด', tin: '0105551000001', address: 'เลขที่ 99/1 อาคารสมมุติทาวเวอร์ ชั้น 12 ถนนตัวอย่าง แขวงทดสอบ เขตทดลอง กรุงเทพมหานคร 10500' },
+  instrument: { date: '2026-03-02' },
+  shares: { count: 12500, parValue: 100, paidUpPercent: 100, price: '1875000' }
+};
+
+/* ── Dialog & toast ────────────────────────────────────────────────────── */
+let dlgYes = null;
+function confirmDlg(title, msg, yes, fn) {
+  $('dlgTitle').textContent = title; $('dlgMsg').textContent = msg; $('dlgPick').innerHTML = '';
+  $('dlgYes').style.display = ''; $('dlgYes').textContent = yes; dlgYes = fn; PICK = null; $('dlg').classList.add('on');
+}
+function closeDlg() { $('dlg').classList.remove('on'); dlgYes = null; }
+$('dlgNo').onclick = () => { closeDlg(); PICK = null; };
+$('dlgYes').onclick = () => { const f = dlgYes; closeDlg(); if (f) f(); };
+let tt = null;
+function toast(m) { const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 2800); }
+
+/* ── Live thousands separators on money (House Style §4.1) ─────────────── */
+function liveFormat(el) {
+  const raw = el.value, caret = el.selectionStart == null ? raw.length : el.selectionStart;
+  if (/[๐-๙]/.test(raw)) return;
+  const anchors = raw.slice(0, caret).replace(/[^0-9.]/g, '').length;
+  const clean = raw.replace(/[^0-9.]/g, ''), dot = clean.indexOf('.');
+  const ip = dot >= 0 ? clean.slice(0, dot) : clean, fp = dot >= 0 ? clean.slice(dot + 1).replace(/\./g, '') : null;
+  const out = ip.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (fp !== null ? '.' + fp : '');
+  if (out === raw) return;
+  el.value = out;
+  if (document.activeElement === el && el.setSelectionRange) {
+    let pos = 0, seen = 0;
+    while (pos < out.length && seen < anchors) { if (/[0-9.]/.test(out[pos])) seen++; pos++; }
+    el.setSelectionRange(pos, pos);
+  }
+}
+
+/* ── Events ────────────────────────────────────────────────────────────── */
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (t.classList.contains('amt')) liveFormat(t);
+  if (t.dataset.p) {
+    setPath(t.dataset.p, t.type === 'number' ? t.value : t.value);
+    if (/^(tfr|tfe)\.name$/.test(t.dataset.p) && fillFromDirectory(t.dataset.p.slice(0, 3))) toast('เติมเลขผู้เสียภาษี/ที่อยู่ จากรายชื่อที่มีอยู่');
+  } else if (t.dataset.addr) {
+    const [who, k] = t.dataset.addr.split('.');
+    S[who].addr[k] = t.value;
+  } else if (t.dataset.ov) {
+    S.ov[t.dataset.ov] = t.value.trim() === '' ? null : t.value;
+  } else if (t.id === 'signName') {
+    S.signer.name = t.value;
+  } else if (t.id === 'fileName') {
+    S.fileName = t.value.trim() === '' ? null : t.value;
+  } else return;
+  save(); refresh();
+});
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.dataset.cb) { setPath(t.dataset.cb, t.checked); save(); refresh(true); }
+  else if (t.dataset.opt) { S.options[t.dataset.opt] = t.checked; save(); refresh(true); }
+  else if (t.id === 'surMode') { S.surMode = t.value; save(); refresh(true); }
+  else if (t.id === 'showVals') $('pv').classList.toggle('show-v', t.checked);
+  else if (/-tin$/.test(t.id)) { const who = t.id.slice(0, 3), d = digits(S[who].tin); if (d.length === 13) { S[who].tin = E.tinFormat(d); save(); refresh(true); } }
+});
+document.addEventListener('click', e => {
+  const t = e.target.closest('button, .pay-opt, [data-reset]');
+  if (!t) return;
+  if (t.classList.contains('pay-opt')) { S.payer = t.dataset.payer; save(); refresh(true); return; }
+  if (t.dataset.reset) {
+    const k = t.dataset.reset;
+    if (!t.classList.contains('manual')) return;
+    if (k === 'surMode') S.surMode = null;
+    else if (k === 'signName') S.signer.name = null;
+    else if (k === 'fileName') S.fileName = null;
+    else if (k === 'sur') { S.ov.surOriginal = null; S.ov.surCounterpart = null; }
+    else S.ov[k] = null;
+    save(); refresh(true); return;
+  }
+  if (t.dataset.pm) { S.shares.priceMode = t.dataset.pm; save(); refresh(true); return; }
+  if (t.dataset.fm) { S.filing.mode = t.dataset.fm; save(); refresh(true); return; }
+  if (t.dataset.view) {
+    $('app').dataset.view = t.dataset.view;
+    document.querySelectorAll('#viewSeg button').forEach(b => b.classList.toggle('on', b === t)); return;
+  }
+  if (t.dataset.pos !== undefined) { S.signer.position = t.dataset.pos; save(); refresh(true); return; }
+  if (t.dataset.pick !== undefined) { if (PICK) PICK(+t.dataset.pick); return; }
+  switch (t.dataset.act) {
+    case 'download': exportPdf(true); break;           // the default: the RD's fields kept, filled — editable
+    case 'downloadPrint': exportPdf(false); break;
+    case 'saveJson': exportJson(); break;
+    case 'open': $('filePick').value = ''; $('filePick').click(); break;
+    case 'paste':
+      confirmDlg('วาง JSON', 'ข้อมูลแบบเดียวกับเครื่องมือ create_os4_share_transfer (เช่น os4Input จาก calculate_share_transfer หรือที่ AI เขียนตาม os4-share-transfer.guide.md), ไฟล์งาน อ.ส.4 หรือแฟ้มบริษัท', 'ใช้ข้อมูลนี้',
+        () => openText($('pasteBox').value));
+      $('dlgPick').innerHTML = '<textarea id="pasteBox" rows="9" style="font-size:.8em;font-family:ui-monospace,Menlo,monospace" placeholder=\'{"transferor": {…}, "transferee": {…}, "shares": {…}}\'></textarea>';
+      setTimeout(() => $('pasteBox').focus(), 30);
+      break;
+    case 'fromSti': pickTransfer(stiTransfers(), 'ตราสารการโอนหุ้น'); break;
+    case 'copy': {
+      const text = summary();
+      if (!text) { toast('ยังไม่มีอากรให้สรุป'); break; }
+      const done = () => { t.classList.add('copied'); t.textContent = 'คัดลอกแล้ว'; setTimeout(() => { t.classList.remove('copied'); t.textContent = 'คัดลอกสรุป'; }, 1300); };
+      try { navigator.clipboard.writeText(text).then(done, () => toast(text)); } catch (x) { toast(text); }
+      break;
+    }
+    case 'example': replaceWith(Object.assign(fromInput(EXAMPLE), { office: EXAMPLE.office, filing: { mode: 'date', date: EXAMPLE.filingDate, month: '' } }), 'ใส่ตัวอย่าง (ข้อมูลสมมุติ) แล้ว'); break;
+    case 'clear': confirmDlg('ล้างทั้งหมด?', 'ข้อมูลในฟอร์มทั้งหมดจะถูกล้าง (สำนักงานสรรพากรที่จำไว้ และรายชื่อในเครื่องมือหุ้นยังอยู่)', 'ล้าง', () => { S = blank(); save(); refreshAll(); }); break;
+    case 'clearAddr': { const who = t.dataset.who; S[who].addr = {}; save(); refresh(true); break; }
+  }
+});
+$('filePick').addEventListener('change', () => {
+  const f = $('filePick').files[0]; if (!f) return;
+  const r = new FileReader(); r.onload = () => openText(String(r.result)); r.readAsText(f, 'utf-8');
+});
+window.addEventListener('hashchange', takeHash);
+
+/* ── Start ─────────────────────────────────────────────────────────────── */
+document.querySelectorAll('[data-party]').forEach(el => { el.innerHTML = partyHtml(el.dataset.party); });
+S = load() || blank();
+refreshAll();
+takeHash();
+createHarfBuzz({ wasmBinary: bytes(D.wasm) }).then(m => {
+  R = E.create({ pdf: bytes(D.pdf), font: bytes(D.font), fieldmap: D.fieldmap, fontinfo: D.fontinfo, hb: hbjs(m) });
+  refresh(true);
+}).catch(err => { $('pvBody').innerHTML = '<div class="pv-loading">โหลดตัวจัดวางอักษรไทยไม่สำเร็จ: ' + esc(err && err.message || err) + '</div>'; });
+if (/[?&]debug\b/.test(location.search)) window.__os4 = { S: () => S, E, D, R: () => R, plan: () => PLAN, input: () => toInput(false) };
+})();
+</script>
+</body>
+</html>
