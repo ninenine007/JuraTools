@@ -510,6 +510,16 @@ input.is-ph{background:#fefce8;border-color:#fcd34d;font-weight:600;color:#a1620
             <button class="btn btn-ghost" id="btnToDuty">↗ เปิดเครื่องคำนวณอากรแสตมป์</button>
           </div>
         </div>
+
+        <div class="act">
+          <div class="act-hd"><span class="ico">🧾</span> อ.ส.4 — ชำระอากรเป็นตัวเงิน (ตราสารการโอนหุ้น)</div>
+          <p class="sect-note">Opens the Revenue Department's form อ.ส.4 with this transfer filled in — to pay the duty in cash
+             at the area office instead of affixing stamps; the instrument is then endorsed by the office (อ.ส.5), so leave the
+             “(ปิดอากรแสตมป์ … บาท)” line off. Tax IDs come from the directory.</p>
+          <div class="btn-row">
+            <button class="btn btn-ghost" id="btnToOS4">↗ ทำแบบ อ.ส.4</button>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -2485,6 +2495,26 @@ document.getElementById('btnToDuty').addEventListener('click', ()=>{
            t.sh.count && t.sh.count + ' หุ้น'].filter(Boolean).join(' · ')
   }]};
   window.open(DUTY_TOOL + '#duty=' + encodeURIComponent(JSON.stringify(payload)), '_blank', 'noopener');
+});
+
+/* The RD's form for paying the duty in cash takes the same transfer. The tax ID
+   comes from the directory, because the instrument itself never prints one. */
+const OS4_TOOL = '../document-automation/os4-share-transfer.html';
+document.getElementById('btnToOS4').addEventListener('click', ()=>{
+  const t = cur();
+  const who = p => {
+    const name = p.nameTh || p.nameEn;
+    const rec = state.parties.find(x => (x.nameTh && pKey(x.nameTh) === pKey(name)) || (x.nameEn && pKey(x.nameEn) === pKey(name)));
+    const id = rec && rec.idType !== 'passport' ? String(rec.idNo || '').replace(/\D/g, '') : '';
+    return {name, tin: id.length === 13 ? id : '', address: p.addrTh || p.addrEn};
+  };
+  const priceRaw = t.sh.priceAuto ? autoPrice(t) : t.sh.price;
+  const plain = v => String(v == null ? '' : v).replace(/,/g, '');
+  const payload = {source:'share-transfer-instrument', transferor:who(t.tfr), transferee:who(t.tfe),
+    instrument:{date: t.tfr.date || t.tfe.date || ''},
+    shares:{count:plain(t.sh.count), parValue:plain(t.sh.par), paidUpPercent:t.sh.paidUp || '100',
+            price: isPlaceholder(priceRaw) ? '' : plain(priceRaw)}};
+  window.open(OS4_TOOL + '#os4=' + encodeURIComponent(JSON.stringify(payload)), '_blank', 'noopener');
 });
 
 const escHtml = s => String(s == null ? '' : s).replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
