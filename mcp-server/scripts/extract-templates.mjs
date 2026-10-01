@@ -46,8 +46,9 @@ for (const [src, out] of SOURCES) {
   console.log(`${'src/poa-engine.cjs'.padEnd(34)} ${(eng[1].length / 1024).toFixed(0)} KB  ← ${src}`);
 }
 
-/* Power of attorney to sue (หนังสือมอบอำนาจให้ฟ้องคดี): the page carries its
-   template fragments, the measured signature geometry and the package as one
+/* Power of attorney to sue (หนังสือมอบอำนาจให้ฟ้องคดี): the page carries, for each
+   of its three forms (the current Thai and Thai–English forms, and the 2024 form),
+   the template fragments, the measured signature geometry and the package as one
    JSON block, and the engine as the script right after it — copied as they
    are, so the server builds exactly the document the page exports. */
 {
@@ -56,7 +57,8 @@ for (const [src, out] of SOURCES) {
   const data = html.match(/<script id="pwa-data" type="application\/json">([\s\S]*?)<\/script>/);
   if (!data) throw new Error(`pwa-data not found in ${src}`);
   const d = JSON.parse(data[1]);
-  const keep = { frags: d.frags, alt: d.alt, geom: d.geom, tpl: d.tpl };
+  if (!d.forms || !d.forms.th || !d.forms.thEn) throw new Error(`the current forms (th, thEn) are missing from ${src}`);
+  const keep = { frags: d.frags, alt: d.alt, geom: d.geom, tpl: d.tpl, forms: d.forms };
   await writeFile(join(root, 'templates', 'power-of-attorney.json'), JSON.stringify(keep));
   console.log(`${'power-of-attorney.json'.padEnd(34)} ${(JSON.stringify(keep).length / 1024).toFixed(0)} KB  ← ${src}`);
 

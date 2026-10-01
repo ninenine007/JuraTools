@@ -1,4 +1,5 @@
-/* หนังสือมอบอำนาจให้ฟ้องคดี · Power of attorney to sue
+/* หนังสือมอบอำนาจให้ฟ้องคดี · Power of attorney to sue — three forms: "th" (the firm's
+   current Thai form, the default), "thEn" (Thai–English) and "legacy" (2024).
    The browser tool ../document-automation/power-of-attorney.html is the source of
    truth. This module runs its engine (src/pwa-engine.cjs) on its data
    (templates/power-of-attorney.json), both copied verbatim by
@@ -27,7 +28,7 @@ export async function buildPowerOfAttorney(input) {
   const state = PWAEngine.fromInput(input);
   const r = PWAEngine.build(D, state);
   if (r.leftover.length) throw new Error('template markers left in the document: ' + r.leftover.join(' '));
-  const zip = await JSZip.loadAsync(D.tpl, { base64: true });
+  const zip = await JSZip.loadAsync(r.state.form === 'legacy' ? D.tpl : D.forms[r.state.form].tpl, { base64: true });
   zip.file('word/document.xml', r.xml);
   const buffer = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
   return { buffer, xml: r.xml, state: r.state, derived: r.derived, report: r.report, fileName: PWAEngine.fileName(state) };
@@ -44,6 +45,7 @@ export async function powerOfAttorneyJob(args) {
     buffer: r.buffer,
     fileSizeKB: Math.round(r.buffer.length / 1024),
     stamp: d,
+    form: r.state.form,
     stampDuty: { scheduleItem: d.item, attorneys: d.attorneys, principals: d.principals, computedBaht: d.auto, printed: d.amount, overridden: d.overridden },
     report: r.report
   };

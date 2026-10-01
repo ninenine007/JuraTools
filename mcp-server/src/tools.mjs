@@ -8,53 +8,80 @@ import { powerOfAttorneyJob } from './power-of-attorney.mjs';
 
 /* หนังสือมอบอำนาจให้ฟ้องคดี — the schema a model fills. The engine's fromInput()
    maps these keys onto the page's state, so the page and the server agree. The
-   rules in the descriptions are the guide's (document-automation/power-of-attorney.guide.md). */
+   rules in the descriptions are the guide's (document-automation/power-of-attorney.guide.md).
+   Three forms: "th" (default) and "thEn" are the firm's current forms (September 2026);
+   "legacy" is the 2024 form, kept for when it is asked for. */
+const EN = 'Thai–English form ("thEn") only: ';
 const PWA_INPUT = {
+  form: z.string().optional().describe('Which of the firm\'s forms to fill. "th" (default) — the current Thai form: six fixed powers, ' +
+    '"…ฟ้องร้องดำเนินคดีทั้งทางแพ่งและอาญากับ[counterparty] หรือบุคคลอื่นที่มีความเกี่ยวข้อง (“คู่กรณี”) ต่อศาลยุติธรรมที่มีเขตอำนาจ อันเนื่องมาจาก[cause] (“ข้อพิพาท”)…". ' +
+    '"thEn" — the same form with every paragraph also in English: send the …En keys too (the tool never translates). ' +
+    '"legacy" — the 2024 form (eight powers, named courts, a defined term); use only when the user asks for the old form.'),
   matter: z.string().optional().describe('Short matter name, used only in the file name, e.g. "บริษัท ก - [คดีนาย ข]"'),
-  place: z.string().optional().describe('ทำที่ — where the grantor signs, as an address line (usually the grantor\'s own office or home). Printed right after the fixed words "ทำที่". Leave out if not known'),
-  date: z.string().optional().describe('Date of signing, YYYY-MM-DD; printed as "16 ธันวาคม 2567". Leave out to keep the line blank for handwriting — never guess a date'),
+  place: z.string().optional().describe('ทำที่. Current forms: leave out to print the firm\'s office, as both precedents do; send a different address only if signed elsewhere ("\\n" breaks the line). Legacy form: where the grantor signs, usually its own address; leave out to keep blank'),
+  placeEn: z.string().optional().describe(EN + '"Written at" — leave out for the firm\'s office in English'),
+  date: z.string().optional().describe('Date of signing, YYYY-MM-DD; printed "16 ธันวาคม 2567" (and "16 December 2024" in the Thai–English form). Leave out to keep the line blank for handwriting — never guess a date'),
   grantor: z.object({
     type: z.enum(['company', 'individual']).describe('ผู้มอบอำนาจ: a juristic person ("company") or one or more natural persons ("individual")'),
     company: z.object({
-      name: z.string().describe('Full registered name, e.g. "บริษัท ตัวอย่าง จำกัด" — printed in bold'),
-      incorporation: z.string().optional().describe('Leave out for the template\'s "นิติบุคคลจัดตั้งขึ้นถูกต้องตามกฎหมายแห่งราชอาณาจักรไทย"; a foreign company says where it is incorporated'),
-      registrationNumber: z.string().optional().describe('ทะเบียนนิติบุคคลเลขที่ (13 digits)'),
-      headOfficeAddress: z.string().optional().describe('สำนักงานแห่งใหญ่ — the address from "เลขที่" on (the words "สำนักงานแห่งใหญ่ตั้งอยู่ ณ เลขที่" are added)'),
+      name: z.string().describe('Full registered name, e.g. "บริษัท ตัวอย่าง จำกัด"'),
+      nameEn: z.string().optional().describe(EN + 'the registered English name, e.g. "Example Co., Ltd." — also heads the signature table'),
+      headOfficeAddress: z.string().optional().describe('Head office from the number on (the words "สำนักงานใหญ่ตั้งอยู่ เลขที่" / legacy "สำนักงานแห่งใหญ่ตั้งอยู่ ณ เลขที่" are added)'),
+      headOfficeAddressEn: z.string().optional().describe(EN + 'the head office in English from the number on ("No." is added), e.g. "99/1 Soi Example, Khlong Toei, Bangkok"'),
       directors: z.array(z.object({
         name: z.string().describe('Director who signs, with title, e.g. "นายสมมุติ ใจดี"'),
-        idNumber: z.string().optional().describe('Only if the user wants directors\' ID numbers printed')
-      })).optional().describe('The authorised directors who sign for the company, as the company affidavit requires'),
-      authorityWording: z.string().optional().describe('Leave out for "กรรมการผู้มีอำนาจลงลายมือชื่อและประทับตราสำคัญกระทำการแทนได้"; use the affidavit\'s own wording when two must sign together'),
-      descriptionOverride: z.string().optional().describe('Replaces everything after the bold company name up to (“ผู้มอบอำนาจ”). Use only when the composed text will not do')
+        nameEn: z.string().optional().describe(EN + 'the director\'s name in English, e.g. "Mr. Sommut Jaidee"'),
+        idNumber: z.string().optional().describe('Legacy form only, and only if the user wants directors\' ID numbers printed')
+      })).optional().describe('The authorised directors who sign for the company, as the company affidavit requires. The current forms name them only in the signature table'),
+      entityWording: z.string().optional().describe('Current forms: replaces "นิติบุคคลประเภทบริษัทจำกัด จดทะเบียนขึ้นตามกฎหมายแห่งราชอาณาจักรไทย" (a name with "(มหาชน)" gets "บริษัทมหาชนจำกัด" by itself) — e.g. for a foreign company'),
+      entityWordingEn: z.string().optional().describe(EN + 'replaces "a limited company incorporated under the laws of the Kingdom of Thailand"'),
+      registrationNumber: z.string().optional().describe('Legacy form only: ทะเบียนนิติบุคคลเลขที่ (13 digits). The current forms do not print it'),
+      incorporation: z.string().optional().describe('Legacy form only: replaces "นิติบุคคลจัดตั้งขึ้นถูกต้องตามกฎหมายแห่งราชอาณาจักรไทย"'),
+      authorityWording: z.string().optional().describe('Legacy form only: replaces "กรรมการผู้มีอำนาจลงลายมือชื่อและประทับตราสำคัญกระทำการแทนได้"'),
+      descriptionOverride: z.string().optional().describe('Replaces everything after the company name up to (“ผู้มอบอำนาจ”). Use only when the composed text will not do'),
+      descriptionOverrideEn: z.string().optional().describe(EN + 'replaces everything after the English name up to (the “Principal”)')
     }).optional(),
     persons: z.array(z.object({
-      name: z.string().describe('With title, e.g. "นายสมชาย ใจดี" — printed in bold'),
-      idType: z.enum(['id', 'passport']).optional().describe('"id" (default) prints บัตรประจำตัวประชาชนเลขที่; "passport" prints หนังสือเดินทางเลขที่'),
+      name: z.string().describe('With title, e.g. "นายสมชาย ใจดี"'),
+      nameEn: z.string().optional().describe(EN + 'e.g. "Mr. Somchai Jaidee"'),
+      idType: z.enum(['id', 'passport']).optional().describe('"id" (default) prints บัตรประจำตัวประชาชนเลขที่ / Thai Identification No.; "passport" prints หนังสือเดินทางเลขที่ / Passport No.'),
       idNumber: z.string().optional(),
-      address: z.string().optional().describe('ภูมิลำเนา — from "เลขที่" on'),
-      descriptionOverride: z.string().optional().describe('Replaces the text after this person\'s bold name')
+      address: z.string().optional().describe('ภูมิลำเนา — from the number on'),
+      addressEn: z.string().optional().describe(EN + 'residence in English, from the number on'),
+      descriptionOverride: z.string().optional().describe('Replaces the text after this person\'s name'),
+      descriptionOverrideEn: z.string().optional().describe(EN + 'replaces the English text after this person\'s name')
     })).optional().describe('For type "individual": everyone who grants the power, in order'),
-    capacity: z.string().optional().describe('Individuals only — words after (“ผู้มอบอำนาจ”), e.g. "ในฐานะส่วนตัว และในฐานะผู้แทนโดยชอบธรรมของเด็กชาย… บัตรประจำตัวประชาชนเลขที่ … ภูมิลำเนาอยู่ ณ …"')
+    capacity: z.string().optional().describe('Individuals only — e.g. "ในฐานะส่วนตัว และในฐานะผู้แทนโดยชอบธรรมของเด็กชาย… บัตรประจำตัวประชาชนเลขที่ … ภูมิลำเนาอยู่ ณ …" (current forms: before (“ผู้มอบอำนาจ”); legacy: after it)'),
+    capacityEn: z.string().optional().describe(EN + 'the capacity in English, e.g. "acting in his own capacity and as the statutory representative of …"')
   }).describe('ผู้มอบอำนาจ'),
   attorneys: z.array(z.object({
     name: z.string().describe('ผู้รับมอบอำนาจ, with title'),
-    idNumber: z.string().optional().describe('13-digit Thai national ID; printed "1 2345 67890 12 3" and checked against its check digit')
+    nameEn: z.string().optional().describe(EN + 'e.g. "Mr. Somchai Jaidee"'),
+    idNumber: z.string().optional().describe('13-digit Thai national ID; printed "1 2345 67890 12 3" and checked against its check digit. Unknown → leave out (current forms print a highlighted "(*)")')
   })).min(1).describe('The attorneys-in-fact, in the order of the table. They act "ร่วมกัน และ/หรือ แยกกัน" — the wording is fixed'),
   matterFacts: z.object({
-    counterparty: z.string().describe('คู่กรณี — who will be sued, exactly as named in the contract or complaint; several joined with " และ/หรือ ". The template reads "…ที่เกี่ยวข้องกับ[counterparty] (“คู่กรณี”)"'),
-    courts: z.array(z.string()).describe('Courts where the case will be filed, each starting with "ศาล", e.g. ["ศาลแพ่ง", "ศาลอาญา"]. Used in the narrative and, without the first "ศาล", in clause 1 ("…ต่อศาล[แพ่ง ศาลอาญา] หรือศาลสถิตยุติธรรมอื่นใดที่มีเขตอำนาจ")'),
-    otherBodies: z.array(z.string()).optional().describe('Regulators or agencies also to be approached, e.g. ["แพทยสภา"]. Printed in the narrative only; give them their own power in extraClauses'),
-    cause: z.string().describe('What gives rise to the claim, reading on from "อันเนื่องมาจาก": the legal relationship with its document and date, then the breach, e.g. "นิติสัมพันธ์ตามสัญญาซื้อขายสินค้า ระหว่างผู้มอบอำนาจและคู่กรณี ลงวันที่ 1 มีนาคม 2569 หากแต่คู่กรณีผิดสัญญาไม่ชำระราคาสินค้าดังกล่าว". No full stop'),
-    definedTerm: z.string().describe('Short defined term for the cause, without quotes, e.g. "การผิดสัญญา" or "การทำละเมิด". Printed as (“…”) after the narrative, and in clauses 1 and 6'),
-    narrativeOverride: z.string().optional().describe('Replaces the whole stretch between (“คู่กรณี”) and (“definedTerm”), which is otherwise composed as "ต่อ[courts otherBodies] หรือศาลสถิตยุติธรรมที่มีเขตอำนาจ องค์กร หน่วยงานของรัฐ และ/หรือ พนักงานเจ้าหน้าที่ตลอดจนบุคคลที่เกี่ยวข้องอื่นใด อันเนื่องมาจาก[cause]". Must start with "ต่อ"'),
-    clause1CourtsOverride: z.string().optional().describe('Replaces the courts in clause 1, after the printed "ต่อศาล", e.g. "แพ่ง ศาลอาญา"')
+    counterparty: z.string().describe('คู่กรณี — who will be sued, exactly as named in the contract or complaint; several joined with " และ " or " และ/หรือ ". Current forms: printed after "ฟ้องร้องดำเนินคดีทั้งทางแพ่งและอาญากับ" and before "หรือบุคคลอื่นที่มีความเกี่ยวข้อง (“คู่กรณี”)"'),
+    counterpartyEn: z.string().optional().describe(EN + 'the same parties in English, printed after "to institute and conduct both civil and criminal proceedings against"'),
+    cause: z.string().describe('What gives rise to the claim, reading on from "อันเนื่องมาจาก": the legal relationship with its document and date, then the breach, e.g. "การผิดนัดชำระราคาสินค้าตามใบสั่งซื้อเลขที่ … ลงวันที่ …". No full stop. Current forms: it is then called (“ข้อพิพาท”) — fixed'),
+    causeEn: z.string().optional().describe(EN + 'the cause in English, reading on from "arising from", e.g. "a default in paying for goods ordered under purchase order no. …"'),
+    actionOverride: z.string().optional().describe('Current forms: replaces "ฟ้องร้องดำเนินคดีทั้งทางแพ่งและอาญากับ" before the counterparty — only if the matter is not a suit against them'),
+    actionOverrideEn: z.string().optional().describe(EN + 'replaces "to institute and conduct both civil and criminal proceedings against"'),
+    courts: z.array(z.string()).optional().describe('Legacy form only: courts where the case will be filed, each starting with "ศาล". The current forms read "ต่อศาลยุติธรรมที่มีเขตอำนาจ" — fixed'),
+    otherBodies: z.array(z.string()).optional().describe('Legacy form only: regulators or agencies also to be approached, e.g. ["แพทยสภา"]. The current forms\' power 4 already covers complaints to government agencies'),
+    definedTerm: z.string().optional().describe('Legacy form only: short defined term for the cause, e.g. "การผิดสัญญา"'),
+    narrativeOverride: z.string().optional().describe('Legacy form only: replaces the stretch between (“คู่กรณี”) and the defined term; must start with "ต่อ"'),
+    clause1CourtsOverride: z.string().optional().describe('Legacy form only: the courts in clause 1, after the printed "ต่อศาล"')
   }).describe('The matter. Draft it from the user\'s facts in the firm\'s style; never invent a name, number, date or amount — write "(*)" where it is missing (printed highlighted)'),
   extraClauses: z.array(z.object({
-    afterClause: z.number().int().min(0).max(8).describe('Insert after fixed clause n (0 = before clause 1). Numbering follows automatically'),
-    text: z.string().describe('The clause, starting "ให้มีอำนาจ…"')
-  })).optional().describe('Powers the eight fixed clauses do not give — e.g. filing complaints with a regulator in otherBodies. The fixed clauses are: 1 sue the counterparty; 2 conduct proceedings and dispose of rights; 3 appoint lawyers (CPC s.62); 4 sign documents and certify translations; 5 negotiate and settle; 6 give statements about the cause; 7 anything necessary; 8 appoint sub-attorneys'),
-  witnesses: z.array(z.string()).optional().describe('Witness names; "" leaves a line to write in. Default two blank witnesses'),
-  signaturesOnNextPage: z.boolean().optional().describe('Default true: print "-ส่วนที่เหลือของหน้านี้เจตนาเว้นว่างไว้ ผู้มอบอำนาจ และผู้รับมอบอำนาจลงนามในหน้าถัดไป-" and start the signature table on a new page, so no signature block is split across pages'),
+    afterClause: z.number().int().min(0).max(8).describe('Insert after fixed power n (0 = before the first). Numbering follows automatically'),
+    text: z.string().describe('The power, starting "ให้มีอำนาจ…"'),
+    textEn: z.string().optional().describe(EN + 'the same power in English, starting "To …"')
+  })).optional().describe('Powers the fixed ones do not give. Current forms\' six: 1 file and conduct proceedings, appoint lawyers, dispose of rights, through enforcement; ' +
+    '2 sign and certify documents and translations; 3 negotiate and settle; 4 give statements and lodge complaints with government agencies, prosecutors, inquiry and administrative officials, and obtain official records (title deeds, registrations …); ' +
+    '5 anything necessary; 6 appoint sub-attorneys. Legacy form\'s eight: 1 sue the counterparty; 2 conduct proceedings; 3 appoint lawyers; 4 sign documents; 5 settle; 6 give statements; 7 anything necessary; 8 sub-attorneys'),
+  witnesses: z.array(z.union([z.string(), z.object({ name: z.string(), nameEn: z.string().optional() })])).optional()
+    .describe('Witness names ("" leaves a line to write in); in the Thai–English form send {"name", "nameEn"}. Default: two blank witnesses'),
+  signaturesOnNextPage: z.boolean().optional().describe('Print the "-ส่วนที่เหลือ…ลงนามในหน้าถัดไป-" note and start the signature table on a new page. Default: as each precedent — yes for "thEn" and "legacy", no for "th"'),
   stampDuty: z.object({
     principals: z.number().int().min(1).optional().describe('How many separate principals the duty is counted for (Revenue Code s.108). Default: 1 for a company, the number of persons for individuals'),
     amountOverride: z.string().optional().describe('The baht figure printed in "-ติดอากรแสตมป์ … บาท-" if it must differ from the computed one')
@@ -348,10 +375,11 @@ export function createMcpServer({ deliver, user = null }) {
   server.registerTool('create_power_of_attorney', {
     title: 'Create หนังสือมอบอำนาจให้ฟ้องคดี (power of attorney to sue)',
     description:
-      'Fill the firm\'s own power-of-attorney-to-sue template and return one .docx. The fixed wording — the opening, the ' +
-      '"ร่วมกัน และ/หรือ แยกกัน" grant, the eight powers and the ratification — is the firm\'s, untouched; this tool types ' +
-      'only the grantor, the attorneys, the counterparty, the courts, the cause and its defined term, and any added clauses ' +
-      'into the template\'s own Word runs. The signature table is laid out from the firm\'s rows for any number of signers, ' +
+      'Fill the firm\'s own power-of-attorney-to-sue template and return one .docx. Forms: "th" (default, the firm\'s current Thai ' +
+      'form), "thEn" (the same in Thai and English — send the …En keys), "legacy" (the 2024 form, only when asked). The fixed wording — the opening, the ' +
+      '"ร่วมกัน และ/หรือ แยกกัน" grant, the powers and the ratification — is the firm\'s, untouched; this tool types ' +
+      'only the grantor, the attorneys, the counterparty, the cause (legacy: also the courts and a defined term), and any added clauses ' +
+      'into the template\'s own Word runs. The current forms print the firm\'s office after "ทำที่" unless told otherwise. The signature table is laid out from the firm\'s rows for any number of signers, ' +
       'and the stamp duty (schedule item 7: 30 baht per attorney acting separately) is computed and printed. ' +
       'Draft the matter from the user\'s facts; leave out what is not in them rather than guessing — blanks and invalid ID ' +
       'numbers are reported. The result is a draft for a lawyer to check — say so when reporting it.',
@@ -360,6 +388,7 @@ export function createMcpServer({ deliver, user = null }) {
       location: z.string().describe('A local file path from the stdio server, or a one-time download URL from the HTTP server'),
       fileName: z.string(),
       fileSizeKB: z.number(),
+      form: z.enum(['th', 'thEn', 'legacy']).describe('The form filled'),
       stampDuty: z.object({
         scheduleItem: z.string().describe('ลักษณะแห่งตราสาร 7(ข) or 7(ค)'),
         attorneys: z.number(), principals: z.number(), computedBaht: z.number(),
@@ -380,7 +409,7 @@ export function createMcpServer({ deliver, user = null }) {
       console.error(`[${new Date().toISOString()}] ${user} created a power of attorney to sue: ${d.attorneys} attorney(s)`);
     }
     const text = [
-      `${delivery.message} (${fileSizeKB} KB).`,
+      `${delivery.message} (${fileSizeKB} KB) — form ${{ th: '"th" (current, Thai)', thEn: '"thEn" (current, Thai–English)', legacy: '"legacy" (2024)' }[job.form]}.`,
       `Stamp duty: ${d.overridden ? d.amount + ' baht printed (computed ' + d.auto + ')' : d.auto + ' baht'} — schedule item ${d.item}, ` +
         `${d.attorneys} attorney${d.attorneys > 1 ? 's' : ''} × 30 baht` + (d.principals > 1 ? ` × ${d.principals} principals (s.108)` : '') + '.',
       rep.blank.length ? `Left blank: ${rep.blank.join(', ')}.` : '',
@@ -391,7 +420,7 @@ export function createMcpServer({ deliver, user = null }) {
     return {
       content: [{ type: 'text', text }],
       structuredContent: {
-        location: delivery.location, fileName: base + '.docx', fileSizeKB,
+        location: delivery.location, fileName: base + '.docx', fileSizeKB, form: job.form,
         stampDuty: job.stampDuty,
         blankFields: rep.blank, invalidIdNumbers: rep.invalidIds, warnings: rep.warnings, isDraft: true
       }

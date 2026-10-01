@@ -1,0 +1,60 @@
+{
+  "input": {
+    "form": "thEn",
+    "matter": "measure",
+    "date": "2026-01-02",
+    "grantor": {
+      "type": "company",
+      "company": {
+        "name": "บริษัท ทดสอบ จำกัด",
+        "nameEn": "Test Co., Ltd.",
+        "headOfficeAddress": "1 ถนนสมมุติ กรุงเทพมหานคร",
+        "headOfficeAddressEn": "1 Sommut Road, Bangkok",
+        "directors": [
+          {
+            "name": "นายกรรมการ ทดสอบ",
+            "nameEn": "Mr. Director Test"
+          }
+        ]
+      }
+    },
+    "attorneys": [
+      {
+        "name": "นายหนึ่ง ทดสอบ",
+        "nameEn": "Mr. One Test",
+        "idNumber": "1101700203450"
+      },
+      {
+        "name": "นายสอง ทดสอบ",
+        "nameEn": "Mr. Two Test",
+        "idNumber": "1101700203450"
+      },
+      {
+        "name": "นายสาม ทดสอบ",
+        "nameEn": "Mr. Three Test",
+        "idNumber": "1101700203450"
+      }
+    ],
+    "matterFacts": {
+      "counterparty": "นายคู่กรณี สมมุติ",
+      "counterpartyEn": "Mr. Party Test",
+      "cause": "สัญญาสมมุติ",
+      "causeEn": "a fictional contract"
+    },
+    "witnesses": [
+      {
+        "name": "นายพยาน หนึ่ง",
+        "nameEn": "Mr. Witness One"
+      },
+      {
+        "name": "นายพยาน สอง",
+        "nameEn": "Mr. Witness Two"
+      },
+      {
+        "name": "นายพยาน สาม",
+        "nameEn": "Mr. Witness Three"
+      }
+    ],
+    "signaturesOnNextPage": true
+  }
+}

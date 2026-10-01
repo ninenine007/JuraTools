@@ -25,7 +25,7 @@ assert.deepEqual(tool.inputSchema.properties.grantor.properties.type.enum, ['com
 assert.ok(tool.outputSchema?.properties?.stampDuty, 'an outputSchema is published');
 
 const res = await client.callTool({ name: 'create_power_of_attorney', arguments: {
-  matter: 'ทดสอบ MCP', date: '2026-10-01', place: 'กรุงเทพมหานคร',
+  form: 'legacy', matter: 'ทดสอบ MCP', date: '2026-10-01', place: 'กรุงเทพมหานคร',
   grantor: { type: 'company', company: { name: 'บริษัท ตัวอย่างทดสอบ จำกัด', registrationNumber: '0105500000001',
     headOfficeAddress: '1 ถนนสมมุติ กรุงเทพมหานคร', directors: [{ name: 'นายกรรมการ หนึ่ง' }, { name: 'นางกรรมการ สอง' }] } },
   attorneys: [{ name: 'นายกิตติ ทดสอบระบบ', idNumber: '1101700203450' }, { name: 'นางสาวนภา ทดลอง', idNumber: '1234567890123' }],
@@ -38,13 +38,32 @@ assert.deepEqual(sc.stampDuty, { scheduleItem: '7(ค)', attorneys: 2, principal
 assert.deepEqual(sc.invalidIdNumbers, ['นางสาวนภา ทดลอง']);
 assert.deepEqual(sc.blankFields, []);
 assert.equal(sc.isDraft, true);
+assert.equal(sc.form, 'legacy');
 assert.ok(res.content[0].text.includes('Draft only'));
 assert.equal((await readdir(out)).length, 1);
+
 
 const xml = await (await JSZip.loadAsync(await readFile(sc.location))).file('word/document.xml').async('string');
 assert.ok(!xml.includes('⟦'));
 assert.equal(xml.split('>ลงชื่อ<').length - 1, 2 + 2 + 2, 'two directors, two attorneys, two witnesses');
 assert.ok(xml.includes('>บริษัท ตัวอย่างทดสอบ จำกัด<'), 'the company name heads its directors');
+
+/* the default: the current Thai form */
+const res2 = await client.callTool({ name: 'create_power_of_attorney', arguments: {
+  matter: 'ทดสอบ MCP 2', date: '2026-10-01',
+  grantor: { type: 'company', company: { name: 'บริษัท ตัวอย่างทดสอบ จำกัด', headOfficeAddress: '1 ถนนสมมุติ กรุงเทพมหานคร',
+    directors: [{ name: 'นายกรรมการ หนึ่ง' }, { name: 'นางกรรมการ สอง' }] } },
+  attorneys: [{ name: 'นายกิตติ ทดสอบระบบ', idNumber: '1101700203450' }, { name: 'นางสาวนภา ทดลอง', idNumber: '1101700203450' }],
+  matterFacts: { counterparty: 'นายคู่กรณี สมมุติ', cause: 'สัญญากู้ยืมเงิน ลงวันที่ 1 มกราคม 2569 หากแต่คู่กรณีผิดนัดไม่ชำระหนี้' },
+  witnesses: ['นายพยาน หนึ่ง', 'นายพยาน สอง']
+} });
+assert.ok(!res2.isError, JSON.stringify(res2.content));
+assert.equal(res2.structuredContent.form, 'th');
+assert.deepEqual(res2.structuredContent.blankFields, []);
+assert.ok(res2.content[0].text.includes('form "th"'));
+const xml2 = await (await JSZip.loadAsync(await readFile(res2.structuredContent.location))).file('word/document.xml').async('string');
+assert.equal(xml2.split('>ลงชื่อ<').length - 1, 2 + 2 + 2);
+assert.ok(xml2.includes('(“'), 'the current form');
 
 await client.close();
 console.log('mcp create_power_of_attorney: ok');

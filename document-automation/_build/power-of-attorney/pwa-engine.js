@@ -3,7 +3,13 @@
    server (copied to mcp-server/src/pwa-engine.cjs by `npm run sync-templates`),
    so a document made in either place is the same document.
 
-   D = the build's data: { frags, alt, geom } (see build_pwa.py, measure.py).
+   Three forms (S.form):
+     "th"     the firm's current Thai form (September 2026) — the default
+     "thEn"   the same, Thai and English paragraph by paragraph
+     "legacy" the 2024 form (eight clauses, courts and a defined term)
+   D = the build's data: { frags, alt, geom, tpl } for "legacy" (build_pwa.py,
+   measure.py) and D.forms.th / D.forms.thEn the same for the current forms
+   (build_new.py, measure_new.py).
    S = the page's state (blankState). fromInput() maps the MCP's English keys.
 
    Filling never builds formatting of its own. Each value is typed into the
@@ -40,6 +46,40 @@
     witnessLabel: 'พยาน'
   };
 
+  /* The words the tool writes itself in the current forms ("th", "thEn"): the
+     precedents' own, for a company; for a person, the 2024 form's Thai and the
+     Thai–English form's own English terms. The place is the firm's office, which
+     both precedents print after "ทำที่". */
+  const W2 = {
+    entity: 'นิติบุคคลประเภทบริษัทจำกัด จดทะเบียนขึ้นตามกฎหมายแห่งราชอาณาจักรไทย',
+    entityPublic: 'นิติบุคคลประเภทบริษัทมหาชนจำกัด จดทะเบียนขึ้นตามกฎหมายแห่งราชอาณาจักรไทย',
+    entityEn: 'a limited company incorporated under the laws of the Kingdom of Thailand',
+    entityPublicEn: 'a public limited company incorporated under the laws of the Kingdom of Thailand',
+    office: 'สำนักงานใหญ่ตั้งอยู่',
+    officeEn: 'with its head office at',
+    self: 'ข้าพเจ้า',
+    idCardEn: 'Thai Identification No.', passportEn: 'Passport No.',
+    holderEn: 'holder of', residingEn: 'residing at',
+    action: 'ฟ้องร้องดำเนินคดีทั้งทางแพ่งและอาญากับ',
+    actionEn: 'to institute and conduct both civil and criminal proceedings against',
+    place: '89 อาคารเอไอเอ แคปปิตอล เซ็นเตอร์ ชั้น 15 ห้องเลขที่ 1507 ถนนรัชดาภิเษก \nแขวงดินแดง เขตดินแดง กรุงเทพมหานคร',
+    placeEn: 'No. 89 AIA Capital Center Building, \n15th Floor, Room No. 1507, Ratchadaphisek Rd., \nDin Daeng, Din Daeng, Bangkok',
+    grantorLabelEn: 'Principal', attorneyLabelEn: 'Attorney-in-Fact', witnessLabelEn: 'Witness'
+  };
+  const MONTHS_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September',
+                     'October', 'November', 'December'];
+  const PLACEHOLDER = '(*)';
+
+  /* The six powers of the current forms, as printed (summaries for the page and reports). */
+  const CLAUSES_NEW = [
+    'ยื่นคำฟ้อง คำร้อง คำคู่ความ แต่งตั้งทนายความ ดำเนินกระบวนพิจารณา จำหน่ายสิทธิ จนถึงชั้นบังคับคดี …',
+    'ทำ ลงนาม และรับรองคำแปลภาษาไทย รับรองสำเนา ส่งมอบเอกสาร …',
+    'เข้าร่วมการเจรจา ไกล่เกลี่ย ประนีประนอมยอมความ …',
+    'ให้การ เป็นพยาน ร้องเรียน ต่อหน่วยงานรัฐ อัยการ พนักงานสอบสวน พนักงานปกครอง และขอคัดเอกสารทางทะเบียน …',
+    'กระทำการในเรื่องใดๆ ทั้งหมดที่จำเป็นหรือเหมาะสม …',
+    'แต่งตั้งผู้รับมอบอำนาจช่วง …'
+  ];
+
   /* The clauses printed on every document, in order; text as in the template
      (the tool never edits them). Used for the page's list and for reports. */
   const CLAUSES = [
@@ -54,6 +94,21 @@
   ];
 
   const BLANK_NAME = '______________________________';
+
+  const FORMS = {
+    th: { name: 'แบบปัจจุบัน — ภาษาไทย', clauses: CLAUSES_NEW, bilingual: false },
+    thEn: { name: 'แบบปัจจุบัน — ไทย/อังกฤษ', clauses: CLAUSES_NEW, bilingual: true },
+    legacy: { name: 'แบบเดิม (2567)', clauses: CLAUSES, bilingual: false }
+  };
+  const isNew = S => S.form !== 'legacy';
+  /* "th-en", "bilingual", "2024" … → the form's key. */
+  function formKey(f) {
+    const k = String(f == null ? '' : f).trim();
+    if (FORMS[k]) return k;
+    if (/en|eng|bi|อังกฤษ/i.test(k)) return 'thEn';
+    if (/legacy|old|2024|2567|เดิม/i.test(k)) return 'legacy';
+    return 'th';
+  }
 
   /* ── Text helpers ───────────────────────────────────────────── */
   const norm = s => String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
@@ -85,7 +140,14 @@
     const [y, m, d] = iso.split('-').map(Number);
     return d + ' ' + MONTHS[m - 1] + ' ' + (y + 543);
   }
+  function englishDate(iso) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso || '')) return '';
+    const [y, m, d] = iso.split('-').map(Number);
+    return d + ' ' + MONTHS_EN[m - 1] + ' ' + y;
+  }
   const withNo = a => (a = norm(a)) && !/^เลขที่/.test(a) ? 'เลขที่ ' + a : a;
+  const withNoEn = a => (a = norm(a)) && /^\d/.test(a) ? 'No. ' + a : a;
+  const need = v => v ? v : PLACEHOLDER;
   const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const put = (xml, mark, s) => xml.split(mark).join(s);
 
@@ -166,26 +228,31 @@
   }
 
   /* ── State ──────────────────────────────────────────────────── */
-  const blankPerson = () => ({ name: '', idType: 'id', idNo: '', address: '', detail: null });
-  const blankDirector = () => ({ name: '', idNo: '' });
-  const blankAttorney = () => ({ name: '', idNo: '' });
+  /* English fields (…En) are used by the Thai–English form only; a null "auto"
+     field (place, sigNewPage, entity …) takes the form's own default. */
+  const blankPerson = () => ({ name: '', idType: 'id', idNo: '', address: '', detail: null, nameEn: '', addressEn: '', detailEn: null });
+  const blankDirector = () => ({ name: '', idNo: '', nameEn: '' });
+  const blankAttorney = () => ({ name: '', idNo: '', nameEn: '' });
   function blankState() {
     return {
       kind: 'litigation',
+      form: 'th',
       matter: '',
-      place: '', dateIso: '', dateText: null,
+      place: null, placeEn: null, dateIso: '', dateText: null, dateTextEn: null,
       grantor: {
         type: 'company',
         company: { name: '', incorporation: W_.incorporation, regNo: '', address: '',
-                   directors: [blankDirector()], directorIds: false, authority: W_.authority, detail: null },
+                   directors: [blankDirector()], directorIds: false, authority: W_.authority, detail: null,
+                   nameEn: '', addressEn: '', entity: null, entityEn: null, detailEn: null },
         persons: [blankPerson()],
-        capacity: ''
+        capacity: '', capacityEn: ''
       },
       attorneys: [blankAttorney()],
-      facts: { counterparty: '', forums: [''], bodies: [], cause: '', term: '', claim: null, court: null },
+      facts: { counterparty: '', forums: [''], bodies: [], cause: '', term: '', claim: null, court: null,
+               counterpartyEn: '', causeEn: '', action: null, actionEn: null },
       extraClauses: [],
-      witnesses: ['', ''],
-      sigNewPage: true,
+      witnesses: ['', ''], witnessesEn: [],
+      sigNewPage: null,
       stamp: { principals: null, amount: null }
     };
   }
@@ -193,7 +260,11 @@
     st = st || {};
     const b = blankState();
     const g = st.grantor || {};
+    /* A state saved before the current forms existed has no form: it opens in the
+       current Thai form, its blank "ทำที่" becoming the form's default place. */
+    if (st.form == null && st.place === '') st = Object.assign({}, st, { place: null });
     const out = Object.assign(b, st);
+    out.form = FORMS[st.form] ? st.form : 'th';
     out.grantor = Object.assign(blankState().grantor, g);
     out.grantor.company = Object.assign(blankState().grantor.company, g.company || {});
     out.grantor.company.directors = (out.grantor.company.directors && out.grantor.company.directors.length
@@ -204,21 +275,28 @@
     out.facts = Object.assign(blankState().facts, st.facts || {});
     if (!Array.isArray(out.facts.forums) || !out.facts.forums.length) out.facts.forums = [''];
     if (!Array.isArray(out.facts.bodies)) out.facts.bodies = [];
-    out.extraClauses = (st.extraClauses || []).map(c => ({ after: clampAfter(c.after), text: c.text || '' }));
+    out.extraClauses = (st.extraClauses || []).map(c => ({ after: clampAfter(c.after, out.form), text: c.text || '', textEn: c.textEn || '' }));
     out.witnesses = Array.isArray(st.witnesses) ? st.witnesses.map(w => w || '') : ['', ''];
+    out.witnessesEn = Array.isArray(st.witnessesEn) ? st.witnessesEn.map(w => w || '') : [];
     out.stamp = Object.assign(blankState().stamp, st.stamp || {});
-    out.sigNewPage = st.sigNewPage !== false;
+    out.sigNewPage = st.sigNewPage == null ? null : st.sigNewPage !== false;
     return out;
   }
-  const clampAfter = n => Math.max(0, Math.min(CLAUSES.length, parseInt(n, 10) || 0));
+  const clampAfter = (n, form) => Math.max(0, Math.min(FORMS[form || 'legacy'].clauses.length, parseInt(n, 10) || 0));
+  /* Signatures on a new page: the 2024 form and the Thai–English form do it
+     (their precedents carry the note); the Thai form signs straight on. */
+  const sigNewPage = S => S.sigNewPage != null ? !!S.sigNewPage : S.form !== 'th';
 
   /* The MCP's English keys → state. Absent means "compose it"; "" means blank. */
   function fromInput(a) {
     a = a || {};
     const S = blankState();
     const g = a.grantor || {};
+    S.form = formKey(a.form);
     S.matter = a.matter || '';
-    S.place = a.place || '';
+    /* "ทำที่": absent → the form's default (the 2024 form: blank); "" → blank. */
+    S.place = a.place != null ? String(a.place) : S.form === 'legacy' ? '' : null;
+    if (a.placeEn != null) S.placeEn = String(a.placeEn);
     S.dateIso = a.date || '';
     if (a.dateText != null) S.dateText = a.dateText;
     S.grantor.type = g.type === 'individual' ? 'individual' : 'company';
@@ -232,23 +310,48 @@
       T.directorIds = !!(c.directors || []).some(d => d.idNumber);
       if (c.authorityWording != null) T.authority = c.authorityWording;
       if (c.descriptionOverride != null) T.detail = c.descriptionOverride;
+      T.nameEn = c.nameEn || '';
+      T.addressEn = c.headOfficeAddressEn || '';
+      if (c.entityWording != null) T.entity = c.entityWording;
+      if (c.entityWordingEn != null) T.entityEn = c.entityWordingEn;
+      if (c.descriptionOverrideEn != null) T.detailEn = c.descriptionOverrideEn;
+      if (c.directors && c.directors.length) c.directors.forEach((d, i) => { T.directors[i].nameEn = d.nameEn || ''; });
     }
     if (g.persons && g.persons.length) {
-      S.grantor.persons = g.persons.map(p => ({ name: p.name || '', idType: p.idType === 'passport' ? 'passport' : 'id',
-        idNo: p.idNumber || '', address: p.address || '', detail: p.descriptionOverride != null ? p.descriptionOverride : null }));
+      S.grantor.persons = g.persons.map(p => ({ name: p.name || '', idType: /pass/i.test(p.idType || '') ? 'passport' : 'id',
+        idNo: p.idNumber || '', address: p.address || '', detail: p.descriptionOverride != null ? p.descriptionOverride : null,
+        nameEn: p.nameEn || '', addressEn: p.addressEn || '', detailEn: p.descriptionOverrideEn != null ? p.descriptionOverrideEn : null }));
     }
     S.grantor.capacity = g.capacity || '';
-    if (a.attorneys && a.attorneys.length) S.attorneys = a.attorneys.map(x => ({ name: x.name || '', idNo: x.idNumber || '' }));
+    S.grantor.capacityEn = g.capacityEn || '';
+    if (a.attorneys && a.attorneys.length) S.attorneys = a.attorneys.map(x => ({ name: x.name || '', idNo: x.idNumber || '', nameEn: x.nameEn || '' }));
     const f = a.matterFacts || {};
     S.facts.counterparty = f.counterparty || '';
+    S.facts.counterpartyEn = f.counterpartyEn || '';
+    S.facts.causeEn = f.causeEn || '';
+    if (f.actionOverride != null) S.facts.action = f.actionOverride;
+    if (f.actionOverrideEn != null) S.facts.actionEn = f.actionOverrideEn;
     S.facts.forums = f.courts && f.courts.length ? f.courts.slice() : [''];
     S.facts.bodies = f.otherBodies ? f.otherBodies.slice() : [];
     S.facts.cause = f.cause || '';
     S.facts.term = f.definedTerm || '';
     if (f.narrativeOverride != null) S.facts.claim = f.narrativeOverride;
     if (f.clause1CourtsOverride != null) S.facts.court = f.clause1CourtsOverride;
-    S.extraClauses = (a.extraClauses || []).map(c => ({ after: clampAfter(c.afterClause), text: c.text || '' }));
-    if (Array.isArray(a.witnesses)) S.witnesses = a.witnesses.map(w => w || '');
+    S.extraClauses = (a.extraClauses || []).map(c => ({ after: clampAfter(c.afterClause, S.form), text: c.text || '', textEn: c.textEn || '' }));
+    if (Array.isArray(a.witnesses)) {
+      S.witnesses = a.witnesses.map(w => (w && typeof w === 'object' ? w.name : w) || '');
+      S.witnessesEn = a.witnesses.map(w => (w && typeof w === 'object' ? w.nameEn : '') || '');
+    }
+    /* What the 2024 form reads and the current forms do not: told, not silently dropped. */
+    const notes = [];
+    if (S.form !== 'legacy') {
+      const used = ['courts', 'otherBodies', 'definedTerm', 'narrativeOverride', 'clause1CourtsOverride']
+        .filter(k => f[k] != null && !(Array.isArray(f[k]) && !f[k].filter(Boolean).length) && String(f[k]).trim() !== '');
+      if (used.length) notes.push('matterFacts.' + used.join(', matterFacts.') + ' — used only by form "legacy" (2024); the current form reads "ต่อศาลยุติธรรมที่มีเขตอำนาจ" and calls the cause (“ข้อพิพาท”). Not printed.');
+      if (g.company && (g.company.registrationNumber || g.company.authorityWording || g.company.incorporation))
+        notes.push('grantor.company.registrationNumber / authorityWording / incorporation — the current form does not print them (it names the company, its kind and its head office). Not printed.');
+    }
+    S.inputNotes = notes;
     if (a.signaturesOnNextPage != null) S.sigNewPage = !!a.signaturesOnNextPage;
     if (a.stampDuty) {
       if (a.stampDuty.principals != null) S.stamp.principals = a.stampDuty.principals;
@@ -297,6 +400,7 @@
   }
 
   function derive(S) {
+    if (isNew(S)) return deriveNew(S);
     const g = S.grantor, f = S.facts, V = {};
     V.place = normText(S.place);
     V.date = S.dateText != null ? norm(S.dateText) : thaiDate(S.dateIso);
@@ -370,10 +474,153 @@
     return rows.join('');
   }
 
+  /* ── The current forms ("th", "thEn") ─────────────────────────── */
+  const isPublic = c => /\(มหาชน\)|มหาชน\s*จำกัด|public\s+(company|co\.)|\bPCL\b|\bPLC\b/i.test(c.name + ' ' + c.nameEn);
+  const entityAuto = c => isPublic(c) ? W2.entityPublic : W2.entity;
+  const entityEnAuto = c => isPublic(c) ? W2.entityPublicEn : W2.entityEn;
+  /* "บริษัท … จำกัด นิติบุคคลประเภทบริษัทจำกัด จดทะเบียนขึ้นตามกฎหมายแห่งราชอาณาจักรไทย
+     สำนักงานใหญ่ตั้งอยู่ เลขที่ …" — the words after the name. */
+  function companyDetailNew(c) {
+    if (c.detail != null) return normText(c.detail);
+    return [norm(c.entity != null ? c.entity : entityAuto(c)), norm(c.address) && W2.office + ' ' + withNo(c.address)].filter(Boolean).join(' ');
+  }
+  function companyDetailNewEn(c) {
+    if (c.detailEn != null) return normText(c.detailEn);
+    return [norm(c.entityEn != null ? c.entityEn : entityEnAuto(c)), norm(c.addressEn) && W2.officeEn + ' ' + withNoEn(c.addressEn)].filter(Boolean).join(', ');
+  }
+  function personDetailEn(p) {
+    if (p.detailEn != null) return normText(p.detailEn);
+    return [
+      norm(p.idNo) && W2.holderEn + ' ' + (p.idType === 'passport' ? W2.passportEn : W2.idCardEn) + ' ' + fmtId(p.idNo),
+      norm(p.addressEn) && W2.residingEn + ' ' + withNoEn(p.addressEn)
+    ].filter(Boolean).join(', ');
+  }
+  const samePlace = (a, b) => norm(a) === norm(b);
+  function deriveNew(S) {
+    const g = S.grantor, f = S.facts, V = { form: S.form };
+    V.place = S.place != null ? normText(S.place) : W2.place;
+    V.placeDefault = samePlace(V.place, W2.place);
+    V.placeEn = S.placeEn != null ? normText(S.placeEn) : W2.placeEn;
+    V.placeEnDefault = samePlace(V.placeEn, W2.placeEn);
+    V.date = S.dateText != null ? norm(S.dateText) : thaiDate(S.dateIso);
+    V.dateEn = S.dateTextEn != null ? norm(S.dateTextEn) : englishDate(S.dateIso);
+    if (g.type === 'company') {
+      const c = g.company;
+      const d = companyDetailNew(c), de = companyDetailNewEn(c);
+      V.grantor = need(norm(c.name)) + (d ? ' ' + d : '');
+      V.grantorEn = need(norm(c.nameEn)) + (de ? ', ' + de : '');
+      V.companyName = norm(c.name); V.companyNameEn = norm(c.nameEn);
+      V.grantorSigners = c.directors.map(x => norm(x.name));
+      V.grantorSignersEn = c.directors.map(x => norm(x.nameEn));
+    } else {
+      const ps = g.persons;
+      V.grantor = W2.self + ' ' + ps.map(p => { const d = personDetail(p); return need(norm(p.name)) + (d ? ' ' + d : ''); }).join(' และ') +
+        (norm(g.capacity) ? ' ' + normText(g.capacity) : '');
+      V.grantorEn = ps.map(p => { const d = personDetailEn(p); return need(norm(p.nameEn)) + (d ? ', ' + d : ''); }).join(' and ') +
+        (norm(g.capacityEn) ? ', ' + normText(g.capacityEn) : '');
+      V.grantorSigners = ps.map(p => norm(p.name));
+      V.grantorSignersEn = ps.map(p => norm(p.nameEn));
+    }
+    V.attorneys = S.attorneys.map(a => ({ name: norm(a.name), nameEn: norm(a.nameEn), id: fmtId(a.idNo) }));
+    V.counterparty = (f.action != null ? norm(f.action) : W2.action) + need(norm(f.counterparty));
+    V.counterpartyEn = (f.actionEn != null ? norm(f.actionEn) : W2.actionEn) + ' ' + need(norm(f.counterpartyEn));
+    V.cause = need(normText(f.cause));
+    V.causeEn = need(normText(f.causeEn));
+    V.stamp = stampDuty(S);
+    return V;
+  }
+
+  /* The signature table of the current forms, from the precedents' own rows:
+     the company's name across the table; a lone signer across the full width
+     (the Thai–English precedent's row for its director), others in pairs; an
+     empty line above every row but the grantors' first, as in both precedents. */
+  function sigRowsNew(F, S, V, bi) {
+    const s = F.sig, rows = [];
+    const cell = (full, ps) => '<w:tc>' + (full ? F.tcFull : F.tcHalf) + ps.join('') + '</w:tc>';
+    const row = cells => F.tr + cells.join('') + '</w:tr>';
+    const nm = (p, id, n) => fill(p, id, '(' + (n || BLANK_NAME) + ')');
+    const lab = (p, id, l) => put(p, '⟦' + id + '⟧', l);
+    /* the witnesses' English line keeps "→Witness" in one run: the tab stays, the word changes */
+    const labTab = (p, id, l) => put(p, '<w:t xml:space="preserve">⟦' + id + '⟧</w:t>', '<w:tab/><w:t xml:space="preserve">' + esc(l) + '</w:t>');
+    /* one signer: kind H (attorneys), W (witnesses, grantors in pairs) or G1 (full width) */
+    function lines(kind, label, labelEn, name, nameEn, lead) {
+      const out = [];
+      if (lead) out.push(s[(kind === 'G1' ? 'H' : kind) + '.blank']);
+      if (kind === 'H') {
+        out.push(s['H.sig']); if (bi) out.push(s['H.sigEn']);
+      } else if (kind === 'W') {
+        out.push(lab(s['W.sig'], 'label', label)); if (bi) out.push(labTab(s['W.sigEn'], 'labelEn', labelEn));
+      } else {
+        out.push(lab(s['G1.sig'], 'label', label)); if (bi) out.push(lab(s['G1.sigEn'], 'labelEn', labelEn));
+      }
+      /* a full-width line is centred, so where its middle falls depends on the label */
+      const ind = kind === 'G1' ? { [W_.grantorLabel]: 'G1', [W_.attorneyLabel]: 'G1a', [W_.witnessLabel]: 'G1w' }[label] : kind;
+      const re = p => p.replace(/⟦IND:\w+⟧/, '⟦IND:' + ind + '⟧');
+      out.push(re(nm(s[kind + '.name'], 'name', name)));
+      if (bi) out.push(re(nm(s[kind + '.nameEn'], 'nameEn', nameEn)));
+      return out;
+    }
+    function block(kind, names, namesEn, label, labelEn, firstLead) {
+      for (let i = 0; i < names.length; i += 2) {
+        const lead = i === 0 ? firstLead : true;
+        if (i + 1 < names.length) rows.push(row([0, 1].map(j => cell(false, lines(kind, label, labelEn, names[i + j], namesEn[i + j], lead)))));
+        else rows.push(row([cell(true, lines('G1', label, labelEn, names[i], namesEn[i], lead))]));
+      }
+    }
+    const signers = V.grantorSigners.length ? V.grantorSigners : [''];
+    if (S.grantor.type === 'company') {
+      const co = [fill(s['CO.company'], 'company', need(V.companyName))];
+      if (bi) co.push(fill(s['CO.companyEn'], 'companyEn', need(V.companyNameEn)));
+      rows.push(row([cell(true, co.concat([s['CO.trail']]))]));
+    }
+    block('W', signers, V.grantorSignersEn, W_.grantorLabel, W2.grantorLabelEn, false);
+    block('H', V.attorneys.map(a => a.name), V.attorneys.map(a => a.nameEn), W_.attorneyLabel, W2.attorneyLabelEn, true);
+    block('W', S.witnesses.map(norm), S.witnesses.map((w, i) => norm(S.witnessesEn[i])), W_.witnessLabel, W2.witnessLabelEn, true);
+    return rows.join('');
+  }
+
+  function buildNew(D, S) {
+    const P = D.forms && D.forms[S.form];
+    if (!P) throw new Error('this build has no "' + S.form + '" form');
+    const F = P.frags, G = P.geom || {}, bi = S.form === 'thEn';
+    const V = deriveNew(S);
+    const parts = [], en = p => { if (bi) parts.push(p); };
+    parts.push(F.title); en(F.titleEn);
+    parts.push(V.placeDefault ? F.placeDefault : fill(F.place, 'place', V.place));
+    en(V.placeEnDefault ? F.placeEnDefault : fill(F.placeEn, 'placeEn', V.placeEn));
+    parts.push(fill(F.date, 'date', V.date)); en(F.dateEn && fill(F.dateEn, 'dateEn', V.dateEn));
+    parts.push(fill(F.grantor, 'grantor', V.grantor)); en(F.grantorEn && fill(F.grantorEn, 'grantorEn', V.grantorEn));
+    parts.push(put(F.attTable, '⟦ROWS⟧', V.attorneys.map((a, i) => {
+      let r = put(F.attRow, '⟦no⟧', (i + 1) + '.');
+      r = fill(r, 'name', need(a.name));
+      if (bi) r = fill(r, 'nameEn', need(a.nameEn));
+      return fill(r, 'id', need(a.id));
+    }).join('')));
+    parts.push(fill(fill(F.intro, 'counterparty', V.counterparty), 'cause', V.cause));
+    en(F.introEn && fill(fill(F.introEn, 'counterpartyEn', V.counterpartyEn), 'causeEn', V.causeEn));
+    parts.push(F.scope); en(F.scopeEn);
+    let n = 0;
+    const no = p => put(p, '⟦no⟧', (++n) + '.');
+    const extra = k => S.extraClauses.filter(c => c.after === k && norm(c.text)).forEach(c => {
+      parts.push(fill(no(F.extraClause), 'TEXT', normText(c.text)));
+      en(F.extraClauseEn && fill(F.extraClauseEn, 'TEXT', need(normText(c.textEn))));
+    });
+    extra(0);
+    F.clauses.forEach((p, k) => { parts.push(no(p)); if (bi) parts.push(F.clausesEn[k]); extra(k + 1); });
+    parts.push(F.closing); en(F.closingEn);
+    parts.push(sigNewPage(S) ? F['sigLead.nextPage'] : F['sigLead.samePage']);
+    parts.push(put(F.sigTable, '⟦ROWS⟧', sigRowsNew(F, S, V, bi)));
+    parts.push(fill(F.stamp, 'stamp', V.stamp.amount));
+    let xml = F.head + parts.join('') + F.tail;
+    xml = xml.replace(/⟦IND:(\w+)⟧/g, (m, k) => String(G[k] != null ? G[k] : 0));
+    const left = xml.match(/⟦[^⟧]*⟧/g);
+    return { xml, state: S, derived: V, report: report(S, V), leftover: left || [] };
+  }
+
   /* ── The document ───────────────────────────────────────────── */
   function build(D, input, opts) {
     MARK = !!(opts && opts.mark);
-    try { return buildDoc(D, input); } finally { MARK = false; }
+    try { const S = adoptState(input); return isNew(S) ? buildNew(D, S) : buildDoc(D, S); } finally { MARK = false; }
   }
   function buildDoc(D, input) {
     const S = adoptState(input);
@@ -398,7 +645,7 @@
       parts.push(p, ...extra(k + 1));
     });
     parts.push(F.closing);
-    parts.push(S.sigNewPage ? F['sigLead.nextPage'] : F['sigLead.samePage']);
+    parts.push(sigNewPage(S) ? F['sigLead.nextPage'] : F['sigLead.samePage']);
     parts.push(put(F.sigTable, '⟦ROWS⟧', sigRows(F, S, V)));
     parts.push(fill(F.stamp, 'stamp', V.stamp.amount));
     let xml = F.head + parts.join('') + F.tail;
@@ -409,6 +656,7 @@
 
   /* ── What the lawyer should be told ─────────────────────────── */
   function report(S, V) {
+    if (isNew(S)) return reportNew(S, V);
     const blank = [], warn = [];
     const g = S.grantor;
     if (!V.place) blank.push('ทำที่');
@@ -441,12 +689,59 @@
     return { blank, invalidIds: badIds, warnings: warn };
   }
 
+  function reportNew(S, V) {
+    const blank = [], warn = (S.inputNotes || []).slice();
+    const g = S.grantor, f = S.facts, bi = S.form === 'thEn';
+    const en = (v, label) => { if (bi && !norm(v)) blank.push(label + ' (EN)'); };
+    if (!V.place) blank.push('ทำที่');
+    if (!V.date) blank.push('วันที่');
+    if (bi && V.date && !V.dateEn) blank.push('วันที่ (EN)');
+    if (bi && V.place && !V.placeEn) blank.push('ทำที่ (EN)');
+    if (g.type === 'company') {
+      const c = g.company;
+      if (!norm(c.name)) blank.push('ชื่อบริษัทผู้มอบอำนาจ');
+      en(c.nameEn, 'ชื่อบริษัทผู้มอบอำนาจ');
+      if (c.detail == null && !norm(c.address)) blank.push('สำนักงานใหญ่');
+      if (bi && c.detailEn == null) en(c.addressEn, 'สำนักงานใหญ่');
+      if (!V.grantorSigners.some(Boolean)) blank.push('กรรมการผู้ลงนาม');
+      else if (bi) c.directors.forEach((d, i) => { if (norm(d.name)) en(d.nameEn, 'ชื่อกรรมการ ' + (i + 1)); });
+    } else {
+      g.persons.forEach((p, i) => {
+        const n = ' ' + (i + 1);
+        if (!norm(p.name)) blank.push('ชื่อผู้มอบอำนาจ' + n);
+        en(p.nameEn, 'ชื่อผู้มอบอำนาจ' + n);
+        if (p.detail == null && !norm(p.idNo)) blank.push('เลขบัตร/หนังสือเดินทางผู้มอบอำนาจ' + n);
+        if (p.detail == null && !norm(p.address)) blank.push('ภูมิลำเนาผู้มอบอำนาจ' + n);
+        if (bi && p.detailEn == null) en(p.addressEn, 'ภูมิลำเนาผู้มอบอำนาจ' + n);
+      });
+      if (norm(g.capacity)) en(g.capacityEn, 'ในฐานะ');
+    }
+    S.attorneys.forEach((a, i) => {
+      if (!norm(a.name)) blank.push('ชื่อผู้รับมอบอำนาจ ' + (i + 1));
+      en(a.nameEn, 'ชื่อผู้รับมอบอำนาจ ' + (i + 1));
+      if (!norm(a.idNo)) blank.push('เลขบัตรผู้รับมอบอำนาจ ' + (i + 1));
+    });
+    if (!norm(f.counterparty)) blank.push('คู่กรณี');
+    en(f.counterpartyEn, 'คู่กรณี');
+    if (!norm(f.cause)) blank.push('เหตุ (อันเนื่องมาจาก…)');
+    en(f.causeEn, 'เหตุ (อันเนื่องมาจาก…)');
+    S.extraClauses.forEach((c, i) => { if (norm(c.text)) en(c.textEn, 'ข้อที่เพิ่ม ' + (i + 1)); });
+    S.witnesses.forEach((w, i) => { if (norm(w)) en(S.witnessesEn[i], 'พยาน ' + (i + 1)); });
+    const badIds = [];
+    S.attorneys.forEach(a => { if (digits(a.idNo).length === 13 && !idValid(a.idNo)) badIds.push(norm(a.name) || a.idNo); });
+    if (g.type === 'individual') g.persons.forEach(p => { if (p.idType === 'id' && digits(p.idNo).length === 13 && !idValid(p.idNo)) badIds.push(norm(p.name) || p.idNo); });
+    S.attorneys.forEach(a => { const d = digits(a.idNo); if (d && d.length !== 13 && !isPlaceholder(a.idNo)) warn.push('เลขประจำตัวของ ' + (norm(a.name) || 'ผู้รับมอบอำนาจ') + ' ไม่ครบ 13 หลัก'); });
+    const empties = S.extraClauses.filter(c => !norm(c.text)).length;
+    if (empties) warn.push(empties + ' added clause(s) are empty and were left out');
+    return { blank, invalidIds: badIds, warnings: warn };
+  }
+
   /* ── File name: "<matter> - หนังสือมอบอำนาจฟ้องคดี <YYYYMMDD>.docx" ── */
   function fileName(S) {
     S = adoptState(S);
     const m = norm(S.matter);
     const d = /^\d{4}-\d{2}-\d{2}$/.test(S.dateIso || '') ? S.dateIso.replace(/-/g, '') : '';
-    return (m ? m + ' - ' : '') + 'หนังสือมอบอำนาจฟ้องคดี' + (d ? ' ' + d : '') + '.docx';
+    return (m ? m + ' - ' : '') + (S.form === 'thEn' ? 'POA' : 'หนังสือมอบอำนาจฟ้องคดี') + (d ? ' ' + d : '') + '.docx';
   }
   const safeName = s => String(s).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
 
@@ -454,7 +749,8 @@
     build, fill, typeRuns, scriptChunks, adjustRpr,
     blankState, adoptState, fromInput, derive, stampDuty, report,
     fileName: S => safeName(fileName(S)),
-    fmtId, idValid, thaiDate, companyDetail, personDetail, claimAuto, courtAuto,
-    CLAUSES, WORDS: W_, BLANK_NAME
+    fmtId, idValid, thaiDate, englishDate, companyDetail, personDetail, claimAuto, courtAuto,
+    companyDetailNew, companyDetailNewEn, personDetailEn, entityAuto, entityEnAuto, sigNewPage, formKey,
+    CLAUSES, CLAUSES_NEW, FORMS, WORDS: W_, WORDS_NEW: W2, BLANK_NAME, PLACEHOLDER
   };
 }));

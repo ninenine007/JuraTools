@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Power of Attorney to Sue — JuraTools</title>
-<meta name="description" content="Fill the firm's own หนังสือมอบอำนาจให้ฟ้องคดี and export Word .docx. The fixed wording is the firm's template, untouched; the grantor, attorneys, counterparty and cause are typed into the original Word runs. Signature table laid out for any number of signers; stamp duty worked out under schedule item 7.">
+<meta name="description" content="Fill the firm's own หนังสือมอบอำนาจให้ฟ้องคดี — the current Thai form, the Thai–English form, or the 2024 form — and export Word .docx. The fixed wording is the firm's template, untouched; the grantor, attorneys, counterparty and cause are typed into the original Word runs. Signature table laid out for any number of signers; stamp duty worked out under schedule item 7.">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 :root{
@@ -91,6 +91,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue"
 .tpl.on .tpl-badge{color:#fff;background:var(--primary);}
 .tpl.off .tpl-badge{color:#71717a;background:#f4f4f5;border:1px solid var(--border);}
 
+/* ── Forms: what each form reads ─────────────── */
+.app:not([data-form="legacy"]) .f-legacy{display:none!important;}
+.app[data-form="legacy"] .f-new{display:none!important;}
+.app:not([data-form="thEn"]) .f-en{display:none!important;}
+.forms{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px;}
+@media(max-width:900px){.forms{grid-template-columns:1fr;}}
+.forms button{cursor:pointer;}
+.forms .tpl:not(.on){opacity:.78;}
+.forms .tpl:hover{border-color:#fda4af;}
+.en-tag{font-size:.64em;font-weight:700;color:#0e7490;background:#ecfeff;border:1px solid #a5f3fc;border-radius:999px;padding:0 6px;}
+
 /* ── Fields ──────────────────────────────────── */
 label{display:block;font-size:.77em;font-weight:600;color:#71717a;margin:0;}
 input[type=text],input[type=date],input[type=number],select,textarea{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;
@@ -119,9 +130,12 @@ input.bad{border-color:#fca5a5;background:#fff7f7;}
 .lst{display:flex;flex-direction:column;gap:8px;}
 .li{display:grid;gap:8px;align-items:center;}
 .li.att{grid-template-columns:26px 1fr 170px 18px auto;}
+.app[data-form="thEn"] .li.att{grid-template-columns:26px 1fr 1fr 150px 18px auto;}
+.li.two{grid-template-columns:26px 1fr 1fr auto;}
+.app:not([data-form="thEn"]) .li.two{grid-template-columns:26px 1fr auto;}
 .li.dir{grid-template-columns:26px 1fr 170px auto;}
 .li.one{grid-template-columns:26px 1fr auto;}
-@media(max-width:640px){.li.att,.li.dir{grid-template-columns:22px 1fr auto;}.li.att .idc,.li.dir .idc{grid-column:2/3;}}
+@media(max-width:640px){.li.att,.li.dir,.li.two,.app[data-form="thEn"] .li.att{grid-template-columns:22px 1fr auto;}.li .idc,.li .enc{grid-column:2/3;}}
 .li .no{font-size:.8em;font-weight:700;color:var(--muted);text-align:right;}
 .li .ok-dot{width:9px;height:9px;border-radius:50%;background:#e4e4e7;justify-self:center;}
 .li .ok-dot.ok{background:#10b981;} .li .ok-dot.bad{background:#ef4444;}
@@ -248,11 +262,11 @@ footer{text-align:center;font-size:.79em;color:var(--muted);line-height:1.7;padd
   <a class="nav-back" href="index.html">← All</a>
 </nav>
 
-<div class="app" id="app" data-view="split">
+<div class="app" id="app" data-view="split" data-form="th">
 
   <aside class="sidebar">
     <div class="side-head"><h2>หนังสือมอบอำนาจ</h2></div>
-    <p class="hint">ให้ฟ้องคดี — ข้อความคงที่เป็นแบบของสำนักงานทุกตัวอักษร กรอกเฉพาะส่วนที่เปลี่ยนตามเรื่อง</p>
+    <p class="hint">ให้ฟ้องคดี — ข้อความคงที่เป็นแบบของสำนักงานทุกตัวอักษร กรอกเฉพาะส่วนที่เปลี่ยนตามเรื่อง · <b id="formName"></b></p>
     <nav class="jump" id="jump">
       <a href="#c-sign"><span class="dot" data-dot="sign"></span>ทำที่ · วันที่</a>
       <a href="#c-grantor"><span class="dot" data-dot="grantor"></span>ผู้มอบอำนาจ</a>
@@ -291,18 +305,27 @@ footer{text-align:center;font-size:.79em;color:var(--muted);line-height:1.7;padd
           <div class="tpl off"><div class="tpl-name">แจ้งความร้องทุกข์</div><div class="tpl-src">ต่อพนักงานสอบสวนให้ดำเนินคดีอาญา</div><span class="tpl-badge">ยังไม่เปิด</span></div>
           <div class="tpl off"><div class="tpl-name">ขอเอกสาร / พยานหลักฐาน</div><div class="tpl-src">ยื่นคำขอ รับเอกสาร ในคดีที่มีอยู่</div><span class="tpl-badge">ยังไม่เปิด</span></div>
         </div>
+        <div class="forms" id="formSeg">
+          <button class="tpl" data-form="th"><div class="tpl-name">แบบปัจจุบัน — ภาษาไทย</div><div class="tpl-src">แบบที่ใช้อยู่ (ก.ย. 2569) · ๖ ข้ออำนาจ · ต่อศาลยุติธรรมที่มีเขตอำนาจ · (“ข้อพิพาท”)</div><span class="tpl-badge">ค่าตั้งต้น</span></button>
+          <button class="tpl" data-form="thEn"><div class="tpl-name">แบบปัจจุบัน — ไทย/อังกฤษ</div><div class="tpl-src">ย่อหน้าไทยตามด้วยอังกฤษทุกย่อหน้า · ชื่อและข้อเท็จจริงกรอกทั้งสองภาษา</div><span class="tpl-badge">สองภาษา</span></button>
+          <button class="tpl" data-form="legacy"><div class="tpl-name">แบบเดิม (2567)</div><div class="tpl-src">๘ ข้ออำนาจ · ระบุศาล · ชื่อเรียกเหตุ — เก็บไว้เรียกใช้เมื่อจำเป็น</div><span class="tpl-badge">เลิกใช้</span></button>
+        </div>
       </div>
       <details class="rules"><summary>อะไรคงที่ อะไรเปลี่ยนได้</summary><div class="rules-bd">
-        <p><b>ข้อความคงที่</b> คือส่วนที่ไฮไลต์เหลืองไว้ในไฟล์ต้นแบบของสำนักงาน (ฉบับผู้มอบเป็นบริษัท และฉบับผู้มอบเป็นบุคคลธรรมดา) — หัวเรื่อง
-        ถ้อยคำเปิด “ซึ่งต่อไปในหนังสือฉบับนี้จะเรียกว่า…” ข้ออำนาจทั้ง ๘ ข้อ และข้อความปิดท้าย คงไว้ทุกตัวอักษร ไฮไลต์เป็นหมายเหตุของผู้ใช้ จึงไม่ติดไปในเอกสาร</p>
+        <p class="f-new"><b>แบบปัจจุบัน</b> มาจากแบบที่สำนักงานปรับใหม่ (ก.ย. 2569) — ส่วนที่ไฮไลต์ฟ้าในไฟล์ต้นแบบคือส่วนที่เปลี่ยนตามเรื่อง:
+        ทำที่ วันที่ ผู้มอบอำนาจ รายชื่อผู้รับมอบอำนาจ คู่กรณี เหตุ และชื่อในช่องลงนาม นอกนั้นคงไว้ทุกตัวอักษร (ข้ออำนาจ ๖ ข้อ “ต่อศาลยุติธรรมที่มีเขตอำนาจ” และคำเรียก “ข้อพิพาท”)
+        · ทำที่ตั้งต้นเป็นที่อยู่สำนักงานตามแบบ — แก้ได้ · ไฮไลต์ฟ้าเป็นหมายเหตุของผู้ใช้ จึงไม่ติดไปในเอกสาร</p>
+        <p class="f-en"><b>ไทย/อังกฤษ</b> ย่อหน้าภาษาอังกฤษเป็นของแบบเองทุกตัวอักษร เครื่องมือไม่แปลให้ — ชื่อ ที่อยู่ คู่กรณี และเหตุ กรอกภาษาอังกฤษเองในช่อง <span class="en-tag">EN</span>
+        ข้อ ๓ ภาษาไทยในไฟล์ต้นแบบไม่มีเลขข้อ เครื่องมือใส่ “3.” ให้ (เลขข้อเรียงเองเมื่อเพิ่มข้อ)</p>
+        <p class="f-legacy"><b>แบบเดิม (2567)</b> ข้อความคงที่คือส่วนที่ไฮไลต์เหลืองไว้ในไฟล์ต้นแบบของสำนักงาน (ฉบับผู้มอบเป็นบริษัท และฉบับผู้มอบเป็นบุคคลธรรมดา) — หัวเรื่อง
+        ถ้อยคำเปิด “ซึ่งต่อไปในหนังสือฉบับนี้จะเรียกว่า…” ข้ออำนาจทั้ง ๘ ข้อ และข้อความปิดท้าย คงไว้ทุกตัวอักษร ไฮไลต์เป็นหมายเหตุของผู้ใช้ จึงไม่ติดไปในเอกสาร
+        ท้ายกระดาษ “หน้า … ของ …” เปลี่ยนเป็นฟิลด์จำนวนหน้าของ Word · ข้อความที่เครื่องมือเขียนเอง (บรรยายศาล/หน่วยงาน) ใช้ “องค์กร” แทน “องค์กรณ์”</p>
         <p><b>วิธีเติมข้อความ</b> เหมือนวางเคอร์เซอร์ในข้อความเดิมแล้วพิมพ์ทับ — ข้อความใหม่อยู่ใน run เดิมของ Word จึงได้ฟอนต์ ขนาด ตัวหนา
         และการตั้งค่าเดิมทุกอย่าง อักษรไทยเป็น complex script และอักษรละติน/ตัวเลขไม่เป็น แบบเดียวกับที่ Word ตั้งเองตอนพิมพ์
-        ช่องว่างคั่นที่ไฟล์ต้นแบบพิมพ์แยกไว้ (บางช่องเป็นตัวหนา) คงไว้ตามเดิม ข้อที่เพิ่มใช้ย่อหน้าของข้อที่เพิ่มในไฟล์ต้นแบบบุคคลธรรมดา (ข้อ ๔ เรื่องแพทยสภา)</p>
-        <p><b>ตารางลงนาม</b> ใช้แถวของไฟล์ต้นแบบเอง: ผู้มอบอำนาจคนเดียวเต็มแถวกึ่งกลาง ที่เหลือแถวละสองคน คนเดียวที่เหลือเต็มแถว
+        ช่องที่ยังไม่กรอกพิมพ์เป็น “(*)” ไฮไลต์เหลือง ให้เห็นว่าต้องเติมก่อนลงนาม</p>
+        <p><b>ตารางลงนาม</b> ใช้แถวของไฟล์ต้นแบบเอง: ผู้ลงนามคนเดียวเต็มแถวกึ่งกลาง ที่เหลือแถวละสองคน คนเดียวที่เหลือเต็มแถว
         ชื่อในวงเล็บจัดกึ่งกลางใต้เส้นลงชื่อ (ระยะวัดจาก Word — ไฟล์ต้นแบบตั้งด้วยมือทีละแถว)</p>
-        <p><b>ท้ายกระดาษ</b> “หน้า … ของ …” ในไฟล์ต้นแบบพิมพ์จำนวนหน้าไว้เอง (ต้องแก้ทุกครั้ง) — เปลี่ยนเป็นฟิลด์จำนวนหน้าของ Word ในรูปแบบเดิม</p>
-        <p><b>คำที่แก้</b> ในข้อความที่เครื่องมือเขียนให้เอง (บรรยายศาล/หน่วยงาน) ใช้ “องค์กร” แทน “องค์กรณ์” ในไฟล์เดิม
-        ส่วนข้อความคงที่ยังคง “พนักงานเจ้าหนาที่” และ “ร้องข้อ” (ข้อ ๔) ตามต้นฉบับทุกตัวอักษร</p>
+        <p><b>คงตามต้นฉบับ</b> ข้อความคงที่ไม่ถูกแก้แม้จะดูเหมือนพิมพ์ผิด — แบบไทย ข้อ ๒ “…ร้องข้อ”; แบบไทย/อังกฤษ ข้อ ๒ “พนักงานเจ้าหนาที่ … ร้องข้อ”</p>
       </div></details>
     </section>
 
@@ -314,10 +337,16 @@ footer{text-align:center;font-size:.79em;color:var(--muted);line-height:1.7;padd
           <div class="row-lbl"><label for="matter">ชื่อเรื่อง (ใช้ตั้งชื่อไฟล์เท่านั้น)</label></div>
           <input type="text" id="matter" data-p="matter" placeholder="เช่น บริษัท ก - [คดีนาย ข]">
         </div>
-        <div class="field">
-          <div class="row-lbl"><label for="place">ทำที่</label></div>
-          <textarea id="place" data-p="place" rows="2" placeholder="สถานที่ลงนาม เช่น ที่ตั้งสำนักงานของผู้มอบอำนาจ"></textarea>
-          <div class="note">พิมพ์ต่อจากคำว่า “ทำที่” ในไฟล์ต้นแบบ (บล็อกชิดขวา)</div>
+        <div class="grid2">
+          <div class="field">
+            <div class="row-lbl"><label for="place">ทำที่</label><span class="auto-tag f-new" data-reset="place">auto</span></div>
+            <textarea id="place" data-ov="place" rows="3" placeholder="สถานที่ลงนาม เช่น ที่ตั้งสำนักงานของผู้มอบอำนาจ"></textarea>
+            <div class="note">พิมพ์ต่อจากคำว่า “ทำที่” (บล็อกชิดขวา) <span class="f-new">— ตั้งต้นเป็นที่อยู่สำนักงานตามแบบ พิมพ์ตามที่ผู้ร่างจัดบรรทัดไว้</span> · Enter = ขึ้นบรรทัดใหม่</div>
+          </div>
+          <div class="field f-en">
+            <div class="row-lbl"><label for="placeEn">Written at</label><span class="en-tag">EN</span><span class="auto-tag" data-reset="placeEn">auto</span></div>
+            <textarea id="placeEn" data-ov="placeEn" rows="3"></textarea>
+          </div>
         </div>
         <div class="grid2">
           <div class="field">
@@ -329,6 +358,8 @@ footer{text-align:center;font-size:.79em;color:var(--muted);line-height:1.7;padd
           <div class="field">
             <div class="row-lbl"><label for="dateText">ข้อความวันที่ในเอกสาร</label><span class="auto-tag" data-reset="dateText">auto</span></div>
             <input type="text" id="dateText" data-ov="dateText" placeholder="เว้นว่างไว้เขียนเอง">
+            <div class="f-en" style="margin-top:8px"><div class="row-lbl"><label for="dateTextEn">Date</label><span class="en-tag">EN</span><span class="auto-tag" data-reset="dateTextEn">auto</span></div>
+            <input type="text" id="dateTextEn" data-ov="dateTextEn" placeholder="left blank to write by hand"></div>
           </div>
         </div>
       </div>
@@ -363,10 +394,34 @@ footer{text-align:center;font-size:.79em;color:var(--muted);line-height:1.7;padd
       <div class="card-bd">
         <div class="field">
           <div class="row-lbl"><label for="counterparty">คู่กรณี</label></div>
-          <div class="ctx">…ตลอดจนดำเนินการทางกฎหมายใด ๆ ที่เกี่ยวข้องกับ<b>[คู่กรณี]</b> (“คู่กรณี”) …</div>
-          <textarea id="counterparty" data-p="facts.counterparty" rows="2" placeholder="ชื่อบุคคล/นิติบุคคลที่จะฟ้อง — หลายรายคั่นด้วย “และ/หรือ”"></textarea>
+          <div class="ctx f-legacy">…ตลอดจนดำเนินการทางกฎหมายใด ๆ ที่เกี่ยวข้องกับ<b>[คู่กรณี]</b> (“คู่กรณี”) …</div>
+          <div class="ctx f-new">…ในการ<span id="actionCtx"></span><b>[คู่กรณี]</b> หรือบุคคลอื่นที่มีความเกี่ยวข้อง (“คู่กรณี”) ต่อศาลยุติธรรมที่มีเขตอำนาจ อันเนื่องมาจาก…</div>
+          <textarea id="counterparty" data-p="facts.counterparty" rows="2" placeholder="ชื่อบุคคล/นิติบุคคลที่จะฟ้อง — หลายรายคั่นด้วย “และ” หรือ “และ/หรือ”"></textarea>
+          <div class="f-en" style="margin-top:8px"><div class="row-lbl"><label for="counterpartyEn">Opposing party</label><span class="en-tag">EN</span></div>
+          <div class="ctx">…<span id="actionEnCtx"></span> <b>[party]</b>, or any other persons concerned (the “Opposing Parties”)…</div>
+          <textarea id="counterpartyEn" data-p="facts.counterpartyEn" rows="2" placeholder="e.g. Example Co., Ltd. and Sample Co., Ltd."></textarea></div>
         </div>
-        <div class="grid2">
+        <div class="field f-new">
+          <div class="row-lbl"><label for="cause">เหตุ</label></div>
+          <div class="ctx">… อันเนื่องมาจาก<b>[เหตุ]</b> (“ข้อพิพาท”) ตลอดจนดำเนินการทางกฎหมายใด ๆ …</div>
+          <textarea id="causeNew" data-p="facts.cause" rows="3" placeholder="เช่น การผิดนัดชำระราคาสินค้าตามใบสั่งซื้อสินค้าเลขที่ (*) ที่คู่กรณีสั่งซื้อจากผู้มอบอำนาจ"></textarea>
+          <div class="note">ไม่ต้องใส่ชื่อเรียก — แบบปัจจุบันเรียกทุกเรื่องว่า (“ข้อพิพาท”) และใช้คำนี้ในข้อ ๑ และข้อ ๔ เอง</div>
+          <div class="f-en" style="margin-top:8px"><div class="row-lbl"><label for="causeEn">Cause</label><span class="en-tag">EN</span></div>
+          <div class="ctx">…arising from <b>[cause]</b> (the “Dispute”)…</div>
+          <textarea id="causeEn" data-p="facts.causeEn" rows="3" placeholder="e.g. a default in paying for goods ordered from the Principal under purchase order no. (*)"></textarea></div>
+        </div>
+        <div class="grid2 f-new">
+          <div class="field">
+            <div class="row-lbl"><label for="action">การกระทำ (หน้าคู่กรณี)</label><span class="auto-tag" data-reset="action">auto</span></div>
+            <input type="text" id="action" data-ov="action">
+            <div class="note">ตามแบบ “ฟ้องร้องดำเนินคดีทั้งทางแพ่งและอาญากับ” — แก้เฉพาะเมื่อเรื่องไม่ใช่การฟ้อง</div>
+          </div>
+          <div class="field f-en">
+            <div class="row-lbl"><label for="actionEn">Action</label><span class="en-tag">EN</span><span class="auto-tag" data-reset="actionEn">auto</span></div>
+            <input type="text" id="actionEn" data-ov="actionEn">
+          </div>
+        </div>
+        <div class="grid2 f-legacy">
           <div class="field">
             <div class="row-lbl"><label>ศาลที่จะฟ้อง</label></div>
             <div class="lst" id="forumList"></div>
@@ -379,23 +434,23 @@ footer{text-align:center;font-size:.79em;color:var(--muted);line-height:1.7;padd
             <div class="note">เช่น แพทยสภา หรือหน่วยงานกำกับที่จะร้องเรียนด้วย — ขึ้นในย่อหน้าบรรยายเท่านั้น (ข้อ ๑ ใช้เฉพาะศาล)</div>
           </div>
         </div>
-        <div class="field">
+        <div class="field f-legacy">
           <div class="row-lbl"><label for="cause">เหตุที่ฟ้อง</label></div>
           <div class="ctx">… อันเนื่องมาจาก<b>[เหตุ]</b> (“[ชื่อเรียก]”)</div>
           <textarea id="cause" data-p="facts.cause" rows="3" placeholder="นิติสัมพันธ์/ข้อเท็จจริงที่ทำให้เกิดสิทธิฟ้อง เช่น สัญญาอะไร ลงวันที่เท่าไร และคู่กรณีผิดสัญญาอย่างไร"></textarea>
         </div>
-        <div class="field">
+        <div class="field f-legacy">
           <div class="row-lbl"><label for="term">ชื่อเรียกเหตุ</label></div>
           <input type="text" id="term" data-p="facts.term" placeholder="เช่น การผิดสัญญา">
           <div class="chips" id="termChips"></div>
           <div class="note">ใช้สามที่: ในวงเล็บ (“…”) ท้ายย่อหน้าบรรยาย, ข้อ ๑ “…ในผลเสียหายจาก<b>[ชื่อเรียก]</b>ของคู่กรณี” และข้อ ๖ “…ที่เกี่ยวกับ<b>[ชื่อเรียก]</b> ทั้งคดีอาญา…”</div>
         </div>
-        <div class="field">
+        <div class="field f-legacy">
           <div class="row-lbl"><label for="claim">ย่อหน้าบรรยาย (ตั้งแต่หลัง “คู่กรณี” ถึงก่อนชื่อเรียก)</label><span class="auto-tag" data-reset="claim">auto</span></div>
           <textarea id="claim" data-ov="claim" rows="4"></textarea>
           <div class="note">ประกอบให้จาก ศาล + หน่วยงาน + เหตุ ตามรูปแบบในไฟล์ต้นแบบ — แก้เองได้ทั้งย่อหน้า (Enter = ขึ้นบรรทัดใหม่แบบเดียวกับที่ผู้ร่างเคาะไว้ในไฟล์เดิม)</div>
         </div>
-        <div class="field">
+        <div class="field f-legacy">
           <div class="row-lbl"><label for="court">ศาลในข้อ ๑</label><span class="auto-tag" data-reset="court">auto</span></div>
           <div class="ctx">๑. ให้มีอำนาจในการยื่นฟ้องและดำเนินคดีแพ่งและอาญากับคู่กรณีต่อศาล<b>[…]</b> หรือศาลสถิตยุติธรรมอื่นใดที่มีเขตอำนาจ…</div>
           <input type="text" id="court" data-ov="court">
@@ -407,7 +462,7 @@ footer{text-align:center;font-size:.79em;color:var(--muted);line-height:1.7;padd
 
     <!-- 5 · Clauses -->
     <section class="card acc-appt" id="c-clauses">
-      <div class="card-hd"><div class="ico">📜</div><h3>Powers</h3><span class="th">ข้ออำนาจ — ๘ ข้อคงที่ เพิ่มข้อได้ตรงไหนก็ได้</span></div>
+      <div class="card-hd"><div class="ico">📜</div><h3>Powers</h3><span class="th">ข้ออำนาจ — <span id="clauseCount">๖</span> ข้อคงที่ เพิ่มข้อได้ตรงไหนก็ได้</span></div>
       <div class="card-bd">
         <div class="cls" id="clauseList"></div>
         <div class="chips" id="clauseSnips" style="margin-top:10px"></div>
@@ -423,11 +478,11 @@ footer{text-align:center;font-size:.79em;color:var(--muted);line-height:1.7;padd
             <div class="row-lbl"><label>พยาน</label></div>
             <div class="lst" id="witList"></div>
             <button class="btn btn-ghost btn-sm" id="witAdd" style="margin-top:8px">+ พยาน</button>
-            <div class="note">เว้นชื่อว่างได้ — จะพิมพ์เป็น “(______)” ให้เขียนเอง</div>
+            <div class="note">เว้นชื่อว่างได้ — จะพิมพ์เป็น “(______)” ให้เขียนเอง<span class="f-en"> · ช่องที่สองคือชื่อภาษาอังกฤษ</span></div>
           </div>
           <div class="field">
-            <label class="check"><input type="checkbox" id="sigNewPage" data-cb="sigNewPage">
-              <span>ขึ้นหน้าใหม่ก่อนช่องลงนาม<br><span class="note">พิมพ์ “-ส่วนที่เหลือของหน้านี้เจตนาเว้นว่างไว้ ผู้มอบอำนาจ และผู้รับมอบอำนาจลงนามในหน้าถัดไป-” แล้วขึ้นหน้าใหม่ ตามไฟล์ต้นแบบบุคคลธรรมดา — ช่องลงนามจะไม่ถูกตัดข้ามหน้า</span></span></label>
+            <label class="check"><input type="checkbox" id="sigNewPage">
+              <span>ขึ้นหน้าใหม่ก่อนช่องลงนาม <span class="auto-tag" data-reset="sigNewPage">auto</span><br><span class="note" id="sigNewPageNote"></span></span></label>
             <div class="sigmap" id="sigMap"></div>
           </div>
         </div>
@@ -484,7 +539,7 @@ footer{text-align:center;font-size:.79em;color:var(--muted);line-height:1.7;padd
 </div>
 
 <footer>
-  JuraTools · Document Automation · หนังสือมอบอำนาจให้ฟ้องคดี — draft only; a lawyer checks every document before it is signed.<br>
+  JuraTools · Document Automation · หนังสือมอบอำนาจให้ฟ้องคดี (แบบปัจจุบัน ไทย · ไทย/อังกฤษ · แบบเดิม 2567) — draft only; a lawyer checks every document before it is signed.<br>
   Everything stays in this browser. Stamp duty: Revenue Code, stamp duty schedule item 7 (ใบมอบอำนาจ); section 108.
 </footer>
 
@@ -492,11 +547,11 @@ footer{text-align:center;font-size:.79em;color:var(--muted);line-height:1.7;padd
   <div class="btn-row"><button class="btn btn-ghost" id="dlgNo">ยกเลิก</button><button class="btn btn-primary" id="dlgYes">ตกลง</button></div></div></div>
 <div class="dlg-bg" id="aiDlg"><div class="dlg wide"><h4>ให้ AI ช่วยเขียนส่วนที่เปลี่ยนตามเรื่อง</h4>
   <div class="dlg-msg">๑. คัดลอกคำสั่งด้านล่างไปวางใน AI ที่ใช้ (Claude, ChatGPT …) พร้อมข้อเท็จจริงของเรื่อง
-๒. นำ JSON ที่ AI ตอบกลับมาวางในช่องที่สอง แล้วกด “ใช้ข้อความนี้” — จะเติมคู่กรณี ศาล หน่วยงาน เหตุ ชื่อเรียก และข้อที่เพิ่ม
+๒. นำ JSON ที่ AI ตอบกลับมาวางในช่องที่สอง แล้วกด “ใช้ข้อความนี้” — จะเติมคู่กรณี เหตุ และข้อที่เพิ่ม (แบบเดิม: ศาล หน่วยงาน ชื่อเรียก)
 ถ้าเชื่อม AI กับ MCP server ของ JuraTools ไว้ ให้ใช้เครื่องมือ create_power_of_attorney ได้เลย</div>
   <textarea id="aiPrompt" rows="9" readonly style="font-size:.78em"></textarea>
   <div class="btn-row" style="margin:8px 0 14px;justify-content:flex-start"><button class="btn btn-soft btn-sm" id="aiCopy">คัดลอกคำสั่ง</button></div>
-  <textarea id="aiPaste" rows="6" placeholder='วาง JSON ที่ AI ตอบกลับ เช่น {"counterparty": "...", "courts": ["ศาลแพ่ง"], ...}' style="font-size:.8em"></textarea>
+  <textarea id="aiPaste" rows="6" placeholder='วาง JSON ที่ AI ตอบกลับ เช่น {"counterparty": "...", "cause": "...", ...}' style="font-size:.8em"></textarea>
   <div class="btn-row" style="margin-top:12px"><button class="btn btn-ghost" id="aiClose">ปิด</button><button class="btn btn-primary" id="aiApply">ใช้ข้อความนี้</button></div>
 </div></div>
 <div id="toast"></div>
@@ -519,7 +574,7 @@ var POA_LAW_KEY = 'juratools-poa-lawyers-v2';        // the attorney-appointment
 var CALC = '../tax-tools/thai-stamp-duty-calculator.html';
 var $ = function (id) { return document.getElementById(id); };
 var S = E.blankState();
-var PEOPLE = [];                                      // [{name, idNo}] typed here before; this browser only
+var PEOPLE = [];                                      // [{name, idNo, nameEn}] typed here before; this browser only
 
 /* ── Storage ─────────────────────────────────────────────────────────────── */
 function save() {
@@ -555,11 +610,15 @@ function people() {
   } catch (e) {}
   return out;
 }
-function remember(name, idNo) {
+function remember(name, idNo, nameEn) {
   name = norm(name); if (!name || digits(idNo).length !== 13 || !E.idValid(idNo)) return;
   var hit = PEOPLE.filter(function (p) { return norm(p.name) === name; })[0];
-  if (hit) hit.idNo = digits(idNo); else PEOPLE.push({ name: name, idNo: digits(idNo) });
+  if (!hit) { hit = { name: name, idNo: '' }; PEOPLE.push(hit); }
+  hit.idNo = digits(idNo);
+  if (norm(nameEn)) hit.nameEn = norm(nameEn);
 }
+function formOf() { return E.FORMS[S.form] ? S.form : 'th'; }
+function tplOf() { return S.form === 'legacy' ? D.tpl : D.forms[S.form].tpl; }
 
 /* ── Painting: lists are rebuilt on add/remove; typing only refreshes the rest ── */
 function li(cls, i, inner, n) {
@@ -570,43 +629,61 @@ function li(cls, i, inner, n) {
 function paintGrantor() {
   var g = S.grantor, h = '';
   document.querySelectorAll('#gtSeg button').forEach(function (b) { b.classList.toggle('on', b.dataset.gt === g.type); });
+  var en = function (path, ph, rows) {
+    return '<div class="f-en" style="margin-top:6px">' + (rows ? '<textarea rows="' + rows + '"' : '<input type="text"') + ' data-p="' + path + '" placeholder="' + ph + '">' + (rows ? '</textarea>' : '') + '</div>';
+  };
   if (g.type === 'company') {
     var c = g.company;
-    h += '<div class="field"><div class="row-lbl"><label>ชื่อนิติบุคคล (ตัวหนาในเอกสาร)</label></div><input type="text" data-p="grantor.company.name" placeholder="บริษัท … จำกัด"></div>' +
-      '<div class="grid2"><div class="field"><div class="row-lbl"><label>ทะเบียนนิติบุคคลเลขที่</label></div><input type="text" data-p="grantor.company.regNo" placeholder="0105…"></div>' +
+    h += '<div class="field"><div class="row-lbl"><label>ชื่อนิติบุคคล</label><span class="note f-legacy" style="margin:0">(ตัวหนาในเอกสาร)</span></div><input type="text" data-p="grantor.company.name" placeholder="บริษัท … จำกัด">' +
+        en('grantor.company.nameEn', 'EN — e.g. Example Co., Ltd.') + '</div>' +
+      '<div class="grid2 f-legacy"><div class="field"><div class="row-lbl"><label>ทะเบียนนิติบุคคลเลขที่</label></div><input type="text" data-p="grantor.company.regNo" placeholder="0105…"></div>' +
       '<div class="field"><div class="row-lbl"><label>สถานะการจัดตั้ง</label></div><input type="text" data-p="grantor.company.incorporation"></div></div>' +
-      '<div class="field"><div class="row-lbl"><label>สำนักงานแห่งใหญ่ตั้งอยู่ ณ</label></div><textarea rows="2" data-p="grantor.company.address" placeholder="เลขที่ … ถนน … แขวง/ตำบล … เขต/อำเภอ … จังหวัด …"></textarea></div>' +
+      '<div class="field f-new"><div class="row-lbl"><label>ประเภทนิติบุคคล</label><span class="auto-tag" data-reset="entity">auto</span></div><input type="text" data-ov="entity">' +
+        '<div class="f-en" style="margin-top:6px"><div class="row-lbl"><span class="en-tag">EN</span><span class="auto-tag" data-reset="entityEn">auto</span></div><input type="text" data-ov="entityEn"></div>' +
+        '<div class="note">ตามแบบ — บริษัทมหาชน (ชื่อมี “(มหาชน)”) เปลี่ยนเป็น “บริษัทมหาชนจำกัด” ให้เอง</div></div>' +
+      '<div class="field"><div class="row-lbl"><label><span class="f-legacy">สำนักงานแห่งใหญ่ตั้งอยู่ ณ</span><span class="f-new">สำนักงานใหญ่ตั้งอยู่ เลขที่</span></label></div><textarea rows="2" data-p="grantor.company.address" placeholder="… ถนน … แขวง/ตำบล … เขต/อำเภอ … จังหวัด …"></textarea>' +
+        en('grantor.company.addressEn', 'EN — e.g. 99 Example Road, Khlong Toei, Bangkok', 2) + '</div>' +
       '<div class="field"><div class="row-lbl"><label>กรรมการผู้ลงนาม</label><span class="spacer" style="margin-left:auto"></span>' +
-      '<label class="check" style="font-size:.95em"><input type="checkbox" data-cb="grantor.company.directorIds"> ใส่เลขบัตรประชาชนกรรมการ</label></div>' +
+      '<label class="check f-legacy" style="font-size:.95em"><input type="checkbox" data-cb="grantor.company.directorIds"> ใส่เลขบัตรประชาชนกรรมการ</label></div>' +
       '<div class="lst">' + c.directors.map(function (d, i) {
-        return li('dir', i, '<input type="text" data-p="grantor.company.directors.' + i + '.name" placeholder="นาย …">' +
-          '<input class="idc" type="text" data-p="grantor.company.directors.' + i + '.idNo" placeholder="เลขบัตร (ถ้าใส่)"' + (c.directorIds ? '' : ' disabled') + '>', 'dir');
-      }).join('') + '</div><button class="btn btn-ghost btn-sm" data-add="dir" style="margin-top:8px">+ กรรมการ</button></div>' +
-      '<div class="field"><div class="row-lbl"><label>อำนาจกรรมการ</label></div><input type="text" data-p="grantor.company.authority"></div>' +
+        return '<div class="f-legacy">' + li('dir', i, '<input type="text" data-p="grantor.company.directors.' + i + '.name" placeholder="นาย …">' +
+          '<input class="idc" type="text" data-p="grantor.company.directors.' + i + '.idNo" placeholder="เลขบัตร (ถ้าใส่)"' + (c.directorIds ? '' : ' disabled') + '>', 'dir') + '</div>' +
+          '<div class="f-new">' + li('two', i, '<input type="text" data-p="grantor.company.directors.' + i + '.name" placeholder="นาย …">' +
+          '<input class="enc f-en" type="text" data-p="grantor.company.directors.' + i + '.nameEn" placeholder="EN — Mr. …">', 'dir') + '</div>';
+      }).join('') + '</div><button class="btn btn-ghost btn-sm" data-add="dir" style="margin-top:8px">+ กรรมการ</button>' +
+      '<div class="note f-new">ลงนามในตารางท้ายหนังสือ — แบบปัจจุบันไม่ระบุชื่อกรรมการในย่อหน้าผู้มอบอำนาจ</div></div>' +
+      '<div class="field f-legacy"><div class="row-lbl"><label>อำนาจกรรมการ</label></div><input type="text" data-p="grantor.company.authority"></div>' +
       '<div class="field"><div class="row-lbl"><label>ข้อความหลังชื่อบริษัท</label><span class="auto-tag" data-reset="coDetail">auto</span></div>' +
       '<div class="ctx">โดยหนังสือฉบับนี้ <b>[ชื่อบริษัท]</b> <b>[ข้อความนี้]</b> (“ผู้มอบอำนาจ”) ขอมอบอำนาจให้บุคคลที่มีรายนามดังต่อไปนี้</div>' +
-      '<textarea rows="3" data-ov="coDetail"></textarea></div>';
+      '<textarea rows="3" data-ov="coDetail"></textarea>' +
+      '<div class="f-en" style="margin-top:6px"><div class="row-lbl"><span class="en-tag">EN</span><span class="auto-tag" data-reset="coDetailEn">auto</span></div>' +
+      '<div class="ctx">By this instrument, <b>[name]</b>, <b>[this text]</b> (the “Principal”), hereby appoints the following persons:</div><textarea rows="3" data-ov="coDetailEn"></textarea></div></div>';
   } else {
     h += g.persons.map(function (p, i) {
       return '<div class="person"><div class="person-hd"><b>ผู้มอบอำนาจ ' + (i + 1) + '</b><span class="spacer" style="margin-left:auto"></span>' +
         (g.persons.length > 1 ? '<span class="ib"><button class="x" data-rm="person:' + i + '" title="ลบ">×</button></span>' : '') + '</div>' +
-        '<div class="field"><div class="row-lbl"><label>ชื่อ (ตัวหนาในเอกสาร)</label></div><input type="text" data-p="grantor.persons.' + i + '.name" list="peopleList" placeholder="นาย/นาง/นางสาว …"></div>' +
+        '<div class="field"><div class="row-lbl"><label>ชื่อ</label><span class="note f-legacy" style="margin:0">(ตัวหนาในเอกสาร)</span></div><input type="text" data-p="grantor.persons.' + i + '.name" list="peopleList" placeholder="นาย/นาง/นางสาว …">' +
+          en('grantor.persons.' + i + '.nameEn', 'EN — Mr./Mrs./Ms. …') + '</div>' +
         '<div class="grid3"><div class="field"><div class="row-lbl"><label>เลขที่</label></div><input type="text" data-p="grantor.persons.' + i + '.idNo" placeholder="13 หลัก"></div>' +
         '<div class="field"><div class="row-lbl"><label>ประเภท</label></div><select data-p="grantor.persons.' + i + '.idType"><option value="id">บัตรประชาชน</option><option value="passport">หนังสือเดินทาง</option></select></div><div></div></div>' +
-        '<div class="field"><div class="row-lbl"><label>ภูมิลำเนาอยู่ ณ</label></div><textarea rows="2" data-p="grantor.persons.' + i + '.address" placeholder="เลขที่ … ถนน … ตำบล … อำเภอ … จังหวัด …"></textarea></div>' +
+        '<div class="field"><div class="row-lbl"><label>ภูมิลำเนาอยู่ ณ</label></div><textarea rows="2" data-p="grantor.persons.' + i + '.address" placeholder="เลขที่ … ถนน … ตำบล … อำเภอ … จังหวัด …"></textarea>' +
+          en('grantor.persons.' + i + '.addressEn', 'EN — residing at …', 2) + '</div>' +
         '<div class="field"><div class="row-lbl"><label>ข้อความหลังชื่อ</label><span class="auto-tag" data-reset="pDetail:' + i + '">auto</span></div>' +
-        '<textarea rows="2" data-ov="pDetail:' + i + '"></textarea></div></div>';
+        '<textarea rows="2" data-ov="pDetail:' + i + '"></textarea>' +
+        '<div class="f-en" style="margin-top:6px"><div class="row-lbl"><span class="en-tag">EN</span><span class="auto-tag" data-reset="pDetailEn:' + i + '">auto</span></div><textarea rows="2" data-ov="pDetailEn:' + i + '"></textarea></div></div></div>';
     }).join('') +
       '<button class="btn btn-ghost btn-sm" data-add="person">+ ผู้มอบอำนาจร่วม</button>' +
       '<div class="field" style="margin-top:14px"><div class="row-lbl"><label>ในฐานะ (ถ้ามี)</label></div>' +
-      '<div class="ctx">…ภูมิลำเนาอยู่ ณ … (“ผู้มอบอำนาจ”) <b>[เช่น ในฐานะส่วนตัว และในฐานะผู้แทนโดยชอบธรรมของ…]</b> ขอมอบอำนาจให้บุคคลที่มีรายนามดังต่อไปนี้</div>' +
-      '<textarea rows="3" data-p="grantor.capacity"></textarea></div>';
+      '<div class="ctx f-legacy">…ภูมิลำเนาอยู่ ณ … (“ผู้มอบอำนาจ”) <b>[เช่น ในฐานะส่วนตัว และในฐานะผู้แทนโดยชอบธรรมของ…]</b> ขอมอบอำนาจให้บุคคลที่มีรายนามดังต่อไปนี้</div>' +
+      '<div class="ctx f-new">…ภูมิลำเนาอยู่ ณ … <b>[เช่น ในฐานะส่วนตัว และในฐานะผู้แทนโดยชอบธรรมของ…]</b> (“ผู้มอบอำนาจ”) ขอมอบอำนาจให้บุคคลที่มีรายนามดังต่อไปนี้</div>' +
+      '<textarea rows="3" data-p="grantor.capacity"></textarea>' + en('grantor.capacityEn', 'EN — e.g. acting in his own capacity and as the statutory representative of …', 2) + '</div>';
   }
   $('grantorBody').innerHTML = h;
 }
 function paintLists() {
   $('attList').innerHTML = S.attorneys.map(function (a, i) {
     return li('att', i, '<input type="text" data-p="attorneys.' + i + '.name" list="peopleList" placeholder="ชื่อ-นามสกุล">' +
+      '<input class="enc f-en" type="text" data-p="attorneys.' + i + '.nameEn" placeholder="EN — Mr. …">' +
       '<input class="idc" type="text" data-p="attorneys.' + i + '.idNo" placeholder="เลขบัตรประชาชน 13 หลัก">' +
       '<span class="ok-dot" data-iddot="' + i + '"></span>', 'att');
   }).join('');
@@ -617,7 +694,8 @@ function paintLists() {
     return li('one', i, '<input type="text" data-p="facts.bodies.' + i + '" placeholder="เช่น แพทยสภา">', 'body');
   }).join('') || '<span class="empty">ไม่มี</span>';
   $('witList').innerHTML = S.witnesses.map(function (w, i) {
-    return li('one', i, '<input type="text" data-p="witnesses.' + i + '" list="peopleList" placeholder="(เว้นว่างได้)">', 'wit');
+    return li('two', i, '<input type="text" data-p="witnesses.' + i + '" list="peopleList" placeholder="(เว้นว่างได้)">' +
+      '<input class="enc f-en" type="text" data-p="witnessesEn.' + i + '" placeholder="EN (left blank: a line)">', 'wit');
   }).join('') || '<span class="empty">ไม่มีพยาน</span>';
   $('peopleList').innerHTML = people().map(function (p) { return '<option value="' + esc(p.name) + '">'; }).join('');
   paintClauses();
@@ -627,13 +705,14 @@ function paintClauses() {
   var extras = function (k) {
     S.extraClauses.forEach(function (c, i) {
       if (c.after !== k) return;
-      h += '<div class="cl-extra"><span class="cl-no">' + (++n) + '.</span><textarea data-p="extraClauses.' + i + '.text" placeholder="ให้มีอำนาจ…"></textarea>' +
+      h += '<div class="cl-extra"><span class="cl-no">' + (++n) + '.</span><div style="flex:1;display:flex;flex-direction:column;gap:6px"><textarea data-p="extraClauses.' + i + '.text" placeholder="ให้มีอำนาจ…"></textarea>' +
+        '<textarea class="f-en" data-p="extraClauses.' + i + '.textEn" placeholder="EN — To …"></textarea></div>' +
         '<span class="ib"><button data-cmv="' + i + ':-1" title="ขึ้น">↑</button><button data-cmv="' + i + ':1" title="ลง">↓</button><button class="x" data-rm="clause:' + i + '" title="ลบ">×</button></span></div>';
     });
     h += '<button class="cl-add" data-cadd="' + k + '">+ เพิ่มข้อตรงนี้</button>';
   };
   extras(0);
-  E.CLAUSES.forEach(function (t, k) {
+  E.FORMS[formOf()].clauses.forEach(function (t, k) {
     h += '<div class="cl-fixed"><span class="cl-no">' + (++n) + '.</span><span>' + esc(t) + '</span></div>';
     extras(k + 1);
   });
@@ -647,26 +726,61 @@ function paintValues() {
     if (el.tagName === 'SELECT') { if (el.value !== v) el.value = v; } else setVal(el, v == null ? '' : String(v));
   });
   document.querySelectorAll('[data-cb]').forEach(function (el) { el.checked = !!getPath(el.dataset.cb); });
-  var V = derived();
+  var V = derived(), nw = S.form !== 'legacy', W2 = E.WORDS_NEW;
+  if (nw) ov('place', S.place, W2.place);
+  else { var pl = document.querySelector('[data-ov="place"]'); setVal(pl, S.place == null ? '' : S.place); pl.classList.remove('is-auto'); }
+  ov('placeEn', S.placeEn, W2.placeEn);
+  ov('dateTextEn', S.dateTextEn, E.englishDate(S.dateIso));
+  ov('action', S.facts.action, W2.action);
+  ov('actionEn', S.facts.actionEn, W2.actionEn);
+  $('actionCtx').textContent = S.facts.action != null ? S.facts.action : W2.action;
+  $('actionEnCtx').textContent = S.facts.actionEn != null ? S.facts.actionEn : W2.actionEn;
+  var snp = E.sigNewPage(S);
+  $('sigNewPage').checked = snp;
+  ov('sigNewPage', S.sigNewPage, null);
+  $('sigNewPageNote').textContent = snp
+    ? (S.form === 'thEn' ? 'พิมพ์ “-ส่วนที่เหลือเจตนาเว้นว่างไว้ คู่สัญญาลงนามในหน้าถัดไป-” และบรรทัดภาษาอังกฤษ แล้วขึ้นหน้าใหม่ ตามแบบไทย/อังกฤษ'
+      : S.form === 'th' ? 'พิมพ์ “-ส่วนที่เหลือเจตนาเว้นว่างไว้ คู่สัญญาลงนามในหน้าถัดไป-” (บรรทัดไทยของแบบไทย/อังกฤษ) แล้วขึ้นหน้าใหม่ — แบบไทยเองไม่มีบรรทัดนี้'
+      : 'พิมพ์ “-ส่วนที่เหลือของหน้านี้เจตนาเว้นว่างไว้ ผู้มอบอำนาจ และผู้รับมอบอำนาจลงนามในหน้าถัดไป-” แล้วขึ้นหน้าใหม่ ตามไฟล์ต้นแบบบุคคลธรรมดา')
+    : 'ลงนามต่อจากข้อความปิดท้ายทันที' + (S.form === 'th' ? ' ตามแบบไทย — ถ้าตารางยาวข้ามหน้า Word อาจตัดแถวลงนามข้ามหน้า (ไฟล์ต้นแบบก็เป็นเช่นนั้น)' : '');
   ov('dateText', S.dateText, E.thaiDate(S.dateIso));
   ov('claim', S.facts.claim, E.claimAuto(S.facts));
   ov('court', S.facts.court, E.courtAuto(S.facts));
   var duty = V.stamp;
   ov('principals', S.stamp.principals, String(duty.principals));
   ov('stampAmt', S.stamp.amount, String(duty.auto));
-  if (S.grantor.type === 'company') ov('coDetail', S.grantor.company.detail, E.companyDetail(Object.assign({}, S.grantor.company, { detail: null })));
-  else S.grantor.persons.forEach(function (p, i) { ov('pDetail:' + i, p.detail, E.personDetail(Object.assign({}, p, { detail: null }))); });
+  if (S.grantor.type === 'company') {
+    var co = S.grantor.company;
+    ov('coDetail', co.detail, (nw ? E.companyDetailNew : E.companyDetail)(Object.assign({}, co, { detail: null })));
+    ov('coDetailEn', co.detailEn, E.companyDetailNewEn(Object.assign({}, co, { detailEn: null })));
+    ov('entity', co.entity, E.entityAuto(co));
+    ov('entityEn', co.entityEn, E.entityEnAuto(co));
+  } else S.grantor.persons.forEach(function (p, i) {
+    ov('pDetail:' + i, p.detail, E.personDetail(Object.assign({}, p, { detail: null })));
+    ov('pDetailEn:' + i, p.detailEn, E.personDetailEn(Object.assign({}, p, { detailEn: null })));
+  });
 }
 function ov(key, manual, auto) {
   var el = document.querySelector('[data-ov="' + key + '"]'), tag = document.querySelector('[data-reset="' + key + '"]');
   if (!el) return;
   var isManual = manual != null;
+  if (auto === null) { if (tag) { tag.classList.toggle('manual', isManual); tag.textContent = isManual ? 'แก้เอง' : 'auto'; } return; }
   setVal(el, isManual ? String(manual) : auto);
   el.classList.toggle('is-auto', !isManual);
   if (tag) { tag.classList.toggle('manual', isManual); tag.textContent = isManual ? 'แก้เอง' : 'auto'; }
 }
 function setOv(key, v) {
-  if (key === 'dateText') S.dateText = v;
+  if (key === 'place') S.place = v;
+  else if (key === 'placeEn') S.placeEn = v;
+  else if (key === 'dateTextEn') S.dateTextEn = v;
+  else if (key === 'action') S.facts.action = v;
+  else if (key === 'actionEn') S.facts.actionEn = v;
+  else if (key === 'sigNewPage') S.sigNewPage = v;
+  else if (key === 'entity') S.grantor.company.entity = v;
+  else if (key === 'entityEn') S.grantor.company.entityEn = v;
+  else if (key === 'coDetailEn') S.grantor.company.detailEn = v;
+  else if (key.indexOf('pDetailEn:') === 0) S.grantor.persons[+key.split(':')[1]].detailEn = v;
+  else if (key === 'dateText') S.dateText = v;
   else if (key === 'claim') S.facts.claim = v;
   else if (key === 'court') S.facts.court = v;
   else if (key === 'principals') S.stamp.principals = v === '' ? null : v;
@@ -722,8 +836,9 @@ function paintStatus() {
   dot('sign', V.place && V.date, true);
   dot('grantor', !has('ผู้มอบอำนาจ') && !has('บริษัท') && !has('ทะเบียน') && !has('สำนักงาน') && !has('กรรมการ'), true);
   dot('att', !has('ผู้รับมอบอำนาจ') && !rep.invalidIds.length, true);
-  dot('matter', !has('คู่กรณี') && !has('เหตุ') && !has('ชื่อเรียก') && !has('ศาล'), true);
-  dot('clauses', true); dot('sig', true); dot('duty', true); dot('out', !msgs.length, true);
+  dot('sig', !has('พยาน'), true);
+  dot('matter', !has('คู่กรณี') && !has('เหตุ') && !has('ชื่อเรียก') && !has('ศาล') && !has('ข้อที่เพิ่ม'), true);
+  dot('clauses', true); dot('duty', true); dot('out', !msgs.length, true);
 }
 /* The calculator takes the instrument as rows it already knows: 7(c) counts the
    appointees; with several principals, one row per principal (section 108). */
@@ -747,7 +862,8 @@ function paintSigMap(V) {
   var signers = V.grantorSigners.length ? V.grantorSigners : [''];
   if (g.type === 'company') {
     rows.push([['co full', V.companyName || 'ชื่อบริษัท']]);
-    if (signers.length === 1) rows[0].push(['g full', signers[0] || 'กรรมการ']); else pairs(signers.map(function (n) { return n || 'กรรมการ'; }), 'g');
+    if (signers.length === 1 && S.form === 'legacy') rows[0].push(['g full', signers[0] || 'กรรมการ']);
+    else pairs(signers.map(function (n) { return n || 'กรรมการ'; }), 'g');
   } else if (signers.length === 1) rows.push([['g full', signers[0] || 'ผู้มอบอำนาจ']]);
   else pairs(signers.map(function (n) { return n || 'ผู้มอบอำนาจ'; }), 'g');
   pairs(V.attorneys.map(function (a) { return a.name || 'ผู้รับมอบอำนาจ'; }), 'a');
@@ -776,6 +892,8 @@ function drawRun(r, into, state) {
     if (col && wa(col, 'val') && wa(col, 'val') !== 'auto') style += 'color:#' + wa(col, 'val') + ';';
     if (hl) style += 'background:' + (wa(hl, 'val') === 'yellow' ? '#ff0' : wa(hl, 'val')) + ';';
     if (spc) style += 'letter-spacing:' + pt(wa(spc, 'val')) + 'pt;';
+    var va = kid(rp, 'vertAlign'); if (va && wa(va, 'val') === 'superscript') style += 'vertical-align:super;font-size:.62em;';
+    var sz = kid(rp, 'sz'); if (sz && +wa(sz, 'val') !== 28) style += 'font-size:' + (+wa(sz, 'val') / 2) + 'pt;';
   }
   if (r.getAttribute('data-v')) cls.push('val');
   for (var c = r.firstChild; c; c = c.nextSibling) {
@@ -914,7 +1032,7 @@ function paintPreview() {
     var pg = document.createElement('div'); pg.className = 'pg doc'; pg.style.transform = 'scale(' + scale + ')';
     var bd = document.createElement('div'); bd.className = 'pg-body';
     els.forEach(function (e) { bd.appendChild(e); });
-    var ft = document.createElement('div'); ft.className = 'pg-foot'; ft.textContent = 'หน้า ' + (i + 1) + ' ของ ' + pages.length;
+    var ft = document.createElement('div'); ft.className = 'pg-foot'; ft.textContent = S.form === 'legacy' ? 'หน้า ' + (i + 1) + ' ของ ' + pages.length : '';   // the current forms have no page footer
     pg.appendChild(bd); pg.appendChild(ft); wrap.appendChild(pg); body.appendChild(wrap);
   });
   $('pvPages').textContent = 'ประมาณ ' + pages.length + ' หน้า';
@@ -928,7 +1046,14 @@ function refresh() {
   clearTimeout(pvTimer);
   if ($('app').dataset.view !== 'form') pvTimer = setTimeout(paintPreview, 120);
 }
-function refreshAll() { paintGrantor(); paintLists(); refresh(); }
+function paintForm() {
+  var f = formOf();
+  $('app').dataset.form = f;
+  document.querySelectorAll('#formSeg [data-form]').forEach(function (b) { b.classList.toggle('on', b.dataset.form === f); });
+  $('formName').textContent = E.FORMS[f].name;
+  $('clauseCount').textContent = f === 'legacy' ? '๘' : '๖';
+}
+function refreshAll() { paintForm(); paintGrantor(); paintLists(); paintExamples(); refresh(); }
 
 /* ── Export ──────────────────────────────────────────────────────────────── */
 function download(blob, name) {
@@ -942,8 +1067,8 @@ function exportDocx() {
   var r = E.build(D, S);
   if (r.leftover.length) { toast('มีเครื่องหมายค้างในเอกสาร: ' + r.leftover.join(' ')); return; }
   var go = function () {
-    S.attorneys.forEach(function (a) { remember(a.name, a.idNo); }); save();
-    JSZip.loadAsync(D.tpl, { base64: true }).then(function (zip) {
+    S.attorneys.forEach(function (a) { remember(a.name, a.idNo, a.nameEn); }); save();
+    JSZip.loadAsync(tplOf(), { base64: true }).then(function (zip) {
       zip.file('word/document.xml', r.xml);
       return zip.generateAsync({ type: 'blob', compression: 'DEFLATE', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
     }).then(function (b) { download(b, E.fileName(S)); toast('ดาวน์โหลด ' + E.fileName(S)); });
@@ -955,7 +1080,7 @@ function exportDocx() {
   else go();
 }
 function exportJson() {
-  var data = { tool: 'power-of-attorney', kind: 'litigation', version: 1, savedAt: new Date().toISOString(), state: S };
+  var data = { tool: 'power-of-attorney', kind: 'litigation', form: S.form, version: 2, savedAt: new Date().toISOString(), state: S };
   download(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), E.fileName(S).replace(/\.docx$/, '') + '.pwa.json');
 }
 /* A saved file, or what an AI returns: the MCP tool's input (English keys), or
@@ -967,7 +1092,7 @@ function openFile(text) {
   if (o && o.tool === 'power-of-attorney' && o.state) st = E.adoptState(o.state);
   else if (o && (o.grantor && o.grantor.type || o.matterFacts)) st = E.fromInput(o);
   else if (o && o.input && (o.input.grantor || o.input.matterFacts)) st = E.fromInput(o.input);
-  else if (o && (o.counterparty != null || o.cause != null || o.definedTerm != null || o.courts)) facts = true;
+  else if (o && (o.counterparty != null || o.cause != null || o.definedTerm != null || o.courts || o.counterpartyEn != null || o.causeEn != null)) facts = true;
   if (facts) { applyFacts(o); return; }
   if (!st) { toast('ไฟล์นี้ไม่ใช่ไฟล์ของเครื่องมือนี้'); return; }
   var apply = function () { S = st; save(); refreshAll(); toast('เปิดไฟล์แล้ว'); };
@@ -976,13 +1101,17 @@ function openFile(text) {
 function applyFacts(o) {
   var f = S.facts;
   if (o.counterparty != null) f.counterparty = o.counterparty;
+  if (o.counterpartyEn != null) f.counterpartyEn = o.counterpartyEn;
+  if (o.causeEn != null) f.causeEn = o.causeEn;
+  if (o.actionOverride != null) f.action = o.actionOverride;
+  if (o.actionOverrideEn != null) f.actionEn = o.actionOverrideEn;
   if (Array.isArray(o.courts) && o.courts.length) f.forums = o.courts.slice();
   if (Array.isArray(o.otherBodies)) f.bodies = o.otherBodies.slice();
   if (o.cause != null) f.cause = o.cause;
   if (o.definedTerm != null) f.term = o.definedTerm;
   if (o.narrativeOverride != null) f.claim = o.narrativeOverride; else f.claim = null;
   if (o.clause1CourtsOverride != null) f.court = o.clause1CourtsOverride; else f.court = null;
-  if (Array.isArray(o.extraClauses)) S.extraClauses = o.extraClauses.map(function (c) { return { after: Math.max(0, Math.min(8, parseInt(c.afterClause, 10) || 0)), text: c.text || '' }; });
+  if (Array.isArray(o.extraClauses)) S.extraClauses = o.extraClauses.map(function (c) { return { after: Math.max(0, Math.min(E.FORMS[formOf()].clauses.length, parseInt(c.afterClause, 10) || 0)), text: c.text || '', textEn: c.textEn || '' }; });
   save(); refreshAll(); toast('เติมเรื่องที่มอบอำนาจจาก JSON แล้ว — ตรวจทุกช่องก่อนส่งออก');
 }
 function dirty() { return !!(norm(S.facts.counterparty) || S.attorneys.some(function (a) { return norm(a.name); }) || norm(S.grantor.company.name) || S.grantor.persons.some(function (p) { return norm(p.name); })); }
@@ -990,6 +1119,7 @@ function dirty() { return !!(norm(S.facts.counterparty) || S.attorneys.some(func
 /* ── The AI brief ────────────────────────────────────────────────────────── */
 function aiPrompt() {
   var V = derived();
+  if (S.form !== 'legacy') return aiPromptNew(V);
   return [
     'You are drafting the case-specific parts of a Thai "หนังสือมอบอำนาจให้ฟ้องคดี" (power of attorney to sue) from a law firm\'s fixed template. Write in formal Thai legal drafting style. Reply with ONE JSON object only.',
     '',
@@ -1019,7 +1149,46 @@ function aiPrompt() {
   ].join('\n');
 }
 
+function aiPromptNew(V) {
+  var bi = S.form === 'thEn';
+  return [
+    'You are drafting the case-specific parts of a Thai "หนังสือมอบอำนาจให้ฟ้องคดี" (power of attorney to sue) from a law firm\'s fixed template' + (bi ? ', a Thai–English one' : '') + '. Write formal Thai legal drafting' + (bi ? ' and, for the English keys, formal legal English that matches the Thai' : '') + '. Reply with ONE JSON object only.',
+    '',
+    'The template reads (your parts in [brackets]; everything else is fixed and must not be repeated):',
+    '  "…ในการฟ้องร้องดำเนินคดีทั้งทางแพ่งและอาญากับ[counterparty] หรือบุคคลอื่นที่มีความเกี่ยวข้อง (“คู่กรณี”) ต่อศาลยุติธรรมที่มีเขตอำนาจ อันเนื่องมาจาก[cause] (“ข้อพิพาท”) ตลอดจนดำเนินการทางกฎหมายใด ๆ ที่เกี่ยวข้องกับและจำเป็น…"',
+    bi ? '  "…to institute and conduct both civil and criminal proceedings against [counterpartyEn], or any other persons concerned (the “Opposing Parties”), before the Courts of Justice having jurisdiction, arising from [causeEn] (the “Dispute”), and to take any related and necessary legal action…"' : null,
+    'Fixed powers 1–6: ' + E.CLAUSES_NEW.map(function (c, i) { return (i + 1) + ') ' + c; }).join(' '),
+    'The cause is always called (“ข้อพิพาท”); there is no court to name and no defined term to choose.',
+    '',
+    'JSON keys:',
+    '  "counterparty": who will be sued, exactly as named in the documents; several joined with " และ " (or " และ/หรือ ").',
+    '  "cause": what gives rise to the claim, reading on from "อันเนื่องมาจาก" — the legal relationship, its document and date, then the breach (e.g. "การผิดนัดชำระราคาสินค้าตามใบสั่งซื้อสินค้าเลขที่ (*) ที่คู่กรณีสั่งซื้อจากผู้มอบอำนาจ", "การผิดสัญญาเช่าซื้อรถยนต์ … ตามคำพิพากษาศาล… คดีหมายเลขดำที่ … คดีหมายเลขแดงที่ …"). No full stop.',
+    bi ? '  "counterpartyEn": the same parties in English (registered English names where they exist).' : null,
+    bi ? '  "causeEn": the cause in English, reading on from "arising from" (e.g. "a default in paying for goods ordered from the Principal under purchase order no. (*)").' : null,
+    '  "extraClauses": [] — or [{ "afterClause": 0-6, "text": "ให้มีอำนาจ…"' + (bi ? ', "textEn": "To …"' : '') + ' }] only for a power the six fixed powers do not give.',
+    'Never invent a name, ID number, date, amount or case number that is not in the facts — write "(*)" where a detail is missing.',
+    '',
+    'Facts so far (from the form):',
+    '  grantor: ' + (S.grantor.type === 'company' ? (V.companyName || '(not given)') : V.grantorSigners.filter(Boolean).join(', ') || '(not given)'),
+    '  counterparty: ' + (norm(S.facts.counterparty) || '(not given)'),
+    '  cause: ' + (norm(S.facts.cause) || '(not given)'),
+    '',
+    'Facts of the matter:',
+    '  <paste the facts, the contract or the complaint here>'
+  ].filter(function (l) { return l !== null; }).join('\n');
+}
+
 /* ── Examples (fictional) ────────────────────────────────────────────────── */
+var EXAMPLES_NEW = [
+  { t: 'ผิดนัดชำระค่าสินค้า', f: { counterparty: 'บริษัท ตัวอย่างการค้า จำกัด และบริษัท ทดลองพัฒนา จำกัด', counterpartyEn: 'Example Trading Co., Ltd. and Thodlong Phatthana Co., Ltd.',
+      cause: 'การผิดนัดชำระราคาสินค้าตามใบสั่งซื้อสินค้าเลขที่ (*) ที่คู่กรณีสั่งซื้อจากผู้มอบอำนาจ', causeEn: 'a default in paying for goods ordered from the Principal under purchase order no. (*)' } },
+  { t: 'ผิดสัญญาเช่าซื้อ + ชดใช้ตามคำพิพากษา', f: { counterparty: 'บริษัท ตัวอย่างลิสซิ่ง จำกัด (มหาชน)', counterpartyEn: 'Example Leasing Public Company Limited',
+      cause: 'การผิดสัญญาเช่าซื้อรถยนต์ หมายเลขตัวถัง (*) ซึ่งเป็นสาเหตุให้ผู้มอบอำนาจต้องชดใช้ค่าเสียหายต่อบุคคลภายนอก ตามคำพิพากษาศาลแพ่ง คดีหมายเลขดำที่ (*) คดีหมายเลขแดงที่ (*)',
+      causeEn: 'a breach of the hire-purchase agreement for a motor vehicle, chassis no. (*), as a result of which the Principal was held liable to a third party under the judgment of the Civil Court in Black Case No. (*), Red Case No. (*)' } },
+  { t: 'ละเมิด — ทรัพย์สินเสียหาย', f: { counterparty: 'นายสมมุติ ทดลองขับ', counterpartyEn: 'Mr. Sommut Thodlongkhap',
+      cause: 'การที่คู่กรณีขับรถยนต์โดยประมาทเป็นเหตุให้ชนทรัพย์สินของผู้มอบอำนาจเสียหาย เมื่อวันที่ 5 มกราคม 2569 ซึ่งถือเป็นการทำละเมิดต่อผู้มอบอำนาจ',
+      causeEn: 'the Opposing Party\'s negligent driving on 5 January 2026, which damaged the Principal\'s property and constitutes a wrongful act against the Principal' } }
+];
 var EXAMPLES = [
   { t: 'ผิดสัญญา — ไม่ชำระราคา', f: { counterparty: 'บริษัท ตัวอย่างการค้า จำกัด', forums: ['ศาลแพ่ง'], bodies: [],
       cause: 'นิติสัมพันธ์ตามสัญญาซื้อขายสินค้า ระหว่างผู้มอบอำนาจและคู่กรณี ลงวันที่ 1 มีนาคม 2569 หากแต่คู่กรณีผิดสัญญาไม่ชำระราคาสินค้าดังกล่าว', term: 'การผิดสัญญา' } },
@@ -1032,11 +1201,13 @@ var EXAMPLES = [
       cause: 'การที่คู่กรณีผิดนัดไม่ชำระราคาสินค้าตามใบสั่งซื้อสินค้าเลขที่ PO-0001 ถึง PO-0006 รวมเป็นเงินทั้งสิ้น 250,000 บาท (สองแสนห้าหมื่นบาทถ้วน) พร้อมดอกเบี้ยในอัตราที่กฎหมายกำหนด', term: 'การผิดนัดชำระหนี้' } }
 ];
 var SNIPPETS = [
-  { t: 'ร้องเรียนหน่วยงานกำกับ', x: 'ให้มีอำนาจในการยื่นคำร้อง คำขอ ข้อร้องเรียน หนังสือ หรือเอกสารใด ๆ ต่อ(*) และ/หรือ หน่วยงานของรัฐที่เกี่ยวข้องให้ดำเนินการใด ๆ กับคู่กรณี ตามที่กฎหมาย อำนาจ หน้าที่ และ/หรือ วัตถุประสงค์ในการจัดตั้งของหน่วยงานนั้น ๆ กำหนดให้ทำได้' },
+  { t: 'ร้องเรียนหน่วยงานกำกับ', x: 'ให้มีอำนาจในการยื่นคำร้อง คำขอ ข้อร้องเรียน หนังสือ หรือเอกสารใด ๆ ต่อ(*) และ/หรือ หน่วยงานของรัฐที่เกี่ยวข้องให้ดำเนินการใด ๆ กับคู่กรณี ตามที่กฎหมาย อำนาจ หน้าที่ และ/หรือ วัตถุประสงค์ในการจัดตั้งของหน่วยงานนั้น ๆ กำหนดให้ทำได้',
+    en: 'To file petitions, requests, complaints, letters or any documents with (*) and/or any relevant government agency for any action against the Opposing Parties that its laws, powers, duties and/or objects permit.' },
   { t: 'อำนาจอื่นที่จำเป็น', x: 'ให้มีอำนาจอื่นใดเท่าที่จำเป็น สมควร และเกี่ยวข้องกับการดำเนินการต่าง ๆ ที่ได้รับมอบหมายข้างต้น' }
 ];
+function examples() { return S.form === 'legacy' ? EXAMPLES : EXAMPLES_NEW; }
 function paintExamples() {
-  $('examples').innerHTML = EXAMPLES.map(function (e, i) {
+  $('examples').innerHTML = examples().map(function (e, i) {
     return '<p><button class="chip" data-ex="' + i + '">' + esc(e.t) + '</button> ' + esc(e.f.counterparty) + ' — ' + esc(e.f.cause.slice(0, 90)) + '…</p>';
   }).join('') + '<p class="note">ชื่อและเลขทั้งหมดในตัวอย่างเป็นข้อมูลสมมุติ</p>';
   $('clauseSnips').innerHTML = '<span class="note" style="margin:3px 4px 0 0">ข้อสำเร็จรูป (ใส่ท้ายรายการ):</span>' + SNIPPETS.map(function (s, i) {
@@ -1044,14 +1215,16 @@ function paintExamples() {
 }
 function loadExample() {
   var go = function () {
-    S = E.blankState();
+    var form = S.form;
+    S = E.blankState(); S.form = form;
     S.matter = 'ตัวอย่าง';
-    S.place = 'เลขที่ 99 ถนนสมมุติ แขวงตัวอย่าง เขตทดลอง กรุงเทพมหานคร 10000';
+    if (form === 'legacy') S.place = 'เลขที่ 99 ถนนสมมุติ แขวงตัวอย่าง เขตทดลอง กรุงเทพมหานคร 10000';
     var n = new Date(); S.dateIso = n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0');
-    S.grantor.company = Object.assign(S.grantor.company, { name: 'บริษัท ตัวอย่างอุตสาหกรรม จำกัด', regNo: '0105500000000',
-      address: '99 ถนนสมมุติ แขวงตัวอย่าง เขตทดลอง กรุงเทพมหานคร', directors: [{ name: 'นายสมมุติ ผู้บริหาร', idNo: '' }] });
-    S.attorneys = [{ name: 'นายทนาย หนึ่ง', idNo: '' }, { name: 'นางสาวทนาย สอง', idNo: '' }, { name: 'นายทนาย สาม', idNo: '' }];
-    S.facts = Object.assign(S.facts, EXAMPLES[0].f, { claim: null, court: null });
+    S.grantor.company = Object.assign(S.grantor.company, { name: 'บริษัท ตัวอย่างอุตสาหกรรม จำกัด', regNo: '0105500000000', nameEn: 'Example Industries Co., Ltd.',
+      address: '99 ถนนสมมุติ แขวงตัวอย่าง เขตทดลอง กรุงเทพมหานคร', addressEn: '99 Sommut Road, Tualyang, Thodlong, Bangkok',
+      directors: [{ name: 'นายสมมุติ ผู้บริหาร', idNo: '', nameEn: 'Mr. Sommut Phuborihan' }] });
+    S.attorneys = [{ name: 'นายทนาย หนึ่ง', idNo: '', nameEn: 'Mr. Thanai Nueng' }, { name: 'นางสาวทนาย สอง', idNo: '', nameEn: 'Miss Thanai Song' }, { name: 'นายทนาย สาม', idNo: '', nameEn: 'Mr. Thanai Sam' }];
+    S.facts = Object.assign(S.facts, examples()[0].f, { claim: null, court: null });
     S.witnesses = ['', ''];
     save(); refreshAll();
   };
@@ -1079,6 +1252,8 @@ document.addEventListener('input', function (e) {
       var hit = people().filter(function (p) { return norm(p.name) === norm(v); })[0];
       var idp = d.p.replace(/name$/, 'idNo');
       if (hit && hit.idNo && !norm(getPath(idp))) { setPath(idp, hit.idNo); var idEl = document.querySelector('[data-p="' + idp + '"]'); if (idEl) idEl.value = hit.idNo; }
+      var enp = d.p.replace(/name$/, 'nameEn');
+      if (hit && hit.nameEn && !norm(getPath(enp))) { setPath(enp, hit.nameEn); var enEl = document.querySelector('[data-p="' + enp + '"]'); if (enEl) enEl.value = hit.nameEn; }
     }
   } else if (d.ov) setOv(d.ov, el.value);
   else return;
@@ -1087,12 +1262,19 @@ document.addEventListener('input', function (e) {
 document.addEventListener('change', function (e) {
   var el = e.target, d = el.dataset;
   if (d.cb) { setPath(d.cb, el.checked); save(); if (d.cb === 'grantor.company.directorIds') paintGrantor(); refresh(); }
+  if (el.id === 'sigNewPage') { S.sigNewPage = el.checked; save(); refresh(); }
   if (d.p && el.tagName === 'SELECT') { setPath(d.p, el.value); save(); refresh(); }
   if (el.id === 'showVals') $('pv').classList.toggle('show-v', el.checked);
 });
 function listOf(n) {
   return { att: S.attorneys, dir: S.grantor.company.directors, person: S.grantor.persons, forum: S.facts.forums,
            body: S.facts.bodies, wit: S.witnesses, clause: S.extraClauses }[n];
+}
+/* Witnesses keep their English names alongside: moving or removing one moves its pair. */
+function pairOf(n) {
+  if (n !== 'wit') return null;
+  while (S.witnessesEn.length < S.witnesses.length) S.witnessesEn.push('');
+  return S.witnessesEn;
 }
 document.addEventListener('click', function (e) {
   var t = e.target.closest('button,[data-reset]'); if (!t) return;
@@ -1104,16 +1286,26 @@ document.addEventListener('click', function (e) {
     refresh(); return;
   }
   if (d.gt) { S.grantor.type = d.gt; save(); refreshAll(); return; }
+  if (d.form && t.closest('#formSeg')) {
+    if (S.form === d.form) return;
+    S.form = d.form;
+    S.extraClauses.forEach(function (c) { c.after = Math.min(c.after, E.FORMS[d.form].clauses.length); });
+    if (d.form === 'legacy' && S.place == null) S.place = '';
+    if (d.form !== 'legacy' && S.place === '') S.place = null;
+    save(); refreshAll(); toast('ใช้' + E.FORMS[d.form].name); return;
+  }
   if (d.rm) {
-    var p = d.rm.split(':'), L = listOf(p[0]);
-    L.splice(+p[1], 1);
+    var p = d.rm.split(':'), L = listOf(p[0]), P = pairOf(p[0]);
+    L.splice(+p[1], 1); if (P) P.splice(+p[1], 1);
     if (!L.length && (p[0] === 'att' || p[0] === 'dir' || p[0] === 'person' || p[0] === 'forum')) L.push(p[0] === 'forum' ? '' : p[0] === 'att' ? { name: '', idNo: '' } : p[0] === 'dir' ? { name: '', idNo: '' } : E.blankState().grantor.persons[0]);
     save(); refreshAll(); return;
   }
   if (d.mv) {
     var q = d.mv.split(':'), M = listOf(q[0]), i = +q[1], j = i + (+q[2]);
     if (j < 0 || j >= M.length) return;
-    var x = M[i]; M[i] = M[j]; M[j] = x; save(); refreshAll(); return;
+    var x = M[i]; M[i] = M[j]; M[j] = x;
+    var Q = pairOf(q[0]); if (Q) { var y = Q[i]; Q[i] = Q[j]; Q[j] = y; }
+    save(); refreshAll(); return;
   }
   if (d.add) {
     if (d.add === 'dir') S.grantor.company.directors.push({ name: '', idNo: '' });
@@ -1125,18 +1317,18 @@ document.addEventListener('click', function (e) {
   if (d.cmv) {
     // move an added clause one slot up or down past a fixed clause
     var r = d.cmv.split(':'), c = S.extraClauses[+r[0]];
-    c.after = Math.max(0, Math.min(E.CLAUSES.length, c.after + (+r[1]))); save(); refreshAll(); return;
+    c.after = Math.max(0, Math.min(E.FORMS[formOf()].clauses.length, c.after + (+r[1]))); save(); refreshAll(); return;
   }
   if (d.term != null) { S.facts.term = d.term; save(); refresh(); return; }
   if (d.ex != null) {
-    var ex = EXAMPLES[+d.ex];
+    var ex = examples()[+d.ex];
     var put = function () { Object.assign(S.facts, JSON.parse(JSON.stringify(ex.f)), { claim: null, court: null });
       if (ex.x) S.extraClauses = S.extraClauses.concat(ex.x.map(function (c) { return Object.assign({}, c); }));
       save(); refreshAll(); toast('ใส่ตัวอย่างแล้ว — แก้ให้ตรงกับเรื่องจริง'); };
     if (norm(S.facts.counterparty) || norm(S.facts.cause)) confirmDlg('แทนที่เรื่องที่กรอกอยู่?', 'คู่กรณี ศาล เหตุ และชื่อเรียกจะถูกแทนด้วยตัวอย่าง', 'แทนที่', put); else put();
     return;
   }
-  if (d.snip != null) { S.extraClauses.push({ after: E.CLAUSES.length - 1, text: SNIPPETS[+d.snip].x }); save(); refreshAll(); return; }
+  if (d.snip != null) { var sn = SNIPPETS[+d.snip]; S.extraClauses.push({ after: E.FORMS[formOf()].clauses.length - 1, text: sn.x, textEn: S.form === 'thEn' ? (sn.en || '') : '' }); save(); refreshAll(); return; }
   switch (t.id) {
     case 'attAdd': S.attorneys.push({ name: '', idNo: '' }); save(); refreshAll(); break;
     case 'forumAdd': S.facts.forums.push(''); save(); refreshAll(); break;
@@ -1169,7 +1361,6 @@ window.addEventListener('resize', function () { clearTimeout(pvTimer); pvTimer =
 if (/[?&]debug\b/.test(location.search)) window.__pwa = { S: function () { return S; }, E: E, D: D, build: function () { return E.build(D, S); } };
 load();
 $('pv').classList.add('show-v');
-paintExamples();
 refreshAll();
 })();
 </script>
